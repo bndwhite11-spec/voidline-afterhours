@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="48" fill="#9d80ff"/><path d="M35 40h38l23 64 23-64h38l-53 112H88L35 40Z" fill="#17131f"/><path d="m31 113 25-9 16 33-25 10z" fill="#17131f" opacity=".5"/></svg>
+<svg class="ve-mark-svg " viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VOIDLINE">
+      <rect width="240" height="240" rx="52" fill="#0d1016"/><defs>
+        <linearGradient id="vl-icon-chrome" x1=".13" y1="0" x2=".85" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#f0f1f5"/><stop offset=".19" stop-color="#8b91a0"/><stop offset=".31" stop-color="#e0e2e9"/><stop offset=".47" stop-color="#454b5b"/><stop offset=".61" stop-color="#a8a3b7"/><stop offset=".8" stop-color="#525461"/><stop offset="1" stop-color="#c9c9d6"/></linearGradient>
+        <linearGradient id="vl-icon-edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8f8ff"/><stop offset=".34" stop-color="#686d7d"/><stop offset=".7" stop-color="#383d4a"/><stop offset="1" stop-color="#b4a9c4"/></linearGradient>
+        <linearGradient id="vl-icon-dark" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#acafbc"/><stop offset=".35" stop-color="#363b48"/><stop offset=".7" stop-color="#747384"/><stop offset="1" stop-color="#222733"/></linearGradient>
+      </defs>
+      <g class="ve-mark-left">
+        <path d="m112 22 28 16-64 38v88l36 21v35l-70-41V62z" fill="#11151e" transform="translate(3 4)"/>
+        <path d="m112 18 28 16-64 38v88l36 21v35l-70-41V58z" fill="url(#vl-icon-chrome)" stroke="url(#vl-icon-edge)" stroke-width="1.1"/>
+        <path d="m49 62 62-36M49 65v105l55 33M77 76v79" fill="none" stroke="#e0e4ef" stroke-opacity=".42" stroke-width=".7"/>
+        <path d="m43 58 32 17M76 160l-33 15M112 181l-10 6v20" fill="none" stroke="#171b28" stroke-width="1"/>
+      </g>
+      <g class="ve-mark-right">
+        <path d="m128 45 70 41v89l-70 41v-35l36-21V99l-36-21z" fill="#11151e" transform="translate(3 4)"/>
+        <path d="m128 41 70 41v89l-70 41v-35l36-21V95l-36-21z" fill="url(#vl-icon-dark)" stroke="url(#vl-icon-edge)" stroke-width="1.1"/>
+        <path d="m136 49 55 32v85l-55 32M164 98v54" fill="none" stroke="#e5e3ef" stroke-opacity=".44" stroke-width=".7"/>
+        <path d="m198 82-34 13M164 156l34 15M128 177l10 6v20" fill="none" stroke="#151926" stroke-width="1"/>
+      </g>
+      <g class="ve-mark-shard">
+        <path d="m106 102 28-16v51l-28 16z" fill="url(#vl-icon-chrome)" stroke="url(#vl-icon-edge)" stroke-width=".8"/>
+        <path d="m110 105 19-11v40l-19 11" fill="none" stroke="#d6c8ed" stroke-width=".6" stroke-opacity=".62"/>
+      </g>
+    </svg>
