@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14151b">
+  <meta name="description" content="VOIDLINE. Your people. Your frequency. A local chat playground with channels and outrageously elite badges.">
+  <title>VOIDLINE — Your people. Your frequency.</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-logo" viewBox="0 0 32 32"><path d="M4 5h8l4 11 4-11h8L17 28h-3L4 5Z" fill="currentColor"/><path d="m4 19 5-2 3 6-5 2z" fill="currentColor" opacity=".45"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="m15 3 6 6-3 1-4 4v4l-3-3-6 6m0-16 3 3h4l4-4 1-3"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 13h5l1 3h4l1-3h5"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 1-2 3m0 3h.01"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3m-4 0h8"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="4" height="9" rx="2"/><rect x="17" y="12" width="4" height="9" rx="2"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3z"/><circle cx="12" cy="11" r="3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1 3 4 3 4-3 4-3M8 9h.01M16 9h.01"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><path d="M3 8h18v4H3zm2 4v9h14v-9M12 8v13"/><path d="M12 8C3 8 5 1 9 3c2 1 3 5 3 5Zm0 0c9 0 7-7 3-5-2 1-3 5-3 5Z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24"><path d="m3 6 5 4 4-6 4 6 5-4-3 13H6L3 6Z"/><path d="M7 16h10"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"/></symbol>
+  </defs></svg>
+  <header class="titlebar">
+    <a class="wordmark" href="./" aria-label="VOIDLINE home"><svg class="icon logo"><use href="#i-logo"/></svg>VOIDLINE<span class="wordmark-dot">®</span></a>
+    <div class="titlebar-center"><span class="tiny-orbit"></span>Your people. Your frequency.</div>
+    <div class="titlebar-actions"><span class="local-tag"><i></i> LOCAL DEMO</span><button class="download-top" data-action="download"><svg class="icon"><use href="#i-download"/></svg><span>Get the app</span></button></div>
+  </header>
+  <div class="app-shell">
+    <nav class="server-rail" aria-label="Servers">
+      <button class="server-home" data-action="inbox" aria-label="Direct messages" title="Direct messages"><svg class="icon"><use href="#i-logo"/></svg></button>
+      <span class="rail-divider"></span>
+      <div id="server-list">
+        <button class="server-icon afterhours is-active" data-server="afterhours" aria-label="Afterhours server" title="Afterhours"><span class="server-star">✳</span><i class="server-notification"></i></button>
+        <button class="server-icon arcade" data-server="arcade" aria-label="Arcade server" title="Arcade"><span>⌘</span></button>
+        <button class="server-icon studio" data-server="studio" aria-label="Studio server" title="Studio"><span>W.</span></button>
+      </div>
+      <button class="server-icon add-server" data-action="add-server" aria-label="Create a local server" title="Create a server"><svg class="icon"><use href="#i-plus"/></svg></button>
+      <span class="rail-divider"></span>
+      <button class="rail-network" data-action="network" aria-label="Open network demo" title="Network demo"><svg class="icon"><use href="#i-globe"/></svg></button>
+      <div class="rail-bottom"><span class="rail-signal"><b></b><b></b><b></b><b></b></span><span>v.01</span></div>
+    </nav>
+    <aside class="channel-sidebar" aria-label="Channels">
+      <button class="server-heading" data-action="server-menu"><span id="server-name">Afterhours<span class="verified">✦</span></span><svg class="icon"><use href="#i-down"/></svg></button>
+      <div class="server-art" aria-hidden="true"><div class="art-grid"></div><span class="art-star one">✧</span><span class="art-star two">✦</span><div class="art-orbit"></div><div class="art-planet"></div><span class="art-text">STAY A LITTLE<br><b>LONGER.</b></span><span class="art-index">EST. IN THE VOID / 2026</span></div>
+      <div class="server-intro"><span class="server-intro-title">A home for the chronically online.</span><span class="server-stats"><i></i><span id="online-count">6</span> in the preview <span class="stat-dot">•</span> Level 3 community</span></div>
+      <button class="invite-button" data-action="invite"><svg class="icon"><use href="#i-users"/></svg>Invite your people<svg class="icon"><use href="#i-plus"/></svg></button>
+      <div class="channels-scroll"><div id="channel-list"></div></div>
+      <button class="upgrade-card" data-action="badges"><span class="upgrade-icon"><svg class="icon"><use href="#i-crown"/></svg></span><span><b>Built different?</b><small>There's a badge for that.</small></span><span class="upgrade-arrow">↗</span></button>
+      <div class="self-profile"><button class="self-identity" data-action="profile"><span id="self-avatar" class="avatar self-avatar">Y<i class="presence"></i></span><span><b id="self-name">you</b><small id="self-status">In my own lane</small></span></button><div class="self-controls"><button class="icon-button" data-action="mute" aria-label="Toggle microphone mute" title="Toggle microphone"><svg class="icon"><use href="#i-mic"/></svg></button><button class="icon-button" data-action="deafen" aria-label="Toggle deafen" title="Toggle deafen"><svg class="icon"><use href="#i-headphones"/></svg></button><button class="icon-button" data-action="profile" aria-label="Profile settings" title="Profile settings"><svg class="icon"><use href="#i-settings"/></svg></button></div></div>
+    </aside>
+    <main class="conversation">
+      <header class="channel-header">
+        <button class="icon-button mobile-menu" data-action="menu" aria-label="Open channels"><svg class="icon"><use href="#i-menu"/></svg></button>
+        <span class="header-hash">#</span><h1 id="channel-title">general</h1><span class="header-divider"></span><p id="channel-description">Good company. Questionable sleep schedules.</p>
+        <div class="header-actions"><button class="icon-button" data-action="pinned" aria-label="Pinned messages" title="Pinned messages"><svg class="icon"><use href="#i-pin"/></svg></button><button class="icon-button members-toggle" data-action="members" aria-label="Toggle members" title="Toggle members"><svg class="icon"><use href="#i-users"/></svg></button><label class="search-box"><input id="search-input" type="search" placeholder="Search" aria-label="Search messages"><svg class="icon"><use href="#i-search"/></svg><kbd>⌘ K</kbd></label><button class="icon-button inbox-top" data-action="inbox" aria-label="Open inbox" title="Inbox"><svg class="icon"><use href="#i-inbox"/></svg></button><button class="icon-button help-top" data-action="help" aria-label="Help" title="Help"><svg class="icon"><use href="#i-help"/></svg></button></div>
+      </header>
+      <div class="channel-notice"><span>✦</span><p>A little less algorithm. A little more connection.</p><button data-action="help">Welcome to VOIDLINE <span>↗</span></button></div>
+      <div id="chat-feed" class="chat-feed" role="log" aria-label="Channel messages" aria-live="polite"></div>
+      <div class="composer-wrap"><form id="message-form" class="composer"><button type="button" class="attach-button" data-action="attachment" aria-label="Attach a local file" title="Attach a file"><svg class="icon"><use href="#i-plus"/></svg></button><textarea id="message-input" rows="1" maxlength="4000" aria-label="Message channel" placeholder="Message #general"></textarea><div class="composer-actions"><button type="button" class="icon-button gift-button" data-action="gift" aria-label="Open badge collection" title="Gift yourself a badge"><svg class="icon"><use href="#i-gift"/></svg></button><button type="button" class="icon-button" data-action="emoji" aria-label="Add an emoji" title="Add an emoji"><svg class="icon"><use href="#i-smile"/></svg></button><button id="send-btn" type="submit" aria-label="Send message" title="Send message"><svg class="icon"><use href="#i-arrow"/></svg></button></div></form><div class="composer-caption"><span><i></i>Messages stay on this device</span><span><kbd>Enter</kbd> to send <span class="caption-dot">·</span> <kbd>Shift + Enter</kbd> for a new line</span></div></div>
+    </main>
+    <aside class="members-sidebar" aria-label="Community preview members">
+      <div class="members-heading"><span>THE USUAL SUSPECTS</span><button class="icon-button" data-action="members" aria-label="Close members" title="Close members">×</button></div>
+      
+      <div id="member-list"></div>
+      <div class="frequency-card"><div class="frequency-top"><span class="live-dot"></span>TRANSMITTING GOOD VIBES<span>↗</span></div><div class="frequency-orbit"><div class="freq-planet"></div><div class="freq-ring"></div><span>✦</span></div><div class="frequency-copy"><span>FIND YOUR</span><b>FREQUENCY.</b><p>Your corner of the internet.<br>A little louder. A lot more you.</p></div><button data-action="invite">Bring a friend<svg class="icon"><use href="#i-arrow"/></svg></button></div>
+      <button class="pro-promo" data-action="badges"><span class="pro-eyebrow"><svg class="icon"><use href="#i-spark"/></svg>UNREASONABLY ELITE</span><span class="pro-title">LARP<br>PRO MAX<span>✦</span></span><span class="pro-bottom">Zero qualifications required.<span>↗</span></span></button>
+      <div class="member-footer"><svg class="icon"><use href="#i-shield"/></svg>Your space. Your rules.<button data-action="network" aria-label="Network demo details">ⓘ</button></div>
+    </aside>
+  </div>
+  <button class="mobile-overlay" data-action="menu" aria-label="Close channel navigation"></button>
+  <dialog id="app-modal" aria-label="VOIDLINE dialog"><button id="modal-close" aria-label="Close dialog">×</button><div id="modal-content"></div></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
