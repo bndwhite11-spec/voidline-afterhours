@@ -27,13 +27,16 @@ Local conversations do not deliver messages to another person.
 Open tabs in the same browser/origin synchronize saved message changes.
 
 Messages, identity, settings, artifacts, and contacts save in browser storage.
-Each channel retains up to 500 messages. Images and voice notes are limited
+History is retained without a destructive message-count cap. The feed and
+threads load in pages of 100; Load older and search reach earlier content. Images and voice notes are limited
 to 2 MB each and the browser's available storage. Drafts last for the session.
 Clearing browser data clears your archive. A separate offline file/browser
 may use separate storage. Export your JSON archive in Settings to keep it.
 Import merges messages and preserves existing message records by ID.
-The v1 storage key remains in use to retain your previous VOIDLINE data;
-a pre-upgrade backup is attempted when storage space permits.
+A versioned, per-tab operation journal now records local changes. The old v1
+archive remains a migration/recovery source. Independent changes merge by
+entity field. Failed writes retain input and offer Retry and recovery export;
+export recovery before closing the tab if the browser cannot save.
 
 The client performs no IP lookup or covert tracking. The hosted edition uses
 normal hosting and authentication traffic. The offline app needs no network.
@@ -58,9 +61,35 @@ JavaScript syntax and behavioral VM checks cover migration, local messaging,
 threads, reactions, permissions, drafts, deletion, storage synchronization,
 conversations, settings, artifact and profile contracts. These checks do not
 replace browser layout/accessibility/media-device testing.
-To run the 21 checks with Node.js (tested on Node 24):
-node tests/voidline-v2-test.cjs
-node tests/voidline-modules-test.cjs
-node tests/voidline-regressions-test.cjs
+To run the checks with Node.js (tested on Node 24):
+node tests/run.cjs
+node backend/test.mjs
 
 An independent communication client, designed for the hours between days.
+
+RELIABILITY EDITION
+Client reading colors are independent from profile identity colors. Avatar
+images support a circular crop/focal point and PNG/JPEG/WebP up to 512 KB.
+Messages are typically 15 px; secondary functional labels are at least12 px.
+Returning channels preserve reading positions; background updates keep the
+thread composer and its caret and do not replace unrelated audio elements.
+Search is globally newest-first before limiting, supports in:/from:/has:/
+before:/after: filters, and targets exact retained replies.
+Imports show a preview, validate the complete merge, and commit atomically.
+Community/channel/conversation capacity failures leave the archive unchanged.
+Recovery JSON can be imported through the same preview.
+
+BACKEND SOURCE / NOT A LIVE SERVICE
+worker/index.mjs and backend/schema.sql implement a text-chat API with platform
+identity, server-enforced membership, invites, durable acknowledgments,
+idempotency and paginated history/catch-up. SQLite contract tests use synthetic
+identities. It is not wired into the static client or deployed. See
+backend/README.txt for the missing supported D1 binding/migration/build steps.
+The hosted Site remains owner-private. An authorized sharing change and two
+independent browser accounts are needed for real two-user verification.
+The current client still does not send local messages to another person.
+
+VALIDATION LIMITS
+Client tests use a DOM harness, not a browser renderer. Pointer appearance,
+mobile keyboard, 200% zoom, native microphone/image decoding, and screenshots
+remain unverified in this execution environment. No frame-rate claim is made.

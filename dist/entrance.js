@@ -1,12 +1,10 @@
 (() => {
   'use strict';
-
   const SEEN_KEY = 'voidline.entry.v2';
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-  let sequence = null;
-  let ready = false;
-  let serial = 0;
-  let welcomeTimer;
+  const fallbackMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const motion = () => window.VoidMotion?.enabled() ?? (!fallbackMedia?.matches && !document.body.classList.contains('reduce-motion'));
+  const times = window.VoidMotion?.durations || {first:2200,returning:200,entryRevealAt:1600,entryArt:1750,reveal:560,revealFade:320,revealSafety:160,welcome:750,readinessFallback:1000};
+  let sequence = null, ready = false, serial = 0, welcomeTimer;
 
   // This split aperture is VOIDLINE's original mark. Prefixing its gradient IDs
   // keeps it reusable in the client without duplicate SVG definitions.
@@ -44,80 +42,160 @@
   function markSeen() {
     try { localStorage.setItem(SEEN_KEY, '1'); } catch (_) {}
   }
-  function schedule(run, delay) {
-    const id = setTimeout(run, delay);
-    sequence?.timers.push(id);
+  function schedule(callback, delay) {
+    const active = sequence;
+    const id = setTimeout(() => { if (sequence === active) callback(); }, delay);
+    active?.timers.push(id);
     return id;
   }
-  function announceWelcome() {
-    document.querySelector('.ve-welcome')?.remove();
+  function clearWelcome() {
     clearTimeout(welcomeTimer);
-    if (reduced?.matches) return;
+    document.querySelector('.ve-welcome')?.remove();
+  }
+  function announceWelcome() {
+    clearWelcome();
+    if (!motion()) return;
     const note = document.createElement('div');
     note.className = 've-welcome';
     note.setAttribute('role', 'status');
     note.innerHTML = '<span class="ve-welcome-rule"></span><span>YOU’RE IN.</span><small>WELCOME TO AFTERHOURS</small>';
     document.body.append(note);
-    welcomeTimer = setTimeout(() => note.remove(), 1250);
+    welcomeTimer = setTimeout(() => note.remove(), times.welcome);
   }
-  function cleanClasses() {
-    document.body.classList.remove('ve-entering', 've-client-reveal');
+  function lockBackground(active) {
+    // Preserve prior inert state; no client control or shortcut should compete
+    // with the one-button entrance. New sprite nodes are not interactive.
+    for (const node of document.body.children) {
+      if (node === active.node || ['SCRIPT','STYLE','LINK'].includes(node.tagName)) continue;
+      active.background.push([node, node.inert, node.hasAttribute('inert')]);
+      node.inert = true;
+      node.setAttribute('inert', '');
+    }
   }
-  function finish({ seen = true, welcome = false, restoreFocus = true } = {}) {
+  function unlockBackground(active) {
+    active.background.forEach(([node, value, hadAttribute]) => {
+      node.inert = value;
+      if (hadAttribute) node.setAttribute('inert', '');
+      else node.removeAttribute('inert');
+    });
+  }
+  function finish({seen=true,welcome=false,restoreFocus=true} = {}) {
     const active = sequence;
     sequence = null;
-    if (active) {
-      active.timers.forEach(clearTimeout);
-      const wasFocused = active.node.contains(document.activeElement);
-      active.node.remove();
-      if (restoreFocus && wasFocused && active.previousFocus?.isConnected && active.previousFocus !== document.body) {
-        active.previousFocus.focus({ preventScroll: true });
-      }
-    }
-    cleanClasses();
+    if (!active) return;
+    active.timers.forEach(clearTimeout);
+    active.cleanup.forEach(clean => clean());
+    const wasFocused = active.node.contains(document.activeElement);
+    unlockBackground(active);
+    active.node.remove();
+    document.body.classList.remove('ve-entering', 've-client-reveal');
+    if (restoreFocus && wasFocused && active.previousFocus?.isConnected && active.previousFocus !== document.body && !active.previousFocus.inert) active.previousFocus.focus({preventScroll:true});
     if (seen) markSeen();
     if (welcome) announceWelcome();
   }
-  function phase(label, index) {
+  function phase(label,index) {
     if (!sequence) return;
-    const text = sequence.node.querySelector('.ve-phase-name');
-    if (text) text.textContent = label;
+    sequence.node.querySelector('.ve-phase-name').textContent = label;
     sequence.node.dataset.phase = String(index);
   }
-  function run(short = false) {
-    if (!sequence) return;
-    sequence.timers.forEach(clearTimeout);
-    sequence.timers = [];
-    if (reduced?.matches) return finish();
+  const milliseconds = value => {
+    const text = String(value || '').trim();
+    return text.endsWith('ms') ? parseFloat(text) || 0 : (parseFloat(text) || 0)*1000;
+  };
+  function listen(active,target,type,handler) {
+    target.addEventListener(type,handler,true);
+    active.cleanup.push(() => target.removeEventListener(type,handler,true));
+  }
+  function beginReveal() {
+    const active = sequence;
+    if (!active) return;
+    if (!motion()) return finish();
+    phase('IV. AFTERHOURS',4);
+    active.revealing = true;
+    active.node.classList.add('ve-departing');
+    document.body.classList.add('ve-client-reveal');
+    const expected = new Map([
+      ['.server-rail','ve-rail-in'], ['.channel-sidebar','ve-sidebar-in'],
+      ['.conversation','ve-client-in'], ['.members-sidebar','ve-members-in'], ['.titlebar','ve-header-in']
+    ]);
+    const pending = new Map();
+    let maximum = 0;
+    const style = element => window.getComputedStyle?.(element);
+    expected.forEach((name,selector) => {
+      const element = document.querySelector(selector),computed = element && style(element);
+      if (!element || !computed || computed.display === 'none' || !element.getClientRects().length) return;
+      const names = computed.animationName.split(',').map(v => v.trim());
+      const durations = computed.animationDuration.split(',').map(milliseconds);
+      const delays = computed.animationDelay.split(',').map(milliseconds);
+      names.forEach((animation,i) => {
+        if (animation !== name || !durations[i % durations.length]) return;
+        if (!pending.has(element)) pending.set(element,new Set());
+        pending.get(element).add(animation);
+        maximum = Math.max(maximum,durations[i % durations.length]+delays[i % delays.length]);
+      });
+    });
+    const veil = active.node.querySelector('.ve-veil'),veilStyle = style(veil);
+    const transitionDuration = veilStyle ? Math.max(0,...veilStyle.transitionDuration.split(',').map(milliseconds)) : 0;
+    let veilPending = transitionDuration > 0;
+    maximum = Math.max(maximum,transitionDuration);
+    function settle() {
+      if (sequence === active && !pending.size && !veilPending) finish({welcome:true});
+    }
+    const onAnimation = event => {
+      const names = pending.get(event.target);
+      if (!names?.delete(event.animationName)) return;
+      if (!names.size) pending.delete(event.target);
+      settle();
+    };
+    const onTransition = event => {
+      if (event.target !== veil || event.propertyName !== 'opacity') return;
+      veilPending = false;
+      settle();
+    };
+    listen(active,document,'animationend',onAnimation);
+    listen(active,document,'animationcancel',onAnimation);
+    listen(active,veil,'transitionend',onTransition);
+    listen(active,veil,'transitioncancel',onTransition);
+    // Actual browser completion wins. The fallback only covers missing events,
+    // lost stylesheets or a suspended frame; it exceeds the computed duration.
+    if (pending.size || veilPending) schedule(() => finish({welcome:true}),Math.min(1600,Math.max(times.reveal,maximum)+times.revealSafety));
+    else finish({welcome:true});
+  }
+  function run(short=false) {
+    const active = sequence;
+    if (!active || active.running) return;
+    active.running = true;
+    active.timers.forEach(clearTimeout);
+    active.timers = [];
+    if (!motion()) return finish();
     if (short) {
-      sequence.node.classList.add('ve-return');
-      schedule(() => finish(), 420);
+      active.node.classList.add('ve-return');
+      listen(active,active.node,'animationend',event => {
+        if (event.target === active.node && event.animationName === 've-return') finish();
+      });
+      schedule(() => finish(),times.returning+60);
       return;
     }
-    sequence.node.classList.add('ve-running');
-    phase('I. AWAKENING', 1);
-    schedule(() => phase('II. THE APERTURE', 2), 800);
-    schedule(() => phase('III. CROSSING OVER', 3), 1650);
-    schedule(() => {
-      phase('IV. AFTERHOURS', 4);
-      sequence?.node.classList.add('ve-departing');
-      document.body.classList.add('ve-client-reveal');
-    }, 2350);
-    schedule(() => finish({ welcome: true }), 2980);
+    active.node.classList.add('ve-running');
+    phase('I. AWAKENING',1);
+    schedule(() => phase('II. THE APERTURE',2),450);
+    schedule(() => phase('III. CROSSING OVER',3),1120);
+    schedule(beginReveal,times.entryRevealAt);
   }
-  function create({ replay = false } = {}) {
-    finish({ seen: false, restoreFocus: false });
-    document.querySelector('.ve-welcome')?.remove();
-    clearTimeout(welcomeTimer);
-    if (reduced?.matches) return;
+  function create({replay=false} = {}) {
+    finish({seen:false,restoreFocus:false});
+    clearWelcome();
+    // Both initial entry and Replay use exactly the same preference gate.
+    if (!motion()) return false;
     const node = document.createElement('section');
     node.id = 'voidline-entrance';
     node.className = 've-entry';
-    node.setAttribute('role', 'dialog');
-    node.setAttribute('aria-modal', 'true');
-    node.setAttribute('aria-label', 'VOIDLINE decorative client entrance');
+    node.setAttribute('role','dialog');
+    node.setAttribute('aria-modal','true');
+    node.setAttribute('aria-label','VOIDLINE decorative client entrance');
     const id = `ve-entry-${++serial}`;
     node.innerHTML = `
+      <div class="ve-veil" aria-hidden="true"></div>
       <div class="ve-atmosphere" aria-hidden="true"><div class="ve-depth-grid"></div><div class="ve-ambient"></div><div class="ve-scan"></div><div class="ve-horizon"></div></div>
       <div class="ve-entry-top"><span class="ve-entry-brand">VOIDLINE<span>®</span></span><span class="ve-entry-edition">AFTERHOURS / CLIENT 02</span></div>
       <div class="ve-coordinate ve-coordinate-left" aria-hidden="true">VL—02<br>AFTER / HOURS<br><span>0001. 0033. 0404.</span></div>
@@ -125,45 +203,45 @@
       <div class="ve-world" aria-hidden="true">
         <div class="ve-calibration ve-calibration-a"></div><div class="ve-calibration ve-calibration-b"></div>
         <div class="ve-portal-line ve-portal-line-a"></div><div class="ve-portal-line ve-portal-line-b"></div>
-        <div class="ve-particles">${Array.from({ length: 12 }, (_, i) => `<i style="--ve-i:${i}"></i>`).join('')}</div>
-        <div class="ve-fragment ve-fragment-a"><b></b><span>AFTER / HOURS</span><b></b></div>
-        <div class="ve-fragment ve-fragment-b"><span>NO SIGNAL LOST</span><b></b></div>
+        <div class="ve-particles">${Array.from({length:12},(_,i) => `<i style="--ve-i:${i}"></i>`).join('')}</div>
+        <div class="ve-fragment ve-fragment-a"><b></b><span>AFTER / HOURS</span><b></b></div><div class="ve-fragment ve-fragment-b"><span>NO SIGNAL LOST</span><b></b></div>
         <div class="ve-logo-stage">${markSVG(id)}<div class="ve-logo-shadow"></div><div class="ve-aperture-light"></div></div>
       </div>
       <div class="ve-entry-type"><span class="ve-type-kicker">SOMEWHERE BETWEEN THE SIGNAL AND THE STATIC</span><strong>V O I D L I N E</strong><span class="ve-type-edition">A F T E R H O U R S</span></div>
       <div class="ve-entry-bottom"><div class="ve-phase"><span class="ve-phase-dot"></span><span class="ve-phase-name">A CLIENT ENTRY SEQUENCE</span><span class="ve-decorative-label">VISUAL SEQUENCE</span></div><button type="button" class="ve-skip">Skip entrance <kbd>ESC</kbd><span>↗</span></button></div>
     `;
-    sequence = { node, timers: [], previousFocus: document.activeElement };
-    document.body.classList.add('ve-entering');
+    const active = {node,timers:[],cleanup:[],background:[],previousFocus:document.activeElement,running:false};
+    sequence = active;
     document.body.append(node);
-    node.querySelector('.ve-skip').addEventListener('click', () => finish());
-    node.querySelector('.ve-skip').focus({ preventScroll: true });
+    lockBackground(active);
+    document.body.classList.add('ve-entering');
+    node.querySelector('.ve-skip').addEventListener('click',() => finish());
+    node.querySelector('.ve-skip').focus({preventScroll:true});
     if (ready || replay) run(!replay && hasSeen());
-    else schedule(() => finish({ seen: false }), 1000);
+    else schedule(() => finish({seen:false}),times.readinessFallback);
+    return true;
   }
-
-  window.addEventListener('voidline:ready', () => {
+  window.addEventListener('voidline:ready',() => {
     ready = true;
-    if (sequence && document.body.classList.contains('reduce-motion')) return finish({welcome:false});
+    if (!motion()) return finish();
     if (sequence) run(hasSeen());
   });
-  document.addEventListener('keydown', (event) => {
+  document.addEventListener('keydown',event => {
     if (!sequence) return;
     if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      finish();
+      event.preventDefault();event.stopImmediatePropagation();finish();
     } else if (event.key === 'Tab') {
-      event.preventDefault();
-      sequence.node.querySelector('.ve-skip').focus({ preventScroll: true });
+      event.preventDefault();event.stopImmediatePropagation();sequence.node.querySelector('.ve-skip').focus({preventScroll:true});
+    } else if ((event.ctrlKey || event.metaKey) && ['k',','].includes(event.key.toLowerCase())) {
+      event.preventDefault();event.stopImmediatePropagation();
     }
-  }, true);
-  reduced?.addEventListener?.('change', (event) => { if (event.matches) finish(); });
-  window.VoidEntrance = {
-    replay: () => create({ replay: true }),
-    skip: () => finish(),
-    markSVG,
-    isPlaying: () => !!sequence
-  };
+  },true);
+  document.addEventListener('focusin',event => {
+    if (sequence && !sequence.node.contains(event.target)) sequence.node.querySelector('.ve-skip').focus({preventScroll:true});
+  },true);
+  const onMotion = enabled => {if (!enabled) {finish();clearWelcome();}};
+  if (window.VoidMotion) window.VoidMotion.subscribe(onMotion);
+  else fallbackMedia?.addEventListener?.('change',event => onMotion(!event.matches));
+  window.VoidEntrance = {replay:() => create({replay:true}),skip:() => finish(),markSVG,isPlaying:() => !!sequence};
   create();
 })();

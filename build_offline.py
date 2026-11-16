@@ -8,8 +8,8 @@ dist = root / 'dist'
 downloads = dist / 'downloads'
 downloads.mkdir(exist_ok=True)
 html = (dist / 'index.html').read_text()
-styles = ['styles.css','entrance.css','badges.css','profiles.css']
-scripts = ['entrance.js','badges.js','profiles.js','app.js']
+styles = ['styles.css','entrance.css','badges.css','profiles.css','readability.css']
+scripts = ['store.js','motion.js','entrance.js','badges.js','profiles.js','app.js']
 icon = base64.b64encode((dist / 'icon.svg').read_bytes()).decode()
 html = html.replace('<html lang="en">', '<html lang="en" data-offline="true">')
 html = html.replace('href="icon.svg"', 'href="data:image/svg+xml;base64,' + icon + '"')
@@ -28,7 +28,10 @@ with zipfile.ZipFile(downloads / 'voidline-source.zip', 'w', zipfile.ZIP_DEFLATE
             archive.write(path, 'VOIDLINE/' + str(path.relative_to(root)))
     for path in sorted((root / 'tests').glob('*.cjs')):
         archive.write(path, 'VOIDLINE/' + str(path.relative_to(root)))
-    for name in ('build_offline.py', 'README.txt'):
+    for folder in ('worker','backend'):
+        for path in sorted((root / folder).rglob('*')):
+            if path.is_file(): archive.write(path, 'VOIDLINE/' + str(path.relative_to(root)))
+    for name in ('build_offline.py', 'README.txt', 'DEVELOPMENT.txt', 'PERFORMANCE.txt'):
         archive.write(root / name, 'VOIDLINE/' + name)
 print(f'Offline app: {len(html.encode()):,} bytes')
 print(f'Source ZIP: {(downloads / "voidline-source.zip").stat().st_size:,} bytes')

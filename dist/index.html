@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="entrance.css">
 <link rel="stylesheet" href="badges.css">
 <link rel="stylesheet" href="profiles.css">
+<link rel="stylesheet" href="readability.css">
 </head>
 <body>
 <a class="skip-link" href="#message-input">Skip to conversation</a>
@@ -82,7 +83,7 @@
     <header class="channel-header"><button class="icon-button mobile-menu" data-action="menu" aria-label="Open channel navigation"><svg class="icon"><use href="#i-menu"/></svg></button><span class="header-hash">#</span><div class="channel-header-title"><span id="channel-eyebrow">AFTERHOURS / TEXT CHANNEL</span><h1 id="channel-title">general</h1></div><p id="channel-description">Good company. Questionable sleep schedules.</p><div class="header-actions"><button class="icon-button" data-action="pinned" aria-label="Pinned messages" title="Pinned transmissions"><svg class="icon"><use href="#i-pin"/></svg></button><button class="icon-button members-toggle" data-action="members" aria-label="Toggle community sidebar" title="Community sidebar"><svg class="icon"><use href="#i-users"/></svg></button><label class="search-box"><input id="search-input" type="search" placeholder="Search" aria-label="Search messages"><svg class="icon"><use href="#i-search"/></svg></label><button class="icon-button inbox-top" data-action="inbox" aria-label="Activity log" title="Activity log"><svg class="icon"><use href="#i-inbox"/></svg><span id="notification-count" hidden></span></button></div></header>
     <div id="channel-scope" class="channel-scope"><span class="scope-dot"></span><span>AFTERHOURS CLIENT</span><span class="scope-divider"></span><span>Device-local edition</span></div>
     <div id="chat-feed" class="chat-feed" aria-label="Conversation history" tabindex="-1"><div class="empty-channel"><span>OPENING YOUR ARCHIVE</span><p>Restoring this device’s saved conversations.</p></div></div>
-    <div class="composer-wrap"><div id="composer-context"></div><form id="message-form" class="composer"><button class="attach-button" type="button" data-action="attachment" aria-label="Attach an image" title="Attach an image"><svg class="icon"><use href="#i-plus"/></svg></button><textarea id="message-input" rows="1" maxlength="4000" placeholder="Message #general" aria-label="Message general"></textarea><div class="composer-actions"><button class="icon-button composer-mic" type="button" data-action="voice" aria-label="Record a voice note" title="Record a voice note"><svg class="icon"><use href="#i-mic"/></svg></button><button class="icon-button" type="button" data-action="emoji" aria-label="Add emoji" title="Add emoji"><svg class="icon"><use href="#i-smile"/></svg></button><button id="send-btn" type="submit" aria-label="Send message" title="Send message"><svg class="icon"><use href="#i-arrow"/></svg></button></div></form><div class="composer-caption"><span><svg class="icon"><use href="#i-shield"/></svg>Your words stay on this device.</span><span><kbd>Enter</kbd> to send <i>·</i> <kbd>Shift + Enter</kbd> for a new line</span><button data-action="help">?</button></div></div>
+    <button id="jump-latest" data-action="jump-latest" hidden>Jump to latest ↓</button><div class="composer-wrap"><div id="composer-context"></div><form id="message-form" class="composer"><button class="attach-button" type="button" data-action="attachment" aria-label="Attach an image" title="Attach an image"><svg class="icon"><use href="#i-plus"/></svg></button><textarea id="message-input" rows="1" maxlength="4000" placeholder="Message #general" aria-label="Message general"></textarea><div class="composer-actions"><button class="icon-button composer-mic" type="button" data-action="voice" aria-label="Record a voice note" title="Record a voice note"><svg class="icon"><use href="#i-mic"/></svg></button><button class="icon-button" type="button" data-action="emoji" aria-label="Add emoji" title="Add emoji"><svg class="icon"><use href="#i-smile"/></svg></button><button id="send-btn" type="submit" aria-label="Send message" title="Send message"><svg class="icon"><use href="#i-arrow"/></svg></button></div></form><div class="composer-caption"><span><svg class="icon"><use href="#i-shield"/></svg>Your words stay on this device.</span><span><kbd>Enter</kbd> to send <i>·</i> <kbd>Shift + Enter</kbd> for a new line</span><button data-action="help">?</button></div></div>
     <aside id="thread-panel" class="thread-panel" aria-label="Message thread" hidden></aside>
   </main>
   <aside class="members-sidebar" aria-label="Community sidebar">
@@ -97,6 +98,8 @@
 <dialog id="app-modal" aria-label="VOIDLINE dialog"><button id="modal-close" aria-label="Close dialog">×</button><div id="modal-content"></div></dialog>
 <div id="context-menu" class="context-menu" role="menu" aria-label="Message options" hidden></div>
 <div id="toast" class="toast" role="status"></div><div id="message-announcer" class="sr-only" role="status"></div>
+<script src="store.js"></script>
+<script src="motion.js"></script>
 <script src="entrance.js"></script>
 <script src="badges.js"></script>
 <script src="profiles.js"></script>

@@ -23,10 +23,11 @@ function harness(initial = {}, storage = new Map(), options = {}) {
       addEventListener(type,fn){addListener(listeners,type,fn);},
       async dispatch(type,event={}){for(const fn of listeners.get(type)||[])await fn({target:n,...event});},
       setAttribute(k,v){attrs.set(k,String(v));if(k==='class')n.className=v;if(k==='id')n.id=v;if(k.startsWith('data-'))n.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(v);},getAttribute:k=>attrs.get(k)??null,removeAttribute(k){attrs.delete(k);},hasAttribute:k=>attrs.has(k)||(k.startsWith('data-')&&Object.hasOwn(n.dataset,k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase()))),
-      showModal(){n.open=true;},close(){n.open=false;},focus(){document.activeElement=n;},blur(){if(document.activeElement===n)document.activeElement=document.body;},remove(){if(n.parentElement)n.parentElement.children=n.parentElement.children.filter(x=>x!==n);if(n.id)nodes.delete(n.id);},before(){},after(){},append(child){return n.appendChild(child);},appendChild(child){child.parentElement=n;n.children.push(child);if(child.id)nodes.set(child.id,child);return child;},insertBefore(child){return n.appendChild(child);},contains(child){return child===n||n.children.some(c=>c.contains(child));},scrollIntoView(){n.scrolledIntoView=true;},getBoundingClientRect(){return {left:10,right:100,top:10,bottom:100};},
-      querySelectorAll(){return [];},querySelector(selector){if(selector==='h1,h2'&&/<h[12][ >]/.test(n.innerHTML))return node('modal-heading');return null;},matches(selector){return selector.split(',').some(part=>{part=part.trim();if(part.startsWith('#'))return n.id===part.slice(1);if(part.startsWith('.'))return n.classList.contains(part.slice(1));if(/^\[[^=]+\]$/.test(part))return n.hasAttribute(part.slice(1,-1));return n.tagName.toLowerCase()===part.toLowerCase();});},closest(selector){return n.matches(selector)?n:n.parentElement?.closest(selector)||null;},click(){return dispatchDoc('click',{target:n,preventDefault(){}});}
+      showModal(){n.open=true;},close(){n.open=false;},focus(){document.activeElement=n;},blur(){if(document.activeElement===n)document.activeElement=document.body;},remove(){if(n.parentElement)n.parentElement.children=n.parentElement.children.filter(x=>x!==n);if(n.id)nodes.delete(n.id);},before(){},after(){},append(child){return n.appendChild(child);},prepend(...items){for(const child of [...items].reverse()){if(child.parentElement)child.parentElement.children=child.parentElement.children.filter(x=>x!==child);child.parentElement=n;n.children.unshift(child);if(child.id)nodes.set(child.id,child);}},appendChild(child){child.parentElement=n;n.children.push(child);if(child.id)nodes.set(child.id,child);return child;},insertBefore(child){return n.appendChild(child);},contains(child){return child===n||n.children.some(c=>c.contains(child));},scrollIntoView(){n.scrolledIntoView=true;},getBoundingClientRect(){return {left:10,right:100,top:10,bottom:100};},
+      querySelectorAll(selector){return selector==='[data-message-id]'?n.messageNodes||[]:[];},querySelector(selector){if(selector==='[data-message-id]')return n.messageNodes?.[0]||null;if(selector==='h1,h2'&&/<h[12][ >]/.test(n.innerHTML))return node('modal-heading');return null;},matches(selector){return selector.split(',').some(part=>{part=part.trim();if(part.startsWith('#'))return n.id===part.slice(1);if(part.startsWith('.'))return n.classList.contains(part.slice(1));if(/^\[[^=]+\]$/.test(part))return n.hasAttribute(part.slice(1,-1));return n.tagName.toLowerCase()===part.toLowerCase();});},closest(selector){return n.matches(selector)?n:n.parentElement?.closest(selector)||null;},click(){return dispatchDoc('click',{target:n,preventDefault(){}});}
     };
-    let html='';Object.defineProperty(n,'innerHTML',{get:()=>html,set(value){html=String(value);for(const match of html.matchAll(/<([a-z][a-z0-9-]*)[^>]*\bid="([^"]+)"[^>]*>/gi)){const child=node(match[2],match[1]);child.parentElement=n;if(match[1].toLowerCase()==='textarea'){const tail=html.slice(match.index+match[0].length),body=tail.slice(0,tail.indexOf('</textarea>'));child.value=body.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'\"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');}nodes.set(child.id,child);}}});
+    let html='';Object.defineProperty(n,'innerHTML',{get:()=>html,set(value){html=String(value);for(const match of html.matchAll(/<([a-z][a-z0-9-]*)[^>]*\bid="([^"]+)"[^>]*>/gi)){const child=node(match[2],match[1]);child.parentElement=n;if(match[1].toLowerCase()==='textarea'){const tail=html.slice(match.index+match[0].length),body=tail.slice(0,tail.indexOf('</textarea>'));child.value=body.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'\"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');}nodes.set(child.id,child);}n._parseMessages?.();}});
+    Object.defineProperty(n,'_parseMessages',{value:()=>{n.messageNodes=[];for(const match of html.matchAll(/<article\b([^>]*)>([\s\S]*?)<\/article>/g)){const row=node('','article');for(const attr of match[1].matchAll(/([\w-]+)="([^"]*)"/g))row.setAttribute(attr[1],attr[2]);row.innerHTML=match[2];row.parentElement=n;n.messageNodes.push(row);}}});
     Object.defineProperty(n,'className',{get:()=>n.classList.toString(),set:value=>n.classList.set(value)});
     return n;
   }
@@ -37,16 +38,23 @@ function harness(initial = {}, storage = new Map(), options = {}) {
   function dispatchDoc(type,event){return Promise.all((docListeners.get(type)||[]).map(fn=>fn(event)));}
   const moduleCalls={badges:0,appearance:0};
   const window={crypto:webcrypto,innerWidth:1440,innerHeight:900,matchMedia:query=>({matches:query.includes('min-width')?true:!!options.reducedMotion,addEventListener(){},removeEventListener(){}}),addEventListener(type,fn){addListener(winListeners,type,fn);},dispatchEvent(event){(winListeners.get(event.type)||[]).forEach(fn=>fn(event));return true;},VoidBadges:{catalog:[],init(api){this.api=api;},art:id=>`<span class="test-art">${id||''}</span>`,mini:id=>id?`<span class="test-mini">${id}</span>`:'',checkUnlocks(){moduleCalls.badges++;},open(){}},VoidProfiles:{init(api){this.api=api;},applyAppearance(){moduleCalls.appearance++;},open(){},edit(){},settings(){}},VoidEntrance:{replay(){}}};
-  const context={window,document,localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},location:{href:'https://voidline.example/',origin:'https://voidline.example',pathname:'/',protocol:'https:'},navigator:{clipboard:{writeText:async()=>{}}},requestAnimationFrame:fn=>{fn();return 1;},cancelAnimationFrame(){},setTimeout:()=>1,clearTimeout(){},Event,CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},FormData:class {constructor(form){this.values=form.values||{};}get(k){return this.values[k]??null;}getAll(k){return Array.isArray(this.values[k])?this.values[k]:this.values[k]?[this.values[k]]:[];}},Blob,URL,console};
+  const context={window,document,localStorage:{get length(){return storage.size;},key:index=>[...storage.keys()][index]??null,getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k),clear:()=>storage.clear()},location:{href:'https://voidline.example/',origin:'https://voidline.example',pathname:'/',protocol:'https:'},navigator:{clipboard:{writeText:async()=>{}}},requestAnimationFrame:fn=>{fn();return 1;},cancelAnimationFrame(){},setTimeout:()=>1,clearTimeout(){},Event,CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},atob:globalThis.atob,btoa:globalThis.btoa,FormData:class {constructor(form){this.values=form.values||{};}get(k){return this.values[k]??null;}getAll(k){return Array.isArray(this.values[k])?this.values[k]:this.values[k]?[this.values[k]]:[];}},Blob,URL,console};
   vm.createContext(context);
+  const storeFile=require('node:path').join(require('node:path').dirname(SOURCE),'store.js');
+  if(fs.existsSync(storeFile))vm.runInContext(fs.readFileSync(storeFile,'utf8'),context,{filename:storeFile});
   if(options.realModules)for(const name of ['badges.js','profiles.js']){const filename=SOURCE.replace(/app\.js$/,name);vm.runInContext(fs.readFileSync(filename,'utf8'),context,{filename});}
   vm.runInContext(fs.readFileSync(SOURCE,'utf8'),context,{filename:SOURCE});
   assert.ok(window.VoidApp,'Client should expose window.VoidApp after boot');
   return {api:window.VoidApp,window,document,nodes,storage,moduleCalls,get,context,
     async click(dataset,attrs={}){const b=node('test-button','button');b.dataset=dataset;Object.entries(attrs).forEach(([k,v])=>b.setAttribute(k,v));await dispatchDoc('click',{target:b,preventDefault(){}});return b;},
     async submit(id,values,dataset={}){const f=node(id);f.values=values;f.dataset=dataset;await dispatchDoc('submit',{target:f,preventDefault(){}});},
-    async storageEvent(raw){const value=JSON.stringify(raw);storage.set(STORE,value);for(const fn of winListeners.get('storage')||[])await fn({key:STORE,newValue:value});},
-    saved:()=>JSON.parse(storage.get(STORE))
+    async storageEvent(raw){
+      let events;
+      if(window.VoidStore){const peer=window.VoidStore.create(context.localStorage,STORE);peer.load();const before=new Map(storage);const result=peer.commit(raw);assert.ok(result.ok,'Simulated peer write must succeed');events=[...storage].filter(([key,value])=>before.get(key)!==value).map(([key,newValue])=>({key,newValue}));}
+      else{const value=JSON.stringify(raw);storage.set(STORE,value);events=[{key:STORE,newValue:value}];}
+      for(const event of events)for(const fn of winListeners.get('storage')||[])await fn(event);
+    },
+    saved:()=>window.VoidStore?window.VoidStore.create(context.localStorage,STORE).read():JSON.parse(storage.get(STORE))
   };
 }
 const tests=[];
@@ -82,7 +90,7 @@ test('sending, replies, threads, pins, edits, reactions and statistics',async()=
   api.messageAction('thread',first.id);app.get('thread-input').value='A longer thread thought';api.sendThread(prevent());
   const thread=messages(app,'afterhours/general').find(m=>m.threadRoot===first.id);assert.ok(thread);assert.equal(thread.text,'A longer thread thought');
   assert.equal(app.get('thread-panel').hidden,false);api.closeThread();assert.equal(app.get('thread-panel').hidden,true);
-  api.messageAction('pin',first.id);assert.equal(first.pinned,true);
+  api.messageAction('pin',first.id);assert.equal(messages(app,'afterhours/general').find(m=>m.id===first.id).pinned,true);
   api.messageAction('edit',first.id);assert.match(app.get('modal-content').innerHTML,/edit-message-form/);
   await app.submit('edit-message-form',{text:'Refined transmission'},{id:first.id});
   assert.equal(messages(app,'afterhours/general').find(m=>m.id===first.id).text,'Refined transmission');
@@ -101,7 +109,7 @@ test('formatting and archive search preserve readable literal text',()=>{
   assert.equal(format('Sketch <draft> & notes'),'Sketch &lt;draft&gt; &amp; notes');
   assert.match(format('See https://example.com/page\n@nova'),/<a href="https:\/\/example.com\/page"/);
   assert.match(format('See https://example.com/page\n@nova'),/<br><span class="mention">@nova<\/span>/);
-  assert.match(app.api.searchResults('sketch'),/Sketch &lt;draft&gt; &amp; notes/);
+  assert.match(app.api.searchResults('sketch'),/(?:<mark>)?Sketch(?:<\/mark>)? &lt;draft&gt; &amp; notes/);
   assert.match(app.api.searchResults('nova'),/PROFILE/);
   assert.match(app.api.searchResults('afterhours'),/COMMUNITY/);
 });

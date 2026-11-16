@@ -1,0 +1,77 @@
+VOIDLINE / RELIABILITY INVARIANTS
+
+1. A success state requires a committed write.
+Cause: send cleared composer/attachments before persist and ignored false.
+Contract: mutation returns committed state only after an atomic journal write;
+failed changes roll back visible domain state and retain form input plus a
+retryable field patch. Recovery export includes pending patches and legacy
+snapshot. No success announcement follows failed persistence.
+Regressions: voidline-reliability-test; voidline-mutation-failure-test;
+voidline-profiles-audit-test; voidline-badges-audit-test.
+
+2. Retained children require accessible parent context.
+Cause: slicing histories at 500 removed roots but kept replies.
+Contract: no destructive history slicing. Render pages of100 and preserve IDs,
+quotes, pins and all replies. Older already-orphaned histories receive explicit
+system recovery context; no missing user words or author are invented.
+Regressions: voidline-reliability-test; voidline-journal-test.
+
+3. Independent concurrent edits must survive.
+Cause: message-only merge followed by whole-snapshot overwrite erased newly
+created navigation entities. Persistence now lives in dist/store.js.
+Contract: each tab writes a unique, immutable operation key in one atomic
+localStorage.setItem. Changes compare against that tab's committed baseline,
+so stale unchanged fields are not writes. Entities/channels are keyed by ID;
+conflicting fields resolve by Lamport clock and operation ID. Tombstones win
+against message resurrection. Media lives in the operation that changed it,
+not a complete checkpoint serialized to storage on every interaction.
+Regressions: voidline-journal-test; voidline-reliability-test.
+Limit: localStorage quota still applies. Journal replay scans local operations;
+there is no claimed IndexedDB/blob-storage migration or infinite capacity.
+
+4. Imports must survive reload without hidden capacity truncation.
+Cause: an import accepted25 communities; normalization kept only24.
+Contract: build a candidate, validate limits/references/media/version, preview
+conflict policy, then commit. Normalization never silently truncates accepted
+history or navigation entities. Concurrent accepted records remain reachable.
+Regressions: voidline-reliability-test; voidline-regressions-test.
+
+5. A visual update must preserve unrelated interaction.
+Cause: innerHTML rebuilt the thread form after background changes.
+Contract: keep composer/form identity for the same thread. Reconcile keyed
+message rows and targeted parts; preserve media elements when their sources
+do not change. Keep reading positions/anchors and caret; mark only reached
+content read. Index reply counts once per channel render.
+Regressions: voidline-reliability-test (node/text/caret/focus); exact reply jump.
+Browser media playback/scroll geometry still require actual browser QA.
+
+6. Search ordering precedes pagination.
+Cause: bucket-order slicing omitted the globally newest match.
+Contract: filter then globally sort by time/ID, then limit. Navigation loads
+and focuses the exact result even in an older thread page. Escaped matching
+snippets never interpret user text as markup.
+Regressions: voidline-reliability-test; existing formatting tests.
+
+7. Displayed requirements must agree with executable eligibility.
+404 Angel uses the profile completion predicate: identity text AND a meaningful
+appearance difference from defaults or valid uploaded avatar. Edition provenance
+is separate from achievement progression. Sample collections are read-only and
+scoped to the selected sample identity. Client accent uses readable presets;
+profile colors are not global reading preferences.
+Regressions: profile/badge audit tests and real module contracts.
+
+8. One motion policy owns every entrance path.
+dist/motion.js considers OS reduced motion and the committed journal setting.
+Replay consults that policy before creating DOM. Entrance makes background
+controls inert, blocks competing shortcuts, completes from real animation
+completion events with a bounded fallback, and restores focus on skip/cancel.
+Regressions: voidline-motion-test (simulated completion events).
+
+RUN
+node tests/run.cjs
+node backend/test.mjs
+python3 build_offline.py
+
+No preview/screenshot or browser performance claim may be inferred from Node
+checks. Use the supported Sites preview when its browser-control tool exists.
+The two-account networked milestone is not complete; see backend/README.txt.

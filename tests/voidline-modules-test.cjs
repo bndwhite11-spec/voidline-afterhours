@@ -33,10 +33,10 @@ test('artifact button event handling persists inspection, equipped badge, schema
 });
 
 test('saved appearance applies and real settings events persist toggles',async()=>{
-  const app=boot({profile:{name:'Ari',theme:'obsidian',accent:'#112233',badge:'larp'},settings:{compact:true,motion:false,memberSidebar:false}});
-  assert.equal(app.document.documentElement.dataset.theme,'obsidian');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#112233');assert.equal(app.document.body.dataset.density,'compact');assert.ok(app.document.body.classList.contains('reduce-motion'));assert.ok(app.document.body.classList.contains('members-hidden'));
-  app.window.VoidProfiles.settings();await app.submit('vp-settings-form',{theme:'velvet',motion:'on',memberSidebar:'on'});
-  assert.equal(app.api.state.profile.theme,'velvet');assert.equal(app.api.state.settings.compact,false);assert.equal(app.api.state.settings.motion,true);assert.equal(app.api.state.settings.memberSidebar,true);assert.equal(app.document.body.classList.contains('reduce-motion'),false);assert.equal(app.document.body.classList.contains('members-hidden'),false);
+  const app=boot({profile:{name:'Ari',theme:'obsidian',accent:'#112233',badge:'larp'},settings:{compact:true,motion:false,memberSidebar:false,clientAccent:'sage'}});
+  assert.equal(app.document.documentElement.dataset.theme,'obsidian');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#a9c5bd');assert.equal(app.document.body.dataset.density,'compact');assert.ok(app.document.body.classList.contains('reduce-motion'));assert.ok(app.document.body.classList.contains('members-hidden'));
+  app.window.VoidProfiles.settings();await app.submit('vp-settings-form',{theme:'velvet',clientAccent:'iris',motion:'on',memberSidebar:'on'});
+  assert.equal(app.api.state.profile.theme,'obsidian');assert.equal(app.api.state.profile.accent,'#112233');assert.equal(app.api.state.settings.theme,'velvet');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#b8add1');assert.equal(app.api.state.settings.compact,false);assert.equal(app.api.state.settings.motion,true);assert.equal(app.api.state.settings.memberSidebar,true);assert.equal(app.document.body.classList.contains('reduce-motion'),false);assert.equal(app.document.body.classList.contains('members-hidden'),false);
   const reloaded=boot(null,app.storage);assert.equal(reloaded.document.documentElement.dataset.theme,'velvet');assert.equal(reloaded.api.state.settings.memberSidebar,true);
 });
 
@@ -57,4 +57,4 @@ test('artifact activity rules run against real getStats and mini sprite installs
   assert.equal(messages(app,'afterhours/general').filter(m=>m.author==='self').length,1);assert.equal(messages(app,'afterhours/introductions').filter(m=>m.author==='self').length,1);
 });
 
-(async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`\n${tests.length-failures}/${tests.length} module integration checks passed. Browser layout, pointer rendering, media, and downloads are not exercised.`);process.exitCode=failures?1:0;})();
+(async()=>{const selected=process.env.VOIDLINE_TEST_FILTER?tests.filter(([name])=>name.includes(process.env.VOIDLINE_TEST_FILTER)):tests;let failures=0;for(const [name,fn]of selected){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`\n${selected.length-failures}/${selected.length} module integration checks passed. Browser layout, pointer rendering, media, and downloads are not exercised.`);process.exitCode=failures?1:0;})();

@@ -1,0 +1,55 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const events={},nodes=new Map();let saved=0;const noop=()=>{};
+const make=(value='')=>({textContent:value,className:'',dataset:{},style:{setProperty:noop},setAttribute:noop,querySelector:()=>null,replaceChildren:noop,classList:{toggle:noop,add:noop,remove:noop}});
+const banner=make(),avatar=make(),content=make('Y'),presence=make(),statusDot=make(),name=make(),status=make(),bio=make(),eyebrow=make(),featured=make();featured.firstElementChild={dataset:{featured:'larp,founder,night'}};avatar.querySelector=s=>s==='.vp-presence'?presence:null;
+const world=make(),slots={'.vp-banner':banner,'.vp-profile-avatar':avatar,'.vp-avatar-content':content,'.vp-profile-status>i':statusDot,'[data-vp-slot="name"]':name,'[data-vp-slot="status"]':status,'[data-vp-slot="bio"]':bio,'.vp-profile-heading .vp-eyebrow':eyebrow,'[data-vp-slot="featured"]':featured};world.querySelector=s=>slots[s]||null;
+const preview={querySelector:s=>s==='.vp-world'?world:null};Object.defineProperty(preview,'innerHTML',{set(){throw Error('Unexpected full live-preview replacement');}});
+nodes.set('vp-editor-preview',preview);for(const id of ['vp-accent-label','vp-bio-count','vp-save-state'])nodes.set(id,make());nodes.set('app-modal',{open:true,addEventListener:noop});
+const document={documentElement:{dataset:{},style:{setProperty:noop}},body:{dataset:{},classList:{toggle:noop}},getElementById:id=>nodes.get(id)||null,querySelector:()=>null,addEventListener:(type,fn)=>(events[type]??=[]).push(fn)};
+const window={matchMedia:()=>({matches:false,addEventListener:noop}),dispatchEvent:noop,VoidBadges:{art:()=>'<svg/>'}};class Data{constructor(f){this.f=f}get(k){return this.f.values[k]??null}getAll(k){return this.f.values[k]||[]}}
+vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../dist/profiles.js'),'utf8'),{document,window,FormData:Data,CustomEvent:class{},atob,Uint8Array,Intl});
+const state={profile:{name:'you',avatar:'Y',badge:'larp',featuredBadges:['larp','founder','night']},artifacts:{larp:{},founder:{},night:{}},settings:{}};
+window.VoidProfiles.init({state,modal:noop,closeModal:noop,toast:noop,persist:()=>{saved++;return true;},refresh:noop,person:()=>null});window.VoidProfiles.edit();
+const form={id:'vp-profile-form',values:{name:'you',avatar:'Y',bio:'',status:'online',statusText:'In my own orbit',accent:'#a5b2d4',theme:'midnight',banner:'orbital',frame:'chrome',layout:'classic',animated:'on',featuredBadges:['larp','founder','night']},querySelectorAll:()=>[]};nodes.set('vp-profile-form',form);
+const input={dataset:{vpMax:'24'},closest:()=>form};Object.defineProperty(input,'value',{get:()=>form.values.name,set:v=>form.values.name=v});input.value='👨‍👩‍👧‍👦'.repeat(25);
+for(const fn of events.input)fn({target:input,isComposing:false});
+assert.equal([...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(input.value)].length,24);assert.equal(name.textContent,input.value);assert.equal(world.querySelector('.vp-banner'),banner);assert.equal(world.querySelector('.vp-profile-avatar'),avatar);assert.match(nodes.get('vp-save-state').textContent,/Unsaved/);
+const order=make();order.querySelector=()=>null;nodes.set('vp-featured-order',order);
+const move={dataset:{vpMoveBadge:'founder',vpDirection:'-1'},closest:s=>s.includes('[data-vp-move-badge]')?move:null,hasAttribute:k=>k==='data-vp-move-badge'};
+for(const fn of events.click)fn({target:move,preventDefault:noop,stopImmediatePropagation:noop});
+for(const fn of events.submit)fn({target:form,preventDefault:noop});
+assert.deepEqual(Array.from(state.profile.featuredBadges),['founder','larp','night']);assert.equal(saved,1);assert.equal(world.querySelector('.vp-banner'),banner);
+console.log('PASS profile draft input: grapheme limits, stable banner/avatar preview nodes, unsaved state, keyboard reorder and persisted featured order.');
+
+// Actual app + modules: quota failures, retry, palettes, sample context and upload metadata.
+const {harness,plain}=require('./voidline-v2-test.cjs');
+(async()=>{
+ const app=harness({profile:{name:'Ari',avatar:'A',badge:'larp',accent:'#000000',bio:'Original biography retained safely.',theme:'midnight'},settings:{clientAccent:'#000000'}},new Map(),{realModules:true});
+ if(!app.document.body.prepend)app.document.body.prepend=child=>app.document.body.appendChild(child);
+ assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#a5b2d4');assert.equal(app.api.state.profile.accent,'#000000');
+ app.window.VoidProfiles.open('nova');assert.match(app.get('modal-content').innerHTML,/data-vp-sample-collection="nova"/);assert.match(app.get('modal-content').innerHTML,/data-vp-sample-inspect="nova"/);
+ const before=plain(app.api.state.profile),durable=app.saved();app.window.VoidProfiles.edit();const beforeModal=app.get('modal-content').innerHTML;
+ const setItem=app.context.localStorage.setItem;app.context.localStorage.setItem=()=>{throw Object.assign(new Error('Quota exceeded'),{name:'QuotaExceededError'});};
+ const values={name:'new identity',avatar:'🧑🏽‍🚀',bio:'A biography with enough original detail.',status:'busy',statusText:'Making things',theme:'velvet',accent:'#000011',banner:'aurora',frame:'orbit',layout:'editorial',animated:'on',featuredBadges:['larp']};
+ await app.submit('vp-profile-form',values);
+ assert.deepEqual(plain(app.api.state.profile),before);assert.deepEqual(app.saved(),durable);assert.match(app.get('vp-save-state').textContent,/Not saved/);assert.equal(app.get('modal-content').innerHTML,beforeModal);assert.equal(app.get('app-modal').open,true);
+ app.context.localStorage.setItem=setItem;await app.submit('vp-profile-form',values);
+ assert.equal(app.api.state.profile.avatar,'🧑🏽‍🚀');assert.equal(app.api.state.profile.badge,'larp');assert.equal(app.api.state.profile.theme,'velvet');assert.equal(app.document.documentElement.dataset.theme,'midnight');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#a5b2d4');
+ console.log('PASS profile quota recovery: durable state and edited form survive failure; retry saves grapheme avatar and preserved badge.');
+ app.window.VoidProfiles.settings();const previousSettings=plain(app.api.state.settings);app.context.localStorage.setItem=()=>{throw Error('Quota');};
+ await app.submit('vp-settings-form',{theme:'obsidian',clientAccent:'iris',compact:'on',motion:'on',memberSidebar:'on'});
+ assert.deepEqual(plain(app.api.state.settings),previousSettings);assert.equal(app.get('app-modal').open,true);assert.match(app.get('vp-settings-save-state').textContent,/Not saved/);
+ app.context.localStorage.setItem=setItem;await app.submit('vp-settings-form',{theme:'obsidian',clientAccent:'iris',compact:'on',motion:'on',memberSidebar:'on'});
+ assert.equal(app.document.documentElement.dataset.theme,'obsidian');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#b8add1');assert.equal(app.api.state.profile.theme,'velvet');assert.equal(app.get('app-modal').open,false);
+ console.log('PASS appearance quota recovery and independent profile/client color worlds with safe preset accents.');
+ const cleaned=app.window.VoidProfiles.clean({name:'👨‍👩‍👧‍👦'.repeat(25),avatar:'🧑🏽‍🚀',bio:'x',accent:'#000000'});
+ assert.equal(Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(cleaned.name)).length,24);assert.equal(cleaned.avatar,'🧑🏽‍🚀');
+ app.context.atob=atob;
+ const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yXkAAAAAASUVORK5CYII=';
+ assert.equal(app.window.VoidProfiles.validateAvatarImage(png),png);assert.equal(app.window.VoidProfiles.validateAvatarImage('data:image/png;base64,aGVsbG8='),'');assert.equal(app.window.VoidProfiles.validateAvatarImage('data:image/svg+xml;base64,PHN2Zy8+'),'');
+ assert.equal(app.window.VoidProfiles.validateAvatarImage('data:image/png;base64,'+'iVBORw0KGgoA'.repeat(70000)),'');
+ const cropped=app.window.VoidProfiles.clean({avatarImage:png,avatarX:-20,avatarY:190});assert.equal(cropped.avatarX,0);assert.equal(cropped.avatarY,100);assert.equal(cropped.avatarImage,png);
+ console.log('PASS sample profile collection scope, grapheme limits, avatar image signatures/size and focal range validation.');
+ console.log('Native file selection, image decoding, browser rendering, and pointer/touch interactions are not modeled by this harness.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

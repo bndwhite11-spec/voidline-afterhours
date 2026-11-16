@@ -1,13 +1,14 @@
 (() => {
   'use strict';
-  let app, bound = false, svgSerial = 0, checking = false, activeId = '', filter = 'all', rotation = 0, acquisitionTimer, acquisitionRemoveTimer;
+  let app, bound = false, svgSerial = 0, checking = false, activeId = '', filter = 'all', rotation = 0, pitch = 0, collectionContext = null, acquisitionTimer, acquisitionRemoveTimer, acquisitionActive = '';
+  const acquisitionQueue = [];
   const esc = (v = '') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const number = value => Math.max(0, Number(value) || 0);
   const catalog = [
     {id:'larp',name:'LARP PRO MAX',tier:'Common',code:'AH—001',material:'Brushed titanium / violet enamel',collection:'THE FIRST TRANSMISSION',lore:'An unnecessarily serious insignia for a beautifully unserious identity. Wear the bit like ceremonial armor.',condition:'Open your archive. This starter artifact is available to every local profile.',rule:()=>true,progress:()=> 'Available to every profile',shape:'larp'},
-    {id:'founder',name:'THE ORIGINAL SIGNAL',tier:'Artifact',code:'AH—000',material:'Palladium / engraved obsidian',collection:'EDITION PROVENANCE',lore:'Every frequency starts somewhere. An engraved record of your first arrival in the Afterhours archive.',condition:'Open this edition of VOIDLINE. Earned automatically on this device. This is an edition provenance mark, not a limited-supply claim.',rule:()=>true,progress:()=> 'First arrival in this edition',shape:'founder'},
+    {id:'founder',name:'THE ORIGINAL SIGNAL',tier:'Edition',code:'AH—000',material:'Palladium / engraved obsidian',collection:'EDITION PROVENANCE',lore:'Every frequency starts somewhere. An engraved record of your first arrival in the Afterhours archive.',condition:'Open this edition of VOIDLINE. Earned automatically on this device. This is an edition provenance mark, not a limited-supply claim.',rule:()=>true,progress:()=> 'First arrival in this edition',shape:'founder'},
     {id:'night',name:'3:33 AM',tier:'Uncommon',code:'AH—033',material:'Smoked steel / luminous numerals',collection:'THE HOURS BETWEEN',lore:'A small machine for holding the hour after the hour. It does not tell you to sleep. It remembers that you stayed.',condition:'Write at least one original message in each of two different channels.',rule:s=>number(s.ownMessages)>=2&&number(s.channelsUsed)>=2,progress:s=>`${Math.min(number(s.channelsUsed),2)} / 2 channels with your messages`,shape:'night'},
-    {id:'angel',name:'404 ANGEL',tier:'Rare',code:'AH—404',material:'Fractured chrome / ceramic core',collection:'UNREGISTERED ENTITIES',lore:'Lost in the system. Perfectly at home here. Its fractured wings carry a signal the directory could never find.',condition:'Complete your profile: choose a name, write a biography, and customize your appearance.',rule:s=>!!s.profileComplete,progress:s=>s.profileComplete?'Profile complete':'Finish your name, biography, and appearance',shape:'angel'},
+    {id:'angel',name:'404 ANGEL',tier:'Rare',code:'AH—404',material:'Fractured chrome / ceramic core',collection:'UNREGISTERED ENTITIES',lore:'Lost in the system. Perfectly at home here. Its fractured wings carry a signal the directory could never find.',condition:'Choose a name other than “you”, write a biography of at least 20 characters and a status of at least 3 characters, then change an appearance option or upload an avatar.',rule:s=>!!s.profileComplete,progress:s=>s.profileComplete?'Profile complete':'Finish your name, biography, and appearance',shape:'angel'},
     {id:'ghost',name:'GHOST FREQUENCY',tier:'Epic',code:'AH—107',material:'Optical glass / silver interference',collection:'UNREGISTERED ENTITIES',lore:'Some signals are felt before they are heard. A translucent recording of the conversations that found you.',condition:'Share an image, write three thread replies, and post in three different channels.',rule:s=>number(s.attachments)>=1&&number(s.replies)>=3&&number(s.channelsUsed)>=3,progress:s=>`${Math.min(number(s.attachments),1)}/1 image · ${Math.min(number(s.replies),3)}/3 replies · ${Math.min(number(s.channelsUsed),3)}/3 channels`,shape:'ghost'},
     {id:'velvet',name:'VELVET STATIC',tier:'Epic',code:'AH—090',material:'Black chrome / analog grooves',collection:'THE HOURS BETWEEN',lore:'The soft noise between two stations. Woven from a dozen transmissions and the replies that made them a conversation.',condition:'Write twelve original messages across four channels, including four thread replies.',rule:s=>number(s.ownMessages)>=12&&number(s.channelsUsed)>=4&&number(s.replies)>=4,progress:s=>`${Math.min(number(s.ownMessages),12)}/12 messages · ${Math.min(number(s.channelsUsed),4)}/4 channels · ${Math.min(number(s.replies),4)}/4 replies`,shape:'velvet'},
     {id:'dead',name:'DEAD INTERNET',tier:'Legendary',code:'AH—NET',material:'Fractured nickel / transmission wire',collection:'POST-ALGORITHM RELICS',lore:'The network broke. The people stayed. A damaged globe for a place you made by hand, one room at a time.',condition:'Build a local community with three custom text channels and curate three pinned messages.',rule:s=>number(s.customServers)>=1&&number(s.customChannels)>=3&&number(s.pins)>=3,progress:s=>`${Math.min(number(s.customServers),1)}/1 community · ${Math.min(number(s.customChannels),3)}/3 channels · ${Math.min(number(s.pins),3)}/3 pins`,shape:'dead'},
@@ -40,125 +41,166 @@
     if (badge.shape === 'unknown') shape = `<path d="M43 20h74l23 23v74l-23 23H43l-23-23V43Z" fill="${fill('dark')}" stroke="${fill('edge')}" stroke-width="1.5"/><path d="M47 28h66l19 19v66l-19 19H47l-19-19V47Z" fill="none" stroke="#727b94" stroke-width=".6"/><path d="M34 59V39h22m48 0h22v20M34 101v20h22m48 0h22v-20" fill="none" stroke="${fill('chrome')}" stroke-width="4"/><path d="M52 51h56v58H52Z" fill="#090e19" stroke="#3e4b63" stroke-width=".7"/><g class="va-hidden-mark"><path d="m80 45 23 35-23 35-23-35Z" fill="${fill('chrome')}"/><path d="m80 58 14 22-14 22-14-22Z" fill="${fill('dark')}"/><circle cx="80" cy="80" r="8" fill="${fill('core')}"/><path d="M43 80h23m28 0h23M80 36v22m0 44v22" stroke="#b6c2dd" stroke-width=".8"/></g><g class="va-classified-bars"><path d="M43 66h74v9H43Zm0 17h74v9H43Z" fill="${fill('chrome')}"/><path d="M46 69h68m-68 17h68" stroke="#3b455b" stroke-width="1"/></g><path d="M55 14h50m-50 132h50" stroke="#9199b3" stroke-width=".8"/><text x="80" y="155" fill="#8391ae" font-size="4" letter-spacing="2" text-anchor="middle">IDENTITY / UNRESOLVED</text>`;
     return `<svg class="va-art va-art-${badge.shape}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="${esc(badge.name)} collectible artwork">${defs}<g class="va-art-object">${shape}</g></svg>`;
   }
+  function markBody(id) {
+    const shapes = {
+      larp:'<path fill="currentColor" fill-rule="evenodd" d="m16 1 11 6 3 12-8 10-6 3-6-3-8-10L5 7Zm0 3-8 5-3 10 7 8 4 2 4-2 7-8-3-10Z"/><path fill="currentColor" d="M10 10h4v10h7l-3 4h-8Zm6-1 3 7 3-7h4l-7 13-6-13Z"/>',
+      founder:'<path fill="currentColor" d="m16 0 3 8 8-3-3 8 8 3-8 3 3 8-8-3-3 8-3-8-8 3 3-8-8-3 8-3-3-8 8 3Zm0 7-2 7-7 2 7 2 2 7 2-7 7-2-7-2Z"/><circle cx="16" cy="16" r="3" fill="currentColor"/>',
+      night:'<path fill="currentColor" fill-rule="evenodd" d="M9 2h14l6 7v17l-6 5H9l-6-5V9Zm1 3L6 10v14l5 4h10l5-4V10l-4-5Z"/><path fill="currentColor" d="M9 11h5v11H9v-2h3v-3h-3v-2h3v-2H9Zm9 0h5v11h-5v-2h3v-3h-3v-2h3v-2h-3Z"/><path stroke="currentColor" stroke-width="1.8" d="M16 13v2m0 3v2M13 7h6"/>',
+      angel:'<path fill="currentColor" d="m15 11-5-5L0 3l3 9 7 4-6-1 4 6 6 1 2 8 2-8 6-1 4-6-6 1 7-4 3-9-10 3-5 5-1-5Zm-5 2-6-4 6 2Zm12 0 6-4-6 2Z"/><ellipse cx="16" cy="3" rx="4" ry="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+      ghost:'<path fill="currentColor" fill-rule="evenodd" d="M16 2c-6 0-9 4-9 10L5 28l6-3 5 5 5-5 6 3-2-16c0-6-3-10-9-10Zm0 3c4 0 6 3 6 7l1 11-3-1-4 4-4-4-3 1 1-11c0-4 2-7 6-7Z"/><path fill="currentColor" d="m12 11 3 2-3 2Zm8 0-3 2 3 2Z"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M3 9a13 13 0 0 0 0 12M29 9a13 13 0 0 1 0 12"/>',
+      velvet:'<path fill="currentColor" d="M8 3c6-5 16-2 19 5 4 10-17 14-15 19 1 3 7 3 10 0l-2 5c-8 1-15-4-15-9 0-8 18-12 17-17-1-4-8-4-11 0v4L3 13l1-7Z"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M1 16h7m16 0h7M2 20h4m19 0h5"/>',
+      dead:'<path fill="none" stroke="currentColor" stroke-width="2.5" d="M17 2A14 14 0 0 0 12 30M21 3a14 14 0 0 1-3 27M2 13h11m6 0h11M3 22h8m9 0h9M13 4C7 10 7 22 12 28M22 6c4 5 4 13 0 19"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="m20 0-5 9 5 7-6 8 3 8"/>',
+      voidwalker:'<path fill="currentColor" fill-rule="evenodd" d="m16 0 4 5 5-1-1 7 6 4-3 5 4 7-7 1-3 4-5-3-5 3-3-4-7-1 4-7-3-5 6-4-1-7 5 1Zm0 6C8 11 7 19 10 25l6 3 6-3c3-6 2-14-6-19Z"/><path fill="currentColor" d="m16 11 5 8-5 7-5-7Z"/>',
+      unknown:'<path fill="none" stroke="currentColor" stroke-width="2.8" d="M11 3H5L2 6v6m19-9h6l3 3v6M2 20v6l3 3h6m10 0h6l3-3v-6"/><path fill="currentColor" fill-rule="evenodd" d="m16 5 8 11-8 11-8-11Zm0 5-4 6 4 6 4-6Z"/><circle cx="16" cy="16" r="1.6" fill="currentColor"/>'
+    };
+    return shapes[id] || shapes.larp;
+  }
+  function mark(id, size=24) {
+    const b=byId(id)||byId('larp'), n=[16,24,32].includes(size)?size:24;
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="va-mark va-mark-${b.id}" viewBox="0 0 32 32" width="${n}" height="${n}" role="img" aria-label="${esc(b.name)} miniature mark">${markBody(b.id)}</svg>`;
+  }
   function installMiniSprite() {
     if(document.getElementById?.('va-mini-sprite')||typeof document.createElementNS!=='function'||!document.body?.appendChild)return;
     const sprite=document.createElementNS('http://www.w3.org/2000/svg','svg');
     sprite.id='va-mini-sprite';sprite.setAttribute('aria-hidden','true');sprite.setAttribute('focusable','false');
-    sprite.setAttribute('class','va-art va-mini-sprite');
     sprite.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden;pointer-events:none');
-    sprite.innerHTML=`<defs>${catalog.map(b=>`<symbol id="va-mini-${b.id}" viewBox="0 0 160 160">${art(b.id).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')}</symbol>`).join('')}</defs>`;
+    sprite.innerHTML=`<defs>${catalog.map(b=>`<symbol id="va-mini-${b.id}" viewBox="0 0 32 32">${markBody(b.id)}</symbol>`).join('')}</defs>`;
     document.body.appendChild(sprite);
   }
-  function mini(id) {
-    const badge = byId(id); if (!badge) return '';
-    return `<button type="button" class="vbadge-mini va-tier-${badge.tier.toLowerCase()}" data-vbadge="${badge.id}" aria-label="Inspect ${esc(badge.name)}" title="${esc(badge.name)}"><svg class="va-art va-art-${badge.shape}" viewBox="0 0 160 160" aria-hidden="true"><use href="#va-mini-${badge.id}"></use></svg></button>`;
+  function mini(id,size=24) {
+    const b=byId(id);if(!b)return '';const n=[16,24,32].includes(size)?size:24;
+    return `<button type="button" class="vbadge-mini va-tier-${b.tier.toLowerCase()}" style="--va-mini-size:${n}px" data-vbadge="${b.id}" aria-label="Inspect ${esc(b.name)}" title="${esc(b.name)}"><svg class="va-mark va-mark-${b.id}" viewBox="0 0 32 32" aria-hidden="true"><use href="#va-mini-${b.id}"></use></svg></button>`;
   }
   function cabinet(ids) {
-    const list = (Array.isArray(ids) ? ids : catalog.filter(b=>owned(b.id)).map(b=>b.id)).filter(id=>byId(id));
+    const list=(Array.isArray(ids)?ids:catalog.filter(b=>owned(b.id)).map(b=>b.id)).filter(id=>byId(id));
     return `<div class="va-mini-cabinet" aria-label="Artifact cabinet">${list.slice(0,6).map(id=>`<button type="button" class="va-cabinet-slot" data-vbadge="${esc(id)}" aria-label="Inspect ${esc(byId(id).name)}">${art(id)}<span>${esc(byId(id).name)}</span></button>`).join('')}${!list.length?'<span class="va-cabinet-empty">Your first artifact is waiting in the archive.</span>':''}</div>`;
   }
-  function dismissAcquisition() {
-    clearTimeout(acquisitionTimer); clearTimeout(acquisitionRemoveTimer);
-    const card=document.querySelector('.va-acquisition');if(!card)return;
-    card.classList.add('va-acquisition-leaving');
-    acquisitionRemoveTimer=setTimeout(()=>card.remove(),motionAllowed()?240:0);
+  const dialogOpen=()=>!!document.querySelector?.('dialog[open]');
+  function scheduleAcquisition(delay=5200) {
+    clearTimeout(acquisitionTimer);
+    if(!dialogOpen())acquisitionTimer=setTimeout(dismissAcquisition,delay);
   }
-  function revealAcquisition(ids) {
-    if(typeof document.createElement!=='function'||!document.body?.appendChild)return;
-    const tierRank=['Common','Uncommon','Rare','Epic','Legendary','Mythic','Artifact'];
-    const rare=ids.map(byId).filter(b=>b&&tierRank.indexOf(b.tier)>=2).sort((a,b)=>tierRank.indexOf(b.tier)-tierRank.indexOf(a.tier));
-    if(!rare.length)return;
+  function dismissAcquisition() {
     clearTimeout(acquisitionTimer);clearTimeout(acquisitionRemoveTimer);
-    document.querySelector('.va-acquisition')?.remove();
-    const b=rare[0],card=document.createElement('aside');
+    const card=document.querySelector('.va-acquisition');
+    const next=()=>{card?.remove();acquisitionActive='';showNextAcquisition();};
+    if(!card)return next();
+    card.classList.add('va-acquisition-leaving');
+    acquisitionRemoveTimer=setTimeout(next,motionAllowed()?240:0);
+  }
+  function showNextAcquisition() {
+    if(acquisitionActive||!acquisitionQueue.length||dialogOpen()||typeof document.createElement!=='function'||!document.body?.appendChild)return;
+    const b=byId(acquisitionQueue.shift());if(!b)return showNextAcquisition();
+    acquisitionActive=b.id;const card=document.createElement('aside');
     card.className=`va-acquisition va-tier-${b.tier.toLowerCase()}${motionAllowed()?'':' va-acquisition-still'}`;
     card.setAttribute('aria-label','New artifact acquired');
-    card.innerHTML=`<div class="va-acquisition-light" aria-hidden="true"></div><div class="va-acquisition-art">${art(b.id)}</div><div class="va-acquisition-copy"><p class="va-acquisition-eyebrow" role="status">ARTIFACT ACQUIRED <i></i> ${b.tier.toUpperCase()}</p><strong>${b.name}</strong><span>${ids.length>1?`${ids.length-1} more ${ids.length===2?'artifact':'artifacts'} recorded in your archive.`:'A new part of your Afterhours story.'}</span><button type="button" data-vbadge="${b.id}" data-vbadge-acquisition-inspect>Inspect your artifact <span>↗</span></button></div><button type="button" class="va-acquisition-dismiss" data-vbadge-acquisition-close aria-label="Dismiss artifact reveal">×</button>`;
+    card.innerHTML=`<div class="va-acquisition-light" aria-hidden="true"></div><div class="va-acquisition-art">${art(b.id)}</div><div class="va-acquisition-copy"><p class="va-acquisition-eyebrow" role="status">ARTIFACT ACQUIRED <i></i> ${b.tier.toUpperCase()}</p><strong>${b.name}</strong><span>${acquisitionQueue.length?`${acquisitionQueue.length} more ${acquisitionQueue.length===1?'artifact':'artifacts'} to reveal.`:'A new part of your Afterhours story.'}</span><button type="button" data-vbadge="${b.id}" data-vbadge-acquisition-inspect>Inspect your artifact <span>↗</span></button></div><button type="button" class="va-acquisition-dismiss" data-vbadge-acquisition-close aria-label="Dismiss artifact reveal">×</button>`;
     document.body.appendChild(card);
-    const schedule=delay=>{clearTimeout(acquisitionTimer);acquisitionTimer=setTimeout(dismissAcquisition,delay);};
     card.addEventListener('pointerenter',()=>clearTimeout(acquisitionTimer));
-    card.addEventListener('pointerleave',()=>{if(!card.contains(document.activeElement))schedule(2500);});
+    card.addEventListener('pointerleave',()=>{if(!card.contains(document.activeElement))scheduleAcquisition(3200);});
     card.addEventListener('focusin',()=>clearTimeout(acquisitionTimer));
-    card.addEventListener('focusout',e=>{if(!card.contains(e.relatedTarget))schedule(2500);});
-    schedule(4200);
+    card.addEventListener('focusout',e=>{if(!card.contains(e.relatedTarget))scheduleAcquisition(3200);});
+    scheduleAcquisition();
   }
-  function checkUnlocks(options = {}) {
-    if (!app || checking) return [];
-    checking = true; ensureState();
-    const unlocked = [], s = stats();
-    for (let pass=0;pass<2;pass++) catalog.forEach(b => {
-      if (!owned(b.id) && b.rule(s,app.state.artifacts,app.state.artifactInspected)) {
-        app.state.artifacts[b.id] = {earnedAt:Date.now()}; unlocked.push(b.id);
+  function revealAcquisition(ids) {
+    const tiers=['Rare','Epic','Legendary','Mythic','Artifact'];
+    ids.map(byId).filter(b=>b&&tiers.includes(b.tier)).forEach(b=>{if(acquisitionActive!==b.id&&!acquisitionQueue.includes(b.id))acquisitionQueue.push(b.id);});
+    showNextAcquisition();
+  }
+  function revealCommitted(ids) {
+    if(!app||!Array.isArray(ids))return;
+    revealAcquisition([...new Set(ids.filter(id=>byId(id)&&owned(id)))]);
+  }
+  function checkUnlocks(options={}) {
+    if(!app||checking)return [];
+    checking=true;ensureState();
+    const unlocked=[],created=new Map(),s=stats();
+    for(let pass=0;pass<2;pass++)catalog.forEach(b=>{
+      if(!owned(b.id)&&b.rule(s,app.state.artifacts,app.state.artifactInspected)){
+        const record={earnedAt:Date.now()};app.state.artifacts[b.id]=record;created.set(b.id,record);unlocked.push(b.id);
       }
     });
-    if (unlocked.length) app.persist?.();
-    checking = false;
-    if (options.announce !== false && unlocked.length) {
-      const names = unlocked.map(id=>byId(id).name).join(' + ');
-      app.toast?.(`${unlocked.length===1?'Artifact earned':'Artifacts earned'}: ${names}`);
+    let committed=true;
+    if(unlocked.length){try{committed=app.persist?.()!==false;}catch(_){committed=false;}}
+    if(!committed){created.forEach((record,id)=>{if(app.state.artifacts[id]===record)delete app.state.artifacts[id];});checking=false;return [];}
+    checking=false;
+    if(options.announce!==false&&unlocked.length){
+      app.toast?.(`${unlocked.length===1?'Artifact earned':'Artifacts earned'}: ${unlocked.map(id=>byId(id).name).join(' + ')}`);
       unlocked.forEach(id=>window.dispatchEvent(new CustomEvent('voidline:artifact-earned',{detail:{id,name:byId(id).name}})));
       revealAcquisition(unlocked);
     }
     return unlocked;
   }
   function collection() {
-    const collected = catalog.filter(b=>owned(b.id)).length;
-    const shown = catalog.filter(b=>filter==='all'||(filter==='owned'?owned(b.id):!owned(b.id)));
-    app.modal(`<section class="va-archive"><header class="va-archive-head"><div><div class="va-eyebrow">VOIDLINE / PRIVATE COLLECTION</div><h2>The Afterhours Archive<span>.</span></h2><p>Small objects. A history of becoming.</p></div><div class="va-owned-count"><strong>${collected}<span> / ${catalog.length}</span></strong><small>IN YOUR COLLECTION</small></div></header><div class="va-archive-toolbar"><div class="va-filter-tabs" role="group" aria-label="Filter artifacts">${[['all','All artifacts'],['owned','Collected'],['locked','Undiscovered']].map(([id,name])=>`<button type="button" class="${filter===id?'active':''}" data-vbadge-filter="${id}" aria-pressed="${filter===id}">${name}</button>`).join('')}</div><span>COLLECTION 01 — AFTERHOURS</span></div><div class="va-artifact-grid">${shown.map(b=>`<button type="button" class="va-artifact-card ${owned(b.id)?'va-owned':'va-locked'} va-tier-${b.tier.toLowerCase()}" data-vbadge="${b.id}" aria-label="Inspect ${esc(b.name)}, ${b.tier}, ${owned(b.id)?'collected':'locked'}"><div class="va-card-top"><span>${b.code}</span><span class="va-card-state">${owned(b.id)?(app.state.profile.badge===b.id?'DISPLAYED':'COLLECTED'):'LOCKED'}</span></div><div class="va-card-art">${art(b.id)}<span class="va-art-ground"></span></div><div class="va-card-info"><small>${b.tier.toUpperCase()}</small><strong>${b.name}</strong><span>${b.material}</span></div><span class="va-inspect-link">INSPECT ARTIFACT <span>↗</span></span></button>`).join('')||'<div class="va-archive-empty">Nothing in this view yet.<br>Your next transmission could change that.</div>'}</div><footer class="va-archive-footer"><span>Ownership and achievements are stored on this device.</span><span>Defined milestones. No random drops. No invented scarcity.</span></footer></section>`,{wide:true,className:'artifact-modal'});
-    activeId = '';
+    const ctx=collectionContext,list=catalog.filter(b=>!ctx||ctx.ids.includes(b.id)),collected=ctx?list.length:catalog.filter(b=>owned(b.id)).length;
+    const shown=list.filter(b=>ctx||filter==='all'||(filter==='owned'?owned(b.id):!owned(b.id)));
+    app.modal(`<section class="va-archive${ctx?' va-sample-context':''}"><header class="va-archive-head"><div><div class="va-eyebrow">${ctx?'COMMUNITY PREVIEW / SAMPLE CABINET':'VOIDLINE / YOUR PRIVATE COLLECTION'}</div><h2>${ctx?`${esc(ctx.name)}’s cabinet`:'The Afterhours Archive'}<span>.</span></h2><p>${ctx?'A curated sample profile. Read-only inspiration.':'Small objects. A history of becoming.'}</p></div><div class="va-owned-count"><strong>${collected}<span> / ${ctx?list.length:catalog.length}</span></strong><small>${ctx?'ON THIS SAMPLE PROFILE':'IN YOUR COLLECTION'}</small></div></header><div class="va-archive-toolbar">${ctx?`<button type="button" class="va-back" data-vbadge-back-profile>← BACK TO ${esc(ctx.name.toUpperCase())}</button>`:`<div class="va-filter-tabs" role="group" aria-label="Filter artifacts">${[['all','All artifacts'],['owned','Collected'],['locked','Undiscovered']].map(([id,name])=>`<button type="button" class="${filter===id?'active':''}" data-vbadge-filter="${id}" aria-pressed="${filter===id}">${name}</button>`).join('')}</div>`}<span>${ctx?'SAMPLE DISPLAY':'COLLECTION 01 — AFTERHOURS'}</span></div><div class="va-artifact-grid">${shown.map(b=>{const has=!!ctx||owned(b.id);return `<button type="button" class="va-artifact-card ${has?'va-owned':'va-locked'} va-tier-${b.tier.toLowerCase()}" data-vbadge="${b.id}" aria-label="Inspect ${esc(b.name)}, ${b.tier}, ${ctx?'sample display':has?'collected':'locked'}"><div class="va-card-top"><span>${b.code}</span><span class="va-card-state">${ctx?'SAMPLE':has?(app.state.profile.badge===b.id?'DISPLAYED':'COLLECTED'):'LOCKED'}</span></div><div class="va-card-art">${art(b.id)}<span class="va-art-ground"></span></div><div class="va-card-info"><small>${b.tier==='Edition'?'EDITION MARK':b.tier.toUpperCase()}</small><strong>${b.name}</strong><span>${b.material}</span></div><span class="va-inspect-link">INSPECT ARTIFACT <span>↗</span></span></button>`;}).join('')||'<div class="va-archive-empty">Nothing in this view yet.<br>Your next transmission could change that.</div>'}</div><footer class="va-archive-footer"><span>${ctx?'Illustrative sample collection. No ownership or dates are claimed.':'Ownership and achievements are stored on this device.'}</span><span>${ctx?'Inspecting this cabinet does not modify your collection.':'Defined milestones. No random drops. No invented scarcity.'}</span></footer></section>`,{wide:true,className:'artifact-modal'});
+    activeId='';
   }
   function inspect(id) {
-    const b=byId(id); if (!b) return collection();
-    activeId=id; rotation=0;
-    if (!app.state.artifactInspected.includes(id)) {
-      app.state.artifactInspected.push(id); app.persist?.(); checkUnlocks({announce:true});
+    const b=byId(id);if(!b)return collection();
+    const ctx=collectionContext;if(ctx&&!ctx.ids.includes(id))return collection();
+    activeId=id;rotation=0;pitch=0;
+    if(!ctx&&!app.state.artifactInspected.includes(id)){
+      const previous=app.state.artifactInspected,next=[...previous,id];app.state.artifactInspected=next;
+      let committed=true;try{committed=app.persist?.()!==false;}catch(_){committed=false;}
+      if(!committed){if(app.state.artifactInspected===next)app.state.artifactInspected=previous;}else checkUnlocks({announce:true});
     }
-    const has=owned(id), record=app.state.artifacts[id], earned=record?.earnedAt;
-    const earnedText=typeof earned==='number'&&Number.isFinite(earned)&&Math.abs(earned)<8640000000000000?new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(earned)):'Recorded in a previous edition';
-    const idx=catalog.indexOf(b), previous=catalog[(idx-1+catalog.length)%catalog.length], next=catalog[(idx+1)%catalog.length];
-    app.modal(`<section class="va-inspection va-tier-${b.tier.toLowerCase()}"><div class="va-inspect-nav"><button type="button" class="va-back" data-vcollection>← THE ARCHIVE</button><span>${b.code} / ${String(idx+1).padStart(2,'0')} OF ${String(catalog.length).padStart(2,'0')}</span></div><div class="va-inspect-grid"><div class="va-object-room"><div class="va-room-coordinates"><span>OBJECT / ${b.code}</span><span>INTERACTIVE VIEW</span></div><div class="va-inspect-stage${b.shape==='unknown'?' va-is-classified':''}" data-vbadge-stage tabindex="0" role="group" aria-label="${esc(b.name)} inspection. Move your pointer to tilt, or use arrow keys. Press R to reset."><div class="va-object-halo"></div><div class="va-object-turntable">${art(id)}</div><div class="va-room-floor"></div></div><div class="va-rotation-tools"><button type="button" data-vbadge-turn="-1" aria-label="Rotate artifact left">↶</button><span>MOVE TO INSPECT <i>·</i> ← → TO ROTATE</span><button type="button" data-vbadge-turn="1" aria-label="Rotate artifact right">↷</button></div>${b.shape==='unknown'?'<button type="button" class="va-reveal-mark" data-vbadge-reveal aria-pressed="false">REVEAL CONCEALED MARK</button>':''}</div><div class="va-object-record"><div class="va-record-eyebrow">${b.collection}</div><span class="va-tier-label">${b.tier.toUpperCase()} <i></i> ${has?'COLLECTED':'LOCKED'}</span><h2>${b.name}</h2><p class="va-object-lore">${b.lore}</p><dl class="va-object-details"><div><dt>MATERIAL</dt><dd>${b.material}</dd></div><div><dt>ACQUIRED</dt><dd>${has?earnedText:'Not yet in your collection'}</dd></div><div><dt>PROVENANCE</dt><dd>${record?.legacy?'Preserved from your previous VOIDLINE profile':'This device / Afterhours edition'}</dd></div></dl><div class="va-unlock-condition"><span>${has?'AVAILABILITY / EARNED BY':'HOW TO ACQUIRE'}</span><p>${b.condition}</p>${!has?`<div class="va-unlock-progress">${esc(b.progress(stats(),app.state.artifacts,app.state.artifactInspected))}</div>`:''}</div>${has?`<button type="button" class="primary-button va-equip-button" data-vbadge-equip="${id}" ${app.state.profile.badge===id?'disabled':''}>${app.state.profile.badge===id?'Displayed on your profile':'Display on my profile'} <span>↗</span></button>`:'<div class="va-locked-note">This artifact unlocks automatically when its milestones are complete.</div>'}${b.tier==='Artifact'?'<p class="va-provenance-note">Artifact identifies a provenance or completion record. It does not imply a limited global supply.</p>':''}</div></div><footer class="va-inspect-footer"><button type="button" data-vbadge="${previous.id}">← ${previous.name}</button><span>THE AFTERHOURS ARCHIVE</span><button type="button" data-vbadge="${next.id}">${next.name} →</button></footer></section>`,{wide:true,className:'artifact-modal'});
+    const has=!!ctx||owned(id),record=ctx?null:app.state.artifacts[id],earned=record?.earnedAt;
+    const earnedText=ctx?'Sample display / no earned date':typeof earned==='number'&&Number.isFinite(earned)&&Math.abs(earned)<8640000000000000?new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(earned)):'Preserved from a previous edition';
+    const sequence=ctx?catalog.filter(b=>ctx.ids.includes(b.id)):catalog,idx=sequence.indexOf(b),previous=sequence[(idx-1+sequence.length)%sequence.length],next=sequence[(idx+1)%sequence.length];
+    app.modal(`<section class="va-inspection va-tier-${b.tier.toLowerCase()}${ctx?' va-sample-context':''}"><div class="va-inspect-nav"><button type="button" class="va-back" data-vcollection>← ${ctx?esc(ctx.name.toUpperCase())+'’S CABINET':'THE ARCHIVE'}</button><span>${b.code} / ${String(idx+1).padStart(2,'0')} OF ${String(sequence.length).padStart(2,'0')}</span></div><div class="va-inspect-grid"><div class="va-object-room"><div class="va-room-coordinates"><span>OBJECT / ${b.code}</span><span>LAYERED ARTWORK</span></div><div class="va-inspect-stage${b.shape==='unknown'?' va-is-classified':''}" data-vbadge-stage tabindex="0" role="group" aria-label="${esc(b.name)} layered artwork. Move your pointer to tilt, use arrow keys, or the view buttons. Press R to reset."><div class="va-object-halo"></div><div class="va-object-turntable">${art(id)}</div><div class="va-room-floor"></div></div><div class="va-rotation-tools"><button type="button" data-vbadge-turn="-1" aria-label="Tilt artifact left">↶</button><span>TILT TO INSPECT</span><button type="button" data-vbadge-reset aria-label="Reset artifact view">↺</button><button type="button" data-vbadge-turn="1" aria-label="Tilt artifact right">↷</button></div>${b.shape==='unknown'?'<button type="button" class="va-reveal-mark" data-vbadge-reveal aria-pressed="false">REVEAL CONCEALED MARK</button>':''}</div><div class="va-object-record"><div class="va-record-eyebrow">${ctx?'SAMPLE PROFILE / '+esc(ctx.name.toUpperCase()):b.collection}</div><span class="va-tier-label">${b.tier==='Edition'?'EDITION MARK':b.tier.toUpperCase()} <i></i> ${ctx?'SAMPLE DISPLAY':has?'COLLECTED':'LOCKED'}</span><h2>${b.name}</h2><p class="va-object-lore">${b.lore}</p><dl class="va-object-details"><div><dt>MATERIAL</dt><dd>${b.material}</dd></div><div><dt>ACQUIRED</dt><dd>${has?earnedText:'Not yet in your collection'}</dd></div><div><dt>PROVENANCE</dt><dd>${ctx?'Illustrative community profile':record?.legacy?'Preserved from your previous VOIDLINE profile':'This device / Afterhours edition'}</dd></div></dl><div class="va-unlock-condition"><span>${ctx?'PERSONAL COLLECTION MILESTONE':has?'AVAILABILITY / EARNED BY':'HOW TO ACQUIRE'}</span><p>${b.condition}</p>${!ctx&&!has?`<div class="va-unlock-progress">${esc(b.progress(stats(),app.state.artifacts,app.state.artifactInspected))}</div>`:''}</div>${ctx?'<button type="button" class="secondary-button va-equip-button" data-vbadge-back-profile>Return to the sample profile <span>↗</span></button>':has?`<button type="button" class="primary-button va-equip-button" data-vbadge-equip="${id}" ${app.state.profile.badge===id?'disabled':''}>${app.state.profile.badge===id?'Displayed on your profile':'Display on my profile'} <span>↗</span></button>`:'<div class="va-locked-note">This artifact unlocks automatically when its milestones are complete.</div>'}${b.tier==='Edition'?'<p class="va-provenance-note">Edition is a local arrival mark, separate from achievement tiers. It is available to every profile, with no global scarcity claim.</p>':b.tier==='Artifact'?'<p class="va-provenance-note">Artifact marks completion of this local archive. Its availability is defined by the milestones above.</p>':''}${ctx?'<p class="va-provenance-note">Sample cabinet only. No changes are made to your artifacts or profile.</p>':''}</div></div><footer class="va-inspect-footer"><button type="button" data-vbadge="${previous.id}">← ${previous.name}</button><span>THE AFTERHOURS ARCHIVE</span><button type="button" data-vbadge="${next.id}">${next.name} →</button></footer></section>`,{wide:true,className:'artifact-modal'});
   }
-  function open(id) { if(!app)return; ensureState(); checkUnlocks({announce:false}); id?inspect(id):collection(); }
-  function rotate(amount) {
-    const stage=document.querySelector('[data-vbadge-stage]'); if(!stage)return;
-    rotation=Math.max(-44,Math.min(44,rotation+amount));
-    const object=stage.querySelector('.va-object-turntable'); if(object)object.style.transform=`rotateY(${rotation}deg) rotateX(-4deg)`;
+  function open(id) {if(!app)return;collectionContext=null;ensureState();checkUnlocks({announce:false});id?inspect(id):collection();}
+  function openFor(ownerId,ids,displayName,inspectId) {
+    if(!app)return;if(ownerId==='self')return open(inspectId);
+    const valid=[...new Set((Array.isArray(ids)?ids:[]).filter(id=>byId(id)))];
+    collectionContext={ownerId:String(ownerId||'sample'),name:String(displayName||'Sample profile').slice(0,40),ids:valid};
+    filter='all';inspectId&&valid.includes(inspectId)?inspect(inspectId):collection();
+  }
+  function rotate(amount,vertical=0) {
+    const stage=document.querySelector('[data-vbadge-stage]');if(!stage)return;
+    rotation=Math.max(-36,Math.min(36,rotation+amount));pitch=Math.max(-20,Math.min(20,pitch+vertical));
+    const object=stage.querySelector('.va-object-turntable');if(object)object.style.transform=`rotateY(${rotation}deg) rotateX(${pitch}deg)`;
   }
   function init(api) {
-    app=api; ensureState(); installMiniSprite(); checkUnlocks({announce:false});
-    if(bound)return; bound=true;
-    document.addEventListener('click', e=> {
-      const button=e.target.closest('button'); if(!button)return;
+    app=api;ensureState();installMiniSprite();checkUnlocks({announce:false});
+    if(bound)return;bound=true;
+    const syncReveal=()=>{if(dialogOpen())clearTimeout(acquisitionTimer);else if(acquisitionActive)scheduleAcquisition();else showNextAcquisition();};
+    document.addEventListener('close',syncReveal,true);
+    const dialog=document.getElementById?.('app-modal');
+    if(window.MutationObserver&&dialog)new window.MutationObserver(syncReveal).observe(dialog,{attributes:true,attributeFilter:['open']});
+    document.addEventListener('click',e=>{
+      const button=e.target.closest('button');if(!button)return;
       if(button.hasAttribute('data-vbadge-acquisition-close'))return dismissAcquisition();
       if(button.hasAttribute('data-vbadge-acquisition-inspect'))dismissAcquisition();
-      if(button.hasAttribute('data-vcollection')) {e.preventDefault(); return collection();}
-      if(button.dataset.vbadge) {e.preventDefault();return inspect(button.dataset.vbadge);}
-      if(button.dataset.vbadgeFilter) {filter=button.dataset.vbadgeFilter;return collection();}
-      if(button.dataset.vbadgeEquip) {
-        const id=button.dataset.vbadgeEquip;if(!byId(id)||!owned(id))return;
-        app.state.profile.badge=id;app.persist?.();app.refresh?.();inspect(id);app.toast?.(`${byId(id).name} is now on your profile.`);return;
+      if(button.hasAttribute('data-vbadge-back-profile')){const owner=collectionContext?.ownerId;collectionContext=null;return owner?window.VoidProfiles?.open(owner):collection();}
+      if(button.hasAttribute('data-vcollection')){e.preventDefault();if(!button.closest('.va-sample-context'))collectionContext=null;return collection();}
+      if(button.dataset.vbadge){e.preventDefault();if(!button.closest('.va-sample-context'))collectionContext=null;return inspect(button.dataset.vbadge);}
+      if(button.dataset.vbadgeFilter){filter=button.dataset.vbadgeFilter;return collection();}
+      if(button.dataset.vbadgeEquip){
+        const id=button.dataset.vbadgeEquip;if(collectionContext||!byId(id)||!owned(id))return;
+        const previous=app.state.profile.badge;app.state.profile.badge=id;
+        let committed=true;try{committed=app.persist?.()!==false;}catch(_){committed=false;}
+        if(!committed){if(app.state.profile.badge===id)app.state.profile.badge=previous;app.refresh?.();return;}
+        app.refresh?.();inspect(id);app.toast?.(`${byId(id).name} is now on your profile.`);return;
       }
       if(button.hasAttribute('data-vbadge-turn'))return rotate(Number(button.dataset.vbadgeTurn)*12);
-      if(button.hasAttribute('data-vbadge-reveal')) {
-        const stage=document.querySelector('[data-vbadge-stage]');if(!stage)return;
-        const reveal=stage.classList.toggle('va-mark-revealed');button.setAttribute('aria-pressed',String(reveal));button.textContent=reveal?'CONCEAL MARK':'REVEAL CONCEALED MARK';
-      }
+      if(button.hasAttribute('data-vbadge-reset')){rotation=0;pitch=0;return rotate(0);}
+      if(button.hasAttribute('data-vbadge-reveal')){const stage=document.querySelector('[data-vbadge-stage]');if(!stage)return;const reveal=stage.classList.toggle('va-mark-revealed');button.setAttribute('aria-pressed',String(reveal));button.textContent=reveal?'CONCEAL MARK':'REVEAL CONCEALED MARK';}
     });
-    document.addEventListener('pointermove',e=> {
+    document.addEventListener('pointermove',e=>{
       const stage=e.target.closest('[data-vbadge-stage]');if(!stage||!motionAllowed())return;
-      const bounds=stage.getBoundingClientRect(), x=(e.clientX-bounds.left)/bounds.width-.5, y=(e.clientY-bounds.top)/bounds.height-.5;
+      const bounds=stage.getBoundingClientRect(),x=(e.clientX-bounds.left)/bounds.width-.5,y=(e.clientY-bounds.top)/bounds.height-.5;
       stage.style.setProperty('--va-light-x',`${(x+.5)*100}%`);stage.style.setProperty('--va-light-y',`${(y+.5)*100}%`);
-      const object=stage.querySelector('.va-object-turntable');if(object)object.style.transform=`rotateY(${rotation+x*25}deg) rotateX(${-y*18}deg)`;
+      const object=stage.querySelector('.va-object-turntable');if(object)object.style.transform=`rotateY(${rotation+x*20}deg) rotateX(${pitch-y*16}deg)`;
     });
-    document.addEventListener('pointerout',e=> {
-      const stage=e.target.closest('[data-vbadge-stage]');if(!stage||stage.contains(e.relatedTarget))return;
-      const object=stage.querySelector('.va-object-turntable');if(object)object.style.transform=`rotateY(${rotation}deg) rotateX(0deg)`;
-    });
-    document.addEventListener('keydown',e=> {
+    document.addEventListener('pointerout',e=>{const stage=e.target.closest('[data-vbadge-stage]');if(!stage||stage.contains(e.relatedTarget))return;rotate(0);});
+    document.addEventListener('keydown',e=>{
       const stage=e.target.closest?.('[data-vbadge-stage]');if(!stage)return;
-      if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();rotate(e.key==='ArrowLeft'?-12:12);}
-      if(e.key.toLowerCase()==='r'){e.preventDefault();rotation=0;rotate(0);}
+      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();rotate(e.key==='ArrowLeft'?-12:e.key==='ArrowRight'?12:0,e.key==='ArrowUp'?8:e.key==='ArrowDown'?-8:0);}
+      if(e.key.toLowerCase()==='r'){e.preventDefault();rotation=0;pitch=0;rotate(0);}
     });
   }
-  window.VoidBadges={init,open,mini,art,cabinet,checkUnlocks,catalog:catalog.map(({rule,progress,...b})=>b),has:owned};
+  window.VoidBadges={init,open,openFor,mini,mark,art,cabinet,checkUnlocks,revealCommitted,catalog:catalog.map(({rule,progress,...b})=>b),has:owned};
 })();

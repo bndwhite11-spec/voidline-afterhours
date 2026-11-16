@@ -39,7 +39,7 @@ test('import updates existing community metadata/channels/settings while retaini
   const originalCreate=app.document.createElement;let picker;
   app.document.createElement=tag=>{const element=originalCreate(tag);if(tag==='input')picker=element;return element;};
   await app.click({action:'import'});assert.ok(picker?.onchange,'Import action should create its file picker');
-  const data=JSON.stringify({format:'voidline-afterhours',state:archive});picker.files=[{size:data.length,text:async()=>data}];await picker.onchange();
+  const data=JSON.stringify({format:'voidline-afterhours',state:archive});picker.files=[{size:data.length,text:async()=>data}];await picker.onchange();assert.match(app.get('modal-content').innerHTML,/data-action="commit-import"/);assert.equal(app.api.state.customServers[0].name,'Original name','Import preview must not change the archive');await app.click({action:'commit-import'});
   const community=app.api.state.customServers.find(s=>s.id==='custom-import');assert.equal(app.api.state.customServers.length,1);assert.equal(community.name,'Updated studio');assert.equal(community.description,'Imported community description');assert.equal(community.channels.find(c=>c[0]==='general')[1],'Updated topic');
   for(const channel of ['general','announcements','local-only','new-ideas'])assert.ok(community.channels.some(c=>c[0]===channel),'Preserve/merge channel '+channel);
   assert.equal(messages(app,'custom-import/general')[0].id,'local-message');assert.equal(messages(app,'custom-import/local-only')[0].id,'local-room-message');
