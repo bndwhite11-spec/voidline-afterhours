@@ -60,6 +60,21 @@ assert.equal(config.google.configured,false);
 assert.equal((await fetchAsset('/api/auth/google/start')).status,503);
 const policy=(await fetchAsset('/')).headers.get('content-security-policy');
 assert(policy.includes("script-src 'self' 'wasm-unsafe-eval'"));assert(!policy.includes("'unsafe-inline'"));
+// ChatGPT embeds the published app. Keep that allowlist static and bounded.
+const frameSources = policy.split(';').map(part=>part.trim()).find(part=>part.startsWith('frame-ancestors '));
+assert.equal(frameSources,"frame-ancestors 'self' https://chatgpt.com https://chat.openai.com");
+const pageETag=(await fetchAsset('/')).headers.get('etag');
+for(const route of ['/','/users/example']){
+  for(const options of [
+    {headers:{origin:'https://untrusted.example',referer:'https://untrusted.example/frame'}},
+    {method:'HEAD'},
+    {headers:{'if-none-match':pageETag}}
+  ]){
+    const response=await fetchAsset(route,options);
+    assert.equal(response.headers.get('content-security-policy'),policy,'Framing policy must not reflect request origins or disappear on HEAD/304.');
+    assert.equal(response.headers.get('x-frame-options'),null,'A second header must not block the approved preview.');
+  }
+}
 const manifest = JSON.parse(await readFile(path.join(root,'.openai/hosting.json')));
 assert.deepEqual(JSON.parse(await readFile(path.join(dist,'.openai/hosting.json'))), manifest);
 assert.equal(manifest.project_id, 'appgprj_6afb6be77b9c8191ae8d2ee76b1afd34');
