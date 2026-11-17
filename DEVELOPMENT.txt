@@ -1,228 +1,196 @@
-CURRENT ACCOUNT FOUNDATION
+VOIDLINE / CURRENT DEVELOPMENT CONTRACT
 
-Production now boots home.js/home.css, uses worker/auth.mjs native password sessions,
-and never loads sample app.js. The legacy v7 behavior notes below describe
-retained source/recovery regressions, not the current authentication or E2EE
-contract. Current setup and threat model: docs/ACCOUNT-SETUP.md,
-docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
+Production enters through dist/index.html and dist/home.js/home.css. It does not
+load the retained sample app.js. D1 binding DB owns shared account/application
+state; Matrix is a separate optional encrypted messaging service. The source
+was audited from release v10. docs/IMPLEMENTATION-PLAN.md records the priorities;
+the detailed auth, encryption, owner, organization and collection docs describe
+the implemented contracts and outstanding work. docs/UPGRADE-STATUS.md is the
+concise release-state reference; its checks are separate from this contract.
 
-Current checks: npm run test:foundation; node backend/secure-messenger-test.mjs;
-node tests/run.cjs; python3 build_offline.py; npm run build;
-node scripts/check-build.mjs. Historical backend regression fixtures live only
-in tests/fixtures; production has no platform-header authentication bypass.
+SOURCE OWNERSHIP
+  dist/home.js/.css             authored production account/navigation/message UI
+  dist/social.js/.css           friend requests, blocks and request preferences
+  dist/cosmetics.js/.css        free decorations, gift instances and transfers
+  dist/profiles-panel.js/.css   profile preview/edit/privacy/showcase surfaces
+  dist/organize.js/.css         account organization, Inbox, Saved and search
+  dist/admin.js/.css            owner UI; server authorization is independent
+  src/passkey-client.js        @simplewebauthn/browser entry
+  src/secure-messenger.js       Matrix SDK/Rust crypto integration
+  src/secure-vault.js           passphrase-protected IndexedDB record storage
+  src/local-saved.js            Matrix-independent encrypted private notes
+  worker/auth.mjs               accounts, provider identities, sessions/recovery
+  worker/passwords.mjs          maintained Argon2id and legacy password upgrades
+  worker/passkeys.mjs           real WebAuthn challenge/signature verification
+  worker/admin.mjs              immutable owner binding, admin APIs and audit
+  worker/profiles.mjs           shared profile privacy and earned-badge rules
+  worker/organize.mjs           private metadata and scoped community tools
+  worker/cosmetics.mjs; social.mjs collectible and social authority
+  worker/index.mjs              API routing, retained history and platform guards
+  db/schema.ts; drizzle/        additive schema and immutable migration history
 
-VOIDLINE / RELIABILITY INVARIANTS
+Authored client files live in dist/. Generated bundles are passkey-client.js,
+secure-messenger.js, its legal notices/WASM, dist/server and the downloads.
+Do not edit generated outputs as source. The Worker asset allowlist excludes
+historical sample executable modules; their fixtures remain regression/recovery
+source. Deep-link HTML entries need root-absolute asset paths.
 
-1. A success state requires a committed write.
-Cause: send cleared composer/attachments before persist and ignored false.
-Contract: mutation returns committed state only after an atomic journal write;
-failed changes roll back visible domain state and retain form input plus a
-retryable field patch. Recovery export includes pending patches and legacy
-snapshot. No success announcement follows failed persistence.
-Regressions: voidline-reliability-test; voidline-mutation-failure-test;
-voidline-profiles-audit-test; voidline-badges-audit-test.
+IDENTITY AND AUTHORIZATION
+- Immutable account IDs are the permission keys. Usernames normalize to unique
+  NFKC/lowercase ASCII handles; display names, emails, provider subjects and
+  community nicknames are separate fields. Matching @xrp never grants authority.
+- A new account has zero joined communities, contacts, conversations, messages,
+  gifts, earned badges and unread activity. Empty/default reads must not seed
+  fixtures or resurrect samples after refresh. Preserve existing real records.
+- Passwords use pinned @noble/hashes Argon2id v19, 19 MiB/two passes/one lane,
+  random 32-byte salts and 32-byte output. Known legacy PBKDF2 records upgrade
+  only after successful verification through a credential-version CAS. Do not
+  weaken the algorithm to conceal runtime CPU constraints. Local workerd hash
+  compatibility was checked; hosted capacity and production load remain gates.
+- Secure HttpOnly __Host- cookies carry opaque server sessions. Signed-in writes
+  validate Origin, CSRF, active session/status and expected account ID. Recovery,
+  password changes, revocation and suspension invalidate prior access. Reject
+  stale credential/session races. Keep secrets out of responses and exports.
+- Google OIDC is real optional code/state/nonce/PKCE verification using jose;
+  absent GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/VOIDLINE_ORIGIN means unavailable.
+  Provider email matches never link other accounts or publish provider identity.
+- Verified-email recovery requires RESEND_API_KEY, EMAIL_FROM and trusted origin.
+  Hash 256-bit one-use tokens, expire at ten minutes and consume atomically.
+  Offline recovery codes are a separate explicit possession factor. A delivery
+  API acknowledgement is not a received email. Never reveal an old password.
+- SimpleWebAuthn verifies actual signed-in step-up; it is not standalone passkey
+  login. Owner actions need recent authentication plus user verification. Never
+  accept a client MFA flag. Challenge replay, expiry, origin/RPID and counters
+  are server checked. Removing keys clears MFA; protect the owner's final key.
+- No production owner was verified/bound by the upgrade. Follow
+  docs/OWNER-BOOTSTRAP.md: signed-in proof, fresh passkey, short-lived private
+  claim and trusted operator binding to an exact immutable ID. Then remove
+  bootstrap secrets. Community ownership never implies platform administration.
 
-2. Retained children require accessible parent context.
-Cause: slicing histories at 500 removed roots but kept replies.
-Contract: no destructive history slicing. Render pages of100 and preserve IDs,
-quotes, pins and all replies. Older already-orphaned histories receive explicit
-system recovery context; no missing user words or author are invented.
-Regressions: voidline-reliability-test; voidline-journal-test.
+MESSAGE, VAULT AND MEDIA BOUNDARIES
+- Retained native D1 history is permission-checked and read-only. Do not label
+  old plaintext E2EE or reopen a plaintext send fallback. Creating a native
+  community does not create a Matrix room. Native friend/block/moderation rules
+  are not yet mapped to independent Matrix identities and room permissions.
+- Matrix JS SDK 45.1.0 / Rust crypto WASM 18.9.2 implement the protected path.
+  Require configured homeserver, real whoami/device identity, encrypted room,
+  current membership and verified devices. Verify authenticity shields before
+  exposing decrypted content. Never invent a protocol or shared frontend key.
+- Stable transaction IDs and encrypted intended outbox records precede SDK send.
+  Acknowledgement means homeserver persistence, not delivery/read receipts.
+  Payload conflicts fail. An old unconfirmed transaction needs its original
+  Matrix token because deduplication is session scoped. Attachment retries use
+  retryPending descriptors rather than resending a filename as text.
+- Drafts and outbox are scoped to account/device/room/thread. Reserve revisions
+  before awaits and serialize encrypted writes. Wrong passphrases, failed writes
+  and old responses must preserve newer text and never claim a durable save.
+  Background updates preserve composer node/caret and keyed message rows.
+- Rust WASM Matrix-v2 attachments encrypt up to 8 MiB before upload. File keys,
+  original names and descriptors travel inside encrypted message content. Use
+  authenticated media requests; never put credentials/keys in URLs. Revoke local
+  decrypted Blob URLs on close, navigation and account lock. Microphone access
+  starts only on explicit action; late permission results stop all tracks after
+  cancellation/account changes. Voice recording is limited to 60 seconds.
+- This-device Saved works independently of Matrix. Its separate 16+ character
+  passphrase derives AES-256-GCM through WebCrypto PBKDF2-HMAC-SHA256/600,000;
+  fresh IVs and authenticated account/record namespaces protect stored content.
+  Web Locks prevent concurrent writers. Passphrases/keys remain in memory.
+  Metadata/counts remain observable in a browser profile. This is local at-rest
+  encryption, not E2EE, cloud sync or recoverable account storage.
+- Saved scopes are explicit: this-device notes, encrypted Matrix self-room and
+  legacy references. Recheck membership/source access for bookmarks, searches,
+  source jumps and downloads. A saved reference never bypasses permissions.
+  Encrypted search covers only loaded decrypted history; no plaintext upload.
+- There is no configured Matrix service/live two-device acceptance in this
+  upgrade. Full native-to-Matrix community integration, encrypted-history index,
+  complete encrypted-service moderation/retention, live voice/video/screen share
+  and push delivery remain engineering/infrastructure work. Follow
+  docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
 
-3. Independent concurrent edits must survive.
-Cause: message-only merge followed by whole-snapshot overwrite erased newly
-created navigation entities. Persistence now lives in dist/store.js.
-Contract: each tab writes a unique, immutable operation key in one atomic
-localStorage.setItem. Changes compare against that tab's committed baseline,
-so stale unchanged fields are not writes. Entities/channels are keyed by ID;
-conflicting fields resolve by Lamport clock and operation ID. Tombstones win
-against message resurrection. Media lives in the operation that changed it,
-not a complete checkpoint serialized to storage on every interaction.
-Regressions: voidline-journal-test; voidline-reliability-test.
-Limit: localStorage quota still applies. Journal replay scans local operations;
-there is no claimed IndexedDB/blob-storage migration or infinite capacity.
+APPLICATION DATA AND MIGRATIONS
+The complete 0000–0006 migration chain creates 41 application tables. Additive
+0006_hard_tombstone.sql adds account lifecycle, passkeys/email tokens, verified
+owner/audit/report records, organization/folders/targets/timeouts, profile privacy,
+earned badge definitions/awards and concrete gift instances/transfers/showcases.
+Older account IDs, memberships, histories and legitimate cosmetic ownership are
+retained. Local archive ownership claims remain untrusted and are never used to
+mint official items or privileges. Account deletion tombstones/anonymizes shared
+provenance while clearing private state; owner/community-owner safeguards apply.
 
-4. Imports must survive reload without hidden capacity truncation.
-Cause: an import accepted25 communities; normalization kept only24.
-Contract: build a candidate, validate limits/references/media/version, preview
-conflict policy, then commit. Normalization never silently truncates accepted
-history or navigation entities. Concurrent accepted records remain reachable.
-Regressions: voidline-reliability-test; voidline-regressions-test.
+Keep SQL parameterized, page reads safely and enforce object access on every
+API. Commit related mutations and audit events atomically. Retried folder,
+message and gift operations need stable client IDs and conflict fingerprints.
+Gift transfer acceptance checks current ownership, reservation, eligibility,
+blocking and suspension again at commit time; clear the former owner's showcase.
+Nine free decorations, twelve gift designs, earned awards and actual role
+indicators have distinct semantics. Private gift notes remain unavailable.
 
-5. A visual update must preserve unrelated interaction.
-Cause: innerHTML rebuilt the thread form after background changes.
-Contract: keep composer/form identity for the same thread. Reconcile keyed
-message rows and targeted parts; preserve media elements when their sources
-do not change. Keep reading positions/anchors and caret; mark only reached
-content read. Index reply counts once per channel render.
-Regressions: voidline-reliability-test (node/text/caret/focus); exact reply jump.
-Browser media playback/scroll geometry still require actual browser QA.
+Edit db/schema.ts intentionally, run npm run db:generate, review the new SQL,
+journal and snapshot, then retain them unchanged after application. Request
+handlers never create/alter migration-owned tables. Sites applies pending
+migrations to managed DB before Worker publication. Local D1 and hosted D1 are
+separate; use every migration in order for isolated test/preview databases.
 
-6. Search ordering precedes pagination.
-Cause: bucket-order slicing omitted the globally newest match.
-Contract: filter then globally sort by time/ID, then limit. Navigation loads
-and focuses the exact result even in an older thread page. Escaped matching
-snippets never interpret user text as markup.
-Regressions: voidline-reliability-test; existing formatting tests.
+BUILD, CHECK AND RELEASE
+Use Node >=22.13 (Node 24 used here), Python 3 and the lockfile:
+  npm ci --no-audit --no-fund --cache /tmp/voidline-npm-cache
+  npm run test:foundation
+  npm run test:server
+  npm run test:client
+  python3 -m pip install -r requirements-backup.txt
+  npm run check:restore
 
-7. Displayed requirements must agree with executable eligibility.
-404 Angel uses the profile completion predicate: identity text AND a meaningful
-appearance difference from defaults or valid uploaded avatar. Edition provenance
-is separate from achievement progression. Sample collections are read-only and
-scoped to the selected sample identity. Client accent uses readable presets;
-profile colors are not global reading preferences.
-Regressions: profile/badge audit tests and real module contracts.
+The server runner discovers current backend/*-test.mjs suites. Historical v7
+backend fixtures remain separately runnable with node backend/test.mjs and
+node backend/review-test.mjs; they are not current auth/E2EE acceptance evidence.
+The client runner includes retained archive regressions and controlled production
+entry/extension cases. Focused checks can run directly, for example:
+  node tests/voidline-home-test.cjs
+  node backend/auth-hardening-test.mjs
+  node backend/passkeys-test.mjs
+  node backend/secure-messenger-test.mjs
+  node backend/secure-media-test.mjs
+  node backend/secure-vault-test.mjs
+  node backend/local-saved-test.mjs
 
-8. One motion policy owns every entrance path.
-dist/motion.js considers OS reduced motion and the committed journal setting.
-Replay consults that policy before creating DOM. Entrance makes background
-controls inert, blocks competing shortcuts, completes from real animation
-completion events with a bounded fallback, and restores focus on skip/cancel.
-Regressions: voidline-motion-test (simulated completion events).
-
-RUN
-node tests/run.cjs
-node backend/test.mjs
-python3 build_offline.py
-
-No preview/screenshot or browser performance claim may be inferred from Node
-checks. Use the supported Sites preview when its browser-control tool exists.
-Synthetic-identity tests do not verify two real accounts; see backend/README.txt
-and backend/DEPLOYMENT-CHECK.txt for the shared-service verification boundary.
-
-TRUST EDITION / SIX CONFIRMED INTERACTION DEFECTS
-
-9. A tab owns its active destination.
-Cause: shared archive snapshots contained server/channel/reading position and
-replaceState adopted another tab's selection under the current unsent text.
-Fix: ignore those fields in new shared-journal operations. Preserve current
-location while adopting shared data; use drafts.js sessionStorage for tab UI.
-Legacy location fields remain read-only migration hints, not broadcasts.
-Regression: voidline-trust-test, foreign-tab navigation with an unsent draft.
-
-10. Draft text, reply target and attachments survive same-tab refresh.
-Cause: main/thread maps existed only in memory.
-Fix: per-tab session storage holds drafts by conversation and thread root,
-plus active location/reading positions. Attachment bytes are immutable session
-records; typing rewrites small text metadata, not every image/audio byte.
-Only garbage-collect unreferenced media after metadata commits. Failed session
-writes keep memory, show persistent recovery actions and warn on leaving.
-Recovery JSON restores drafts through preview; conflicting current drafts win
-unless the user explicitly chooses replacement. Browser tab close ends this
-session unless the browser itself restores it; this is not cross-device sync.
-Regressions: trust refresh/reply/thread/image/audio/session-quota cases.
-
-11. Read state follows visibility, not a required scroll gesture.
-Cause: scroll/jump handlers were the only triggers; short channels cannot scroll.
-Fix: schedule viewport read checks after opening/restoring a channel, foreign
-content updates, resize/visibility changes, dialog close and entrance finish.
-Skip obscured/hidden views and preserve keyboard focus when unread counts
-refresh navigation. Update community indicators with channel indicators.
-Regression: fully visible short-channel trust case, no synthetic scroll.
-
-12. The primary search fulfills its invitation.
-Cause: command palette searched commands/channels but promised people too.
-Fix: grouped People, Channels, Messages and Commands results with meaningful
-actions and listbox semantics. The advanced message search retains filters.
-Regression: nova is a usable person result in the primary command interface.
-
-13. Absence and intentional emptiness are different states.
-Cause: ensureContext created an empty active bucket before seed tested absence.
-Fix: seed before materializing the active empty bucket. Existing empty arrays
-and all previous user records remain untouched. New sample work rooms can be
-introduced without replacing older conversations.
-Regression: pristine general is populated; intentionally emptied general stays
-empty; prior work/messages survive new community content.
-
-14. Keyed static nodes also need an update path.
-Cause: reconciliation reused 'intro' while only patching message sub-elements.
-Fix: reconcile static-node children as complete static content, retaining the
-specialized stable message/media path for actual messages.
-Regression: trust-reconcile-fixture exercises the real template branch; a keyed
-introduction changes its contents without duplication. This does not pretend
-to be a browser visual test.
-
-CULTURE / SCOPE
-The Night Bus zine, map, type sheet, print variation and opt-in tone study are
-original fictional sample works. They demonstrate distinct residents and a
-conversation about making something. Existing messages are not rewritten.
-Sample profile and artifact story links are read-only and grant no ownership.
-The nine-object catalogue has not grown. Shared-service source/deployment verification boundaries are recorded in
-backend/DEPLOYMENT-CHECK.txt. The supported D1/Worker scaffold is now present.
-
-
-SHARED TEXT / BUILD INVARIANTS
-
-15. Local archive data and shared room records have separate ownership.
-Local messages, contacts, artifacts, sample personas and local attachments are
-not silently uploaded when a visitor enters Shared rooms. The shared API uses
-platform identity and membership for every community/channel data operation.
-Public aliases are display data; platform IDs are the authorization keys.
-Sign-in email and account names are not published as a member's social alias.
-
-16. Shared send success follows a durable acknowledgment.
-A stable clientId identifies one intended send across retries. The database
-uniqueness constraint prevents duplicates after a lost response. Reusing an ID
-for different text fails. History/catch-up uses the committed sequence cursor,
-not client wall-clock order. A saved state does not imply delivery/read receipts.
-
-17. Schema ownership belongs to generated migrations.
-db/schema.ts extends the six-table v6 contract with additive migrations. Run npm run
-db:generate after schema edits. Review and retain the generated SQL, journal
-and snapshot. Applied migration history is immutable. Request handlers perform
-bounded data operations and never create or alter migration-owned tables.
-Sites provisions the declared DB binding and applies hosted migrations.
-
-18. Generated output must not become source input.
-Authored client assets remain in dist/. build_offline.py inlines linked local
-styles/scripts, marks data-offline=true, and includes polish/live modules.
-The offline shared-room interface reports unavailable and does not call the
-shared API. The local archive remains usable with all its bundled assets.
-
-The source ZIP includes authored client/Worker source, tests, package inputs,
-build scripts, db/schema.ts and generated migration history. It excludes the
-ZIP itself, dist/server, dist/.openai, node_modules, runtime state and local
-secret files. scripts/build-worker.mjs separately excludes server/.openai from
-its asset map. Always regenerate downloads before the final Worker build.
-
-BUILD / PREVIEW ORDER
-  node tests/run.cjs
-  node backend/test.mjs
+Build order matters because downloads include the current generated clients:
+  npm run build
   python3 build_offline.py
   npm run build
   node scripts/check-build.mjs
 
-For local D1 only, apply each pending migration once after the build:
-  node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/0000_grey_zarda.sql
-Local and hosted databases are separate. Use the managed preview daemon:
+The first build bundles passkeys/Matrix/WASM and creates Worker runtime output.
+The offline/source packager then captures current authored/generated clients;
+the second build embeds the fresh downloads into the final Worker asset map.
+Exports exclude dependencies, caches, runtime DB/secrets and recursive build
+output. check-build imports the actual generated Worker and checks served bytes,
+HEAD/ETag, hidden paths, migration packaging and the preserved Site identity.
+It does not run an interactive browser or verify external providers.
+
+Use the supported Sites preview daemon when managed browser controls exist:
   sites-preview start /workspace/work/voidline
-No standalone preview server is started. The package dev adapter runs Wrangler
-with local D1 through the daemon, without an authentication mock. Publish only
-through the Sites source/package/deploy workflow, preserving project identity
-and current hosting audience. See backend/README.txt for API contracts.
+The npm dev adapter is Wrangler/local D1 under that workflow, not mock auth.
+Publish through Sites source/package/deploy with the existing project ID,
+audience and DB binding. Preserve a protected pre-release snapshot when trusted
+provider export access is available. Never blindly roll code back to v10 after
+Argon2id credentials have been written: that Worker cannot verify the new hashes
+and does not enforce suspension. Prefer a forward-compatible fix that preserves
+additive schema and IDs. A coordinated snapshot/code restoration needs isolated
+compatibility checks and trusted provider controls; no destructive downmigration
+is supported. Runtime credentials belong only in the server secret/configuration
+store. docs/BACKUP-RESTORE.md and scripts/backup-db.py document sealed snapshots
+and isolated restoration. Local restoration is verified; provider export,
+production restore and backup scheduling require authorized infrastructure
+controls and have not been performed by this upgrade.
 
-SHARED CONVERSATIONS / UPGRADE INVARIANTS
-
-19. Changes are durable events, not only new message sequence numbers.
-Mutations and their change records commit together. Reconnection replays edits,
-deletions, reactions and pins from the last applied cursor. Deletion blanks
-content while retaining IDs for references. A retry validates the original
-request fingerprint, so editing a confirmed message cannot create a duplicate.
-
-20. Account tools never inherit another identity's state.
-Shared favorites, bookmarks and read watermarks are private account records.
-Every mutation must contain the expected authenticated account ID. Both client
-identity epochs and navigation/request generations reject stale responses.
-Search query ordering is independent from dialog and account ordering.
-
-21. Permissions are reevaluated for every source access.
-A saved message is not a permanent grant to private conversation content.
-Leaving/removal revokes history, search, source jumps and bookmark previews.
-References remain opaque and removable when the original is unavailable.
-
-22. Client, download and deployed Worker must agree.
-scripts/check-build.mjs imports the actual generated Worker and compares every
-served asset with the source bytes, checks HEAD/ETag and hidden build paths,
-and checks packaged migrations and the preserved Site identity. The isolated
-delivery suite injects secret/dependency/recursive-output canaries and verifies
-they cannot enter the source ZIP. These are not browser screenshot tests.
+VERIFICATION CLAIMS
+Real handler/migrated-SQLite checks, maintained Argon/JWT/WebAuthn verification,
+real WebCrypto with fake-indexeddb and actual Rust attachment roundtrips establish
+the stated code/storage boundaries. Controlled SDK/network/DOM tests remain
+controlled. Home currently has 43 production-entry behavior cases, including
+session/account races, passkey receipt checks, thread drafts/retry identity,
+media cancellation and fragment-token handling. Do not infer browser layout,
+physical passkey behavior, Google/email transport, hosted CPU/load, full Matrix
+message E2EE, multi-device recovery or a production owner from these checks.
+Report deployed HTTP checks and hosted screenshots separately; screenshot
+fixtures must not be described as real owner access or real conversations.

@@ -61,7 +61,8 @@ test('a real registration, refresh, logout and password login retain one empty a
   const token=c.cookies.get('__Host-voidline_session'),csrf=c.csrf;
   await c.ok('/api/auth/logout',{});const replay=f.client();replay.cookies.set('__Host-voidline_session',token);replay.cookies.set('__Host-voidline_csrf',csrf);assert.equal((await replay.call('/api/auth/session')).status,401);
   const login=await c.ok('/api/auth/login',{username:'NATIVE_ONE',password});assert.equal(login.account.id,id);assert.notEqual(c.cookies.get('__Host-voidline_session'),token);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM live_accounts').get().n,1);
-  assert.equal((await c.call('/api/auth/google/start')).status,410);
+  assert.equal((await c.call('/api/auth/google/start')).status,503);
+  assert.equal((await c.ok('/api/auth/config')).google.configured,false);
  }finally{f.sqlite.close();}
 });
 

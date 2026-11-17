@@ -10,12 +10,12 @@ const {spawnSync} = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'voidline-delivery-review-'));
 try {
-  for (const name of ['dist','worker','backend','db','drizzle','scripts','tests','docs','src','build_offline.py','README.txt','DEVELOPMENT.txt','PERFORMANCE.txt','package.json','package-lock.json','drizzle.config.ts','.gitignore','.env.example','.openai']) {
+  for (const name of ['dist','worker','backend','db','drizzle','scripts','tests','docs','src','build_offline.py','README.txt','DEVELOPMENT.txt','PERFORMANCE.txt','package.json','package-lock.json','requirements-backup.txt','drizzle.config.ts','.gitignore','.env.example','.openai']) {
     if(!fs.existsSync(path.join(root,name)))continue;
     fs.cpSync(path.join(root,name), path.join(temporary,name), {recursive:true, filter:source => !source.split(path.sep).includes('node_modules')});
   }
   const canary='VOIDLINE_PRIVATE_DELIVERY_REVIEW_'+require('node:crypto').randomUUID();
-  for (const name of ['dist/.env.local','dist/credentials.json','dist/secrets.json','dist/.dev.vars','dist/node_modules/fake/index.js','dist/.sites-runtime/preview.txt','dist/server/private-bundle.js','dist/.openai/private-config.json','dist/_appgen_meta/private-state.txt']) {
+  for (const name of ['dist/.env.local','dist/credentials.json','dist/secrets.json','dist/.dev.vars','backend/private.sqlite','scripts/private-backup.vlb','dist/downloads/backup.db','dist/node_modules/fake/index.js','dist/.sites-runtime/preview.txt','dist/server/private-bundle.js','dist/.openai/private-config.json','dist/_appgen_meta/private-state.txt']) {
     const file=path.join(temporary,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,canary);
   }
   fs.symlinkSync(path.join(temporary,'dist/.env.local'),path.join(temporary,'dist/private-link.txt'));
@@ -49,6 +49,7 @@ with zipfile.ZipFile('dist/downloads/voidline-source.zip') as archive:
         assert not any(part in ('node_modules', '.sites-runtime', '.wrangler', '.git') for part in parts), name
         assert not any(part.startswith(('.env', '.dev.vars')) and part != '.env.example' for part in parts), name
         assert not name.endswith(('credentials.json', 'secrets.json', 'private-link.txt')), name
+        assert PurePosixPath(name).suffix.lower() not in ('.sqlite', '.sqlite3', '.db', '.vlb', '.backup', '.bak', '.log', '.pem', '.key', '.p12', '.pfx'), name
         assert b'${canary}' not in archive.read(name), name
 `],{cwd:temporary,encoding:'utf8'});
   assert.equal(inspect.status,0,inspect.stderr);

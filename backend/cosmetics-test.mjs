@@ -6,13 +6,13 @@ import {authHash} from '../worker/auth.mjs';
 
 const origin='https://cosmetics.example',tests=[];const test=(name,fn)=>tests.push([name,fn]);
 class Adapter{
- constructor(sqlite){this.sqlite=sqlite;this.fail='';}
+ constructor(sqlite){this.sqlite=sqlite;this.fail='';this.queue=Promise.resolve();}
  prepare(sql){const adapter=this;return {bind(...values){return {
   first:async()=>{if(adapter.fail&&sql.includes(adapter.fail))throw Error('Injected database failure');return adapter.sqlite.prepare(sql).get(...values)||null;},
   all:async()=>({results:adapter.sqlite.prepare(sql).all(...values)}),
-  run:async()=>{if(adapter.fail&&sql.includes(adapter.fail))throw Error('Injected database failure');return {success:true,meta:{changes:adapter.sqlite.prepare(sql).run(...values).changes}};}
+  run:async()=>{adapter.beforeWrite?.(sql);if(adapter.fail&&sql.includes(adapter.fail))throw Error('Injected database failure');return {success:true,meta:{changes:adapter.sqlite.prepare(sql).run(...values).changes}};}
  };}};}
- async batch(statements){this.sqlite.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());this.sqlite.exec('COMMIT');return values;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}}
+ batch(statements){const operation=this.queue.then(async()=>{this.sqlite.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());this.sqlite.exec('COMMIT');return values;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=operation.catch(()=>{});return operation;}
 }
 async function fixture(){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');
@@ -39,7 +39,7 @@ async function fixture(){
 test('new accounts have zero owned items and every listed cosmetic is explicitly free',async()=>{
  const f=await fixture();try{
   const inventory=await f.ok('sender','/inventory');assert.deepEqual(inventory.owned,[]);assert.equal(inventory.equippedId,null);assert.equal(inventory.pendingGifts,0);
-  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,15);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
+  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,21);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
   assert.equal((await f.call(undefined,'/inventory')).status,401);
  }finally{f.sqlite.close();}
 });
@@ -117,6 +117,79 @@ test('profile marks require self or real shared membership and never expose priv
   const own=await f.ok('sender','/profiles/sender');assert.equal(own.equippedId,'angel');assert.equal(own.owned,undefined);
   assert.equal((await f.call('stranger','/profiles/sender')).status,403);
  }finally{f.sqlite.close();}
+});
+
+test('legacy server grants reconcile to stable instances and do not return after transfer',async()=>{
+ const f=await fixture();try{
+  f.sqlite.prepare('INSERT INTO cosmetic_ownership VALUES(?,?,?)').run('sender','gift-star',1);
+  const inventory=await f.ok('sender','/inventory');assert.equal(inventory.instances.length,1);
+  const instance=inventory.instances[0];assert.equal(instance.origin_kind,'legacy-claim');
+  const transfer=(await f.ok('sender','/transfers',{instanceId:instance.id,username:'recipient',clientId:'transfer-legacy-1'})).transfer;
+  await f.ok('recipient','/transfers/'+transfer.id+'/open',{});
+  assert.equal((await f.ok('sender','/inventory')).instances.length,0);
+  assert.equal((await f.ok('recipient','/inventory')).instances[0].id,instance.id);
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_instances').get().n,1);
+ }finally{f.sqlite.close();}
+});
+test('one owned instance cannot be reserved by two simultaneous transfers and retries retain one receipt',async()=>{
+ const f=await fixture();try{
+  const instance=(await f.ok('sender','/claim',{cosmeticId:'gift-rose'})).instances[0];
+  const results=await Promise.all([f.call('sender','/transfers',{instanceId:instance.id,username:'recipient',clientId:'race-transfer-1'}),f.call('sender','/transfers',{instanceId:instance.id,username:'stranger',clientId:'race-transfer-2'})]);
+  assert.equal(results.filter(r=>r.status===201).length,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_transfers').get().n,1);
+  const record=f.sqlite.prepare('SELECT * FROM gift_transfers').get(),recipient=record.recipient_id;
+  const retry=await f.ok('sender','/transfers',{instanceId:instance.id,username:recipient,clientId:record.client_id});assert.equal(retry.transfer.id,record.id);
+  assert.equal((await f.call('stranger','/transfers/'+record.id+'/open',{})).status,recipient==='stranger'?200:404);
+  if(recipient!=='stranger')await f.ok(recipient,'/transfers/'+record.id+'/open',{});
+  await f.ok(recipient,'/transfers/'+record.id+'/open',{});
+  assert.equal(f.sqlite.prepare('SELECT owner_id FROM gift_instances WHERE id=?').get(instance.id).owner_id,recipient);
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_instances').get().n,1);
+ }finally{f.sqlite.close();}
+});
+test('showcase accepts only owned instances, has three distinct slots and clears on transfer',async()=>{
+ const f=await fixture();try{
+  const first=(await f.ok('sender','/claim',{cosmeticId:'gift-star'})).instances[0];
+  assert.equal((await f.call('stranger','/showcase',{slots:[{instanceId:first.id,showSender:false}]})).status,403);
+  assert.equal((await f.call('sender','/showcase',{slots:[{instanceId:first.id,showSender:false},{instanceId:first.id,showSender:false}]})).status,400);
+  assert.equal((await f.ok('sender','/showcase',{slots:[{instanceId:first.id,showSender:false}]})).showcase.length,1);
+  const transfer=(await f.ok('sender','/transfers',{instanceId:first.id,username:'recipient',clientId:'showcase-transfer'})).transfer;await f.ok('recipient','/transfers/'+transfer.id+'/open',{});
+  assert.equal((await f.ok('sender','/inventory')).showcase.length,0);
+ }finally{f.sqlite.close();}
+});
+test('collection visibility and block rules apply to full instance lists while notes never enter plaintext storage',async()=>{
+ const f=await fixture();try{
+  await f.ok('sender','/claim',{cosmeticId:'gift-star'});
+  assert.equal((await f.call('stranger','/collections/sender')).status,403);
+  await f.ok('sender','/settings',{collectionVisibility:'public'});assert.equal((await f.ok('stranger','/collections/sender')).instances.length,1);
+  f.sqlite.prepare('INSERT INTO social_blocks VALUES(?,?,?)').run('stranger','sender',Date.now());assert.equal((await f.call('stranger','/collections/sender')).status,403);
+  assert.equal((await f.call('sender','/gifts',{catalogId:'gift-star',username:'recipient',clientId:'no-private-note',message:'private note'})).status,503);
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_gifts').get().n,0);
+ }finally{f.sqlite.close();}
+});
+test('retired catalog designs preserve owned objects but cannot mint a new free grant',async()=>{
+ const f=await fixture();try{
+  await f.ok('sender','/claim',{cosmeticId:'gift-key'});
+  f.sqlite.prepare('INSERT INTO gift_catalog VALUES(?,?,?,?,?,?)').run('gift-key','Obsidian Key','Retired design',0,'sender',Date.now());
+  assert.equal((await f.ok('sender','/catalog')).items.find(i=>i.id==='gift-key').active,false);
+  assert.equal((await f.call('recipient','/claim',{cosmeticId:'gift-key'})).status,409);
+  assert.equal((await f.ok('sender','/inventory')).instances.length,1);
+ }finally{f.sqlite.close();}
+});
+test('commit-time suspension prevents grants, transfer reservations and acceptance after the initial lookup',async()=>{
+ for(const actor of ['sender','recipient'])for(const stage of ['grant','reserve','accept','open']){
+  const f=await fixture();try{
+   let instance,transfer,gift;
+   if(stage==='reserve'||stage==='accept'){instance=(await f.ok('sender','/claim',{cosmeticId:'gift-rose'})).instances[0];if(stage==='accept')transfer=(await f.ok('sender','/transfers',{instanceId:instance.id,username:'recipient',clientId:'suspend-transfer'})).transfer;}
+   if(stage==='open')gift=(await f.gift()).gift;
+   const prefix={grant:'INSERT OR IGNORE INTO cosmetic_gifts',reserve:'UPDATE gift_instances SET pending_transfer_id',accept:'UPDATE gift_transfers SET state',open:'UPDATE cosmetic_gifts SET state'}[stage];
+   let suspended=false;f.db.beforeWrite=sql=>{if(!suspended&&sql.startsWith(prefix)){suspended=true;f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id=?").run(actor);}};
+   const result=stage==='grant'?await f.call('sender','/gifts',{username:'recipient',catalogId:'gift-rose',clientId:'suspend-grant'}):stage==='reserve'?await f.call('sender','/transfers',{instanceId:instance.id,username:'recipient',clientId:'suspend-reserve'}):stage==='accept'?await f.call('recipient','/transfers/'+transfer.id+'/open',{}):await f.call('recipient','/gifts/'+gift.id+'/open',{});
+   assert.equal(suspended,true);assert.ok(result.status>=400,actor+' '+stage+' should fail');assert.equal(result.data.acknowledged,undefined);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM gift_instances WHERE owner_id='recipient'").get().n,0);
+   if(stage==='reserve'){assert.equal(f.sqlite.prepare('SELECT pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id).pending_transfer_id,null);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_transfers').get().n,0);}
+   if(stage==='accept'){assert.equal(f.sqlite.prepare('SELECT owner_id FROM gift_instances WHERE id=?').get(instance.id).owner_id,'sender');assert.equal(f.sqlite.prepare('SELECT state FROM gift_transfers WHERE id=?').get(transfer.id).state,'pending');}
+   if(stage==='grant')assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_gifts').get().n,0);
+   if(stage==='open')assert.equal(f.sqlite.prepare('SELECT state FROM cosmetic_gifts WHERE id=?').get(gift.id).state,'pending');
+  }finally{f.sqlite.close();}
+ }
 });
 let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}
 console.log(`${tests.length-failures}/${tests.length} free cosmetics checks passed against migrated SQLite and real session authorization. No real contacts or payments were used.`);process.exitCode=failures?1:0;

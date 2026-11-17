@@ -43,6 +43,13 @@
       "when": 1794910594724,
       "tag": "0005_next_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794913541949,
+      "tag": "0006_hard_tombstone",
+      "breakpoints": true
     }
   ]
 }

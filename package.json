@@ -7,18 +7,26 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "node scripts/build-crypto.mjs && node scripts/build-worker.mjs",
+    "build": "node scripts/build-security.mjs && node scripts/build-crypto.mjs && node scripts/build-worker.mjs",
     "dev": "node scripts/dev-worker.mjs",
     "db:generate": "drizzle-kit generate",
-    "test:foundation": "node backend/auth-test.mjs && node backend/foundation-review-test.mjs"
+    "test:foundation": "node backend/auth-test.mjs && node backend/foundation-review-test.mjs",
+    "test:server": "node backend/run.mjs",
+    "test:client": "node tests/run.cjs",
+    "check:restore": "python3 backend/backup-test.py"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",
     "drizzle-orm": "0.45.2",
+    "fake-indexeddb": "6.2.8",
     "wrangler": "4.92.0"
   },
   "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "@simplewebauthn/browser": "14.0.0",
+    "@simplewebauthn/server": "14.1.0",
     "esbuild": "0.25.12",
+    "jose": "6.2.17",
     "matrix-js-sdk": "45.1.0"
   }
 }

@@ -89,8 +89,8 @@ html = re.sub(r'<html\b[^>]*>', mark_offline, html, count=1, flags=re.IGNORECASE
 html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
-required_styles = {'home.css', 'cosmetics.css', 'social.css'}
-required_scripts = {'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js'}
+required_styles = {'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profiles-panel.css', 'admin.css'}
+required_scripts = {'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'profiles-panel.js', 'admin.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
     raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:
@@ -123,11 +123,15 @@ def allowed(path):
         return False
     if path.suffix in {'.pyc', '.pyo'} or path.name.startswith('.voidline-'):
         return False
+    if path.suffix.lower() in {'.sqlite', '.sqlite3', '.db', '.vlb', '.backup', '.bak', '.log', '.pem', '.key', '.p12', '.pfx'}:
+        return False
     if len(parts) > 1 and parts[0] == 'dist' and parts[1] in generated_dist_roots:
         return False
     if relative == Path('dist/downloads/voidline-source.zip'):
         return False
     if relative == Path('dist/secure-messenger.js'):
+        return False
+    if relative == Path('dist/passkey-client.js'):
         return False
     return True
 
@@ -138,7 +142,7 @@ for directory in ('dist', 'worker', 'backend', 'db', 'drizzle', 'scripts', 'test
         if allowed(path):
             sources.add(path)
 for name in ('build_offline.py', 'README.txt', 'DEVELOPMENT.txt', 'PERFORMANCE.txt',
-             'package.json', 'package-lock.json', 'drizzle.config.ts', '.gitignore', '.env.example',
+             'package.json', 'package-lock.json', 'drizzle.config.ts', '.gitignore', '.env.example', 'requirements-backup.txt',
              '.openai/hosting.json'):
     path = root / name
     if not path.is_file():

@@ -1,67 +1,143 @@
-# Free badges and gifts
+# Profiles, free decorations and gifts
 
-VOIDLINE's account collection has nine original badge designs and six original
-collectible gifts. All are free. There is no checkout, currency, paid upgrade,
-stock counter, randomly assigned rarity or claimed global scarcity. The free
-catalogue grants cosmetics; it does not grant staff roles, permissions,
-verified identity or an achievement that the account has not completed.
+The account collection contains nine preserved decoration designs and twelve
+gift designs. Every initial catalogue item is free. There is no checkout,
+currency, stock counter, paid tier or invented rarity. A fresh account has no
+items, earned awards, showcase slots or gift requests. Local archive claims are
+not accepted as authoritative ownership.
 
-A new account owns no items and has no equipped badge. The person explicitly
-chooses Add to collection. Claims are idempotent and ownership is recorded by
-the server. A badge can be equipped only after that account owns it. Gifts can
-be collected for oneself or sent as an optional request to an exact username.
-A sent request is not a claim that another person has viewed it.
+The nine original decoration designs include LARP PRO MAX, 404 Angel, Ghost
+Frequency and Voidwalker. They are personal decorations; equipping one does not
+award an achievement, verify identity or grant permissions. Existing server
+ownership is preserved.
 
-Gift recipients may collect or decline a request, or disable new requests.
-Either-direction account blocks prevent sending and collecting gifts, including
-an open request racing with a block. A decline does not grant ownership. A
-stable client ID prevents a failed response/retry from sending twice. The
-server limits new sends to ten per hour and three to the same person per day.
-Other cosmetic mutations are limited to sixty per minute per account.
+The original Chrome Rose, Midnight Tape, Pocket Star, Afterhours Cup, Paper
+Ghost and Small Surprise remain. The collection adds Chrome Seraph, Obsidian
+Key, Broken Halo, Midnight Orchid, Sealed Signal and Afterhours Ticket. Each has
+an original SVG silhouette, controlled material palette and larger inspection
+view. These are digital cosmetics, not financial assets or physical goods.
 
-The original badge designs are LARP PRO MAX, 404 Angel, Ghost Frequency,
-Velvet Static, Night Shift, Unknown Entity, Dead Internet, Voidwalker and Low
-Orbit. Distinct small vector silhouettes are used with brushed-metal details
-in the larger inspection views. The six gifts are Chrome Rose, Midnight Tape,
-Pocket Star, Afterhours Cup, Paper Ghost and Small Surprise. These are digital
-profile cosmetics, not physical gifts or financial assets.
+## Granting and transferring
 
-## Data and authorization
+Two operations have different ownership rules:
 
-`worker/cosmetics.mjs` owns the catalogue and all grants. The generated schema
-stores cosmetic_ownership, cosmetic_profiles and cosmetic_gifts. Existing
-account IDs and old local archives are preserved; local awards are not silently
-uploaded or granted to an account. Sign-in and request verification use the
-same secure account sessions, Origin checks, CSRF token and expected-account
-checks as the rest of the app.
+| Action | Result |
+| --- | --- |
+| Add to collection | One free self-claim per gift design; creates a stable owned instance. |
+| Send new gift | A free new grant request; creates a separate instance when the recipient collects it. |
+| Transfer this instance | Reserves an existing owned instance; moves that same instance only when accepted. |
 
-The service can see cosmetic catalogue IDs, sender/recipient account IDs,
-request states and timestamps. No private custom message is accepted in a gift
-request, and this feature does not claim message-content end-to-end encryption.
-A recipient sees the sender's chosen public username, never a sign-in email.
-Equipped marks on another account are available only to the account itself,
-an accepted friend or someone with a shared server, and account blocks take
-precedence. That endpoint does not expose the private inventory or gift list.
+The sender reviews the item and exact recipient username before confirmation.
+The receipt appears only after the server acknowledges a durable request ID.
+The recipient can accept or decline. A transfer sender can cancel a pending
+request. Retries retain the same client ID. Conflicting reuse is rejected.
+Pending requests do not claim that the recipient has viewed them.
 
-The browser module is `dist/cosmetics.js`; its scoped styles are in
-`dist/cosmetics.css`. It registers with the production account shell, clears
-state on account lock, ignores stale responses and preserves a conversation's
-active composer during collection updates. Every success state follows an
-acknowledged server response. Request errors retain the intended gift ID.
+Conditional SQL and D1 atomic batches enforce recipient eligibility, account
+status, blocks, ownership, a single pending transfer reservation and a single
+final transfer. Suspension and blocking are checked again at the mutation,
+including a change after the first lookup. Acceptance removes the former
+owner's showcase entry. Refreshing that former owner's collection cannot mint
+the instance again. Each operation type has a limit of ten requests per hour
+and three to the same recipient per day. Cosmetic writes also have an account
+rate limit of sixty per minute.
 
-## Verification
+Disabling gift requests prevents new grants and transfers. Either-direction
+blocks prevent new requests and acceptance. A previously received legitimate
+item remains owned if its design is later retired; retirement prevents new
+free claims and grants. Gifts confer no platform or community privileges.
 
-Run:
+Private gift notes are unavailable. The UI says so, and the server refuses a
+nonempty note with `private_note_unavailable`; plaintext notes never enter D1.
+No message-content E2EE claim applies to gift metadata. An encrypted note can
+be added later through an actual protected conversation, without weakening this
+boundary. Gift opening is static by default, with an explicitly requested brief
+effect, a reduced-motion equivalent and no sound.
 
-- `node backend/cosmetics-test.mjs` — ten migrated-SQLite/session checks covering
-  empty ownership, free catalogues, ownership authorization, idempotent gifts,
-  recipient acceptance/decline, privacy, blocks, limits, failed transactions,
-  CSRF and profile permissions.
-- `node tests/voidline-cosmetics-test.cjs` — eight client lifecycle checks for
-  explicit claims, failure recovery, stale account/dialog responses, inventory
-  ordering, preserved conversation composer, gift retries and original SVG
-  silhouette generation.
+## Storage and preservation
 
-These use isolated identities and controlled client transport. They do not
-claim a browser screenshot, SVG rasterization review or gifts sent to real
-contacts. The root delivery checks validate the deployed source and API paths.
+Migration `0006_hard_tombstone.sql` adds:
+
+- `gift_instances`: immutable instance ID, current owner, catalogue ID and grant provenance.
+- `gift_transfers`: durable sender/recipient events and unique `(sender_id, client_id)` retry keys.
+- `gift_showcase`: at most three server-validated distinct owned instances.
+- `gift_catalog`: verified-owner name/description/availability overrides; items remain free.
+- `badge_definitions` and `badge_awards`: authoritative earned achievements and revocation history.
+- `profile_preferences`: safe appearance presets, independent privacy and earned-badge order.
+
+The original `cosmetic_ownership`, `cosmetic_profiles` and `cosmetic_gifts` stay
+in place. A received legacy server gift uses `gift:<request-id>` as its instance
+ID. A server-owned design without a matching received gift uses a deterministic
+`claim:<account-id>:<design-id>` legacy instance. Ambiguous older design records
+are preserved without inventing an additional duplicate claim. Reconciliation
+runs in bounded batches of 100 unmatched received grants. The owned inventory
+summary returns at most 200 instances; the complete collection and transfer
+lists have explicit 30-record pagination and owned-design filtering.
+
+Account deletion retains anonymized ownership/provenance history, removes
+private profile preferences and showcase entries, and cancels pending
+transfers. The global backup and restore procedure is in `BACKUP-RESTORE.md`.
+
+## Profiles, privacy and achievements
+
+`worker/profiles.mjs` and `dist/profiles-panel.js/css` provide a compact and full
+profile, previewable edits, saved/unsaved/failure states, avatar/banner/accent
+presets, bio and status. Draft edits remain in memory through dialogs. Account
+lock clears profile and collection caches. A delayed response cannot populate
+a different account or describe newer edits as saved.
+
+Profile details and the gift collection each support public, shared-community,
+accepted-friend or private visibility. Blocks override public visibility.
+Profile access is authenticated; basic identity requires a relationship or
+public details. The collection API independently enforces its own visibility.
+Email, authentication providers and credentials never appear in the public
+profile response. The old live-profile route delegates to the same policy.
+
+Showcase slots are validated against current ownership. The original gift
+sender is hidden until the owner explicitly chooses to disclose it for that
+slot. Collection lists do not reveal an undisclosed sender. Saving an empty
+earned-badge display order hides earned artwork without revoking the award.
+
+The initial earned rules are:
+
+- **Profile Authored**: the server observes a committed profile with a bio of
+  at least 20 characters and a non-default avatar, banner or accent. Failed
+  writes do not award it. Revoked awards are not silently recreated.
+- **Community Contribution**: the verified platform owner reviews an actual
+  contribution and records a reason. Ordinary accounts cannot mint it.
+
+The badge directory shows requirements, issue date, issuer and validity.
+Changing local storage, equipping free artwork or submitting a profile role
+field cannot create an award. The platform owner indicator reads only the
+trusted `platform_owner` account-ID binding. A matching username or display
+name grants no role; community ownership is separate.
+
+## API and verification
+
+Production handlers use the existing secure account sessions, Origin/CSRF and
+expected-account checks. Mutation bodies are bounded, inputs validated and SQL
+parameterized. Main additions are `/api/profiles/me|:id`,
+`/api/cosmetics/instances`, `/collections/:id`, `/transfers`, `/showcase` and
+`/badges`; existing claim, equipment and gift routes remain compatible.
+
+Focused checks:
+
+- `node backend/cosmetics-test.mjs`: 16 migrated-SQLite and real-session checks,
+  including concurrent reservations, stable retries, ownership, visibility,
+  blocks, catalogue retirement, injected persistence failures and commit-time
+  suspension at all grant/transfer stages for both participants.
+- `node backend/profiles-test.mjs`: 8 real SQLite/session checks for profile
+  privacy, authoritative rule awards, revocations, display slots, failed writes,
+  trusted owner indicators and sender disclosure.
+- `node tests/voidline-cosmetics-test.cjs`: 12 controlled client checks for
+  review/confirmation, truthful receipts, retries, transfers, showcase requests,
+  account isolation and distinct vector silhouettes.
+- `node tests/voidline-profile-panel-test.cjs`: 7 controlled client checks for
+  escaped rendering, failed/delayed saves, retained drafts, badge visibility
+  and account switching.
+
+These use isolated test identities and production handlers. Client checks use
+a VM with controlled DOM and transport; they do not establish browser layout,
+SVG rasterization, native focus behavior or production delivery. No gifts were
+sent to real contacts. Browser screenshots and deployed checks are separate
+release verification.

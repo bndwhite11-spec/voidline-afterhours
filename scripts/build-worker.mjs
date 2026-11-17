@@ -29,6 +29,7 @@ const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // never an executable production fallback or automatically loaded fixture.
 const productionRoots = new Set(['index.html','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
+  'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
 const assets = {};
 let assetBytes = 0;
@@ -37,6 +38,7 @@ async function collect(directory, prefix = '') {
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     if ((!prefix && (excludedRoots.has(entry.name)||!productionRoots.has(entry.name))) || entry.name.startsWith('.')) continue;
+    if(prefix==='downloads'&&!['voidline-offline.html','voidline-source.zip'].includes(entry.name)) continue;
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await collect(filename, relative);
@@ -66,6 +68,10 @@ function matrixConnectOrigin(env) {
 async function serveVoidline(request, env, ctx) {
   const url = new URL(request.url);
   if (url.pathname.startsWith('/api/auth/')) return handleAuthRequest(request,env,ctx);
+  if (url.pathname.startsWith('/api/security/')) return handleSecurityRequest(request,env,ctx);
+  if (url.pathname==='/api/admin'||url.pathname.startsWith('/api/admin/')) return handleAdminRequest(request,env,ctx);
+  if (url.pathname==='/api/organize'||url.pathname.startsWith('/api/organize/')) return handleOrganizeRequest(request,env,ctx);
+  if (url.pathname.startsWith('/api/profiles/')) return handleProfilesRequest(request,env,ctx);
   if (url.pathname.startsWith('/api/cosmetics/')) return handleCosmeticsRequest(request,env,ctx);
   if (url.pathname==='/api/social'||url.pathname.startsWith('/api/social/')) return handleSocialRequest(request,env,ctx);
   if (url.pathname === '/api/live' || url.pathname.startsWith('/api/live/')) {
@@ -86,8 +92,8 @@ async function serveVoidline(request, env, ctx) {
     'etag': asset.etag,
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
-    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
-    'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests",
+    'permissions-policy': 'camera=(), microphone=(self), geolocation=(), display-capture=()',
+    'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests",
   };
   if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
@@ -111,7 +117,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

@@ -1,4 +1,5 @@
 import {authenticate, validateSessionMutation, AuthError} from './auth.mjs';
+import {readProfile} from './profiles.mjs';
 /**
  * Authenticated shared-text API for Sites Workers + D1.
  * The build embeds this handler alongside the authored browser client.
@@ -118,6 +119,7 @@ function paging(url,maximum=100) {
 }
 const pageInfo = (limit,offset,total) => ({limit,offset,hasMore:offset+limit<total});
 function change(db,message,actor,kind,now) { return query(db,'INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) VALUES(?,?,?,?,?)',message.channel_id,message.id,actor,kind,now); }
+function communityAudit(db,actor,action,targetType,targetId,now,detail={}) { return query(db,'INSERT INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) VALUES(?,?,?,?,?,?,?)',uuid(),actor,'community.'+action,targetType,targetId,JSON.stringify(detail),now); }
 async function enriched(db,messages,userId) {
  if(!messages.length)return [];
  if(messages.length>80){const result=[];for(let i=0;i<messages.length;i+=80)result.push(...await enriched(db,messages.slice(i,i+80),userId));return result;}
@@ -191,9 +193,7 @@ export async function handleLiveRequest(request,env) {
    return json({account:publicProfile(await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first())});
   }
   if(path.length===2&&path[0]==='profiles'&&method==='GET'){
-   const shared=path[1]===user.id||await query(db,'SELECT 1 AS ok FROM live_memberships a JOIN live_memberships b ON a.community_id=b.community_id WHERE a.account_id=? AND b.account_id=? LIMIT 1',user.id,path[1]).first();
-   requireThat(shared,403,'profile_access_denied','This person is not in one of your communities.');
-   const profile=await query(db,'SELECT * FROM live_accounts WHERE id=?',path[1]).first();requireThat(profile,404,'profile_unavailable','This profile is unavailable.');return json({profile:publicProfile(profile)});
+   return json({profile:await readProfile(db,user.id,path[1])});
   }
   if(path.length===1&&path[0]==='communities'){
    if(method==='GET')return json({communities:(await query(db,'SELECT c.id,c.name,c.description,c.icon,c.created_at,m.role FROM live_communities c JOIN live_memberships m ON m.community_id=c.id WHERE m.account_id=? ORDER BY c.created_at,c.id',user.id).all()).results});
@@ -206,39 +206,56 @@ export async function handleLiveRequest(request,env) {
   }
   if(path[0]==='communities'&&path.length>=3){
    const communityId=path[1],member=await membership(db,communityId,user.id);
-   if(path.length===3&&path[2]==='members'&&method==='GET')return json({members:(await query(db,'SELECT a.id,a.display_name,a.bio,a.status,a.theme,a.avatar,m.role,m.joined_at FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE m.community_id=? ORDER BY m.joined_at,a.id',communityId).all()).results});
+   if(path.length===3&&path[2]==='members'&&method==='GET'){
+    const {limit,offset}=paging(url),total=(await query(db,'SELECT COUNT(*) AS n FROM live_memberships WHERE community_id=?',communityId).first()).n;
+    return json({members:(await query(db,'SELECT a.id,a.display_name,a.avatar,m.role,m.joined_at,(SELECT t.expires_at FROM community_timeouts t WHERE t.community_id=m.community_id AND t.account_id=m.account_id AND t.expires_at>?) AS timeout_until FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE m.community_id=? ORDER BY m.joined_at,a.id LIMIT ? OFFSET ?',now,communityId,limit,offset).all()).results,total,page:pageInfo(limit,offset,total)});
+   }
+   if(path.length===4&&path[2]==='timeouts'){
+    const target=await membership(db,communityId,path[3]);
+    requireThat(path[3]!==user.id&&target.role!=='owner'&&(member.role==='owner'||(member.role==='moderator'&&target.role==='member')),403,'moderation_denied','Your role cannot restrict this member.');
+    requireThat(method==='POST',405,'method_not_allowed','Submit a timeout change.');
+    if(body.remove===true)await db.batch([query(db,'DELETE FROM community_timeouts WHERE community_id=? AND account_id=?',communityId,path[3]),communityAudit(db,user.id,'timeout.remove','account',path[3],now,{communityId})]);
+    else{const minutes=body.minutes,reason=textValue(body.reason??'',240,'reason');requireThat(Number.isInteger(minutes)&&minutes>=1&&minutes<=10080,400,'invalid_timeout','Choose a timeout from one minute to seven days.');await db.batch([query(db,'INSERT INTO community_timeouts(community_id,account_id,expires_at,reason,issued_by,created_at) VALUES(?,?,?,?,?,?) ON CONFLICT(community_id,account_id) DO UPDATE SET expires_at=excluded.expires_at,reason=excluded.reason,issued_by=excluded.issued_by,created_at=excluded.created_at',communityId,path[3],now+minutes*60000,reason,user.id,now),communityAudit(db,user.id,'timeout.set','account',path[3],now,{communityId,minutes})]);}
+    return json({updated:true,scope:'native-community',encryptedServiceEnforcement:false});
+   }
+   if(path.length===3&&path[2]==='audit'&&method==='GET'){
+    requireThat(staff(member.role),403,'moderation_denied','Community staff can view its moderation log.');const {limit,offset}=paging(url);
+    const where="action LIKE 'community.%' AND json_extract(detail_json,'$.communityId')=?";
+    const total=(await query(db,'SELECT COUNT(*) AS n FROM admin_audit WHERE '+where,communityId).first()).n;
+    const events=(await query(db,'SELECT id,actor_id,action,target_type,target_id,detail_json,created_at FROM admin_audit WHERE '+where+' ORDER BY created_at DESC,id LIMIT ? OFFSET ?',communityId,limit,offset).all()).results.map(event=>({...event,detail:JSON.parse(event.detail_json),detail_json:undefined}));return json({events,total,page:pageInfo(limit,offset,total)});
+   }
    if(path.length===4&&path[2]==='members'&&method==='POST'){
     const target=await membership(db,communityId,path[3]);
     requireThat(path[3]!==user.id&&target.role!=='owner',403,'protected_member','Owners cannot be removed or demoted here. Use Leave for yourself.');
     requireThat(member.role==='owner'||(member.role==='moderator'&&body.remove===true&&target.role==='member'),403,'moderation_denied','Your role cannot change this member.');
-    if(body.remove===true)await query(db,'DELETE FROM live_memberships WHERE community_id=? AND account_id=?',communityId,path[3]).run();
-    else {requireThat(['member','moderator'].includes(body.role),400,'invalid_role','Choose member or moderator.');await query(db,'UPDATE live_memberships SET role=? WHERE community_id=? AND account_id=?',body.role,communityId,path[3]).run();}
+    if(body.remove===true)await db.batch([query(db,'DELETE FROM live_memberships WHERE community_id=? AND account_id=?',communityId,path[3]),communityAudit(db,user.id,'member.remove','account',path[3],now,{communityId})]);
+    else {requireThat(['member','moderator'].includes(body.role),400,'invalid_role','Choose member or moderator.');await db.batch([query(db,'UPDATE live_memberships SET role=? WHERE community_id=? AND account_id=?',body.role,communityId,path[3]),communityAudit(db,user.id,'member.role','account',path[3],now,{communityId,role:body.role})]);}
     return json({updated:true});
    }
    if(path.length===3&&path[2]==='settings'&&method==='POST'){
     await requireOwner(db,communityId,user.id);const old=await query(db,'SELECT * FROM live_communities WHERE id=?',communityId).first();
     const name=body.name===undefined?old.name:nameValue(body.name),description=body.description===undefined?old.description:textValue(body.description,240,'description'),icon=body.icon===undefined?old.icon:textValue(body.icon,8,'icon');
-    await query(db,'UPDATE live_communities SET name=?,description=?,icon=? WHERE id=?',name,description,icon,communityId).run();return json({community:{id:communityId,name,description,icon,role:member.role}});
+    await db.batch([query(db,'UPDATE live_communities SET name=?,description=?,icon=? WHERE id=?',name,description,icon,communityId),communityAudit(db,user.id,'settings','community',communityId,now,{communityId})]);return json({community:{id:communityId,name,description,icon,role:member.role}});
    }
    if(path.length===3&&path[2]==='leave'&&method==='POST'){
     requireThat(member.role!=='owner',409,'owner_must_transfer','Transfer ownership to a member before leaving.');await query(db,'DELETE FROM live_memberships WHERE community_id=? AND account_id=?',communityId,user.id).run();return json({left:true});
    }
    if(path.length===3&&path[2]==='transfer'&&method==='POST'){
     await requireOwner(db,communityId,user.id);requireThat(typeof body.accountId==='string'&&body.accountId!==user.id,400,'invalid_member','Choose another member.');await membership(db,communityId,body.accountId);
-    await db.batch([query(db,"UPDATE live_memberships SET role='member' WHERE community_id=? AND account_id=?",communityId,user.id),query(db,"UPDATE live_memberships SET role='owner' WHERE community_id=? AND account_id=?",communityId,body.accountId),query(db,'UPDATE live_communities SET created_by=? WHERE id=?',body.accountId,communityId)]);return json({transferred:true});
+    await db.batch([query(db,"UPDATE live_memberships SET role='member' WHERE community_id=? AND account_id=?",communityId,user.id),query(db,"UPDATE live_memberships SET role='owner' WHERE community_id=? AND account_id=?",communityId,body.accountId),query(db,'UPDATE live_communities SET created_by=? WHERE id=?',body.accountId,communityId),communityAudit(db,user.id,'ownership.transfer','account',body.accountId,now,{communityId})]);return json({transferred:true});
    }
    if(path.length===3&&path[2]==='channels'){
     if(method==='GET')return json({channels:(await query(db,'SELECT id,name,kind,created_at FROM live_channels WHERE community_id=? ORDER BY created_at,id',communityId).all()).results});
     await requireOwner(db,communityId,user.id);const name=nameValue(body.name,32).toLowerCase(),kind=body.kind||'text';
     requireThat(/^[a-z0-9][a-z0-9-]*$/.test(name),400,'invalid_channel','Use letters, digits, and hyphens for the channel name.');requireThat(['text','announcement'].includes(kind),400,'invalid_kind','Choose text or announcement.');
     requireThat(!await query(db,'SELECT id FROM live_channels WHERE community_id=? AND name=?',communityId,name).first(),409,'channel_exists','A channel already uses this name.');const id=uuid();
-    await query(db,'INSERT INTO live_channels(id,community_id,name,kind,created_at) VALUES(?,?,?,?,?)',id,communityId,name,kind,now).run();return json({channel:{id,name,kind}},201);
+    await db.batch([query(db,'INSERT INTO live_channels(id,community_id,name,kind,created_at) VALUES(?,?,?,?,?)',id,communityId,name,kind,now),communityAudit(db,user.id,'channel.create','channel',id,now,{communityId,kind})]);return json({channel:{id,name,kind}},201);
    }
    if(path[2]==='invites'){
     await requireOwner(db,communityId,user.id);
     if(path.length===5&&path[4]==='revoke'&&method==='POST'){
      const found=await query(db,'SELECT token_hash FROM live_invites WHERE token_hash=? AND community_id=?',path[3],communityId).first();requireThat(found,404,'invite_unavailable','This invitation was not found.');
-     await query(db,'UPDATE live_invites SET revoked_at=COALESCE(revoked_at,?) WHERE token_hash=?',now,path[3]).run();return json({revoked:true});
+     await db.batch([query(db,'UPDATE live_invites SET revoked_at=COALESCE(revoked_at,?) WHERE token_hash=?',now,path[3]),communityAudit(db,user.id,'invite.revoke','invite',path[3],now,{communityId})]);return json({revoked:true});
     }
     if(path.length===3&&method==='GET'){
      const invites=(await query(db,'SELECT token_hash AS id,expires_at,max_uses,uses,created_at,revoked_at FROM live_invites WHERE community_id=? ORDER BY created_at DESC',communityId).all()).results;
@@ -247,7 +264,7 @@ export async function handleLiveRequest(request,env) {
     if(path.length===3&&method==='POST'){
      const maxUses=body.maxUses??1,hours=body.expiresInHours??168;requireThat(Number.isInteger(maxUses)&&maxUses>=1&&maxUses<=100,400,'invalid_uses','Invite uses must be between 1 and 100.');requireThat(Number.isInteger(hours)&&hours>=1&&hours<=720,400,'invalid_expiry','Invite expiry must be between 1 and 720 hours.');
      const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join(''),id=await tokenHash(token),expiresAt=now+hours*3600000;
-     await query(db,'INSERT INTO live_invites(token_hash,community_id,created_by,expires_at,max_uses,created_at) VALUES(?,?,?,?,?,?)',id,communityId,user.id,expiresAt,maxUses,now).run();return json({invite:{token,id,communityId,expiresAt,maxUses}},201);
+     await db.batch([query(db,'INSERT INTO live_invites(token_hash,community_id,created_by,expires_at,max_uses,created_at) VALUES(?,?,?,?,?,?)',id,communityId,user.id,expiresAt,maxUses,now),communityAudit(db,user.id,'invite.create','invite',id,now,{communityId,maxUses,expiresAt})]);return json({invite:{token,id,communityId,expiresAt,maxUses}},201);
     }
    }
   }
@@ -381,7 +398,7 @@ export async function handleLiveRequest(request,env) {
    const messages=(await query(db,`SELECT ${messageColumns} ${joined} WHERE ${where} ORDER BY m.seq DESC LIMIT ? OFFSET ?`,...values,limit,offset).all()).results;
    const like=literalLike(term),communities=(await query(db,"SELECT c.id,c.name,c.description,c.icon FROM live_communities c JOIN live_memberships mem ON mem.community_id=c.id WHERE mem.account_id=? AND c.name LIKE ? ESCAPE '\\' ORDER BY c.name LIMIT 30",user.id,like).all()).results;
    const channels=(await query(db,"SELECT c.id,c.name,c.community_id,g.name AS community_name FROM live_channels c JOIN live_communities g ON g.id=c.community_id JOIN live_memberships mem ON mem.community_id=c.community_id WHERE mem.account_id=? AND c.name LIKE ? ESCAPE '\\' ORDER BY c.name LIMIT 30",user.id,like).all()).results;
-   const people=(await query(db,"SELECT DISTINCT a.id,a.display_name,a.bio,a.avatar,a.theme FROM live_accounts a JOIN live_memberships their ON their.account_id=a.id JOIN live_memberships mine ON mine.community_id=their.community_id WHERE mine.account_id=? AND a.display_name LIKE ? ESCAPE '\\' ORDER BY a.display_name LIMIT 30",user.id,like).all()).results;
+   const people=(await query(db,"SELECT DISTINCT a.id,a.display_name,a.avatar FROM live_accounts a JOIN live_memberships their ON their.account_id=a.id JOIN live_memberships mine ON mine.community_id=their.community_id WHERE mine.account_id=? AND a.display_name LIKE ? ESCAPE '\\' ORDER BY a.display_name LIMIT 30",user.id,like).all()).results;
    return json({messages:await enriched(db,messages,user.id),total,page:pageInfo(limit,offset,total),communities,channels,people,dateInterpretation:'UTC calendar days. After includes its date; Before excludes its date.',entityLimit:30});
   }
   if(path.length===1&&path[0]==='inbox'&&method==='GET'){
