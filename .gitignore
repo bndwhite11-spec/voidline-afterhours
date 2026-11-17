@@ -1,6 +1,7 @@
 .DS_Store
 node_modules/
 .env*
+!.env.example
 __pycache__/
 *.pyc
 .wrangler/
@@ -8,3 +9,9 @@ __pycache__/
 .vinext/
 /dist/server/
 /dist/.openai/
+
+/dist/secure-messenger.js
+/dist/crypto/
+
+/dist/pkg/
+/dist/secure-messenger.js.LEGAL.txt

@@ -7,13 +7,19 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "node scripts/build-worker.mjs",
+    "build": "node scripts/build-crypto.mjs && node scripts/build-worker.mjs",
     "dev": "node scripts/dev-worker.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:foundation": "node backend/auth-test.mjs && node backend/foundation-review-test.mjs"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",
     "drizzle-orm": "0.45.2",
     "wrangler": "4.92.0"
+  },
+  "dependencies": {
+    "esbuild": "0.25.12",
+    "jose": "6.2.17",
+    "matrix-js-sdk": "45.1.0"
   }
 }

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1016">
+<meta name="description" content="VOIDLINE: AFTERHOURS. A place between days. Invite-only shared text rooms, a personal message archive, expressive profiles, and original collectible artifacts.">
+<title>VOIDLINE: AFTERHOURS — A place between days.</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="entrance.css">
+<link rel="stylesheet" href="badges.css">
+<link rel="stylesheet" href="profiles.css">
+<link rel="stylesheet" href="readability.css">
+<link rel="stylesheet" href="community.css">
+<link rel="stylesheet" href="polish.css">
+<link rel="stylesheet" href="live.css">
+</head>
+<body>
+<a class="skip-link" href="#message-input">Skip to conversation</a>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-logo" viewBox="0 0 32 32"><path d="M4 5h8l4 11 4-11h8L17 28h-3L4 5Z" fill="currentColor"/><path d="m4 19 5-2 3 6-5 2z" fill="currentColor" opacity=".45"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="m15 3 6 6-3 1-4 4v4l-3-3-6 6m0-16 3 3h4l4-4 1-3"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 13h5l1 3h4l1-3h5"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 1-2 3m0 3h.01"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3m-4 0h8"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="4" height="9" rx="2"/><rect x="17" y="12" width="4" height="9" rx="2"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 3 2 3-2 3 1 2-3-1-3 2-2-2-3-3-1-1-3z"/><circle cx="12" cy="11" r="3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1 3 4 3 4-3 4-3M8 9h.01M16 9h.01"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><path d="M3 8h18v4H3zm2 4v9h14v-9M12 8v13"/><path d="M12 8C3 8 5 1 9 3c2 1 3 5 3 5Zm0 0c9 0 7-7 3-5-2 1-3 5-3 5Z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24"><path d="m3 6 5 4 4-6 4 6 5-4-3 13H6L3 6Z"/><path d="M7 16h10"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z"/></symbol>
+  <symbol id="i-portal" viewBox="0 0 240 240"><path d="m112 18 28 16-64 38v88l36 21v35l-70-41V58z" fill="currentColor" stroke="none"/><path d="m128 41 70 41v89l-70 41v-35l36-21V95l-36-21z" fill="currentColor" stroke="none" opacity=".65"/><path d="m106 102 28-16v51l-28 16z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-game" viewBox="0 0 24 24"><path d="M7 6h10c3 0 5 10 4 12-1 2-4-1-6-3H9c-2 2-5 5-6 3S4 6 7 6Z"/><path d="M7 9v5m-2.5-2.5h5M16 10h.01M18 12h.01"/></symbol>
+<symbol id="i-artifact" viewBox="0 0 24 24"><path d="m12 2 7 4 3 7-10 9L2 13l3-7 7-4Z"/><path d="m5 6 7 7 7-7M2 13h20M12 2v20"/></symbol>
+<symbol id="i-thread" viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4V4ZM8 8h8m-8 4h5"/></symbol>
+<symbol id="i-reply" viewBox="0 0 24 24"><path d="m9 5-7 6 7 6v-4h5c4 0 6 2 8 5-1-8-4-10-13-10V5Z"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v12h5"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 3 6 6M3 21l5-1L21 7l-4-4L4 16l-1 5Z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15M9 10v7m6-7v7"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></symbol>
+<symbol id="i-announce" viewBox="0 0 24 24"><path d="M3 9h4l13-5v16L7 15H3V9ZM7 15l3 7h4l-3-5"/></symbol>
+<symbol id="i-message" viewBox="0 0 24 24"><path d="M3 4h18v13H9l-6 4V4Z"/><path d="M7 9h10m-10 4h7"/></symbol>
+<symbol id="i-profile" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m7 6-5 6 5 6m10-12 5 6-5 6M14 3l-4 18"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><path d="m3 18 6-6 4 4 3-3 5 5"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4V3Z"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.3.9-4.6 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L2.9 9.6l6.3-.9L12 3Z"/></symbol>
+<symbol id="i-live" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4m8.4-8.4a6 6 0 0 1 0 8.4M4.3 4.3a11 11 0 0 0 0 15.4m15.4-15.4a11 11 0 0 1 0 15.4"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+  </defs></svg>
+<header class="titlebar">
+  <button class="wordmark" data-action="direct" aria-label="VOIDLINE home"><svg class="icon logo"><use href="#i-portal"/></svg><b>VOIDLINE<span>®</span></b><i></i><span class="wordmark-edition">AFTERHOURS</span></button>
+  <button class="titlebar-command" data-action="command" aria-label="Search channels, people, and messages"><svg class="icon"><use href="#i-search"/></svg><span>Search your corner of the internet</span><kbd>⌘ K</kbd></button>
+  <div class="titlebar-actions"><button class="local-tag" data-action="network"><i></i> DEVICE-LOCAL <span>02</span></button><button class="download-top" data-action="download"><svg class="icon"><use href="#i-download"/></svg><span>Get the client</span></button></div>
+</header>
+<div class="app-shell">
+  <nav class="server-rail" aria-label="Community navigation">
+    <button class="server-home" data-action="direct" aria-label="Conversations" title="Conversations" data-tooltip="Conversations"><svg class="icon"><use href="#i-portal"/></svg></button>
+    <span class="rail-divider"></span><div id="server-list"></div>
+    <button class="server-icon add-server" data-action="add-server" aria-label="Create a community" title="Create a community" data-tooltip="Create a community"><svg class="icon"><use href="#i-plus"/></svg></button>
+    <span class="rail-divider"></span>
+    <button class="rail-button" data-action="discovery" aria-label="Discover communities" title="Discover communities" data-tooltip="Discover communities"><svg class="icon"><use href="#i-globe"/></svg></button>
+    <button class="rail-button rail-live" data-action="live" aria-label="Shared rooms" title="Shared rooms" data-tooltip="Shared rooms"><svg class="icon"><use href="#i-live"/></svg></button>
+    <button class="rail-button" data-action="saved-messages" aria-label="Saved messages" title="Saved messages" data-tooltip="Saved messages"><svg class="icon"><use href="#i-bookmark"/></svg></button>
+    <button class="rail-button" data-action="badges" aria-label="Artifact archive" title="Artifact archive" data-tooltip="Artifact archive"><svg class="icon"><use href="#i-artifact"/></svg></button>
+    <div class="rail-bottom"><button class="rail-button" data-action="appearance" aria-label="Appearance settings" title="Set your atmosphere" data-tooltip="Set your atmosphere"><svg class="icon"><use href="#i-settings"/></svg></button><span>VL / 02</span></div>
+  </nav>
+  <aside class="channel-sidebar" aria-label="Channels">
+    <button class="server-heading" data-action="server-menu"><span><small>YOUR COMMUNITY</small><b id="server-name">Afterhours</b></span><svg class="icon"><use href="#i-down"/></svg></button>
+    <div id="sidebar-brand" class="sidebar-brand"><div class="sidebar-brand-lines" aria-hidden="true"></div><div class="sidebar-aperture" aria-hidden="true"><span></span><span></span></div><span class="sidebar-brand-cross">+</span><div id="sidebar-brand-title">AFTER<br><em>hours.</em></div><small id="sidebar-edition">A PLACE BETWEEN DAYS / EST. 2026</small></div>
+    <div class="server-intro"><p id="server-description">Good company. Questionable sleep schedules.</p><div class="server-stats"><span id="community-role">SAMPLE COMMUNITY</span><span><i></i><span id="online-count">6</span></span></div></div>
+    <button class="invite-button" data-action="invite"><svg class="icon"><use href="#i-users"/></svg><span id="invite-button-label">Explore communities</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+    <div class="channels-scroll"><div id="channel-list"></div></div>
+    <button class="archive-sidebar-card" data-action="badges"><span class="archive-side-art"><svg class="icon"><use href="#i-artifact"/></svg></span><span><small>PRIVATE COLLECTION</small><b>The artifact archive</b></span><svg class="icon"><use href="#i-external"/></svg></button>
+    <div class="self-profile"><button class="self-identity" data-action="profile-view"><span id="self-avatar" class="avatar self-avatar self-custom-avatar">Y<i class="status-dot status-online"></i></span><span><b id="self-name">you</b><small id="self-status">In my own orbit</small></span></button><div class="self-controls"><button class="icon-button" data-action="voice" aria-label="Voice note studio" title="Voice note studio"><svg class="icon"><use href="#i-mic"/></svg></button><button class="icon-button" data-action="appearance" aria-label="Client settings" title="Client settings"><svg class="icon"><use href="#i-settings"/></svg></button></div></div>
+  </aside>
+  <main class="conversation">
+    <header class="channel-header"><button class="icon-button mobile-menu" data-action="menu" aria-label="Open channel navigation"><svg class="icon"><use href="#i-menu"/></svg></button><span class="header-hash">#</span><div class="channel-header-title"><span id="channel-eyebrow">AFTERHOURS / TEXT CHANNEL</span><h1 id="channel-title">general</h1></div><p id="channel-description">Good company. Questionable sleep schedules.</p><div class="header-actions"><button id="favorite-channel" class="icon-button channel-favorite" data-action="favorite-channel" aria-label="Favorite this conversation" title="Favorite this conversation" aria-pressed="false"><svg class="icon"><use href="#i-star"/></svg></button><button class="icon-button" data-action="pinned" aria-label="Pinned messages" title="Pinned messages"><svg class="icon"><use href="#i-pin"/></svg></button><button class="icon-button members-toggle" data-action="members" aria-label="Toggle community sidebar" title="Community sidebar"><svg class="icon"><use href="#i-users"/></svg></button><label class="search-box"><input id="search-input" type="search" placeholder="Search" aria-label="Search messages"><svg class="icon"><use href="#i-search"/></svg></label><button class="icon-button inbox-top" data-action="inbox" aria-label="Inbox" title="Inbox"><svg class="icon"><use href="#i-inbox"/></svg><span id="notification-count" hidden></span></button></div></header>
+    <div id="channel-scope" class="channel-scope"><span class="scope-dot"></span><span>AFTERHOURS CLIENT</span><span class="scope-divider"></span><span>Device-local edition</span></div>
+    <div id="chat-feed" class="chat-feed" aria-label="Conversation history" tabindex="-1"><div class="empty-channel"><span>OPENING YOUR ARCHIVE</span><p>Restoring this device’s saved conversations.</p></div></div>
+    <button id="jump-latest" data-action="jump-latest" hidden>Jump to latest <svg class="icon"><use href="#i-down"/></svg></button><div class="composer-wrap"><div id="composer-context"></div><form id="message-form" class="composer"><button class="attach-button" type="button" data-action="attachment" aria-label="Attach an image" title="Attach an image"><svg class="icon"><use href="#i-plus"/></svg></button><textarea id="message-input" rows="1" maxlength="4000" placeholder="Message #general" aria-label="Message general"></textarea><div class="composer-actions"><button class="icon-button composer-mic" type="button" data-action="voice" aria-label="Record a voice note" title="Record a voice note"><svg class="icon"><use href="#i-mic"/></svg></button><button class="icon-button" type="button" data-action="emoji" aria-label="Add emoji" title="Add emoji"><svg class="icon"><use href="#i-smile"/></svg></button><button id="send-btn" type="submit" aria-label="Send message" title="Send message"><svg class="icon"><use href="#i-arrow"/></svg></button></div></form><div class="composer-caption"><span><svg class="icon"><use href="#i-shield"/></svg><span id="draft-status">Your words stay on this device.</span></span><span><kbd>Enter</kbd> to send <i>·</i> <kbd>Shift + Enter</kbd> for a new line</span><button data-action="help">?</button></div></div>
+    <aside id="thread-panel" class="thread-panel" aria-label="Message thread" hidden></aside>
+  </main>
+  <aside class="members-sidebar" aria-label="Community sidebar">
+    <header class="members-heading"><span>FAMILIAR SIGNALS</span><button class="icon-button" data-action="members" aria-label="Close community sidebar"><svg class="icon"><use href="#i-close"/></svg></button><span class="members-label">AH—001</span></header>
+    <div id="member-list"></div>
+    <section class="artifact-feature"><div class="artifact-feature-heading"><span>YOUR PRIVATE COLLECTION</span><b id="artifact-count">02</b></div><button class="artifact-feature-object" data-action="badges" aria-label="Explore your artifact collection"><div class="artifact-feature-grid"></div><div id="featured-art"></div><span class="artifact-coordinate">OBJECT / EQUIPPED</span><span class="artifact-detail-cross">+</span></button><div class="artifact-feature-record"><span>AN IDENTITY, CAST IN METAL.</span><h2 id="featured-art-name">LARP PRO MAX</h2><button data-action="badges">Enter the archive <svg class="icon"><use href="#i-external"/></svg></button></div></section>
+    <button class="open-studio-card" data-action="challenge"><span>THE OPEN STUDIO</span><b>Make something<br>from the static.</b><small>A creative prompt, at your pace.<svg class="icon"><use href="#i-external"/></svg></small></button>
+    <footer class="member-footer"><svg class="icon"><use href="#i-shield"/></svg><span>A private corner of the internet.</span><button data-action="network" aria-label="Client status"><svg class="icon"><use href="#i-external"/></svg></button></footer>
+  </aside>
+</div>
+<button class="mobile-overlay" data-action="menu" aria-label="Close channel navigation"></button>
+<dialog id="app-modal" aria-label="VOIDLINE dialog"><button id="modal-close" aria-label="Close dialog"><svg class="icon"><use href="#i-close"/></svg></button><div id="modal-content"></div></dialog>
+<div id="context-menu" class="context-menu" role="menu" aria-label="Message options" hidden></div>
+<div id="toast" class="toast" role="status"></div><div id="message-announcer" class="sr-only" role="status"></div>
+<script src="store.js"></script>
+<script src="motion.js"></script>
+<script src="entrance.js"></script>
+<script src="community.js"></script>
+<script src="badges.js"></script>
+<script src="profiles.js"></script>
+<script src="drafts.js"></script>
+<script src="app.js"></script>
+<script src="live.js"></script>
+<script src="live-tools.js"></script>
+</body>
+</html>

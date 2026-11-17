@@ -1,3 +1,4 @@
+import {authenticate, validateSessionMutation, AuthError} from './auth.mjs';
 /**
  * Authenticated shared-text API for Sites Workers + D1.
  * The build embeds this handler alongside the authored browser client.
@@ -26,12 +27,6 @@ class ApiError extends Error {
 
 function requireThat(condition, status, code, message) {
   if (!condition) throw new ApiError(status, code, message);
-}
-
-function identity(request) {
-  const id = request.headers.get('oai-authenticated-user-id');
-  requireThat(id && id.length <= 256, 401, 'sign_in_required', 'Sign in with ChatGPT to continue.');
-  return {id};
 }
 
 async function bodyJSON(request, authenticatedAccountId) {
@@ -161,14 +156,28 @@ export async function handleLiveRequest(request,env) {
   if(url.pathname===PREFIX+'/health'&&method==='GET'){
    requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Shared rooms are not available in this edition.');
    await query(env.DB,'SELECT id FROM live_accounts LIMIT 1').first();
-   return json({available:true,mode:'shared-text',transport:'cursor-polling'});
+   return json({available:true,mode:'legacy-readonly',transport:'cursor-polling',protectedSending:false,encryptionRequired:true});
   }
-  const user=identity(request);requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Durable messaging is not configured for this deployment.');
+  const user=await authenticate(request,env);requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Durable messaging is not configured for this deployment.');
   const db=env.DB,now=Date.now();
   await query(db,`INSERT INTO live_accounts(id,display_name,email,created_at,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(id) DO NOTHING`,user.id,'New resident','',now,now).run();
   const path=url.pathname.slice(PREFIX.length).split('/').filter(Boolean).map(decodeURIComponent);
   // Every mutation validates account identity before touching domain state.
   const body=method==='POST'?await bodyJSON(request,user.id):null;
+  if(body){
+   await validateSessionMutation(request,user,body);
+   const account=await query(db,'SELECT onboarding_complete FROM live_accounts WHERE id=?',user.id).first();
+   requireThat(account?.onboarding_complete,409,'onboarding_required','Choose your username before changing community data.');
+   await query(db,'DELETE FROM auth_rate_limits WHERE expires_at<?',now).run();
+   const bucket=await tokenHash('live:'+user.id+':'+Math.floor(now/60000));
+   const rate=await query(db,'INSERT INTO auth_rate_limits(bucket,count,expires_at) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET count=count+1 RETURNING count',bucket,now+120000).first();
+   requireThat(rate.count<=60,429,'rate_limited','Too many changes. Wait a minute and try again.');
+   // Existing text is retained for its owners. This API cannot accept new
+   // private content: encryption belongs to the maintained client protocol.
+   const removingLegacy=path[0]==='messages'&&(path[2]==='delete'||(path[2]==='save'&&body.active===false));
+   const protectedContent=(path[0]==='channels'&&path[2]==='messages')||(path[0]==='messages'&&!removingLegacy);
+   requireThat(!protectedContent,503,'encryption_required','This legacy text service is read-only. Connect a verified encrypted messaging device to send.');
+  }
   if(path.length===1&&path[0]==='me'&&method==='GET')return json({account:publicProfile(await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first()),transport:'cursor-polling'});
   if(path.length===1&&path[0]==='profile'&&method==='POST'){
    const old=await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first();
@@ -250,6 +259,15 @@ export async function handleLiveRequest(request,env) {
    requireThat(!invite.revoked_at,403,'invite_revoked','This invitation was revoked.');requireThat(invite.expires_at>now,403,'invite_expired','This invitation expired.');requireThat(invite.uses<invite.max_uses,403,'invite_exhausted','This invitation has no uses left.');
    await db.batch([query(db,"INSERT OR IGNORE INTO live_memberships(community_id,account_id,role,joined_at) SELECT community_id,?,'member',? FROM live_invites WHERE token_hash=? AND expires_at>? AND uses<max_uses AND revoked_at IS NULL",user.id,now,hash,now),query(db,'UPDATE live_invites SET uses=uses+1 WHERE token_hash=? AND changes()>0',hash)]);
    const member=await query(db,'SELECT role FROM live_memberships WHERE community_id=? AND account_id=?',invite.community_id,user.id).first();requireThat(member,403,'invite_exhausted','This invitation has no uses left.');return json({membership:{communityId:invite.community_id,role:member.role},alreadyJoined:false});
+  }
+  if(path.length===2&&path[0]==='invites'&&method==='GET'){
+   requireThat(/^[a-f0-9]{64}$/.test(path[1]),404,'invite_unavailable','This invitation is unavailable.');
+   const invite=await query(db,'SELECT i.*,c.name,c.description,c.icon FROM live_invites i JOIN live_communities c ON c.id=i.community_id WHERE i.token_hash=?',await tokenHash(path[1])).first();
+   requireThat(invite,404,'invite_unavailable','This invitation is unavailable.');
+   const existing=await query(db,'SELECT role FROM live_memberships WHERE community_id=? AND account_id=?',invite.community_id,user.id).first();
+   const state=existing?'already-joined':invite.revoked_at?'revoked':invite.expires_at<=now?'expired':invite.uses>=invite.max_uses?'exhausted':'active';
+   requireThat(state==='active'||state==='already-joined',410,'invite_'+state,`This invitation is ${state}.`);
+   return json({invite:{communityId:invite.community_id,name:invite.name,description:invite.description,icon:invite.icon,expiresAt:invite.expires_at,alreadyMember:!!existing,state}});
   }
   if(path.length===3&&path[0]==='channels'){
    const channelId=path[1],channel=await accessibleChannel(db,channelId,user.id);
@@ -394,7 +412,7 @@ export async function handleLiveRequest(request,env) {
   }
   throw new ApiError(404,'not_found','No API route matches this request.');
  }catch(error){
-  if(error instanceof ApiError)return json({error:{code:error.code,message:error.message}},error.status);
+  if(error instanceof ApiError||error instanceof AuthError)return json({error:{code:error.code,message:error.message}},error.status);
   if(error instanceof URIError)return json({error:{code:'invalid_path',message:'The request path is invalid.'}},400);
   return json({error:{code:'server_error',message:'The request could not be committed. Retry with the same client message ID.'}},500);
  }

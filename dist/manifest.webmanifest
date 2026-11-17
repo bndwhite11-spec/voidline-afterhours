@@ -1,7 +1,7 @@
 {
   "name": "VOIDLINE: AFTERHOURS",
   "short_name": "VOIDLINE",
-  "description": "A place between days. A cinematic device-local communication client.",
+  "description": "A quiet place for the people and communities you choose.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

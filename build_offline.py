@@ -89,10 +89,10 @@ html = re.sub(r'<html\b[^>]*>', mark_offline, html, count=1, flags=re.IGNORECASE
 html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
-required_styles = {'styles.css', 'polish.css', 'live.css'}
-required_scripts = {'app.js', 'live.js', 'live-tools.js'}
+required_styles = {'home.css'}
+required_scripts = {'store.js', 'legacy-import.js', 'home.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
-    raise ValueError('The entrypoint must load the complete client, including polish.css, live.css, live.js, and live-tools.js.')
+    raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:
     raise ValueError('The offline edition flag was not inserted.')
 
@@ -107,7 +107,7 @@ os.replace(offline_temporary, offline_path)
 # never re-enter the source archive or become embedded recursively.
 excluded_names = {'node_modules', '.git', '.wrangler', '.sites-runtime', '.vinext',
                   '__pycache__', '.npmrc', '.pypirc'}
-generated_dist_roots = {'server', '.openai', '_appgen_meta'}
+generated_dist_roots = {'server', '.openai', '_appgen_meta', 'crypto', 'pkg'}
 
 
 def allowed(path):
@@ -117,7 +117,7 @@ def allowed(path):
         return False
     if any(part in excluded_names for part in parts):
         return False
-    if any(part.startswith(('.env', '.dev.vars')) for part in parts):
+    if any(part.startswith(('.env', '.dev.vars')) for part in parts) and relative != Path('.env.example'):
         return False
     if any(part.lower() in {'secrets.json', 'credentials.json'} for part in parts):
         return False
@@ -127,16 +127,18 @@ def allowed(path):
         return False
     if relative == Path('dist/downloads/voidline-source.zip'):
         return False
+    if relative == Path('dist/secure-messenger.js'):
+        return False
     return True
 
 
 sources = set()
-for directory in ('dist', 'worker', 'backend', 'db', 'drizzle', 'scripts', 'tests'):
+for directory in ('dist', 'worker', 'backend', 'db', 'drizzle', 'scripts', 'tests', 'src', 'docs'):
     for path in (root / directory).rglob('*'):
         if allowed(path):
             sources.add(path)
 for name in ('build_offline.py', 'README.txt', 'DEVELOPMENT.txt', 'PERFORMANCE.txt',
-             'package.json', 'package-lock.json', 'drizzle.config.ts', '.gitignore',
+             'package.json', 'package-lock.json', 'drizzle.config.ts', '.gitignore', '.env.example',
              '.openai/hosting.json'):
     path = root / name
     if not path.is_file():

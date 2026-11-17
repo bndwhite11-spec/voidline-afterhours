@@ -1,5 +1,5 @@
 'use strict';
-// Real authored browser modules -> real Worker handler -> migrated SQLite.
+// Retained v7 archive modules -> historical Worker fixture -> migrated SQLite.
 // DOM geometry and platform sign-in are deliberately outside this test.
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
@@ -7,7 +7,7 @@ const {DatabaseSync}=require('node:sqlite');
 const {client}=require('./live-upgrade-fixture.cjs');
 
 (async()=>{
- const worker=(await import('../worker/index.mjs')).default;
+ const worker=(await import('./fixtures/legacy-worker-v7.mjs')).default;
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');
  const journal=JSON.parse(fs.readFileSync(path.join(__dirname,'../drizzle/meta/_journal.json'),'utf8'));
  for(const migration of journal.entries)sqlite.exec(fs.readFileSync(path.join(__dirname,'../drizzle',migration.tag+'.sql'),'utf8'));
@@ -60,6 +60,6 @@ const {client}=require('./live-upgrade-fixture.cjs');
   assert.equal(member.shared.activeRoom().messages.find(message=>message.id===reply.id).reply_preview.text,'');
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM live_messages').get().n,2);
   console.log('PASS deleting a root synchronizes tombstones without removing or duplicating its reply');
-  console.log('4/4 cross-layer checks passed. Synthetic identities and VM DOM; not a hosted two-account or visual test.');
+  console.log('4/4 historical v7 archive cross-layer checks passed. Not production auth/encryption or browser verification.');
  }finally{sqlite.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

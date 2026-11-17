@@ -1,3 +1,16 @@
+CURRENT ACCOUNT FOUNDATION
+
+Production now boots home.js/home.css, uses worker/auth.mjs Google sessions,
+and never loads sample app.js. The legacy v7 behavior notes below describe
+retained source/recovery regressions, not the current authentication or E2EE
+contract. Current setup and threat model: docs/GOOGLE-SETUP.md,
+docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
+
+Current checks: npm run test:foundation; node backend/secure-messenger-test.mjs;
+node tests/run.cjs; python3 build_offline.py; npm run build;
+node scripts/check-build.mjs. Historical backend regression fixtures live only
+in tests/fixtures; production has no platform-header authentication bypass.
+
 VOIDLINE / RELIABILITY INVARIANTS
 
 1. A success state requires a committed write.

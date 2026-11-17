@@ -1,7 +1,8 @@
+// Historical v7 archive engine contract. Production auth/encryption is tested separately.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import worker from '../worker/index.mjs';
+import worker from '../tests/fixtures/legacy-worker-v7.mjs';
 
 // Independent API review against real SQLite. All identities/data are isolated;
 // no deployed service, actual account, or contact is involved.

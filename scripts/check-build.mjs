@@ -10,17 +10,19 @@ const dist = path.join(root, 'dist');
 const worker = (await import(pathToFileURL(path.join(dist, 'server/index.js')))).default;
 const origin = 'https://voidline-build.example';
 const fetchAsset = (name, options) => worker.fetch(new Request(origin + name, options), {}, {});
+const productionRoots=new Set(['index.html','home.js','home.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
+async function bytes(response){return Buffer.from(await (response.headers.get('content-encoding')==='gzip'?new Response(response.body.pipeThrough(new DecompressionStream('gzip'))):response).arrayBuffer());}
 let count = 0;
 async function verify(directory, prefix = '') {
   for (const item of await readdir(directory, {withFileTypes:true})) {
-    if (item.name.startsWith('.') || (!prefix && ['server', '_appgen_meta'].includes(item.name))) continue;
+    if (item.name.startsWith('.') || (!prefix && !productionRoots.has(item.name))) continue;
     const relative = prefix + '/' + item.name;
     if (item.isDirectory()) { await verify(path.join(directory,item.name), relative); continue; }
     assert(item.isFile(), `Unexpected deploy asset ${relative}`);
     const response = await fetchAsset(relative);
     assert.equal(response.status, 200, relative);
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-    assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(path.join(directory,item.name)), relative);
+    assert.deepEqual(await bytes(response), await readFile(path.join(directory,item.name)), relative);
     const head = await fetchAsset(relative, {method:'HEAD'});
     assert.equal(head.status, 200);
     assert.equal((await head.arrayBuffer()).byteLength, 0);
@@ -30,13 +32,18 @@ async function verify(directory, prefix = '') {
   }
 }
 await verify(dist);
-assert.deepEqual(Buffer.from(await (await fetchAsset('/')).arrayBuffer()), await readFile(path.join(dist,'index.html')));
-for (const route of ['/server/index.js', '/.openai/hosting.json', '/.openai/drizzle/meta/_journal.json', '/.env', '/missing']) {
+assert.deepEqual(await bytes(await fetchAsset('/')), await readFile(path.join(dist,'index.html')));
+for (const route of ['/server/index.js', '/.openai/hosting.json', '/.openai/drizzle/meta/_journal.json', '/.env', '/app.js','/community.js','/live.js','/missing']) {
   assert.equal((await fetchAsset(route)).status, 404, route);
 }
 assert.equal((await fetchAsset('/', {method:'POST'})).status, 405);
-assert.equal((await fetchAsset('/api/live/me')).status, 401);
+assert.equal((await fetchAsset('/api/live/me')).status, 503);
 assert.equal((await fetchAsset('/api/live/health')).status, 503);
+const config=await (await fetchAsset('/api/auth/config')).json();
+assert.equal(config.configured,false);
+assert.equal((await fetchAsset('/api/auth/google/start')).status,503);
+const policy=(await fetchAsset('/')).headers.get('content-security-policy');
+assert(policy.includes("script-src 'self' 'wasm-unsafe-eval'"));assert(!policy.includes("'unsafe-inline'"));
 const manifest = JSON.parse(await readFile(path.join(root,'.openai/hosting.json')));
 assert.deepEqual(JSON.parse(await readFile(path.join(dist,'.openai/hosting.json'))), manifest);
 assert.equal(manifest.project_id, 'appgprj_6afb6be77b9c8191ae8d2ee76b1afd34');

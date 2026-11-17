@@ -1,7 +1,8 @@
+// Historical v7 archive engine contract. Production auth/encryption is tested separately.
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import worker from '../worker/index.mjs';
+import worker from '../tests/fixtures/legacy-worker-v7.mjs';
 
 // SQLite adapter exercises actual SQL and atomic batches, not SQL-string stubs.
 class LocalD1 {

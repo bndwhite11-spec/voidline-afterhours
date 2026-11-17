@@ -1,3 +1,20 @@
+CURRENT FOUNDATION NOTICE
+
+The account upgrade replaces production platform-header identity with verified
+Google sessions (worker/auth.mjs). worker/index.mjs retains authorized metadata
+and legacy plaintext reads, but blocks new protected plaintext content.
+Encrypted messaging is a separate maintained Matrix SDK integration requiring
+a configured homeserver and independently verified devices. No working Google
+or Matrix service is implied while external credentials are missing.
+
+Current checks: backend/auth-test.mjs (real JWT verifier + SQLite),
+backend/foundation-review-test.mjs (production auth/API),
+backend/secure-messenger-test.mjs (mock SDK boundary tests).
+backend/test.mjs and review-test.mjs use an explicit historical v7 fixture.
+See README.txt and docs/ for current setup, encryption and acceptance limits.
+
+HISTORICAL V7 NOTES FOLLOW
+
 VOIDLINE SHARED TEXT SERVICE / V7 SOURCE
 
 ARCHITECTURE

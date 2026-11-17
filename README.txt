@@ -1,177 +1,87 @@
-VOIDLINE: AFTERHOURS
-Shared text rooms and a personal local archive.
+VOIDLINE: AFTERHOURS / ACCOUNT FOUNDATION
 
-OPEN THE CLIENT
-Use the published Site for Shared rooms. Sign in with ChatGPT, choose a public
-alias, then create a community or claim an invite. Community membership is
-checked by the server. A host's Site access policy is separate from an invite.
-The connection panel reports whether shared messaging is available.
+The production entry is dist/index.html + home.js/home.css. Visitors see a
+welcome screen while identity resolves, then choose a public username and
+display name. Real new accounts have no memberships, chats or fake activity.
+Account authentication is Google OIDC, verified by the Worker. Provider email,
+legal name and avatar are not copied into public profiles. Google sign-in
+sessions and messaging encryption devices are separate identities.
 
-For the offline edition, open dist/downloads/voidline-offline.html in a modern
-browser. It is one self-contained HTML file and needs no installation or
-network. Its local archive remains usable; Shared rooms are unavailable there.
-Opening dist/index.html directly also uses local files; hosted authentication
-and durable shared messaging require the published Worker environment.
+CURRENT EXTERNAL SETUP REQUIRED
+Google is not enabled without GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and
+VOIDLINE_ORIGIN. Configure a Web application in Google Cloud and use the exact
+callback in docs/GOOGLE-SETUP.md. Never place secrets in browser source.
+MATRIX_HOMESERVER must identify an operator-controlled HTTPS Matrix server for
+the encrypted adapter. No Matrix service or accounts are provisioned by this
+repository. See docs/ENCRYPTION-DECISION.md and the encryption setup/threat-model
+documents for protocol limits and the required external verification.
 
-LOCAL ARCHIVE
-The local archive provides community/channel organization, local direct/group
-conversations, replies, threads, reactions, image attachments, rich text,
-editable messages, pins, saved notes, search, contacts and owner tools.
-Inbox, Unread and Favorites help organize the local conversations. Search can
-find people, channels, messages and commands; advanced message search supports
-in:, from:, has:, before: and after: filters.
+The welcome button honestly reports missing configuration. No pretend Google
+identity, chat confirmation, online status, encryption device or recovery key
+is synthesized. No encrypted-message deployment claim follows from unit tests.
 
-Profiles support bios, banners, status, accent, themes, frames, layout,
-featured artifacts and optional ambient motion. The nine original collectible
-artifacts have inspectable artwork, lore, defined local unlock conditions and
-ownership records. These records are local milestones or edition provenance,
-not a claim about a limited global supply or server-verified rarity.
+DATA AND MIGRATION
+Google's stable subject maps to a unique app account; matching an email never
+links an older account. Existing v7 platform-owned rows remain in D1, unchanged.
+They are not automatically assigned to a new Google identity. Data migration
+between identities requires a future explicit dual-identity proof, not email.
 
-The Night Bus sample project contains fictional residents and original sample
-work: a cassette-cover zine, title rough, map, print variation and optional
-locally synthesized audio sketch. Sample profiles and works are labeled and
-read-only. Opening them does not grant achievements.
+The old D1 text API is retained for authorized metadata/history and deletion.
+New plaintext sends, edits, reactions and saved copies are blocked. Private
+messaging belongs to the maintained encrypted protocol adapter. Existing
+community metadata supports intentional creation, membership, invitation review
+and acceptance; creating a server does not establish encrypted Matrix rooms.
+That integration remains distinct and cannot silently fall back to plaintext.
 
-Microphone recording can create local voice notes up to 30 seconds/2 MB in
-supported browsers. Permission is requested on Start. Local messages, local
-DMs, attachments, voice notes and sample conversations are not delivered to
-another person. Shared rooms are a distinct authenticated service.
+Old browser archives remain on their original origin/device. An explicit
+read-only review separates exact unchanged fixtures from personal, modified
+and uncertain content. Recovery export retains original bytes. Nothing is
+silently deleted, re-seeded, uploaded or claimed to be an encrypted backup.
+See docs/LOCAL-DATA.md. The offline download provides this review/recovery
+interface; it cannot perform hosted authentication or encrypted network chat.
 
-SHARED TEXT ROOMS
-Shared text uses the Site's Worker API and managed D1 database. ChatGPT sign-in
-establishes a stable per-Site identity. Other members see the alias you choose;
-the API does not publish your sign-in email or account full name in messages
-or the member directory.
+SOURCE
+  dist/home.js + home.css       production account client
+  dist/legacy-import.js        explicit read-only local archive review
+  dist/store.js                retained journal reader, no boot-time seeding
+  src/secure-messenger.js      maintained Matrix/Rust crypto adapter
+  worker/auth.mjs              Google verification + opaque app sessions
+  worker/index.mjs             authorized community metadata + legacy reads
+  db/schema.ts + drizzle/      current schema + immutable additive migrations
+  scripts/build-crypto.mjs     pinned local SDK/crypto asset bundling
+  scripts/build-worker.mjs     Worker + compressed static assets and migrations
 
-Create a community with a general channel, or claim a community invite. Owners
-can edit its name, description and icon, create text/announcement channels,
-manage moderator/member roles and remove members. Members may leave; owners
-must retain responsibility for their community. Posting to announcements and
-community pin management are authorized by the server.
+The v7 browser modules remain authored source for recovery and historical
+regressions, inside the source download. Production does not load or serve
+those sample modules. tests/fixtures/legacy-worker-v7.mjs is an explicit
+historical test fixture, never an API authentication bypass.
 
-Owners can create invitations with an expiry and bounded uses, inspect their
-status and revoke them. The app does not send invitations to anyone. A valid
-invite adds membership; it does not override the Site's access restrictions.
-
-Shared text supports contextual replies, separate threads, editing, deletion
-with retained references, reactions, community pins and private account Saved
-messages. Source links open the exact message or thread reply. Deleted or
-inaccessible sources have explicit states; removal from Saved never deletes
-the original. Public profiles contain the alias, short bio, optional status,
-selected original avatar mark and theme. Local profile worlds and artifacts
-are preserved separately, with no automatic upload or ownership claims.
-
-Inbox has Unread, Mentions and Activity views with explicit per-conversation
-and bulk read actions. Favorites and All/Unread/Favorites filters are account
-scoped. Search covers permitted shared text history with exact result counts
-and pagination, conversation/author/date filters, and distinct people/room/
-community suggestions. Dates are UTC days: After includes the selected day,
-Before excludes it. Entity suggestions have a stated limit of 30 per type.
-
-Messages accept up to 4,000 characters. Confirmation follows a durable write.
-Stable client IDs and original-payload validation deduplicate retries, even
-when the first response was lost. Change cursors synchronize edits, deletion,
-reactions and pins as well as new messages. History is paginated. A saved
-acknowledgment does not mean another member has read the message.
-
-Shared drafts and pending retries stay separate by signed-in account, channel
-and thread. Session storage preserves them across refresh in the same tab;
-blocked storage keeps the in-memory draft and offers a recovery copy. Drafts
-are not synchronized across devices. Responses from an earlier account or
-navigation context cannot replace the current conversation.
-
-This shared service does not currently provide live voice calls, shared image
-or audio attachments, delivery/read receipts, live presence, or synchronized
-local badges/profiles. Local archive imports do not upload those records into
-shared rooms. No end-to-end encryption claim is made.
-
-LOCAL STORAGE AND RECOVERY
-The local archive saves in browser storage. Same-origin tabs merge saved local
-changes, while each tab keeps its own navigation and unsent drafts. Histories
-are retained without a destructive message-count cap. Feeds and threads load
-in pages of 100; older content remains reachable through history and search.
-
-Images and local voice notes are limited to 2 MB each and available browser
-storage. Draft text, reply targets and pending attachments survive refresh in
-the same tab when session storage is available. Closing a tab ends that session
-unless the browser restores it. Drafts are not cross-device synchronization.
-
-Clearing browser data clears the local archive. Separate browsers, origins or
-offline files can have separate storage. Export JSON in Settings to keep a
-copy. Import previews and validates the complete merge before committing.
-Existing message records are preserved by ID. Recovery JSON uses the same
-preview. Failed writes retain input and offer Retry and recovery export; keep
-a recovery copy before closing a tab that cannot save.
-
-The client performs no IP lookup or covert tracking. The hosted edition uses
-normal hosting, authentication and messaging traffic. Shared messages are
-server records governed by membership. The offline edition performs no shared
-messaging request.
-
-READABILITY AND KEYBOARD
-Client reading colors are independent from profile identity colors. Appearance
-settings control readable text size, density and motion. Reduced motion
-respects the system preference, and the cinematic entrance can be skipped.
-Returning channels preserve reading positions and draft context.
-
-Ctrl/Cmd + K: command palette.
-Ctrl/Cmd + comma: appearance settings.
-Enter: send. Shift + Enter: new line.
-Escape: close a dialog/panel or skip the entrance.
-Artifact inspection: Left/Right rotate; R resets rotation.
-Message options are available through their button or right click.
-
-SOURCE AND OFFLINE BUILD
-Authored browser files live directly in dist/: index.html, app.js, supporting
-modules and CSS. worker/index.mjs contains the shared API. db/schema.ts is the
-Drizzle schema; drizzle/ contains generated SQL and immutable metadata.
-
-The Python offline generator has no third-party dependencies:
-  python3 build_offline.py
-It inlines the current local styles/scripts, including polish.css, live.css,
-live.js and live-tools.js. It regenerates the offline HTML and source ZIP. The source ZIP
-contains source, tests, package inputs and migration history; it excludes
-generated Worker bundles, node_modules, runtime state and local secret files.
-
-Run the offline generator BEFORE the final Worker build, so hosted download
-links serve the newly generated files. The Worker builder preserves authored
-dist files and embeds them in dist/server/index.js. Generated dist/server and
-dist/.openai files are excluded from that embedding to prevent recursion.
-
-HOSTED BUILD AND PREVIEW
-Node 24 is used for checks, including Node's built-in SQLite backend tests.
-The deployed Worker has no runtime package dependency. Drizzle and Wrangler
-are pinned development tools. Install with the Sites dependency helper when
-available; the portable project equivalent is:
+BUILD AND VERIFY
+Node24 and Python3 are used. Install exact package-lock dependencies:
   npm ci --no-audit --no-fund --cache /tmp/voidline-npm-cache
-After editing db/schema.ts, generate and review additive SQL/metadata:
+For intentional schema changes only:
   npm run db:generate
-Applied SQL and metadata are immutable. Run the offline generator before the
-Worker builder so the hosted downloads contain the latest client:
+Do not edit applied migration SQL or old snapshots.
+Current account boundaries:
+  npm run test:foundation
+Client, recovery, adapter and historical archive regressions:
+  node tests/run.cjs
+Historical v7 engine regression checks (not production auth/encryption proof):
+  node backend/test.mjs
+  node backend/review-test.mjs
+Package in this order after source settles:
   python3 build_offline.py
   npm run build
   node scripts/check-build.mjs
-When installed, the Sites build helper runs this same project build script.
 
-For local D1, apply each pending migration once in journal order, using:
-  node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/<pending-migration>.sql
-Local and hosted databases are separate. In managed environments, use:
-  sites-preview start /workspace/work/voidline
-Only start preview when supported browser controls are available. The daemon
-owns the preview process; use its returned URL and status/stop commands.
+The source ZIP excludes secrets, dependencies, runtime state, generated Worker
+and crypto bundles and the source ZIP itself. It includes source, migrations,
+setup documentation, .env.example and exact package inputs. The Worker includes
+only the production asset allowlist. Large assets are compressed before being
+embedded; no third-party CDN executes code in private conversations.
 
-Publish through the Sites source/package/deploy workflow. Preserve the existing
-project ID and hosting audience for updates. Sites provisions DB and applies
-hosted migrations before the Worker upload. If this source is reused for a new
-Site, register that new Site and set its returned ID through the Sites helper.
-Never put credentials or actual hosted database IDs in browser source.
-
-VALIDATION
-  node tests/run.cjs
-  node backend/test.mjs
-  node backend/review-test.mjs
-Client tests exercise local persistence and interaction contracts in a DOM/VM
-harness. Backend tests use SQLite and synthetic identities. They do not prove
-actual hosted D1 or two independent signed-in browser sessions. Browser layout,
-mobile input and media-device behavior require browser checks. Consult
-backend/DEPLOYMENT-CHECK.txt for the current source verification boundaries.
+In managed Sites, preview requires supported browser controls and the preview
+daemon. No alternative browser route or server is started when those tools are
+absent. Publish the matching source/build through Sites, preserving project ID,
+D1 binding DB and the current audience. Native deployment verifies publication;
+it does not replace a real Google+Matrix multi-device acceptance test.

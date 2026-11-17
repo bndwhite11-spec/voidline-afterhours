@@ -1,0 +1,11 @@
+import {build} from 'esbuild';
+import {mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+await mkdir(path.join(root,'dist/pkg'),{recursive:true});
+await build({entryPoints:[path.join(root,'src/secure-messenger.js')],outfile:path.join(root,'dist/secure-messenger.js'),bundle:true,format:'esm',platform:'browser',target:['es2022'],minify:true,sourcemap:false,legalComments:'external',logLevel:'warning'});
+await copyFile(path.join(root,'node_modules/@matrix-org/matrix-sdk-crypto-wasm/pkg/matrix_sdk_crypto_wasm_bg.wasm'),path.join(root,'dist/pkg/matrix_sdk_crypto_wasm_bg.wasm'));
+const versions={matrix:JSON.parse(await readFile(path.join(root,'node_modules/matrix-js-sdk/package.json'))).version,crypto:JSON.parse(await readFile(path.join(root,'node_modules/@matrix-org/matrix-sdk-crypto-wasm/package.json'))).version};
+await writeFile(path.join(root,'dist/pkg/versions.json'),JSON.stringify(versions)+'\n');
+console.log(`Built lazy Matrix ${versions.matrix} / Rust crypto WASM ${versions.crypto}; local assets only.`);

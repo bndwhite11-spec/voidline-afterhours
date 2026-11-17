@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
+import {build} from 'esbuild';
 import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,13 +13,6 @@ if (manifest.static != null) throw new Error('Worker builds must omit static fro
 if (manifest.d1 !== 'DB') throw new Error('The live messaging API requires the declared D1 binding DB.');
 if (!manifest.project_id) throw new Error('The existing Site project_id must be preserved.');
 
-const apiSource = await readFile(path.join(root, 'worker/index.mjs'), 'utf8');
-const apiDefault = /^\s*export\s+default\s+\{\s*fetch\s*:\s*handleLiveRequest\s*\}\s*;\s*$/m;
-if (!apiDefault.test(apiSource)) throw new Error('Expected worker/index.mjs to default-export fetch: handleLiveRequest.');
-if (/^\s*import(?:\s|\{|\*)/m.test(apiSource)) {
-  throw new Error('The self-contained API entrypoint must not import runtime dependencies.');
-}
-
 const contentTypes = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -27,23 +22,31 @@ const contentTypes = {
   '.gif': 'image/gif', '.ico': 'image/x-icon', '.woff': 'font/woff',
   '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
   '.zip': 'application/zip', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4',
+  '.wasm': 'application/wasm',
 };
 const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
+// v7's sample/archive source remains in the source download and tests. It is
+// never an executable production fallback or automatically loaded fixture.
+const productionRoots = new Set(['index.html','home.js','home.css','store.js','legacy-import.js',
+  'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
 const assets = {};
 let assetBytes = 0;
 async function collect(directory, prefix = '') {
   const entries = await readdir(directory, { withFileTypes: true });
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
-    if ((!prefix && excludedRoots.has(entry.name)) || entry.name.startsWith('.')) continue;
+    if ((!prefix && (excludedRoots.has(entry.name)||!productionRoots.has(entry.name))) || entry.name.startsWith('.')) continue;
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await collect(filename, relative);
     else if (entry.isFile()) {
       const bytes = await readFile(filename);
       assetBytes += bytes.length;
+      const compressed = bytes.length>32768 ? gzipSync(bytes,{level:9}) : null;
+      const encoded = compressed && compressed.length<bytes.length*.85 ? compressed : bytes;
       assets[`/${relative}`] = {
-        body: bytes.toString('base64'),
+        body: encoded.toString('base64'),
+        gzip: encoded!==bytes,
         type: contentTypes[path.extname(entry.name).toLowerCase()] || 'application/octet-stream',
         etag: `"${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}"`,
       };
@@ -55,9 +58,13 @@ if (!assets['/index.html']) throw new Error('Missing dist/index.html. Existing s
 
 const runtime = `
 const VOIDLINE_ASSETS = ${JSON.stringify(assets)};
+function matrixConnectOrigin(env) {
+  try { const u=new URL(env?.MATRIX_HOMESERVER);return u.protocol==='https:'&&u.origin===u.href.replace(/\\/$/,'') ? ' '+u.origin : ''; } catch {return '';}
+}
 
 async function serveVoidline(request, env, ctx) {
   const url = new URL(request.url);
+  if (url.pathname.startsWith('/api/auth/')) return handleAuthRequest(request,env,ctx);
   if (url.pathname === '/api/live' || url.pathname.startsWith('/api/live/')) {
     return handleLiveRequest(request, env, ctx);
   }
@@ -67,7 +74,8 @@ async function serveVoidline(request, env, ctx) {
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); }
   catch { return new Response('Invalid path', {status: 400}); }
-  const asset = VOIDLINE_ASSETS[pathname === '/' ? '/index.html' : pathname];
+  const pageRoute = /^\\/(?:users|invite|servers|channels)\\//.test(pathname);
+  const asset = VOIDLINE_ASSETS[pathname === '/' || pageRoute ? '/index.html' : pathname];
   if (!asset) return new Response('Not found', {status: 404});
   const headers = {
     'content-type': asset.type,
@@ -75,7 +83,10 @@ async function serveVoidline(request, env, ctx) {
     'etag': asset.etag,
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
+    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self' https://accounts.google.com; upgrade-insecure-requests",
   };
+  if(asset.gzip) headers['content-encoding']='gzip';
   if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
   const bytes = Uint8Array.from(atob(asset.body), c => c.charCodeAt(0));
@@ -94,7 +105,8 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const bundle = `// Generated by scripts/build-worker.mjs. Edit worker/index.mjs and the dist client assets.\n${apiSource.replace(apiDefault, '')}\n${runtime}`;
+const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);
 await rename(nextBundle, path.join(output, 'server/index.js'));

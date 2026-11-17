@@ -11,6 +11,8 @@ export const liveAccounts = sqliteTable("live_accounts", {
   status: text("status").notNull().default(""),
   theme: text("theme").notNull().default("obsidian"),
   avatar: text("avatar").notNull().default("moon"),
+  username: text("username").unique("live_accounts_username_unique"),
+  onboardingComplete: integer("onboarding_complete").notNull().default(0),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
@@ -114,3 +116,43 @@ export const liveChanges = sqliteTable("live_changes", {
   kind: text("kind").notNull(),
   createdAt: integer("created_at").notNull(),
 }, t => [index("live_changes_channel_seq").on(t.channelId,t.seq),index("live_changes_message_seq").on(t.messageId,t.seq)]);
+
+// Provider identities never link accounts by email. Sessions and OAuth
+// transactions contain hashes of bearer/browser secrets, not those secrets.
+export const authIdentities = sqliteTable("auth_identities", {
+  provider: text("provider").notNull(),
+  subject: text("subject").notNull(),
+  accountId: text("account_id").notNull().references(() => liveAccounts.id),
+  createdAt: integer("created_at").notNull(),
+}, t => [primaryKey({columns:[t.provider,t.subject]}),index("auth_identities_account").on(t.accountId)]);
+
+export const authSessions = sqliteTable("auth_sessions", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull().references(() => liveAccounts.id),
+  tokenHash: text("token_hash").notNull().unique("auth_sessions_token_unique"),
+  csrfHash: text("csrf_hash").notNull(),
+  deviceName: text("device_name").notNull(),
+  createdAt: integer("created_at").notNull(),
+  lastActiveAt: integer("last_active_at").notNull(),
+  reauthenticatedAt: integer("reauthenticated_at").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  revokedAt: integer("revoked_at"),
+}, t => [index("auth_sessions_account").on(t.accountId,t.expiresAt)]);
+
+export const authTransactions = sqliteTable("auth_transactions", {
+  stateHash: text("state_hash").primaryKey(),
+  browserHash: text("browser_hash").notNull(),
+  nonce: text("nonce").notNull(),
+  verifier: text("verifier").notNull(),
+  returnTo: text("return_to").notNull(),
+  reauthenticate: integer("reauthenticate").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  consumedAt: integer("consumed_at"),
+}, t => [index("auth_transactions_expiry").on(t.expiresAt)]);
+
+export const authRateLimits = sqliteTable("auth_rate_limits", {
+  bucket: text("bucket").primaryKey(),
+  count: integer("count").notNull().default(1),
+  expiresAt: integer("expires_at").notNull(),
+}, t => [index("auth_rate_limits_expiry").on(t.expiresAt)]);
