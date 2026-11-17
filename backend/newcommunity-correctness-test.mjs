@@ -6,11 +6,12 @@ import {handleLiveRequest} from '../worker/index.mjs';
 
 // Actual HTTP handler, opaque sessions and the complete additive SQLite schema.
 // Deterministic interleaving happens immediately before its real write batch.
+// D1 meta.changes includes trigger writes; SQLite changes() inside SQL remains direct.
 const origin='https://community-correctness.example';
 const cases=[],test=(name,run)=>cases.push([name,run]);
 class Adapter{
- constructor(sqlite){this.sqlite=sqlite;this.queue=Promise.resolve();this.beforeBatch=null;this.onBatch=null;}
- prepare(sql){const db=this.sqlite;return {bind(...values){assert(values.length<=100,'D1 parameter budget');const p=db.prepare(sql);return {sql,first:async()=>p.get(...values)||null,all:async()=>({results:p.all(...values)}),run:async()=>({success:true,meta:{changes:p.run(...values).changes}})};}};}
+ constructor(sqlite){this.sqlite=sqlite;this.queue=Promise.resolve();this.beforeBatch=null;this.onBatch=null;this.writeCounts=[];}
+ prepare(sql){const db=this.sqlite,counts=this.writeCounts;return {bind(...values){assert(values.length<=100,'D1 parameter budget');const p=db.prepare(sql);return {sql,first:async()=>p.get(...values)||null,all:async()=>({results:p.all(...values)}),run:async()=>{const before=db.prepare('SELECT total_changes() AS n').get().n;p.run(...values);const changes=db.prepare('SELECT total_changes() AS n').get().n-before;counts.push(changes);return{success:true,meta:{changes}};}};}};}
  batch(steps){this.onBatch?.(steps);const task=this.queue.then(async()=>{if(this.beforeBatch)await this.beforeBatch(steps);this.sqlite.exec('BEGIN');try{const out=[];for(const step of steps)out.push(await step.run());this.sqlite.exec('COMMIT');return out;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=task.catch(()=>{});return task;}
 }
 async function fixture(){
@@ -38,7 +39,7 @@ const auditCount=f=>f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').ge
 
 test('overlapping owner transfers have one winner, one conflict and one authoritative owner',async()=>{const f=await fixture();try{
  let release;const gate=new Promise(resolve=>release=resolve);let batches=0;f.db.onBatch=()=>{if(++batches===2)release();};f.db.beforeBatch=()=>gate;
- const results=await Promise.all([transfer(f,'bob'),transfer(f,'carol')]);assert.deepEqual(results.map(x=>x.status).sort(),[200,409]);assert(['bob','carol'].includes(f.owner().created_by));assert.equal(auditCount(f),1);
+ const results=await Promise.all([transfer(f,'bob'),transfer(f,'carol')]);assert.deepEqual(results.map(x=>x.status).sort(),[200,409]);assert(['bob','carol'].includes(f.owner().created_by));assert.equal(auditCount(f),1);assert(f.db.writeCounts.some(count=>count>1),'The D1 model must include trigger-side writes.');
 }finally{f.sqlite.close();}});
 test('target departure or session revocation before transfer commit preserves the existing owner',async()=>{for(const race of ['target','session']){const f=await fixture();try{
  f.beforeCommit(()=>race==='target'?f.sqlite.prepare("DELETE FROM live_memberships WHERE community_id='room' AND account_id='bob'").run():f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').run(Date.now(),f.sessions.get('owner').session));

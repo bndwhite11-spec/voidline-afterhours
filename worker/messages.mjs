@@ -7,6 +7,8 @@ const security=Object.freeze({mode:'standard',endToEndEncrypted:false,descriptio
 const REACTIONS=['♥','❤️','💜','👍','🔥','👀','✨','😂','💯','🎯','😭','💀','🚀'];
 export const NATIVE_GROUP_LIMIT=16;
 const LIST_TTL=10*60*1000;
+// D1 meta.changes counts trigger/cascade writes as well as the targeted row.
+// Guarded primary-key mutations prove success with a positive count, not exactly one.
 const uuid=()=>crypto.randomUUID();
 async function hash(value){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))].map(n=>n.toString(16).padStart(2,'0')).join('');}
 async function bodyJSON(request){
@@ -141,11 +143,11 @@ async function searchOrSaved(url,db,user,saved){
 }
 async function bookmarkMessage(db,user,id,body,now){
  need(typeof body.saved==='boolean',400,'invalid_bookmark','Choose whether this message is saved.');const active=activeSession(user,now);
- if(!body.saved){const result=await db.batch([q(db,`UPDATE auth_sessions SET last_active_at=last_active_at WHERE id=? AND ${active.sql}`,user.sessionId,...active.args),q(db,`UPDATE native_bookmarks SET saved=0,revision=revision+1,updated_at=? WHERE account_id=? AND message_id=? AND ${active.sql}`,now,user.id,id,...active.args)]);need(result[0]?.meta?.changes===1,403,'account_changed','Account access changed.');}
+ if(!body.saved){const result=await db.batch([q(db,`UPDATE auth_sessions SET last_active_at=last_active_at WHERE id=? AND ${active.sql}`,user.sessionId,...active.args),q(db,`UPDATE native_bookmarks SET saved=0,revision=revision+1,updated_at=? WHERE account_id=? AND message_id=? AND ${active.sql}`,now,user.id,id,...active.args)]);need(result[0]?.meta?.changes>0,403,'account_changed','Account access changed.');}
  else{
   const message=await getMessage(db,id,user.id),guard=memberGuard(user,message.conversation_id,now);
   const result=await q(db,`INSERT INTO native_bookmarks(account_id,message_id,saved,revision,created_at,updated_at) SELECT ?,id,1,1,?,? FROM native_messages WHERE id=? AND deleted_at IS NULL AND ${guard.sql} ON CONFLICT(account_id,message_id) DO UPDATE SET saved=1,revision=native_bookmarks.revision+1,updated_at=excluded.updated_at`,user.id,now,now,id,...guard.args).run();
-  need(result.meta?.changes===1,409,'message_changed','This source or its membership changed.');
+  need(result.meta?.changes>0,409,'message_changed','This source or its membership changed.');
  }
  const row=await q(db,'SELECT saved,revision FROM native_bookmarks WHERE account_id=? AND message_id=?',user.id,id).first();return json({messageId:id,saved:!!row?.saved,bookmarkRevision:row?.revision||0});
 }
@@ -153,7 +155,7 @@ async function manageGroup(db,user,record,action,target,body,now){
  need(record.kind==='group',400,'invalid_action','This action belongs to a group conversation.');const guard=ownerGuard(user,record.id,now);
  if(action==='settings'){
   const name=String(body.name||'').trim();need(name.length>0&&name.length<=64&&!/\u0000/.test(name),400,'invalid_name','Use a group name between 1 and 64 characters.');
-  const result=await db.batch([q(db,`UPDATE native_conversations SET name=?,updated_at=? WHERE id=? AND ${guard.sql}`,name,now,record.id,...guard.args),audit(db,user,'settings',record.id,{fields:['name']},now,guard)]);need(result[0]?.meta?.changes===1,403,'group_owner_required','Only the current group owner can change settings.');
+  const result=await db.batch([q(db,`UPDATE native_conversations SET name=?,updated_at=? WHERE id=? AND ${guard.sql}`,name,now,record.id,...guard.args),audit(db,user,'settings',record.id,{fields:['name']},now,guard)]);need(result[0]?.meta?.changes>0,403,'group_owner_required','Only the current group owner can change settings.');
  }else if(action==='add'){
   acknowledgement(body);need(Array.isArray(body.usernames)&&body.usernames.length>=1&&body.usernames.length<NATIVE_GROUP_LIMIT,400,'invalid_recipients','Choose friends to add.');const names=body.usernames.map(normalizeUsername);need(new Set(names).size===names.length,400,'invalid_recipients','Choose each friend once.');
   const people=(await q(db,`SELECT id FROM live_accounts WHERE username IN(${names.map(()=>'?').join(',')}) AND account_status='active' AND username IS NOT NULL`,...names).all()).results;need(people.length===names.length,404,'recipient_unavailable','Choose available friends.');const ids=people.map(p=>p.id),encoded=JSON.stringify(ids);
@@ -161,15 +163,15 @@ async function manageGroup(db,user,record,action,target,body,now){
   const args=[...guard.args,record.id,encoded,record.id,NATIVE_GROUP_LIMIT,encoded,user.id,user.id,user.id,encoded,record.id,encoded,record.id,encoded,encoded,encoded];
   const writes=[q(db,`UPDATE native_conversations SET updated_at=? WHERE id=? AND ${eligibility}`,now,record.id,...args),audit(db,user,'members.add',record.id,{accountIds:ids},now,{sql:eligibility+' AND changes()=1',args})];
   for(const id of ids)writes.push(q(db,`INSERT OR IGNORE INTO native_members(conversation_id,account_id,joined_at) SELECT id,?,? FROM native_conversations WHERE id=? AND ${eligibility}`,id,now,record.id,...args));
-  const result=await db.batch(writes);need(result[0]?.meta?.changes===1,403,'group_membership_changed','Group permission, friendship, blocking or capacity changed.');
+  const result=await db.batch(writes);need(result[0]?.meta?.changes>0,403,'group_membership_changed','Group permission, friendship, blocking or capacity changed.');
  }else if(action==='remove'){
   need(typeof target==='string'&&target!==user.id,400,'invalid_member','Use Leave for yourself.');
   const protectedGuard={sql:guard.sql+' AND EXISTS(SELECT 1 FROM native_conversations c JOIN native_members m ON m.conversation_id=c.id WHERE c.id=? AND c.owner_id<>? AND m.account_id=?)',args:[...guard.args,record.id,target,target]};
-  const result=await db.batch([q(db,`UPDATE native_conversations SET updated_at=? WHERE id=? AND ${protectedGuard.sql}`,now,record.id,...protectedGuard.args),audit(db,user,'members.remove',record.id,{accountId:target},now,{sql:protectedGuard.sql+' AND changes()=1',args:protectedGuard.args}),q(db,`DELETE FROM native_members WHERE conversation_id=? AND account_id=? AND ${protectedGuard.sql}`,record.id,target,...protectedGuard.args)]);need(result[0]?.meta?.changes===1&&result[2]?.meta?.changes===1,403,'group_owner_required','Only the current group owner can remove another member.');
+  const result=await db.batch([q(db,`UPDATE native_conversations SET updated_at=? WHERE id=? AND ${protectedGuard.sql}`,now,record.id,...protectedGuard.args),audit(db,user,'members.remove',record.id,{accountId:target},now,{sql:protectedGuard.sql+' AND changes()=1',args:protectedGuard.args}),q(db,`DELETE FROM native_members WHERE conversation_id=? AND account_id=? AND ${protectedGuard.sql}`,record.id,target,...protectedGuard.args)]);need(result[0]?.meta?.changes>0&&result[2]?.meta?.changes>0,403,'group_owner_required','Only the current group owner can remove another member.');
  }else if(action==='transfer'){
   need(typeof body.accountId==='string'&&body.accountId!==user.id,400,'invalid_member','Choose another current group member.');
   const transfer={sql:guard.sql+" AND EXISTS(SELECT 1 FROM native_members m JOIN live_accounts a ON a.id=m.account_id WHERE m.conversation_id=? AND m.account_id=? AND a.account_status='active' AND a.username IS NOT NULL)",args:[...guard.args,record.id,body.accountId]};
-  const result=await db.batch([audit(db,user,'owner.transfer',record.id,{accountId:body.accountId},now,transfer),q(db,`UPDATE native_conversations SET owner_id=?,updated_at=? WHERE id=? AND ${transfer.sql}`,body.accountId,now,record.id,...transfer.args)]);need(result[1]?.meta?.changes===1,409,'group_owner_changed','Group ownership or membership changed. Refresh before transferring.');
+  const result=await db.batch([audit(db,user,'owner.transfer',record.id,{accountId:body.accountId},now,transfer),q(db,`UPDATE native_conversations SET owner_id=?,updated_at=? WHERE id=? AND ${transfer.sql}`,body.accountId,now,record.id,...transfer.args)]);need(result[1]?.meta?.changes>0,409,'group_owner_changed','Group ownership or membership changed. Refresh before transferring.');
  }else throw new AuthError(404,'not_found','This group action is unavailable.');
  return json({conversation:await describe(db,await accessibleNativeConversation(db,record.id,user.id),user.id),acknowledged:true});
 }
@@ -202,7 +204,7 @@ export async function handleMessagesRequest(request,env){
    const result=await db.batch(writes);
    const record=await q(db,'SELECT * FROM native_conversations WHERE (created_by=? AND client_id=?)'+(pairKey?' OR pair_key=?':''),user.id,body.clientId,...(pairKey?[pairKey]:[])).first();
    need(record,403,'recipient_unavailable','Conversation eligibility changed. No conversation was created.');need(record.request_hash===requestHash,409,'idempotency_conflict','This request ID belongs to a different conversation.');
-   await accessibleNativeConversation(db,record.id,user.id);return json({conversation:await describe(db,record,user.id),security},result[0]?.meta?.changes===1?201:200);
+   await accessibleNativeConversation(db,record.id,user.id);return json({conversation:await describe(db,record,user.id),security},result[0]?.meta?.changes>0?201:200);
   }
   if(path[0]==='conversations'&&path.length>=2){
    const id=path[1],conversation=await accessibleNativeConversation(db,id,user.id);
@@ -211,9 +213,9 @@ export async function handleMessagesRequest(request,env){
    if(method==='POST'&&path.length===5&&path[2]==='members'&&path[4]==='remove')return await manageGroup(db,user,conversation,'remove',path[3],body,now);
    if(path.length===3&&path[2]==='read'&&method==='POST'){
     need(Number.isSafeInteger(body.seq)&&body.seq>=0,400,'invalid_cursor','Use a nonnegative read position.');if(body.changeSeq!==undefined)need(Number.isSafeInteger(body.changeSeq)&&body.changeSeq>=0,400,'invalid_cursor','Use a valid activity position.');
-    const active=activeSession(user,now);const result=await q(db,`UPDATE native_members SET read_seq=MAX(read_seq,MIN(?,(SELECT COALESCE(MAX(seq),0) FROM native_messages WHERE conversation_id=?))),read_change_seq=MAX(read_change_seq,MIN(?,(SELECT COALESCE(MAX(seq),0) FROM native_changes WHERE conversation_id=?))) WHERE conversation_id=? AND account_id=? AND ${active.sql}`,body.seq,id,body.changeSeq??0,id,id,user.id,...active.args).run();need(result.meta?.changes===1,403,'conversation_unavailable','Membership or account access changed.');return json({read:true});
+    const active=activeSession(user,now);const result=await q(db,`UPDATE native_members SET read_seq=MAX(read_seq,MIN(?,(SELECT COALESCE(MAX(seq),0) FROM native_messages WHERE conversation_id=?))),read_change_seq=MAX(read_change_seq,MIN(?,(SELECT COALESCE(MAX(seq),0) FROM native_changes WHERE conversation_id=?))) WHERE conversation_id=? AND account_id=? AND ${active.sql}`,body.seq,id,body.changeSeq??0,id,id,user.id,...active.args).run();need(result.meta?.changes>0,403,'conversation_unavailable','Membership or account access changed.');return json({read:true});
    }
-   if(path.length===3&&path[2]==='leave'&&method==='POST'){need(conversation.kind==='group',400,'invalid_action','Direct messages can be archived in organization settings.');const active=activeSession(user,now),canLeave="NOT EXISTS(SELECT 1 FROM native_conversations c WHERE c.id=? AND c.owner_id=? AND EXISTS(SELECT 1 FROM native_members m WHERE m.conversation_id=c.id AND m.account_id<>?))";const result=await q(db,'DELETE FROM native_members WHERE conversation_id=? AND account_id=? AND '+active.sql+' AND '+canLeave,id,user.id,...active.args,id,user.id,user.id).run();need(result.meta?.changes===1,409,'group_leave_conflict','Transfer group ownership before leaving, or refresh changed membership.');return json({left:true});}
+   if(path.length===3&&path[2]==='leave'&&method==='POST'){need(conversation.kind==='group',400,'invalid_action','Direct messages can be archived in organization settings.');const active=activeSession(user,now),canLeave="NOT EXISTS(SELECT 1 FROM native_conversations c WHERE c.id=? AND c.owner_id=? AND EXISTS(SELECT 1 FROM native_members m WHERE m.conversation_id=c.id AND m.account_id<>?))";const result=await q(db,'DELETE FROM native_members WHERE conversation_id=? AND account_id=? AND '+active.sql+' AND '+canLeave,id,user.id,...active.args,id,user.id,user.id).run();need(result.meta?.changes>0,409,'group_leave_conflict','Transfer group ownership before leaving, or refresh changed membership.');return json({left:true});}
    if(path.length===3&&path[2]==='messages'){
     if(method==='GET'){
      const limit=page(url),before=cursor(url.searchParams.get('before')),after=cursor(url.searchParams.get('after')),changesAfter=cursor(url.searchParams.get('changesAfter'));
@@ -248,7 +250,7 @@ export async function handleMessagesRequest(request,env){
    else if(action==='delete')writes.push(q(db,"UPDATE native_messages SET text='',deleted_at=COALESCE(deleted_at,?) WHERE id=? AND "+guard.sql,now,message.id,...guard.args),q(db,'DELETE FROM native_reactions WHERE message_id=? AND '+guard.sql,message.id,...guard.args));
    else{need(REACTIONS.includes(body.emoji)&&typeof body.active==='boolean',400,'invalid_reaction','Choose an available reaction and its state.');writes.push(body.active?q(db,'INSERT OR IGNORE INTO native_reactions(message_id,account_id,emoji,created_at) SELECT id,?,?,? FROM native_messages WHERE id=? AND deleted_at IS NULL AND '+guard.sql,user.id,body.emoji,now,message.id,...guard.args):q(db,'DELETE FROM native_reactions WHERE message_id=? AND account_id=? AND emoji=? AND '+guard.sql,message.id,user.id,body.emoji,...guard.args));}
    writes.push(q(db,'INSERT INTO native_changes(conversation_id,message_id,actor_id,kind,created_at) SELECT conversation_id,id,?,?,? FROM native_messages WHERE id=? AND '+guard.sql,user.id,action,now,message.id,...guard.args));
-   const results=await db.batch(writes);need(results[0]?.meta?.changes===1,409,'message_changed','The message or conversation access changed. Refresh before retrying.');return json({message:await getMessage(db,message.id,user.id),acknowledged:true});
+   const results=await db.batch(writes);need(results[0]?.meta?.changes>0,409,'message_changed','The message or conversation access changed. Refresh before retrying.');return json({message:await getMessage(db,message.id,user.id),acknowledged:true});
   }
   throw new AuthError(404,'not_found','No messaging action matches this request.');
  }catch(error){return json({error:{code:error instanceof AuthError?error.code:'messaging_unavailable',message:error instanceof AuthError?error.message:'The message could not be committed. Retry using the same request ID.'}},error instanceof AuthError?error.status:503);}

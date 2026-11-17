@@ -243,3 +243,14 @@ full Matrix/JWT/UIA interoperability and multi-device recovery remain explicit
 acceptance gates. Hosted logged-out screenshots are not authenticated owner or
 conversation proof. No configured field or test fixture can establish a real
 platform owner or a production encrypted exchange.
+
+D1 MUTATION ACKNOWLEDGMENTS
+D1 result.meta.changes includes writes performed by database triggers. SQLite's
+SQL changes() and node:sqlite statement.run().changes count the direct statement.
+For a uniquely targeted conditional mutation, a positive D1 metadata count proves
+the guarded row matched; requiring exactly one can falsely reject a committed
+owner transfer, message edit or group leave. Keep direct SQL changes()=1 checks
+inside transactional audit gates. Do not broadly replace permission predicates.
+backend/d1-runtime-test.mjs runs actual native/community handlers with workerd D1,
+including trigger-inclusive acknowledgments and denial cases. It is backend
+runtime proof, not browser or real Matrix acceptance.

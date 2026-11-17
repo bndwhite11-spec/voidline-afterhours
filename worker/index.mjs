@@ -144,7 +144,7 @@ function paging(url,maximum=100) {
 }
 const pageInfo = (limit,offset,total) => ({limit,offset,hasMore:offset+limit<total});
 function communityAudit(db,actor,action,targetType,targetId,now,detail={},onlyAfterChange=false) { return query(db,'INSERT INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) '+(onlyAfterChange?'SELECT ?,?,?,?,?,?,? WHERE changes()=1':'VALUES(?,?,?,?,?,?,?)'),uuid(),actor,'community.'+action,targetType,targetId,JSON.stringify(detail),now); }
-async function commitCommunityChange(db,statement,audit){const results=await db.batch([statement,audit]);requireThat(results[0]?.meta?.changes===1,409,'community_changed','Ownership, membership or account access changed. Refresh before trying again.');return results;}
+async function commitCommunityChange(db,statement,audit){const results=await db.batch([statement,audit]);requireThat(results[0]?.meta?.changes>0,409,'community_changed','Ownership, membership or account access changed. Refresh before trying again.');return results;}
 async function enriched(db,messages,userId) {
  if(!messages.length)return [];
  if(messages.length>80){const result=[];for(let i=0;i<messages.length;i+=80)result.push(...await enriched(db,messages.slice(i,i+80),userId));return result;}
@@ -228,7 +228,7 @@ export async function handleLiveRequest(request,env) {
     query(db,'INSERT INTO live_communities(id,name,description,icon,created_by,created_at) SELECT ?,?,?,?,?,? WHERE '+guard.sql,communityId,name,description,icon,user.id,now,...guard.args),
     query(db,"INSERT INTO live_memberships(community_id,account_id,role,joined_at) SELECT id,?,'owner',? FROM live_communities WHERE id=? AND created_by=?",user.id,now,communityId,user.id),
     query(db,"INSERT INTO live_channels(id,community_id,name,kind,created_at) SELECT ?,id,'general','text',? FROM live_communities WHERE id=? AND created_by=?",channelId,now,communityId,user.id)
-   ]);requireThat(created[0]?.meta?.changes===1,409,'community_changed','Your account access changed. No community was created.');return json({community:{id:communityId,name,description,icon,role:'owner'},channel:{id:channelId,name:'general',kind:'text'}},201);
+   ]);requireThat(created[0]?.meta?.changes>0,409,'community_changed','Your account access changed. No community was created.');return json({community:{id:communityId,name,description,icon,role:'owner'},channel:{id:channelId,name:'general',kind:'text'}},201);
   }
   if(path[0]==='communities'&&path.length>=3){
    const communityId=path[1],member=await membership(db,communityId,user.id);
@@ -273,7 +273,7 @@ export async function handleLiveRequest(request,env) {
    if(path.length===3&&path[2]==='leave'&&method==='POST'){
     requireThat(member.role!=='owner',409,'owner_must_transfer','Transfer ownership to a member before leaving.');
     const guard=communityMutationGuard(user,communityId,now),result=await query(db,"DELETE FROM live_memberships WHERE community_id=? AND account_id=? AND role<>'owner' AND NOT EXISTS(SELECT 1 FROM live_communities WHERE id=? AND created_by=?) AND "+guard.sql,communityId,user.id,communityId,user.id,...guard.args).run();
-    requireThat(result.meta?.changes===1,409,'community_changed','Your membership, ownership or account access changed. Refresh before leaving.');return json({left:true});
+    requireThat(result.meta?.changes>0,409,'community_changed','Your membership, ownership or account access changed. Refresh before leaving.');return json({left:true});
    }
    if(path.length===3&&path[2]==='transfer'&&method==='POST'){
     await requireOwner(db,communityId,user.id);requireThat(typeof body.accountId==='string'&&body.accountId!==user.id,400,'invalid_member','Choose another member.');await membership(db,communityId,body.accountId);
@@ -408,7 +408,7 @@ export async function handleLiveRequest(request,env) {
      writes.push(query(db,'DELETE FROM live_message_mentions WHERE message_id=? AND '+guard.sql,message.id,...guard.args));
      if(editMentions?.length)writes.push(query(db,`INSERT OR IGNORE INTO live_message_mentions(message_id,account_id,created_at) SELECT m.id,t.account_id,? FROM live_messages m JOIN live_memberships t ON t.community_id=? WHERE m.id=? AND t.account_id IN (${editMentions.map(()=>'?').join(',')}) AND ${guard.sql}`,now,channel.community_id,message.id,...editMentions,...guard.args));
     }
-    const results=await db.batch(writes);requireThat(results[0]?.meta?.changes===1,409,'message_changed','The message, membership or account access changed. Refresh before retrying.');
+    const results=await db.batch(writes);requireThat(results[0]?.meta?.changes>0,409,'message_changed','The message, membership or account access changed. Refresh before retrying.');
     return json({message:await getMessage(db,message.id,user.id),acknowledged:true,...(action==='save'?{saved:true}:{})});
    }
   }
@@ -431,7 +431,7 @@ export async function handleLiveRequest(request,env) {
     const changeSeq=body.changeSeq??0;requireThat(Number.isSafeInteger(changeSeq)&&changeSeq>=0,400,'invalid_cursor','Activity position must be a nonnegative change sequence.');
     statement=query(db,`INSERT INTO live_read_states(channel_id,account_id,seq,activity_seq) SELECT c.id,?,MIN(?,(SELECT COALESCE(MAX(m.seq),0) FROM live_messages m WHERE m.channel_id=c.id)),MIN(?,(SELECT COALESCE(MAX(ch.seq),0) FROM live_changes ch WHERE ch.channel_id=c.id)) FROM live_channels c JOIN live_memberships mem ON mem.community_id=c.community_id WHERE c.id=? AND mem.account_id=? AND ${active.sql} ON CONFLICT(channel_id,account_id) DO UPDATE SET seq=MAX(live_read_states.seq,excluded.seq),activity_seq=MAX(live_read_states.activity_seq,excluded.activity_seq)`,user.id,body.seq,changeSeq,body.channelId,user.id,...active.args);
    }
-   const results=await db.batch([access,statement]);requireThat(results[0]?.meta?.changes===1&&(body.all===true||results[1]?.meta?.changes===1),409,'community_changed','Your session or conversation membership changed. Read state was not updated.');return json({read:true});
+   const results=await db.batch([access,statement]);requireThat(results[0]?.meta?.changes>0&&(body.all===true||results[1]?.meta?.changes>0),409,'community_changed','Your session or conversation membership changed. Read state was not updated.');return json({read:true});
   }
   if(path.length===1&&path[0]==='saved'&&method==='GET'){
    const {limit,offset}=paging(url),total=(await query(db,'SELECT COUNT(*) AS n FROM live_bookmarks WHERE account_id=?',user.id).first()).n;

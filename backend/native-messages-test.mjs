@@ -5,7 +5,8 @@ import {authHash} from '../worker/auth.mjs';
 import {handleMessagesRequest} from '../worker/messages.mjs';
 
 // Actual native HTTP handler + immutable migration chain + opaque-session
-// fixtures. These tests establish standard server-stored chat behavior, never
+// fixtures. Metadata models D1 trigger/cascade-inclusive changes, rather than
+// better-sqlite direct-row changes. These tests establish standard server-stored chat behavior, never
 // Matrix/E2EE, a browser render or transport delivery to a human device.
 const origin='https://native-messages.example';
 const cases=[],test=(name,run)=>cases.push([name,run]);
@@ -13,7 +14,7 @@ const random=()=>crypto.randomUUID();
 const denied=result=>assert(result.status>=400&&result.status<500,'Expected deliberate client rejection, got '+result.status+' '+JSON.stringify(result.data));
 class Adapter {
  constructor(sqlite){this.sqlite=sqlite;this.beforeBatch=null;this.queue=Promise.resolve();}
- prepare(sql){const db=this.sqlite;return {bind(...values){if(values.length>100)throw Error('Simulated D1 statement parameter limit exceeded');const statement=db.prepare(sql);return {sql,first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>({success:true,meta:{changes:statement.run(...values).changes}})};}};}
+ prepare(sql){const db=this.sqlite;return {bind(...values){if(values.length>100)throw Error('Simulated D1 statement parameter limit exceeded');const statement=db.prepare(sql);return {sql,first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>{const before=db.prepare('SELECT total_changes() AS n').get().n;statement.run(...values);return {success:true,meta:{changes:db.prepare('SELECT total_changes() AS n').get().n-before}};}};}};}
  batch(statements){const task=this.queue.then(async()=>{if(this.beforeBatch)await this.beforeBatch(statements);this.sqlite.exec('BEGIN');try{const results=[];for(const statement of statements)results.push(await statement.run());this.sqlite.exec('COMMIT');return results;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=task.catch(()=>{});return task;}
 }
 async function fixture(){
@@ -327,6 +328,12 @@ test('group owner departure preserves management for an existing suspended membe
  const c=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob'],name:'Successor',clientId:random(),acknowledgeStandard:true})).conversation;
  f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id='bob'").run();f.sqlite.prepare('DELETE FROM native_members WHERE conversation_id=? AND account_id=?').run(c.id,'alice');assert.equal(f.sqlite.prepare('SELECT owner_id FROM native_conversations WHERE id=?').get(c.id).owner_id,'bob');
  assert.equal((await f.call('bob',conversationURL(c.id))).status,401);f.sqlite.prepare("UPDATE live_accounts SET account_status='active' WHERE id='bob'").run();assert.equal((await f.ok('bob',conversationURL(c.id))).conversation.capabilities.canManage,true);await f.ok('bob',conversationURL(c.id)+'/settings',{name:'Recovered management'});
+}finally{f.sqlite.close();}});
+test('the last group owner can leave when D1 metadata counts its ownership trigger write',async()=>{const f=await fixture();try{
+ const c=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob'],name:'Final member',clientId:random(),acknowledgeStandard:true})).conversation;
+ await f.ok('alice',conversationURL(c.id)+'/transfer',{accountId:'bob'});await f.ok('alice',conversationURL(c.id)+'/leave',{});
+ const last=await f.call('bob',conversationURL(c.id)+'/leave',{});assert.equal(last.status,200);assert.equal(last.data.left,true);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_members WHERE conversation_id=?').get(c.id).n,0);assert.equal(f.sqlite.prepare('SELECT owner_id FROM native_conversations WHERE id=?').get(c.id).owner_id,null);
+ denied(await f.call('bob',conversationURL(c.id)));
 }finally{f.sqlite.close();}});
 let failures=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${cases.length-failures}/${cases.length} native standard messaging checks passed. Actual migrated SQLite/session handlers; no browser, Matrix or end-to-end encryption claim.`);
