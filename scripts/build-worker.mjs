@@ -28,6 +28,7 @@ const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
 // never an executable production fallback or automatically loaded fixture.
 const productionRoots = new Set(['index.html','home.js','home.css','store.js','legacy-import.js',
+  'cosmetics.js','cosmetics.css','social.js','social.css',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
 const assets = {};
 let assetBytes = 0;
@@ -65,6 +66,8 @@ function matrixConnectOrigin(env) {
 async function serveVoidline(request, env, ctx) {
   const url = new URL(request.url);
   if (url.pathname.startsWith('/api/auth/')) return handleAuthRequest(request,env,ctx);
+  if (url.pathname.startsWith('/api/cosmetics/')) return handleCosmeticsRequest(request,env,ctx);
+  if (url.pathname==='/api/social'||url.pathname.startsWith('/api/social/')) return handleSocialRequest(request,env,ctx);
   if (url.pathname === '/api/live' || url.pathname.startsWith('/api/live/')) {
     return handleLiveRequest(request, env, ctx);
   }
@@ -84,7 +87,7 @@ async function serveVoidline(request, env, ctx) {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
-    'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self' https://accounts.google.com; upgrade-insecure-requests",
+    'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests",
   };
   if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
@@ -108,7 +111,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

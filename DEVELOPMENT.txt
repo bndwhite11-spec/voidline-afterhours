@@ -1,9 +1,9 @@
 CURRENT ACCOUNT FOUNDATION
 
-Production now boots home.js/home.css, uses worker/auth.mjs Google sessions,
+Production now boots home.js/home.css, uses worker/auth.mjs native password sessions,
 and never loads sample app.js. The legacy v7 behavior notes below describe
 retained source/recovery regressions, not the current authentication or E2EE
-contract. Current setup and threat model: docs/GOOGLE-SETUP.md,
+contract. Current setup and threat model: docs/ACCOUNT-SETUP.md,
 docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
 
 Current checks: npm run test:foundation; node backend/secure-messenger-test.mjs;

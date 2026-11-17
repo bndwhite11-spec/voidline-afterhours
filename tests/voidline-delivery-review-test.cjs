@@ -39,7 +39,7 @@ with zipfile.ZipFile('dist/downloads/voidline-source.zip') as archive:
     assert 'VOIDLINE/dist/live.js' in names
     assert 'VOIDLINE/worker/index.mjs' in names
     assert 'VOIDLINE/.env.example' in names
-    assert 'VOIDLINE/docs/GOOGLE-SETUP.md' in names
+    assert 'VOIDLINE/docs/ACCOUNT-SETUP.md' in names
     assert 'VOIDLINE/src/secure-messenger.js' in names
     assert any(name.startswith('VOIDLINE/drizzle/') and name.endswith('.sql') for name in names)
     assert 'VOIDLINE/dist/downloads/voidline-source.zip' not in names

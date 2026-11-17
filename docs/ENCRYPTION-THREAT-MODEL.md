@@ -33,12 +33,12 @@ suppresses SDK logging and does not register a telemetry sink.
 
 The service and hosting providers may observe public account/device IDs,
 routing, membership, timing, traffic sizes, session details and IP addresses.
-Google sign-in is not anonymity. Public discovery must contain owner-approved
+Voidline sign-in is not anonymity. Public discovery must contain owner-approved
 listing fields, never private history.
 
 The intended content-encryption boundary is between participating devices and
 the homeserver/storage operator. Device fingerprint verification is necessary
-to detect key substitution. Google proves account login; it does not establish
+to detect key substitution. The account service verifies login; it does not establish
 Matrix device trust or derive decryption keys. An untrusted device must verify
 with another trusted device or use recovery material before gaining history.
 
@@ -53,16 +53,16 @@ promise to erase those copies.
 
 Matrix access tokens and recovery material are held in memory. The Matrix SDK's
 Rust crypto uses encrypted IndexedDB through `storagePassword`, scoped by the
-Google account, configured homeserver, Matrix account and Matrix device. The
+Voidline account, configured homeserver, Matrix account and Matrix device. The
 client also checks published own-device keys before allowing key upload,
 preventing a newly created local store from overwriting the identity of an
 already initialized Element/other client device. A fresh dedicated Matrix
-device token is required for initial connection. The local vault passphrase is distinct from Google credentials and never saved.
+device token is required for initial connection. The local vault passphrase is distinct from account credentials and never saved.
 Web Locks prevent concurrent writes to the same device store; unsupported
 browsers fail closed. Timeline content uses memory storage, not localStorage.
 
 Disconnect stops sync and clears listeners/in-memory identity before another
-account is shown. When the shell detects Google session revocation during pre-send, focus or
+account is shown. When the shell detects account session revocation during pre-send, focus or
 periodic checks, it disconnects the local client. Detection is not instantaneous
 and does not remotely revoke an independently issued Matrix access token. The
 explicit Matrix logout action invalidates that Matrix session through the
@@ -80,7 +80,7 @@ silently replaced. The current UI/adapter uses the SDK's supported restore and
 SAS/fingerprint APIs, but a real backup/restore run is still required.
 
 Losing all trusted devices and the recovery material may make old history
-unrecoverable. Resetting Google login does not recover Matrix message keys.
+unrecoverable. Resetting Voidline login does not recover Matrix message keys.
 Backing up history preserves old decryption capability and changes what a
 later compromise can reveal. Matrix's Megolm provides partial forward secrecy
 and does not inherently provide post-compromise healing within a compromised
@@ -106,5 +106,5 @@ Required independent-device checks include actual ciphertext capture, forged
 or changed identities, replay/tamper, key-loss and wrong recovery secret,
 refresh/unlock, cross-account isolation, device removal during sync and
 reauthentication. The deployment may report an unavailable state until the
-required Google and Matrix configuration exists; it must never fabricate a
+required Matrix configuration exists; it must never fabricate a
 successful sign-in, encrypted exchange, device approval or recovery.

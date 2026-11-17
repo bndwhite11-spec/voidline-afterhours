@@ -49,14 +49,14 @@ export function create(options={},injected={}) {
   if(cleanupEpoch===epoch)emitState({phase:'locked',userId:null,deviceId:null,error:''});
  }
  async function disconnect(options={}){intent++;return clearConnection(options);}
- async function connect({homeserver,googleAccountId,accessToken,storagePassword}){
+ async function connect({homeserver,accountId,accessToken,storagePassword}){
   const myIntent=++intent;await clearConnection();
   if(myIntent!==intent)throw fail('VOID_ACCOUNT_CHANGED','A newer connection replaced this request.');
   const ticket=epoch,owns=()=>myIntent===intent&&ticket===epoch;
   try{
    const url=new URL(homeserver);
    if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw fail('VOID_HOMESERVER','Use the configured HTTPS homeserver origin.');
-   if(!googleAccountId||!accessToken||typeof storagePassword!=='string'||storagePassword.length<16)throw fail('VOID_CREDENTIALS','Provide the Matrix access token and a local vault passphrase of at least 16 characters.');
+   if(!accountId||!accessToken||typeof storagePassword!=='string'||storagePassword.length<16)throw fail('VOID_CREDENTIALS','Provide the Matrix access token and a local vault passphrase of at least 16 characters.');
    if(!deps.indexedDB)throw fail('VOID_STORE_UNAVAILABLE','Encrypted device storage is unavailable in this browser.');
    emitState({phase:'connecting',error:''});
    let deviceKeysApproved=false;
@@ -79,7 +79,7 @@ export function create(options={},injected={}) {
    const publishedKeys=published.device_keys?.[identity.user_id]?.[identity.device_id]?.keys||null;
    if(!owns())throw fail('VOID_ACCOUNT_CHANGED','Connection was cancelled.');
    if(!/^@[^:\s]+:[^\s]+$/.test(identity.user_id||'')||!identity.device_id)throw fail('VOID_IDENTITY','The token does not identify a Matrix account and device.');
-   const prefix='voidline.crypto.v1.'+encodeURIComponent([googleAccountId,url.origin,identity.user_id,identity.device_id].join('|'));
+   const prefix='voidline.crypto.v1.'+encodeURIComponent([accountId,url.origin,identity.user_id,identity.device_id].join('|'));
    await lockStore(prefix,owns);
    if(!owns())throw fail('VOID_ACCOUNT_CHANGED','Connection was cancelled.');
    client=deps.sdk.createClient({baseUrl:url.origin,accessToken,userId:identity.user_id,deviceId:identity.device_id,

@@ -1,87 +1,98 @@
-VOIDLINE: AFTERHOURS / ACCOUNT FOUNDATION
+VOIDLINE: AFTERHOURS
 
-The production entry is dist/index.html + home.js/home.css. Visitors see a
-welcome screen while identity resolves, then choose a public username and
-display name. Real new accounts have no memberships, chats or fake activity.
-Account authentication is Google OIDC, verified by the Worker. Provider email,
-legal name and avatar are not copied into public profiles. Google sign-in
-sessions and messaging encryption devices are separate identities.
+OPEN
+https://voidline-afterhours.pipedcactus1.chatgpt.site/
 
-CURRENT EXTERNAL SETUP REQUIRED
-Google is not enabled without GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and
-VOIDLINE_ORIGIN. Configure a Web application in Google Cloud and use the exact
-callback in docs/GOOGLE-SETUP.md. Never place secrets in browser source.
-MATRIX_HOMESERVER must identify an operator-controlled HTTPS Matrix server for
-the encrypted adapter. No Matrix service or accounts are provisioned by this
-repository. See docs/ENCRYPTION-DECISION.md and the encryption setup/threat-model
-documents for protocol limits and the required external verification.
+Create a Voidline account with a username, display name and password, or log in
+to an existing account. No external identity-provider setup is required. New
+accounts start empty. Save the account recovery code shown after registration;
+it can reset a forgotten password. Password and recovery details are documented
+in docs/ACCOUNT-SETUP.md.
 
-The welcome button honestly reports missing configuration. No pretend Google
-identity, chat confirmation, online status, encryption device or recovery key
-is synthesized. No encrypted-message deployment claim follows from unit tests.
+THIS RELEASE
+The client uses a compact server rail, contextual channel navigation and a
+readable central conversation. Chats, Servers and Profile provide the primary
+phone navigation. Account forms, dialogs, error states, focus indicators and
+settings share one visual system. Copy is short and describes actual actions.
 
-DATA AND MIGRATION
-Google's stable subject maps to a unique app account; matching an email never
-links an older account. Existing v7 platform-owned rows remain in D1, unchanged.
-They are not automatically assigned to a new Google identity. Data migration
-between identities requires a future explicit dual-identity proof, not email.
+Friends: send an exact-username request, accept, decline, cancel or remove a
+friend. Block/unblock and request privacy are enforced on the server. Lists
+show real account data; no fake contacts, activity or online status is seeded.
 
-The old D1 text API is retained for authorized metadata/history and deletion.
-New plaintext sends, edits, reactions and saved copies are blocked. Private
-messaging belongs to the maintained encrypted protocol adapter. Existing
-community metadata supports intentional creation, membership, invitation review
-and acceptance; creating a server does not establish encrypted Matrix rooms.
-That integration remains distinct and cannot silently fall back to plaintext.
+Badges and gifts: nine original badge designs and six original gift designs
+are free to collect. Badges are cosmetics, never verified identity or staff
+roles. Inventory/equipped choices are server validated. Gift requests can be
+sent, collected or declined; privacy, blocking, limits and retry deduplication
+apply. No payment, credits, invented stock or scarcity is involved.
 
-Old browser archives remain on their original origin/device. An explicit
-read-only review separates exact unchanged fixtures from personal, modified
-and uncertain content. Recovery export retains original bytes. Nothing is
-silently deleted, re-seeded, uploaded or claimed to be an encrypted backup.
-See docs/LOCAL-DATA.md. The offline download provides this review/recovery
-interface; it cannot perform hosted authentication or encrypted network chat.
+Servers: intentionally create or join an invitation-only server. Preview an
+invite before joining. Existing role, channel, ownership and history controls
+remain authorized by the server. Existing genuine records are preserved.
+
+MESSAGING AND PRIVACY
+Native account login is independent from message decryption. The optional
+Matrix SDK/Rust crypto integration still requires a configured homeserver and
+verified encryption devices. Creating an ordinary Voidline server does not
+create a Matrix room. New protected content cannot silently fall back to the
+retained plaintext API. Shared encrypted media, calls and encrypted persistent
+drafts are not implemented. See docs/ENCRYPTION-DECISION.md and
+ENCRYPTION-THREAT-MODEL.md for the actual architecture and remaining work.
+
+Google authentication has been retired; former callback routes cannot sign in.
+Existing provider/platform rows are preserved but never reclaimed by matching
+an email or username. An explicit proof-based migration would be required for
+an old identity without native credentials. Real local archives remain on their
+original device/origin. The Data screen offers deliberate read-only review and
+recovery export. It never re-seeds samples or uploads drafts automatically.
+
+DOWNLOADS
+The hosted client provides a source ZIP and an offline account/recovery viewer.
+The offline copy cannot authenticate to the server or make networked chats.
+Recovery exports can contain unencrypted historical content; store them
+privately. The source ZIP contains no runtime account data or credentials.
 
 SOURCE
-  dist/home.js + home.css       production account client
-  dist/legacy-import.js        explicit read-only local archive review
-  dist/store.js                retained journal reader, no boot-time seeding
-  src/secure-messenger.js      maintained Matrix/Rust crypto adapter
-  worker/auth.mjs              Google verification + opaque app sessions
-  worker/index.mjs             authorized community metadata + legacy reads
-  db/schema.ts + drizzle/      current schema + immutable additive migrations
-  scripts/build-crypto.mjs     pinned local SDK/crypto asset bundling
-  scripts/build-worker.mjs     Worker + compressed static assets and migrations
+  dist/home.js + home.css       account client and messenger layout
+  dist/cosmetics.js/.css        free original collection and gifts
+  dist/social.js/.css           friend requests, blocking and privacy
+  dist/legacy-import.js         explicit read-only archive recovery
+  src/secure-messenger.js       optional maintained Matrix crypto adapter
+  worker/auth.mjs               native credentials, recovery and sessions
+  worker/social.mjs             social authorization and data
+  worker/cosmetics.mjs          inventory, gift consent and ownership
+  worker/index.mjs              community metadata and legacy reads
+  db/schema.ts + drizzle/       schema and immutable additive migrations
+  docs/UPGRADE-BRIEF.md          detailed product and acceptance brief
 
-The v7 browser modules remain authored source for recovery and historical
-regressions, inside the source download. Production does not load or serve
-those sample modules. tests/fixtures/legacy-worker-v7.mjs is an explicit
-historical test fixture, never an API authentication bypass.
-
-BUILD AND VERIFY
-Node24 and Python3 are used. Install exact package-lock dependencies:
+BUILD AND CHECKS
+Node24 and Python3:
   npm ci --no-audit --no-fund --cache /tmp/voidline-npm-cache
-For intentional schema changes only:
-  npm run db:generate
-Do not edit applied migration SQL or old snapshots.
 Current account boundaries:
   npm run test:foundation
-Client, recovery, adapter and historical archive regressions:
+  node backend/account-integration-test.mjs
+  node backend/social-test.mjs
+  node backend/cosmetics-test.mjs
+Optional encrypted-adapter boundary tests:
+  node backend/secure-messenger-test.mjs
+Client/recovery and historical archive regression suites:
   node tests/run.cjs
-Historical v7 engine regression checks (not production auth/encryption proof):
+Historical v7 engine tests use explicit fixtures, not production auth:
   node backend/test.mjs
   node backend/review-test.mjs
-Package in this order after source settles:
+Generate downloads before the final Worker build:
   python3 build_offline.py
   npm run build
   node scripts/check-build.mjs
 
-The source ZIP excludes secrets, dependencies, runtime state, generated Worker
-and crypto bundles and the source ZIP itself. It includes source, migrations,
-setup documentation, .env.example and exact package inputs. The Worker includes
-only the production asset allowlist. Large assets are compressed before being
-embedded; no third-party CDN executes code in private conversations.
+Use npm run db:generate only after an intentional schema change. Never change
+applied migration SQL or snapshots. Sites applies new migrations before Worker
+publication. Keep the existing project ID, audience and DB binding.
 
-In managed Sites, preview requires supported browser controls and the preview
-daemon. No alternative browser route or server is started when those tools are
-absent. Publish the matching source/build through Sites, preserving project ID,
-D1 binding DB and the current audience. Native deployment verifies publication;
-it does not replace a real Google+Matrix multi-device acceptance test.
+Large assets are compressed inside the Worker bundle, decompressed before
+responses, and HTTP compression is left to the hosting proxy. Live verification
+compares actual served bytes with the local source/build. Credentials, private
+responses and decrypted content are never placed in a service-worker cache.
+
+Managed preview needs supported browser controls and the Sites preview daemon.
+If those controls are unavailable, HTTP/API checks and hosted screenshots are
+reported separately from interactive browser/mobile verification.

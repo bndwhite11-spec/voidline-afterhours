@@ -89,8 +89,8 @@ html = re.sub(r'<html\b[^>]*>', mark_offline, html, count=1, flags=re.IGNORECASE
 html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
-required_styles = {'home.css'}
-required_scripts = {'store.js', 'legacy-import.js', 'home.js'}
+required_styles = {'home.css', 'cosmetics.css', 'social.css'}
+required_scripts = {'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
     raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:

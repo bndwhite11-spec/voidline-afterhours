@@ -156,3 +156,55 @@ export const authRateLimits = sqliteTable("auth_rate_limits", {
   count: integer("count").notNull().default(1),
   expiresAt: integer("expires_at").notNull(),
 }, t => [index("auth_rate_limits_expiry").on(t.expiresAt)]);
+
+// Native credentials are independent from historical provider identities.
+export const authCredentials = sqliteTable("auth_credentials", {
+  accountId: text("account_id").primaryKey().references(() => liveAccounts.id),
+  passwordHash: text("password_hash").notNull(),
+  salt: text("salt").notNull(),
+  algorithm: text("algorithm").notNull(),
+  iterations: integer("iterations").notNull(),
+  recoveryHash: text("recovery_hash").notNull(),
+  changeMarker: text("change_marker").notNull().default(""),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+export const socialRequests = sqliteTable("social_requests", {
+  id: text("id").primaryKey(),
+  senderId: text("sender_id").notNull().references(() => liveAccounts.id),
+  recipientId: text("recipient_id").notNull().references(() => liveAccounts.id),
+  state: text("state").notNull().default("pending"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, t => [unique("social_requests_pair_unique").on(t.senderId,t.recipientId),index("social_requests_recipient").on(t.recipientId,t.state,t.createdAt),index("social_requests_sender").on(t.senderId,t.state,t.createdAt),check("social_requests_state",sql`${t.state} IN ('pending','accepted','declined','cancelled')`)]);
+export const socialBlocks = sqliteTable("social_blocks", {
+  blockerId: text("blocker_id").notNull().references(() => liveAccounts.id),
+  blockedId: text("blocked_id").notNull().references(() => liveAccounts.id),
+  createdAt: integer("created_at").notNull(),
+}, t => [primaryKey({columns:[t.blockerId,t.blockedId]})]);
+export const socialSettings = sqliteTable("social_settings", {
+  accountId: text("account_id").primaryKey().references(() => liveAccounts.id),
+  allowRequests: integer("allow_requests").notNull().default(1),
+});
+
+export const cosmeticOwnership = sqliteTable("cosmetic_ownership", {
+  accountId: text("account_id").notNull().references(() => liveAccounts.id),
+  cosmeticId: text("cosmetic_id").notNull(),
+  claimedAt: integer("claimed_at").notNull(),
+}, t => [primaryKey({columns:[t.accountId,t.cosmeticId]})]);
+export const cosmeticProfiles = sqliteTable("cosmetic_profiles", {
+  accountId: text("account_id").primaryKey().references(() => liveAccounts.id),
+  equippedId: text("equipped_id"),
+  giftsEnabled: integer("gifts_enabled").notNull().default(1),
+});
+export const cosmeticGifts = sqliteTable("cosmetic_gifts", {
+  id: text("id").primaryKey(),
+  senderId: text("sender_id").notNull().references(() => liveAccounts.id),
+  recipientId: text("recipient_id").notNull().references(() => liveAccounts.id),
+  catalogId: text("catalog_id").notNull(),
+  clientId: text("client_id").notNull(),
+  state: text("state").notNull().default("pending"),
+  createdAt: integer("created_at").notNull(),
+  openedAt: integer("opened_at"),
+}, t => [unique("cosmetic_gifts_client_unique").on(t.senderId,t.clientId),index("cosmetic_gifts_recipient").on(t.recipientId,t.state,t.createdAt),index("cosmetic_gifts_sender").on(t.senderId,t.createdAt)]);

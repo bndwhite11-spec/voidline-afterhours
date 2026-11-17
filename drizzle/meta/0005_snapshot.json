@@ -1,0 +1,1840 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "69393da5-1e6c-4dec-9eb3-21d38fe9033c",
+  "prevId": "dfbd8892-2ec0-434b-b451-019e4ca32d73",
+  "tables": {
+    "auth_credentials": {
+      "name": "auth_credentials",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "salt": {
+          "name": "salt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "algorithm": {
+          "name": "algorithm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iterations": {
+          "name": "iterations",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recovery_hash": {
+          "name": "recovery_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "change_marker": {
+          "name": "change_marker",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "auth_credentials_account_id_live_accounts_id_fk": {
+          "name": "auth_credentials_account_id_live_accounts_id_fk",
+          "tableFrom": "auth_credentials",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "auth_identities": {
+      "name": "auth_identities",
+      "columns": {
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "auth_identities_account": {
+          "name": "auth_identities_account",
+          "columns": [
+            "account_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "auth_identities_account_id_live_accounts_id_fk": {
+          "name": "auth_identities_account_id_live_accounts_id_fk",
+          "tableFrom": "auth_identities",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "auth_identities_provider_subject_pk": {
+          "columns": [
+            "provider",
+            "subject"
+          ],
+          "name": "auth_identities_provider_subject_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "auth_rate_limits": {
+      "name": "auth_rate_limits",
+      "columns": {
+        "bucket": {
+          "name": "bucket",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "auth_rate_limits_expiry": {
+          "name": "auth_rate_limits_expiry",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "auth_sessions": {
+      "name": "auth_sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "csrf_hash": {
+          "name": "csrf_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "device_name": {
+          "name": "device_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_active_at": {
+          "name": "last_active_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reauthenticated_at": {
+          "name": "reauthenticated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "auth_sessions_token_unique": {
+          "name": "auth_sessions_token_unique",
+          "columns": [
+            "token_hash"
+          ],
+          "isUnique": true
+        },
+        "auth_sessions_account": {
+          "name": "auth_sessions_account",
+          "columns": [
+            "account_id",
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "auth_sessions_account_id_live_accounts_id_fk": {
+          "name": "auth_sessions_account_id_live_accounts_id_fk",
+          "tableFrom": "auth_sessions",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "auth_transactions": {
+      "name": "auth_transactions",
+      "columns": {
+        "state_hash": {
+          "name": "state_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "browser_hash": {
+          "name": "browser_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nonce": {
+          "name": "nonce",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "verifier": {
+          "name": "verifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "return_to": {
+          "name": "return_to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reauthenticate": {
+          "name": "reauthenticate",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "consumed_at": {
+          "name": "consumed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "auth_transactions_expiry": {
+          "name": "auth_transactions_expiry",
+          "columns": [
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "cosmetic_gifts": {
+      "name": "cosmetic_gifts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sender_id": {
+          "name": "sender_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "catalog_id": {
+          "name": "catalog_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "opened_at": {
+          "name": "opened_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "cosmetic_gifts_recipient": {
+          "name": "cosmetic_gifts_recipient",
+          "columns": [
+            "recipient_id",
+            "state",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "cosmetic_gifts_sender": {
+          "name": "cosmetic_gifts_sender",
+          "columns": [
+            "sender_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "cosmetic_gifts_client_unique": {
+          "name": "cosmetic_gifts_client_unique",
+          "columns": [
+            "sender_id",
+            "client_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "cosmetic_gifts_sender_id_live_accounts_id_fk": {
+          "name": "cosmetic_gifts_sender_id_live_accounts_id_fk",
+          "tableFrom": "cosmetic_gifts",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "sender_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cosmetic_gifts_recipient_id_live_accounts_id_fk": {
+          "name": "cosmetic_gifts_recipient_id_live_accounts_id_fk",
+          "tableFrom": "cosmetic_gifts",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "cosmetic_ownership": {
+      "name": "cosmetic_ownership",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "cosmetic_id": {
+          "name": "cosmetic_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cosmetic_ownership_account_id_live_accounts_id_fk": {
+          "name": "cosmetic_ownership_account_id_live_accounts_id_fk",
+          "tableFrom": "cosmetic_ownership",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "cosmetic_ownership_account_id_cosmetic_id_pk": {
+          "columns": [
+            "account_id",
+            "cosmetic_id"
+          ],
+          "name": "cosmetic_ownership_account_id_cosmetic_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "cosmetic_profiles": {
+      "name": "cosmetic_profiles",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "equipped_id": {
+          "name": "equipped_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "gifts_enabled": {
+          "name": "gifts_enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cosmetic_profiles_account_id_live_accounts_id_fk": {
+          "name": "cosmetic_profiles_account_id_live_accounts_id_fk",
+          "tableFrom": "cosmetic_profiles",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_accounts": {
+      "name": "live_accounts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "theme": {
+          "name": "theme",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'obsidian'"
+        },
+        "avatar": {
+          "name": "avatar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'moon'"
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "onboarding_complete": {
+          "name": "onboarding_complete",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "live_accounts_username_unique": {
+          "name": "live_accounts_username_unique",
+          "columns": [
+            "username"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_bookmarks": {
+      "name": "live_bookmarks",
+      "columns": {
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "live_bookmarks_account": {
+          "name": "live_bookmarks_account",
+          "columns": [
+            "account_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "live_bookmarks_message_id_live_messages_id_fk": {
+          "name": "live_bookmarks_message_id_live_messages_id_fk",
+          "tableFrom": "live_bookmarks",
+          "tableTo": "live_messages",
+          "columnsFrom": [
+            "message_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_bookmarks_account_id_live_accounts_id_fk": {
+          "name": "live_bookmarks_account_id_live_accounts_id_fk",
+          "tableFrom": "live_bookmarks",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "live_bookmarks_message_id_account_id_pk": {
+          "columns": [
+            "message_id",
+            "account_id"
+          ],
+          "name": "live_bookmarks_message_id_account_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_changes": {
+      "name": "live_changes",
+      "columns": {
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "live_changes_channel_seq": {
+          "name": "live_changes_channel_seq",
+          "columns": [
+            "channel_id",
+            "seq"
+          ],
+          "isUnique": false
+        },
+        "live_changes_message_seq": {
+          "name": "live_changes_message_seq",
+          "columns": [
+            "message_id",
+            "seq"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "live_changes_channel_id_live_channels_id_fk": {
+          "name": "live_changes_channel_id_live_channels_id_fk",
+          "tableFrom": "live_changes",
+          "tableTo": "live_channels",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_changes_message_id_live_messages_id_fk": {
+          "name": "live_changes_message_id_live_messages_id_fk",
+          "tableFrom": "live_changes",
+          "tableTo": "live_messages",
+          "columnsFrom": [
+            "message_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_changes_actor_id_live_accounts_id_fk": {
+          "name": "live_changes_actor_id_live_accounts_id_fk",
+          "tableFrom": "live_changes",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_channels": {
+      "name": "live_channels",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "community_id": {
+          "name": "community_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'text'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "live_channels_community": {
+          "name": "live_channels_community",
+          "columns": [
+            "community_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "live_channels_community_name_unique": {
+          "name": "live_channels_community_name_unique",
+          "columns": [
+            "community_id",
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "live_channels_community_id_live_communities_id_fk": {
+          "name": "live_channels_community_id_live_communities_id_fk",
+          "tableFrom": "live_channels",
+          "tableTo": "live_communities",
+          "columnsFrom": [
+            "community_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "live_channels_kind_check": {
+          "name": "live_channels_kind_check",
+          "value": "\"live_channels\".\"kind\" IN ('text', 'announcement')"
+        }
+      }
+    },
+    "live_communities": {
+      "name": "live_communities",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'WL'"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "live_communities_created_by_live_accounts_id_fk": {
+          "name": "live_communities_created_by_live_accounts_id_fk",
+          "tableFrom": "live_communities",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_favorites": {
+      "name": "live_favorites",
+      "columns": {
+        "channel_id": {
+          "name": "channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "live_favorites_channel_id_live_channels_id_fk": {
+          "name": "live_favorites_channel_id_live_channels_id_fk",
+          "tableFrom": "live_favorites",
+          "tableTo": "live_channels",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_favorites_account_id_live_accounts_id_fk": {
+          "name": "live_favorites_account_id_live_accounts_id_fk",
+          "tableFrom": "live_favorites",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "live_favorites_channel_id_account_id_pk": {
+          "columns": [
+            "channel_id",
+            "account_id"
+          ],
+          "name": "live_favorites_channel_id_account_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_invites": {
+      "name": "live_invites",
+      "columns": {
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "community_id": {
+          "name": "community_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "max_uses": {
+          "name": "max_uses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "uses": {
+          "name": "uses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "live_invites_community_id_live_communities_id_fk": {
+          "name": "live_invites_community_id_live_communities_id_fk",
+          "tableFrom": "live_invites",
+          "tableTo": "live_communities",
+          "columnsFrom": [
+            "community_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_invites_created_by_live_accounts_id_fk": {
+          "name": "live_invites_created_by_live_accounts_id_fk",
+          "tableFrom": "live_invites",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "live_invites_max_uses_check": {
+          "name": "live_invites_max_uses_check",
+          "value": "\"live_invites\".\"max_uses\" BETWEEN 1 AND 100"
+        }
+      }
+    },
+    "live_memberships": {
+      "name": "live_memberships",
+      "columns": {
+        "community_id": {
+          "name": "community_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "joined_at": {
+          "name": "joined_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "live_memberships_account": {
+          "name": "live_memberships_account",
+          "columns": [
+            "account_id",
+            "community_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "live_memberships_community_id_live_communities_id_fk": {
+          "name": "live_memberships_community_id_live_communities_id_fk",
+          "tableFrom": "live_memberships",
+          "tableTo": "live_communities",
+          "columnsFrom": [
+            "community_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_memberships_account_id_live_accounts_id_fk": {
+          "name": "live_memberships_account_id_live_accounts_id_fk",
+          "tableFrom": "live_memberships",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "live_memberships_community_id_account_id_pk": {
+          "columns": [
+            "community_id",
+            "account_id"
+          ],
+          "name": "live_memberships_community_id_account_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "live_memberships_role_check": {
+          "name": "live_memberships_role_check",
+          "value": "\"live_memberships\".\"role\" IN ('owner', 'moderator', 'member')"
+        }
+      }
+    },
+    "live_messages": {
+      "name": "live_messages",
+      "columns": {
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reply_to_id": {
+          "name": "reply_to_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "thread_root_id": {
+          "name": "thread_root_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "edited_at": {
+          "name": "edited_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pinned": {
+          "name": "pinned",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "original_hash": {
+          "name": "original_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "live_messages_id_unique": {
+          "name": "live_messages_id_unique",
+          "columns": [
+            "id"
+          ],
+          "isUnique": true
+        },
+        "live_messages_channel_seq": {
+          "name": "live_messages_channel_seq",
+          "columns": [
+            "channel_id",
+            "seq"
+          ],
+          "isUnique": false
+        },
+        "live_messages_thread_seq": {
+          "name": "live_messages_thread_seq",
+          "columns": [
+            "thread_root_id",
+            "seq"
+          ],
+          "isUnique": false
+        },
+        "live_messages_reply": {
+          "name": "live_messages_reply",
+          "columns": [
+            "reply_to_id"
+          ],
+          "isUnique": false
+        },
+        "live_messages_channel_author_client_unique": {
+          "name": "live_messages_channel_author_client_unique",
+          "columns": [
+            "channel_id",
+            "author_id",
+            "client_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "live_messages_channel_id_live_channels_id_fk": {
+          "name": "live_messages_channel_id_live_channels_id_fk",
+          "tableFrom": "live_messages",
+          "tableTo": "live_channels",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_messages_author_id_live_accounts_id_fk": {
+          "name": "live_messages_author_id_live_accounts_id_fk",
+          "tableFrom": "live_messages",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_reactions": {
+      "name": "live_reactions",
+      "columns": {
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "emoji": {
+          "name": "emoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "live_reactions_message_id_live_messages_id_fk": {
+          "name": "live_reactions_message_id_live_messages_id_fk",
+          "tableFrom": "live_reactions",
+          "tableTo": "live_messages",
+          "columnsFrom": [
+            "message_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_reactions_account_id_live_accounts_id_fk": {
+          "name": "live_reactions_account_id_live_accounts_id_fk",
+          "tableFrom": "live_reactions",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "live_reactions_message_id_account_id_emoji_pk": {
+          "columns": [
+            "message_id",
+            "account_id",
+            "emoji"
+          ],
+          "name": "live_reactions_message_id_account_id_emoji_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "live_read_states": {
+      "name": "live_read_states",
+      "columns": {
+        "channel_id": {
+          "name": "channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "activity_seq": {
+          "name": "activity_seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "live_read_states_channel_id_live_channels_id_fk": {
+          "name": "live_read_states_channel_id_live_channels_id_fk",
+          "tableFrom": "live_read_states",
+          "tableTo": "live_channels",
+          "columnsFrom": [
+            "channel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "live_read_states_account_id_live_accounts_id_fk": {
+          "name": "live_read_states_account_id_live_accounts_id_fk",
+          "tableFrom": "live_read_states",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "live_read_states_channel_id_account_id_pk": {
+          "columns": [
+            "channel_id",
+            "account_id"
+          ],
+          "name": "live_read_states_channel_id_account_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "social_blocks": {
+      "name": "social_blocks",
+      "columns": {
+        "blocker_id": {
+          "name": "blocker_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "blocked_id": {
+          "name": "blocked_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "social_blocks_blocker_id_live_accounts_id_fk": {
+          "name": "social_blocks_blocker_id_live_accounts_id_fk",
+          "tableFrom": "social_blocks",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "blocker_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "social_blocks_blocked_id_live_accounts_id_fk": {
+          "name": "social_blocks_blocked_id_live_accounts_id_fk",
+          "tableFrom": "social_blocks",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "blocked_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "social_blocks_blocker_id_blocked_id_pk": {
+          "columns": [
+            "blocker_id",
+            "blocked_id"
+          ],
+          "name": "social_blocks_blocker_id_blocked_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "social_requests": {
+      "name": "social_requests",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sender_id": {
+          "name": "sender_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "social_requests_recipient": {
+          "name": "social_requests_recipient",
+          "columns": [
+            "recipient_id",
+            "state",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "social_requests_sender": {
+          "name": "social_requests_sender",
+          "columns": [
+            "sender_id",
+            "state",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "social_requests_pair_unique": {
+          "name": "social_requests_pair_unique",
+          "columns": [
+            "sender_id",
+            "recipient_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "social_requests_sender_id_live_accounts_id_fk": {
+          "name": "social_requests_sender_id_live_accounts_id_fk",
+          "tableFrom": "social_requests",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "sender_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "social_requests_recipient_id_live_accounts_id_fk": {
+          "name": "social_requests_recipient_id_live_accounts_id_fk",
+          "tableFrom": "social_requests",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "social_requests_state": {
+          "name": "social_requests_state",
+          "value": "\"social_requests\".\"state\" IN ('pending','accepted','declined','cancelled')"
+        }
+      }
+    },
+    "social_settings": {
+      "name": "social_settings",
+      "columns": {
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "allow_requests": {
+          "name": "allow_requests",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "social_settings_account_id_live_accounts_id_fk": {
+          "name": "social_settings_account_id_live_accounts_id_fk",
+          "tableFrom": "social_settings",
+          "tableTo": "live_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

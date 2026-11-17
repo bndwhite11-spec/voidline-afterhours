@@ -36,6 +36,13 @@
       "when": 1794906441618,
       "tag": "0004_omniscient_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794910594724,
+      "tag": "0005_next_magik",
+      "breakpoints": true
     }
   ]
 }

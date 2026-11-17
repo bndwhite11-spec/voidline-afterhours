@@ -15,7 +15,7 @@ that gap as a completed encrypted exchange or a security audit.
 ## Implemented path
 
 - Explicit Matrix token connection validates `whoami`, including its Matrix
-  user ID and device ID. A Google account and Matrix identity are separate;
+  user ID and device ID. A Voidline account and Matrix identity are separate;
   matching email addresses never link them or grant decryption access.
 - Tokens remain in memory. Rust crypto IndexedDB uses an account/homeserver/
   Matrix-user/device namespace and SDK `storagePassword` encryption. A local
@@ -47,7 +47,7 @@ that gap as a completed encrypted exchange or a security audit.
   uses the user-provided Matrix recovery key in memory and clears it afterward.
 - Disconnect stops sync, clears listeners, pending UI verification, in-memory
   token/client references and secret handles. Explicit Matrix session logout is
-  separate from Google logout. Encrypted local keys are retained for deliberate
+  separate from account logout. Encrypted local keys are retained for deliberate
   reopening with the vault passphrase, not deleted automatically.
 
 ## Exact infrastructure setup
@@ -79,7 +79,7 @@ its own persistent database, backups, limits and private media configuration.
    and local vault passphrase. Creating a fresh Matrix device must not reuse a
    different device's crypto store.
 4. The present connection UI accepts a user-supplied Matrix access token in
-   memory. It does not implement automatic Google-to-Matrix token issuance.
+   memory. It does not implement automatic account-to-Matrix token issuance.
    Synapse may be configured with Google OIDC as a separate provider operation;
    that alone does not add a tested token exchange flow to this client.
    [Synapse OIDC documentation](https://element-hq.github.io/synapse/latest/openid.html)
@@ -91,25 +91,25 @@ its own persistent database, backups, limits and private media configuration.
    change, untrusted new device, membership removal during an open connection,
    session revocation and restore using the saved recovery material.
 
-Google OAuth credentials/callback registration are an additional dependency
-for real Google sign-in. The two identity systems must be configured and
-verified independently. No such Google or Matrix runtime variables were
-present when this request was inspected.
+Native username/password accounts require no OAuth configuration. The Matrix
+service and real device exchange must still be verified independently. No
+Matrix homeserver was configured when this upgrade was inspected.
 
 ## Remaining application engineering
 
 The following are **not implemented merely by supplying credentials**:
 
-- Private-community/channel permissions mapped to Matrix spaces/rooms, complete
-  friend/request/block workflow and the existing D1 community service migrated
-  to the new encrypted transport.
+- Private-community/channel permissions and native friend/block controls mapped
+  to independent Matrix identities/spaces/rooms, and the existing D1 community
+  service migrated to the encrypted transport.
 - Encrypted attachments, thumbnails, filenames, recordings and their complete
   upload/cancel/retry/deletion path. Existing local recorders are legacy tools.
 - Persisted encrypted drafts, durable offline outbox across refresh, and a
   protected local full-history search index. Current new-chat drafts/retry IDs
   are in memory; refresh can lose them and the interface must say so.
 - Full moderation reports, disappearing messages, encrypted notification
-  configuration and app-wide privacy/account-deletion policy.
+  configuration and integrated deletion/retention controls across the independent
+  encrypted service.
 - Voice/video signaling, STUN/TURN, a conferencing stack and verified media
   E2EE. Text encryption does not secure a nonexistent call transport.
 

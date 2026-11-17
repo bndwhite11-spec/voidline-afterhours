@@ -5,8 +5,8 @@ import worker from '../worker/index.mjs';
 import {authHash, handleAuthRequest} from '../worker/auth.mjs';
 
 // Current production boundary: real migrated SQL + opaque application sessions.
-// Cookies are created as isolated test fixtures; Google token verification has
-// its own signed-token suite. No production account or contact is accessed.
+// Cookies are created as isolated test fixtures; password registration and login
+// have their own real hashing/session suite. No production account or contact is accessed.
 const origin='https://foundation.example';
 const journal=JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url),'utf8'));
 class Adapter {
@@ -26,7 +26,7 @@ async function fixture(){
  async function add(user,{onboarded=true}={}){
   const token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-',''),csrf=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-',''),sessionId=crypto.randomUUID(),now=Date.now();
   sqlite.prepare('INSERT INTO live_accounts(id,display_name,email,username,onboarding_complete,created_at,updated_at) VALUES(?,?,?,?,?,?,?)').run(user,'Resident '+user,'',onboarded?'user_'+user:null,onboarded?1:0,now,now);
-  sqlite.prepare("INSERT INTO auth_identities(provider,subject,account_id,created_at) VALUES('google',?,?,?)").run('provider-'+user,user,now);
+  sqlite.prepare("INSERT INTO auth_identities(provider,subject,account_id,created_at) VALUES('legacy',?,?,?)").run('provider-'+user,user,now);
   sqlite.prepare('INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)').run(sessionId,user,await authHash(token),await authHash(csrf),'Isolated test browser',now,now,now,now+60000);
   const identity={token,csrf,sessionId};identities.set(user,identity);return identity;
  }
@@ -53,25 +53,25 @@ test('frontend booleans and former platform identity headers cannot authenticate
   assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM live_communities').get().n,0);
  }finally{f.sqlite.close();}
 });
-test('fresh Google identities are empty and do not inherit or modify preserved platform accounts',async()=>{
+test('fresh account identities are empty and do not inherit or modify preserved platform accounts',async()=>{
  const f=await fixture();try{
   f.sqlite.prepare("INSERT INTO live_accounts(id,display_name,email,created_at,updated_at) VALUES('old-platform','Existing Person','',1,1)").run();
   f.sqlite.prepare("INSERT INTO live_communities(id,name,created_by,created_at) VALUES('retained-room','Retained history','old-platform',1)").run();
   f.sqlite.prepare("INSERT INTO live_memberships VALUES('retained-room','old-platform','owner',1)").run();
   f.sqlite.prepare("INSERT INTO live_channels(id,community_id,name,kind,created_at) VALUES('retained-channel','retained-room','history','text',1)").run();
   f.sqlite.prepare("INSERT INTO live_messages(id,channel_id,author_id,client_id,text,created_at) VALUES('retained-message','retained-channel','old-platform','retained-client','Original content stays intact',2)").run();
-  await f.add('newgoogle',{onboarded:false});
+  await f.add('newaccount',{onboarded:false});
   for(let i=0;i<2;i++){
-   const session=await f.ok('newgoogle','/api/auth/session');assert.equal(session.account.needsOnboarding,true);assert.equal(session.account.username,null);
-   assert.deepEqual((await f.ok('newgoogle','/api/live/communities')).communities,[]);
-   assert.equal((await f.ok('newgoogle','/api/live/saved')).total,0);
-   assert.equal((await f.ok('newgoogle','/api/live/inbox?view=unread')).total,0);
+   const session=await f.ok('newaccount','/api/auth/session');assert.equal(session.account.needsOnboarding,true);assert.equal(session.account.username,null);
+   assert.deepEqual((await f.ok('newaccount','/api/live/communities')).communities,[]);
+   assert.equal((await f.ok('newaccount','/api/live/saved')).total,0);
+   assert.equal((await f.ok('newaccount','/api/live/inbox?view=unread')).total,0);
   }
-  assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM live_memberships WHERE account_id='newgoogle'").get().n,0);
+  assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM live_memberships WHERE account_id='newaccount'").get().n,0);
   assert.equal(f.sqlite.prepare("SELECT name FROM live_communities WHERE id='retained-room'").get().name,'Retained history');
   assert.equal(f.sqlite.prepare("SELECT role FROM live_memberships WHERE account_id='old-platform'").get().role,'owner');
   assert.equal(f.sqlite.prepare("SELECT text FROM live_messages WHERE id='retained-message'").get().text,'Original content stays intact');
-  assert.equal((await f.call('newgoogle','/api/live/channels/retained-channel/messages')).status,403);
+  assert.equal((await f.call('newaccount','/api/live/channels/retained-channel/messages')).status,403);
  }finally{f.sqlite.close();}
 });
 test('all current account mutations enforce exact origin, CSRF and expected account',async()=>{
@@ -140,5 +140,5 @@ test('session listings and revocation are scoped to the signed-in account',async
  }finally{f.sqlite.close();}
 });
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
-console.log(`${tests.length-failed}/${tests.length} current foundation boundary checks passed. Isolated SQLite/session fixtures; no real Google or Matrix account exchange.`);
+console.log(`${tests.length-failed}/${tests.length} current foundation boundary checks passed. Isolated SQLite/session fixtures; no real native account or Matrix account exchange.`);
 process.exitCode=failed?1:0;

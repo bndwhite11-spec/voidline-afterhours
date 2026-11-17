@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "esbuild": "0.25.12",
-    "jose": "6.2.17",
     "matrix-js-sdk": "45.1.0"
   }
 }
