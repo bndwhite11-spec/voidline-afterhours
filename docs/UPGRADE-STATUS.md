@@ -108,3 +108,30 @@ These limits must remain visible and must not be represented as completed:
 Refer to AUTHENTICATION.md, OWNER-BOOTSTRAP.md, ENCRYPTION-DECISION.md,
 ENCRYPTION-THREAT-MODEL.md, ORGANIZATION.md, COSMETICS.md and BACKUP-RESTORE.md
 for precise flows and operating procedures.
+
+## Release verification, 17 November 2026
+
+The implementation was published as version 11 at the existing public URL and
+pushed to GitHub, source commit f3c1908c851dfdea5c5a831320fdc90bad95c1a9.
+The final runners passed 158 server checks and 236 client checks. The separate
+backup/restore suite passed two checks. These counts include controlled transport
+and historical-client fixtures; they are not counts of real-browser scenarios.
+
+Two isolated live accounts passed Argon2id registration (1.79s and 1.10s), empty
+first launch, logout invalidation, stable-identity password login, profile scope,
+persisted organization preferences, ordinary-account administration denial,
+friend acceptance, free gift retry deduplication, collection and blocking.
+Both accounts were deleted afterward and their old sessions were rejected.
+This smoke did not exercise a real encrypted conversation or an owner account.
+
+Production D1 inspection showed all 41 application tables. All 24 public assets
+(10,587,969 bytes for that release) matched the local build exactly after one
+HTTP decompression. Four direct-entry routes, seven private/nonproduction paths,
+three anonymous private APIs, HEAD and unconfigured Google behavior were checked.
+The Site remains public. The native hosted screenshot captured only the early
+Opening Voidline state; it is not an authenticated UI or finished-layout check.
+No authenticated, mobile, gift-flow or admin screenshot is represented as taken.
+
+A subsequent documentation-only release corrects the exact owner-request label
+and packages this evidence. Its client/API logic is unchanged from the tested
+implementation; matching build bytes are verified again after publication.

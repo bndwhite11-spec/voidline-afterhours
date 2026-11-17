@@ -11,7 +11,8 @@ application must continue to deny platform administration until the procedure
 below completes. A test-fixture owner is not a production owner.
 
 The account holder must sign into the intended account, confirm their password,
-enroll a passkey in Devices and Security, and choose **Verify owner access**.
+enroll a passkey in **You → Devices & security**, then choose
+**Owner verification request** on the You screen.
 The app verifies a fresh user-verifying passkey assertion and creates a private
 five-minute ownership request code. The code proves control of that signed-in
 account; generating it alone grants nothing. Provide that short-lived code to
