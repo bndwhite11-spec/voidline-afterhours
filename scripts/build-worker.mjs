@@ -27,7 +27,7 @@ const contentTypes = {
 const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
 // never an executable production fallback or automatically loaded fixture.
-const productionRoots = new Set(['index.html','home.js','home.css','store.js','legacy-import.js',
+const productionRoots = new Set(['index.html','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
   'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
@@ -38,7 +38,7 @@ async function collect(directory, prefix = '') {
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     if ((!prefix && (excludedRoots.has(entry.name)||!productionRoots.has(entry.name))) || entry.name.startsWith('.')) continue;
-    if(prefix==='downloads'&&!['voidline-offline.html','voidline-source.zip'].includes(entry.name)) continue;
+    if(prefix==='downloads'&&!['voidline-offline.html','voidline-source.zip','voidline-improvement-prompt.txt'].includes(entry.name)) continue;
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await collect(filename, relative);
@@ -70,6 +70,7 @@ async function serveVoidline(request, env, ctx) {
   if (url.pathname.startsWith('/api/auth/')) return handleAuthRequest(request,env,ctx);
   if (url.pathname.startsWith('/api/security/')) return handleSecurityRequest(request,env,ctx);
   if (url.pathname==='/api/admin'||url.pathname.startsWith('/api/admin/')) return handleAdminRequest(request,env,ctx);
+  if (url.pathname==='/api/messages'||url.pathname.startsWith('/api/messages/')) return handleMessagesRequest(request,env,ctx);
   if (url.pathname==='/api/organize'||url.pathname.startsWith('/api/organize/')) return handleOrganizeRequest(request,env,ctx);
   if (url.pathname.startsWith('/api/profiles/')) return handleProfilesRequest(request,env,ctx);
   if (url.pathname.startsWith('/api/cosmetics/')) return handleCosmeticsRequest(request,env,ctx);
@@ -117,7 +118,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

@@ -50,6 +50,13 @@
       "when": 1794913541949,
       "tag": "0006_hard_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794918949185,
+      "tag": "0007_cloudy_orphan",
+      "breakpoints": true
     }
   ]
 }

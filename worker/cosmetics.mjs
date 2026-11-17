@@ -10,6 +10,18 @@ export const COSMETICS = Object.freeze([
  {id:'dead',type:'badge',name:'Dead Internet',description:'A fractured little globe. Somehow, we are still here.',finish:'Oxidised chrome'},
  {id:'voidwalker',type:'badge',name:'Voidwalker',description:'A cut through the dark, held inside a faceted metal seal.',finish:'Black titanium'},
  {id:'orbit',type:'badge',name:'Low Orbit',description:'A satellite circling a tiny violet moon.',finish:'Satin aluminium'},
+ {id:'coin-bitforge',type:'badge',category:'crypto',inspiration:'Bitcoin culture',series:'Chain Signals',name:'Bitforge',description:'A copper coin struck with a fractured circuit mark. A little proof of internet culture.',finish:'Hammered copper'},
+ {id:'coin-etherglass',type:'badge',category:'crypto',inspiration:'Ethereum culture',series:'Chain Signals',name:'Ether Glass',description:'A suspended prism with a violet heart, cut to catch the midnight light.',finish:'Violet optical glass'},
+ {id:'coin-crosssignal',type:'badge',category:'crypto',inspiration:'XRP culture',series:'Chain Signals',name:'Cross Signal',description:'Two silver signals cross over a dark enamel core. Made for the XRP corner of the room.',finish:'Chrome and graphite'},
+ {id:'coin-solarstack',type:'badge',category:'crypto',inspiration:'Solana culture',series:'Chain Signals',name:'Solar Stack',description:'Three offset alloy bars, moving from muted jade to deep violet.',finish:'Anodised alloy'},
+ {id:'coin-moonshibe',type:'badge',category:'crypto',inspiration:'Dogecoin culture',series:'Chain Signals',name:'Moon Shibe',description:'A tiny brass dog watching a crescent moon. Such profile. Much night.',finish:'Satin brass'},
+ {id:'coin-diamondhands',type:'badge',category:'crypto',inspiration:'Diamond-hands meme',series:'Chain Signals',name:'Diamond Hands',description:'Two steel hands hold one cold little crystal. The commitment is purely decorative.',finish:'Ice crystal and steel'},
+ {id:'meme-grass',type:'badge',category:'memes',series:'Internet Relics',name:'Touch Grass',description:'A small patch of jade grass. A gentle reminder that outside still exists.',finish:'Jade enamel'},
+ {id:'meme-npc',type:'badge',category:'memes',series:'Internet Relics',name:'NPC Energy',description:'An expressionless little face with a perfectly rehearsed dialogue bubble.',finish:'Matte porcelain'},
+ {id:'meme-yapper',type:'badge',category:'memes',series:'Internet Relics',name:'Certified Yapper',description:'A chrome microphone for the person who always has one more thing to say.',finish:'Chrome and oxide enamel'},
+ {id:'meme-copium',type:'badge',category:'memes',series:'Internet Relics',name:'Copium Reserve',description:'A green glass canister for when the group chat needs an unreasonable amount of optimism.',finish:'Bottle-green glass'},
+ {id:'meme-cooked',type:'badge',category:'memes',series:'Internet Relics',name:'Absolutely Cooked',description:'A tiny pan with a very ambitious flame. We have all been there.',finish:'Cast iron and amber'},
+ {id:'meme-terminal',type:'badge',category:'memes',series:'Internet Relics',name:'Chronically Online',description:'A small terminal still glowing long after everyone said goodnight.',finish:'Phosphor glass'} ,
  {id:'gift-rose',type:'gift',name:'Chrome Rose',description:'A rose that needs no water. Its petals are folded from bright metal.',finish:'Rose chrome'},
  {id:'gift-cassette',type:'gift',name:'Midnight Tape',description:'A tiny mixtape for someone whose company you like.',finish:'Smoked glass'},
  {id:'gift-star',type:'gift',name:'Pocket Star',description:'A five-point star, carefully wrapped for its next home.',finish:'Lilac crystal'},
@@ -22,7 +34,7 @@ export const COSMETICS = Object.freeze([
  {id:'gift-orchid',type:'gift',name:'Midnight Orchid',description:'A dark orchid with violet petals and a fine gold centre.',finish:'Violet ceramic'},
  {id:'gift-signal',type:'gift',name:'Sealed Signal',description:'A folded silver envelope sealed with a small jade wax mark.',finish:'Foil and jade wax'},
  {id:'gift-ticket',type:'gift',name:'Afterhours Ticket',description:'A worn admission ticket held by a precise chrome clip. No closing time.',finish:'Paper and chrome'}
-].map(item=>Object.freeze({...item,price:0,acquisition:'Free to collect. Cosmetic only; no staff role or verified achievement.'})));
+].map(item=>Object.freeze({category:item.type==='gift'?'gifts':'originals',series:item.type==='gift'?'Afterhours Objects':'VOIDLINE Originals',...item,price:0,acquisition:item.category==='crypto'?'Free profile decoration inspired by crypto culture. No coins, wallet holdings or official affiliation.':'Free to collect. Cosmetic only; no staff role or verified achievement.'})));
 const catalog=new Map(COSMETICS.map(c=>[c.id,c]));
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});

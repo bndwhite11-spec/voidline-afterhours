@@ -1,7 +1,7 @@
 # Profiles, free decorations and gifts
 
-The account collection contains nine preserved decoration designs and twelve
-gift designs. Every initial catalogue item is free. There is no checkout,
+The account collection contains twenty-one free decoration designs and twelve
+gift designs. The nine existing badges and all existing gift IDs are preserved. Every initial catalogue item is free. There is no checkout,
 currency, stock counter, paid tier or invented rarity. A fresh account has no
 items, earned awards, showcase slots or gift requests. Local archive claims are
 not accepted as authoritative ownership.
@@ -16,6 +16,46 @@ Ghost and Small Surprise remain. The collection adds Chrome Seraph, Obsidian
 Key, Broken Halo, Midnight Orchid, Sealed Signal and Afterhours Ticket. Each has
 an original SVG silhouette, controlled material palette and larger inspection
 view. These are digital cosmetics, not financial assets or physical goods.
+
+## Crypto culture and internet meme collections
+
+Twelve additional original badge designs are curated into two free collections.
+The public catalogue supplies a stable category and series label. Crypto
+cards identify their cultural reference (Bitcoin, Ethereum, XRP, Solana,
+Dogecoin or the diamond-hands meme) beside the original-art description. Existing badge
+records receive `originals` / VOIDLINE Originals; gifts receive `gifts` /
+Afterhours Objects. No database migration or ownership conversion is needed.
+
+| Collection | Badge | Stable ID | Material direction |
+| --- | --- | --- | --- |
+| Chain Signals | Bitforge | `coin-bitforge` | Hammered copper circuit coin |
+| Chain Signals | Ether Glass | `coin-etherglass` | Violet faceted optical glass |
+| Chain Signals | Cross Signal | `coin-crosssignal` | Silver crossing signals over graphite |
+| Chain Signals | Solar Stack | `coin-solarstack` | Jade/violet offset alloy bars |
+| Chain Signals | Moon Shibe | `coin-moonshibe` | Brass dog beneath a crescent |
+| Chain Signals | Diamond Hands | `coin-diamondhands` | Ice crystal held by steel hands |
+| Internet Relics | Touch Grass | `meme-grass` | Jade enamel grass and a stone base |
+| Internet Relics | NPC Energy | `meme-npc` | Porcelain face with a dialogue bubble |
+| Internet Relics | Certified Yapper | `meme-yapper` | Chrome microphone with oxide details |
+| Internet Relics | Copium Reserve | `meme-copium` | Bottle-green glass canister |
+| Internet Relics | Absolutely Cooked | `meme-cooked` | Cast-iron pan and amber flame |
+| Internet Relics | Chronically Online | `meme-terminal` | A small phosphor terminal |
+
+These are original VOIDLINE profile artwork inspired by crypto and internet
+culture. They are not issued tokens, wallet holdings, coins, investments or
+proof of official affiliation. No wallet connection, financial transfer, price
+feed, supply claim or paid badge exists. Cross Signal grants no owner authority,
+including when used by an account named xrp.
+
+The Decorations view offers All badges, VOIDLINE, Crypto culture, Internet memes
+and Collected filters. Counts derive from catalogue and current server-owned
+inventory. Opening or filtering the collection never claims an item. A new
+account has zero collected badges. Each new design has an original vector
+silhouette, an individual material palette, a small profile version and a larger
+inspection with its series and meaning. Touch and keyboard controls have names,
+visible focus and selected state; motion respects reduced-motion preferences.
+Claim/equip actions use the same authenticated, CSRF-protected server paths as
+the preserved designs. Client-side changes cannot award achievements or roles.
 
 ## Granting and transferring
 
@@ -141,3 +181,16 @@ a VM with controlled DOM and transport; they do not establish browser layout,
 SVG rasterization, native focus behavior or production delivery. No gifts were
 sent to real contacts. Browser screenshots and deployed checks are separate
 release verification.
+
+## Current collection acceptance evidence
+
+`node backend/cosmetics-test.mjs` checks all 33 unique catalogue IDs, exact
+9/6/6/12 category counts, empty inventory, free acquisition, new-badge claims,
+claim retries, equipment ownership and absence of earned awards or platform
+roles from crypto/meme decoration claims. Existing gift, transfer, blocking,
+suspension, showcase and privacy checks remain.
+
+`node tests/voidline-cosmetics-test.cjs` checks server-catalog filtering, truthful
+collected counts, no mutation from browsing, category isolation after account
+switch, inspect meaning, and all 21 distinct badge silhouette paths. These are
+VM/transport tests, not browser rasterization or production account screenshots.

@@ -39,8 +39,26 @@ async function fixture(){
 test('new accounts have zero owned items and every listed cosmetic is explicitly free',async()=>{
  const f=await fixture();try{
   const inventory=await f.ok('sender','/inventory');assert.deepEqual(inventory.owned,[]);assert.equal(inventory.equippedId,null);assert.equal(inventory.pendingGifts,0);
-  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,21);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
+  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,33);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
   assert.equal((await f.call(undefined,'/inventory')).status,401);
+ }finally{f.sqlite.close();}
+});
+test('crypto and internet series stay free decorations with authoritative ownership and no privileges',async()=>{
+ const f=await fixture();try{
+  const items=(await f.ok('sender','/catalog')).items;
+  assert.equal(new Set(items.map(item=>item.id)).size,33);
+  assert.deepEqual(Object.fromEntries(['originals','crypto','memes','gifts'].map(category=>[category,items.filter(item=>item.category===category).length])),{originals:9,crypto:6,memes:6,gifts:12});
+  const added=items.filter(item=>['crypto','memes'].includes(item.category));
+  for(const item of added){
+   assert.equal(item.type,'badge');assert.equal(item.price,0);assert.ok(item.series.length>0);
+   if(item.category==='crypto'){assert.match(item.acquisition,/No coins, wallet holdings or official affiliation/);assert.ok(item.inspiration.length>0);}
+   assert.equal((await f.call('stranger','/equip',{cosmeticId:item.id})).status,403);
+   await f.ok('sender','/claim',{cosmeticId:item.id});await f.ok('sender','/claim',{cosmeticId:item.id});
+   assert.equal((await f.ok('sender','/equip',{cosmeticId:item.id,role:'owner',walletBalance:1000000})).equippedId,item.id);
+  }
+  assert.equal((await f.ok('sender','/inventory')).owned.length,12);
+  assert.equal((await f.ok('stranger','/inventory')).owned.length,0);
+  for(const table of ['badge_awards','live_memberships','platform_owner','gift_instances'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);
  }finally{f.sqlite.close();}
 });
 test('claiming is idempotent and equipping requires server-owned badge records',async()=>{

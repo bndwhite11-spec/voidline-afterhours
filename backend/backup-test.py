@@ -24,14 +24,20 @@ with tempfile.TemporaryDirectory(prefix='voidline-backup-test-') as directory:
         db.execute("INSERT INTO live_memberships(community_id,account_id,role,joined_at) VALUES('retained-community','retained','owner',1)")
         db.execute("INSERT INTO live_channels(id,community_id,name,kind,created_at) VALUES('retained-channel','retained-community','general','text',1)")
         db.execute("INSERT INTO live_messages(id,channel_id,author_id,client_id,text,created_at) VALUES('retained-message','retained-channel','retained','stable-test-id','PRIVATE_BACKUP_SENTINEL',2)")
+        db.execute("INSERT INTO native_conversations(id,kind,name,created_by,client_id,request_hash,created_at,updated_at) VALUES('retained-native','group','Private backup group','retained','backup-create','hash',1,1)")
+        db.execute("INSERT INTO native_members(conversation_id,account_id,joined_at) VALUES('retained-native','retained',1)")
+        db.execute("INSERT INTO native_messages(id,conversation_id,author_id,client_id,text,original_hash,created_at) VALUES('native-message','retained-native','retained','native-send','PRIVATE_NATIVE_BACKUP_SENTINEL','hash',2)")
         db.execute('INSERT INTO auth_credentials(account_id,password_hash,salt,algorithm,iterations,recovery_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,1,1)', ('retained', 'f' * 64, 'a' * 64, 'pbkdf2-sha256', 100000, 'e' * 64))
     phrase = 'Offline backup secret ' + os.urandom(32).hex()
     backup.create_backup(original, sealed, phrase)
     assert b'PRIVATE_BACKUP_SENTINEL' not in sealed.read_bytes()
+    assert b'PRIVATE_NATIVE_BACKUP_SENTINEL' not in sealed.read_bytes()
     assert sealed.stat().st_mode & 0o777 == 0o600
     backup.restore_backup(sealed, restored, phrase)
     with sqlite3.connect(restored) as db:
         assert db.execute('SELECT text FROM live_messages').fetchone()[0] == 'PRIVATE_BACKUP_SENTINEL'
+        assert db.execute('SELECT text FROM native_messages').fetchone()[0] == 'PRIVATE_NATIVE_BACKUP_SENTINEL'
+        assert db.execute('SELECT account_id FROM native_members').fetchone()[0] == 'retained'
         assert db.execute('SELECT role FROM live_memberships').fetchone()[0] == 'owner'
         assert db.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
         assert db.execute('PRAGMA foreign_key_check').fetchall() == []

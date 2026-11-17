@@ -1,9 +1,9 @@
 import {authenticate, validateSessionMutation, AuthError} from './auth.mjs';
 import {readProfile} from './profiles.mjs';
 /**
- * Authenticated shared-text API for Sites Workers + D1.
+ * Authenticated standard-text API for Sites Workers + D1.
  * The build embeds this handler alongside the authored browser client.
- * Identity headers are trusted only behind the Sites dispatch boundary.
+ * Opaque account sessions authorize every private object; no identity header grants access.
  */
 
 const PREFIX = '/api/live';
@@ -104,6 +104,14 @@ async function accessibleChannel(db, channelId, userId) {
   return channel;
 }
 
+// Native standard text is an explicit mode, never a fallback for Matrix IDs.
+function channelWriteGuard(user,channelId,now,{staffOnly=false,cleanup=false}={}) {
+ const sql=`EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND s.account_id=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.account_status='active' AND a.onboarding_complete=1)
+  AND EXISTS(SELECT 1 FROM live_channels c JOIN live_memberships mem ON mem.community_id=c.community_id WHERE c.id=? AND mem.account_id=?${staffOnly?" AND mem.role IN('owner','moderator')":''})
+  ${cleanup?'':"AND NOT EXISTS(SELECT 1 FROM community_timeouts t JOIN live_channels c ON c.community_id=t.community_id WHERE c.id=? AND t.account_id=? AND t.expires_at>?)"}`;
+ return {sql,args:[user.sessionId,user.id,now,channelId,user.id,...(cleanup?[]:[channelId,user.id,now])]};
+}
+async function requireChannelWrite(db,user,channelId,now,options){const guard=channelWriteGuard(user,channelId,now,options);requireThat(await query(db,'SELECT 1 AS allowed WHERE '+guard.sql,...guard.args).first(),403,'posting_denied','Your membership, account status or community restriction prevents this action.');return guard;}
 const messageColumns = `m.seq,m.id,m.channel_id,m.author_id,a.display_name AS author_name,
  m.client_id,m.text,m.created_at,m.reply_to_id,m.thread_root_id,m.edited_at,m.deleted_at,m.pinned,
  c.community_id,c.name AS channel_name,g.name AS community_name,
@@ -118,7 +126,6 @@ function paging(url,maximum=100) {
  return {limit,offset};
 }
 const pageInfo = (limit,offset,total) => ({limit,offset,hasMore:offset+limit<total});
-function change(db,message,actor,kind,now) { return query(db,'INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) VALUES(?,?,?,?,?)',message.channel_id,message.id,actor,kind,now); }
 function communityAudit(db,actor,action,targetType,targetId,now,detail={}) { return query(db,'INSERT INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) VALUES(?,?,?,?,?,?,?)',uuid(),actor,'community.'+action,targetType,targetId,JSON.stringify(detail),now); }
 async function enriched(db,messages,userId) {
  if(!messages.length)return [];
@@ -158,7 +165,7 @@ export async function handleLiveRequest(request,env) {
   if(url.pathname===PREFIX+'/health'&&method==='GET'){
    requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Shared rooms are not available in this edition.');
    await query(env.DB,'SELECT id FROM live_accounts LIMIT 1').first();
-   return json({available:true,mode:'legacy-readonly',transport:'cursor-polling',protectedSending:false,encryptionRequired:true});
+   return json({available:true,mode:'standard',transport:'cursor-polling',protectedSending:false,encryptionRequired:false,endToEndEncrypted:false,explicitAcknowledgementRequired:true});
   }
   const user=await authenticate(request,env);requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Durable messaging is not configured for this deployment.');
   const db=env.DB,now=Date.now();
@@ -174,11 +181,11 @@ export async function handleLiveRequest(request,env) {
    const bucket=await tokenHash('live:'+user.id+':'+Math.floor(now/60000));
    const rate=await query(db,'INSERT INTO auth_rate_limits(bucket,count,expires_at) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET count=count+1 RETURNING count',bucket,now+120000).first();
    requireThat(rate.count<=60,429,'rate_limited','Too many changes. Wait a minute and try again.');
-   // Existing text is retained for its owners. This API cannot accept new
-   // private content: encryption belongs to the maintained client protocol.
+   // Old history remains plaintext. New standard text needs an explicit review;
+   // Matrix/protected content is never routed through this API.
    const removingLegacy=path[0]==='messages'&&(path[2]==='delete'||(path[2]==='save'&&body.active===false));
    const protectedContent=(path[0]==='channels'&&path[2]==='messages')||(path[0]==='messages'&&!removingLegacy);
-   requireThat(!protectedContent,503,'encryption_required','This legacy text service is read-only. Connect a verified encrypted messaging device to send.');
+   requireThat(!protectedContent||body.acknowledgeStandard===true,503,'encryption_required','Review standard messaging to use access-controlled server-stored text. End-to-end encrypted messaging is a separate service.');
   }
   if(path.length===1&&path[0]==='me'&&method==='GET')return json({account:publicProfile(await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first()),transport:'cursor-polling'});
   if(path.length===1&&path[0]==='profile'&&method==='POST'){
@@ -309,9 +316,11 @@ export async function handleLiveRequest(request,env) {
      const binds=[channelId,...(thread?[thread]:[]),...(after!==null?[after]:before!==null?[before]:[]),limit+1];
      const records=(await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.channel_id=? AND ${threadWhere} ${condition} ORDER BY m.seq ${ascending?'ASC':'DESC'} LIMIT ?`,...binds).all()).results;
      const selected=records.slice(0,limit),messages=ascending?selected:selected.reverse();
-     return json({messages:await enriched(db,messages,user.id),changeCursor:high,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
+     const timeout=await query(db,'SELECT 1 AS active FROM community_timeouts WHERE community_id=? AND account_id=? AND expires_at>?',channel.community_id,user.id,now).first();
+     return json({messages:await enriched(db,messages,user.id),securityMode:'standard',endToEndEncrypted:false,permissions:{canSend:!timeout&&(channel.kind!=='announcement'||staff(channel.role)),canManageMessages:staff(channel.role)},changeCursor:high,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
     }
     requireThat(channel.kind!=='announcement'||staff(channel.role),403,'posting_denied','Only community staff can post announcements.');
+    const writeGuard=await requireChannelWrite(db,user,channelId,now,{staffOnly:channel.kind==='announcement'});
     requireThat(typeof body.clientId==='string'&&/^[A-Za-z0-9_-]{8,100}$/.test(body.clientId),400,'invalid_client_id','Use a stable client-generated ID for retry deduplication.');
     requireThat(typeof body.text==='string'&&body.text.trim().length>0&&body.text.length<=4000,400,'invalid_text','Write a message between 1 and 4000 characters.');
     const text=body.text.trim(),replyToId=body.replyToId||null,threadRootId=body.threadRootId||null;
@@ -322,42 +331,46 @@ export async function handleLiveRequest(request,env) {
     if(replyToId){const source=await getMessage(db,replyToId,user.id);requireThat(source.channel_id===channelId,400,'invalid_reply','Reply to a message in this channel.');requireThat(!source.deleted_at,409,'source_deleted','This message was deleted. Remove the reply reference to send.');}
     if(threadRootId){const root=await getMessage(db,threadRootId,user.id);requireThat(root.channel_id===channelId&&!root.thread_root_id,400,'invalid_thread','Choose a root message in this channel.');}
     const id=uuid(),record={id,channel_id:channelId};
-    const statements=[query(db,'INSERT OR IGNORE INTO live_messages(id,channel_id,author_id,client_id,text,reply_to_id,thread_root_id,original_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?)',id,channelId,user.id,body.clientId,text,replyToId,threadRootId,hash,now),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'send',? FROM live_messages WHERE id=?",user.id,now,id)];
+    const statements=[query(db,`INSERT OR IGNORE INTO live_messages(id,channel_id,author_id,client_id,text,reply_to_id,thread_root_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE ${writeGuard.sql}${replyToId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND deleted_at IS NULL)':''}${threadRootId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND thread_root_id IS NULL AND deleted_at IS NULL)':''}`,id,channelId,user.id,body.clientId,text,replyToId,threadRootId,hash,now,...writeGuard.args,...(replyToId?[replyToId,channelId]:[]),...(threadRootId?[threadRootId,channelId]:[])),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'send',? FROM live_messages WHERE id=?",user.id,now,id)];
     if(threadRootId)statements.push(query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,?,?,'thread',? FROM live_messages WHERE id=?",threadRootId,user.id,now,id));
     await db.batch(statements);
     const stored=await query(db,'SELECT id,original_hash FROM live_messages WHERE channel_id=? AND author_id=? AND client_id=?',channelId,user.id,body.clientId).first();
-    requireThat(stored?.original_hash===hash,409,'idempotency_conflict','This retry ID already belongs to a different message.');return json({message:await getMessage(db,stored.id,user.id),acknowledged:true,acknowledgedPayload:{text,replyToId,threadRootId,clientId:body.clientId}});
+    requireThat(stored,403,'posting_denied','Membership, account status or reply access changed. The message was not sent.');
+    requireThat(stored.original_hash===hash,409,'idempotency_conflict','This retry ID already belongs to a different message.');return json({message:await getMessage(db,stored.id,user.id),acknowledged:true,acknowledgedPayload:{text,replyToId,threadRootId,clientId:body.clientId}});
    }
   }
   if(path[0]==='messages'&&(path.length===2||path.length===3)){
-   // Removal of an unavailable bookmark remains possible after losing access.
+   // A private bookmark can be removed even after losing its source membership.
    if(path.length===3&&path[2]==='save'&&method==='POST'&&body.active===false){await query(db,'DELETE FROM live_bookmarks WHERE message_id=? AND account_id=?',path[1],user.id).run();try{return json({saved:false,message:await getMessage(db,path[1],user.id),acknowledged:true});}catch(error){if(!(error instanceof ApiError))throw error;return json({saved:false,unavailable:true});}}
    const message=await getMessage(db,path[1],user.id),channel=await accessibleChannel(db,message.channel_id,user.id);
-   if(path.length===2&&method==='GET')return json({message});
+   if(path.length===2&&method==='GET')return json({message,securityMode:'standard',endToEndEncrypted:false});
    if(method==='POST'&&path.length===3){
-    const action=path[2];
+    const action=path[2];requireThat(['save','edit','delete','reaction','pin'].includes(action),404,'not_found','This message action does not exist.');
+    if(action==='edit'||action==='delete')requireThat(message.author_id===user.id||(action==='delete'&&staff(channel.role)),403,'ownership_required','Only the author or authorized community staff can change this message.');
+    if(action==='pin')requireThat(staff(channel.role),403,'moderation_denied','Only community staff can change pins.');
+    requireThat(!message.deleted_at||action==='delete',409,'source_deleted','This message was deleted.');
+    const guard=await requireChannelWrite(db,user,channel.id,now,{staffOnly:action==='pin'||(action==='delete'&&message.author_id!==user.id)||(action==='edit'&&channel.kind==='announcement'),cleanup:action==='delete'||action==='save'});
+    if(action!=='delete'){guard.sql+=' AND EXISTS(SELECT 1 FROM live_messages source WHERE source.id=? AND source.deleted_at IS NULL)';guard.args.push(message.id);}
+    const writes=[query(db,'UPDATE live_memberships SET role=role WHERE community_id=? AND account_id=? AND '+guard.sql,channel.community_id,user.id,...guard.args)];
+    const event=(kind,id=message.id)=>query(db,'INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,?,? FROM live_messages WHERE id=? AND '+guard.sql,user.id,kind,now,id,...guard.args);
     if(action==='save'){
-     requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to save this message.');requireThat(!message.deleted_at,409,'source_deleted','This message was deleted.');
-     await query(db,'INSERT OR IGNORE INTO live_bookmarks(message_id,account_id,created_at) VALUES(?,?,?)',message.id,user.id,now).run();return json({saved:true,message:await getMessage(db,message.id,user.id),acknowledged:true});
-    }
-    if(action==='edit'){
-     requireThat(message.author_id===user.id,403,'ownership_required','Only the author can edit this message.');requireThat(!message.deleted_at,409,'source_deleted','This message was deleted.');
-     const text=textValue(body.text,4000,'text');requireThat(text.length,400,'invalid_text','Write a nonempty message.');
-     const hash=await tokenHash(JSON.stringify([message.text,message.reply_to_id,message.thread_root_id]));
-     await db.batch([query(db,"UPDATE live_messages SET text=?,edited_at=?,original_hash=CASE WHEN original_hash='' THEN ? ELSE original_hash END WHERE id=? AND deleted_at IS NULL",text,now,hash,message.id),change(db,message,user.id,'edit',now),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'reference',? FROM live_messages WHERE reply_to_id=?",user.id,now,message.id)]);
+     requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to save this message.');
+     writes.push(query(db,'INSERT OR IGNORE INTO live_bookmarks(message_id,account_id,created_at) SELECT id,?,? FROM live_messages WHERE id=? AND '+guard.sql,user.id,now,message.id,...guard.args));
+    }else if(action==='edit'){
+     const text=textValue(body.text,4000,'text');requireThat(text.length,400,'invalid_text','Write a nonempty message.');const hash=await tokenHash(JSON.stringify([message.text,message.reply_to_id,message.thread_root_id]));
+     writes.push(query(db,"UPDATE live_messages SET text=?,edited_at=?,original_hash=CASE WHEN original_hash='' THEN ? ELSE original_hash END WHERE id=? AND deleted_at IS NULL AND "+guard.sql,text,now,hash,message.id,...guard.args),event('edit'),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'reference',? FROM live_messages WHERE reply_to_id=? AND "+guard.sql,user.id,now,message.id,...guard.args));
     }else if(action==='delete'){
-     requireThat(message.author_id===user.id||staff(channel.role),403,'ownership_required','Only the author or community staff can delete this message.');
      const hash=await tokenHash(JSON.stringify([message.text,message.reply_to_id,message.thread_root_id]));
-     const statements=[query(db,"UPDATE live_messages SET text='',deleted_at=COALESCE(deleted_at,?),pinned=0,original_hash=CASE WHEN original_hash='' THEN ? ELSE original_hash END WHERE id=?",now,hash,message.id),query(db,'DELETE FROM live_reactions WHERE message_id=?',message.id),change(db,message,user.id,'delete',now)];
-     statements.push(query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'reference',? FROM live_messages WHERE reply_to_id=?",user.id,now,message.id));
-     if(message.thread_root_id)statements.push(change(db,{id:message.thread_root_id,channel_id:message.channel_id},user.id,'thread',now));await db.batch(statements);
+     writes.push(query(db,"UPDATE live_messages SET text='',deleted_at=COALESCE(deleted_at,?),pinned=0,original_hash=CASE WHEN original_hash='' THEN ? ELSE original_hash END WHERE id=? AND "+guard.sql,now,hash,message.id,...guard.args),query(db,'DELETE FROM live_reactions WHERE message_id=? AND '+guard.sql,message.id,...guard.args),event('delete'),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'reference',? FROM live_messages WHERE reply_to_id=? AND "+guard.sql,user.id,now,message.id,...guard.args));
+     if(message.thread_root_id)writes.push(event('thread',message.thread_root_id));
     }else if(action==='reaction'){
-     requireThat(!message.deleted_at,409,'source_deleted','This message was deleted.');requireThat(['♥','❤️','💜','👍','🔥','👀','✨','😂','💯','🎯'].includes(body.emoji),400,'invalid_reaction','Choose an available reaction.');requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to add or remove this reaction.');
-     await db.batch([body.active?query(db,'INSERT OR IGNORE INTO live_reactions(message_id,account_id,emoji,created_at) SELECT id,?,?,? FROM live_messages WHERE id=? AND deleted_at IS NULL',user.id,body.emoji,now,message.id):query(db,'DELETE FROM live_reactions WHERE message_id=? AND account_id=? AND emoji=?',message.id,user.id,body.emoji),change(db,message,user.id,'reaction',now)]);
+     requireThat(['♥','❤️','💜','👍','🔥','👀','✨','😂','💯','🎯','😭','💀','🚀'].includes(body.emoji),400,'invalid_reaction','Choose an available reaction.');requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to add or remove this reaction.');
+     writes.push(body.active?query(db,'INSERT OR IGNORE INTO live_reactions(message_id,account_id,emoji,created_at) SELECT id,?,?,? FROM live_messages WHERE id=? AND '+guard.sql,user.id,body.emoji,now,message.id,...guard.args):query(db,'DELETE FROM live_reactions WHERE message_id=? AND account_id=? AND emoji=? AND '+guard.sql,message.id,user.id,body.emoji,...guard.args),event('reaction'));
     }else if(action==='pin'){
-     requireThat(staff(channel.role),403,'moderation_denied','Only community staff can change pins.');requireThat(!message.deleted_at,409,'source_deleted','This message was deleted.');requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to pin this message.');await db.batch([query(db,'UPDATE live_messages SET pinned=? WHERE id=? AND deleted_at IS NULL',body.active?1:0,message.id),change(db,message,user.id,'pin',now)]);
-    }else throw new ApiError(404,'not_found','This message action does not exist.');
-    return json({message:await getMessage(db,message.id,user.id),acknowledged:true});
+     requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to pin this message.');writes.push(query(db,'UPDATE live_messages SET pinned=? WHERE id=? AND '+guard.sql,body.active?1:0,message.id,...guard.args),event('pin'));
+    }
+    const results=await db.batch(writes);requireThat(results[0]?.meta?.changes===1,409,'message_changed','The message, membership or account access changed. Refresh before retrying.');
+    return json({message:await getMessage(db,message.id,user.id),acknowledged:true,...(action==='save'?{saved:true}:{})});
    }
   }
   if(path.length===1&&path[0]==='favorites'){

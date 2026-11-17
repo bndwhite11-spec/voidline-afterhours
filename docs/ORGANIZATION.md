@@ -30,7 +30,7 @@ Owners can update community details, manage invitations, promote/demote moderato
 
 Invitations have expiry, usage limits, explicit previews and revocation. The full invitation token is displayed when created; management lists expose status and usage without recovering secret link tokens. Opening a link never automatically joins a community.
 
-Native restrictions are recorded in `community_timeouts`. New native plaintext sending is disabled, and these restrictions do not purport to revoke access to a separately managed Matrix room. Matrix room moderation requires the corresponding encrypted service integration.
+Native restrictions are recorded in `community_timeouts`. Explicitly acknowledged standard channel sends enforce these restrictions; they do not revoke access to a separately managed Matrix room. Matrix room moderation requires the corresponding encrypted service integration.
 
 Community permission changes and their audit entries are committed in the same D1 batch. Audit entries identify the authenticated actor and necessary action metadata without copying message content. Community owners and moderators receive no platform-owner privileges.
 
@@ -42,3 +42,12 @@ Reports require access to the source and explicit disclosure acknowledgement. Th
 - `node tests/voidline-organize-test.cjs`: controlled DOM/transport checks for read-only Inbox opening, truthful request counts, validated dates, stale search responses, escaped results, client-only encrypted search, local Saved unlock/no server note upload, failed-save retention, independent note IDs, account isolation and vault lock.
 
 These are not browser-layout or live Matrix interoperability tests. Cryptographic vault and Matrix adapter tests live with the secure-messaging module. A configured external encrypted service is required before claiming cross-device encrypted messaging or Saved synchronization.
+
+## Native account conversations
+
+Migration 0007 adds native_conversation_preferences rather than rewriting the
+applied organization_targets kind constraint. Native references require actual
+conversation membership and disappear after membership loss. Folder deletion
+clears references. Inbox includes real native summaries and deliberate read
+actions. Loaded native search stays in the selected conversation and opens an
+exact source; it does not claim full-history DM search. See NATIVE-MESSAGING.md.

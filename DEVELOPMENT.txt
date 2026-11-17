@@ -68,8 +68,9 @@ IDENTITY AND AUTHORIZATION
   bootstrap secrets. Community ownership never implies platform administration.
 
 MESSAGE, VAULT AND MEDIA BOUNDARIES
-- Retained native D1 history is permission-checked and read-only. Do not label
-  old plaintext E2EE or reopen a plaintext send fallback. Creating a native
+- Native D1 history is permission-checked Standard messaging, with explicit
+  server-stored-text consent. Never label it E2EE or use it as an encrypted
+  room fallback. Creating a native
   community does not create a Matrix room. Native friend/block/moderation rules
   are not yet mapped to independent Matrix identities and room permissions.
 - Matrix JS SDK 45.1.0 / Rust crypto WASM 18.9.2 implement the protected path.
@@ -108,7 +109,7 @@ MESSAGE, VAULT AND MEDIA BOUNDARIES
   docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
 
 APPLICATION DATA AND MIGRATIONS
-The complete 0000–0006 migration chain creates 41 application tables. Additive
+The complete 0000–0007 migration chain creates 47 application tables. Additive
 0006_hard_tombstone.sql adds account lifecycle, passkeys/email tokens, verified
 owner/audit/report records, organization/folders/targets/timeouts, profile privacy,
 earned badge definitions/awards and concrete gift instances/transfers/showcases.
@@ -194,3 +195,12 @@ physical passkey behavior, Google/email transport, hosted CPU/load, full Matrix
 message E2EE, multi-device recovery or a production owner from these checks.
 Report deployed HTTP checks and hosted screenshots separately; screenshot
 fixtures must not be described as real owner access or real conversations.
+
+LATEST NATIVE CHAT AND PRESENTATION UPGRADE
+See docs/NATIVE-MESSAGING.md for explicit standard-mode consent, data retention,
+API permissions, retry semantics and unresolved infrastructure. New 0007 adds
+six native messaging/organization tables without changing applied migrations.
+Preserve Matrix security namespaces; never route encrypted IDs to D1 text.
+Entry assets are local and included in offline output; they bypass offline and
+recovery sessions. Prompt download is generated from the authored plain text.
+The 21 badge / 12 gift catalog preserves all existing IDs and ownership.

@@ -1,5 +1,10 @@
 # Privacy boundary and device lifecycle
 
+Built-in Standard messaging is a separate, explicitly consented server-stored
+text mode. It needs no Matrix identity and is not E2EE. Nothing in this document
+labels those D1 conversations encrypted or permits protected Matrix content to
+fall back to them. See NATIVE-MESSAGING.md for that mode and its retention rules.
+
 This is the threat model for the selected Matrix integration and its current
 limits. It is not an independent security review. See ENCRYPTION-DECISION.md for
 implemented code, setup, protocol limitations and remaining engineering.

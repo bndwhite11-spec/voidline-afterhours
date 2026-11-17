@@ -1,0 +1,171 @@
+VOIDLINE: AFTERHOURS — MEGA IMPROVEMENT PROMPT 5
+
+Upgrade the existing VOIDLINE application at:
+https://voidline-afterhours.pipedcactus1.chatgpt.site/
+
+Act as the product designer, frontend engineer, backend engineer and QA engineer. Inspect, implement, verify and prepare a reviewable release. Preserve VOIDLINE's nocturnal internet identity, chrome objects and LARP humor while making ordinary conversations dependable. Keep gifts, badges and profile cosmetics free for this stage.
+
+This prompt combines requested future work with known historical limitations. It is not a statement that every feature below already works. Inspect the latest checkout and deployment before deciding what remains necessary. Preserve newer functioning implementation.
+
+1. AUDIT THE REAL BASELINE
+
+The known starting point is public release v12, source commit a284c4e83e03921e3521a1e7b693c5df07b7a1ef. Its Sites Worker uses D1 binding DB, seven additive migrations through 0006, native account authentication, private organization metadata, profiles, twelve original gifts and a separate Matrix encryption adapter. Recheck these facts against the latest source.
+
+Read project instructions, hosting configuration, schema, authentication, authorization, messaging routes, asset builder, downloads and release documentation. Trace interface actions to actual APIs and records. Distinguish shared persistence, local caches, retained plaintext history, encrypted local Saved, optional Matrix content and unavailable infrastructure. Start with a short prioritized plan, then implement it. Keep modules maintainable rather than adding one giant client file.
+
+2. FIX THE SCREENSHOT'S MESSAGING DEAD END
+
+The supplied screenshot shows an ordinary conversation action opening “Connect encrypted messaging” and reporting that no messaging service is configured. Dismissing this dialog or changing its wording does not make communication work.
+
+Provide an everyday standard messaging path using the existing VOIDLINE account and backend. Require clear, explicit consent before creating or joining standard conversations whose message content is stored on the server. Explain this mode as protected in transit but not end-to-end encrypted. Do not request a second Matrix login for standard DMs, groups or community text channels.
+
+Keep the advanced Matrix path separate. Never silently downgrade an encrypted conversation, reroute an encrypted draft into a standard channel, or relabel server-readable content as E2EE. Existing encrypted conversations and local vaults retain their boundaries. If standard messaging already exists in the latest code, verify and improve that implementation instead of creating a competing system.
+
+3. BUILD REAL STANDARD CONVERSATIONS
+
+Support exact-username lookup, permitted message requests, one-to-one DMs, private groups and community text channels. Show the recipient and privacy mode before the first send. Check blocks, request preferences, active account status, membership and community permissions on every relevant server action.
+
+Use immutable conversation/message IDs, participant records, scoped roles, timestamps, read cursors and pagination. Direct links must resolve to an authorized conversation or message. Changing an ID must never expose someone else's history. Community owners and moderators receive only their scoped capabilities. Opening an invitation must show a preview and never automatically join.
+
+Use versioned additive migrations with unique constraints, foreign keys and indexes. Make conversation creation, invitation acceptance and related membership mutations atomic and retry-safe. Preserve legitimate existing memberships and histories. Do not repopulate new accounts with sample residents, fake conversations or invented unread counts.
+
+4. MAKE DELIVERY AND HISTORY DEPENDABLE
+
+Implement replies, editing, deletion, reactions, pins where authorized, private bookmarks, safe text formatting and copy-message/copy-link actions. Distinguish community-visible pins from personal Saved items.
+
+Persist a stable client transaction ID before sending. Show pending, acknowledged, failed, offline and retrying states based on real responses. A retry must not duplicate a message. Reconcile server IDs, edits, deletions and reactions across two accounts and multiple tabs. Preserve per-account/per-conversation drafts; account switching must never carry a draft into the wrong recipient or privacy mode.
+
+Load earlier history without moving the reader unexpectedly. Provide jump-to-latest and an understandable unread position. Use transport appropriate to the actual host; honest polling is preferable to a simulated “connected” indicator. Typing, presence and read receipts require actual events and privacy controls. Hide unfinished actions or explain their real unavailable state.
+
+5. PRESERVE THE HONEST ENCRYPTION MODEL
+
+Maintain the reviewed Matrix SDK/Rust crypto direction for conversations explicitly labeled encrypted. Never invent a protocol, embed a shared master key, expose a universal administrative decrypt button, or upload plaintext for convenient search.
+
+Recheck configured homeserver, device authorization, key trust, encrypted media, recovery, group membership changes and cache isolation. Distinguish password reset from encryption-key recovery. Retained plaintext history does not become protected because its icon changes.
+
+Document the separate properties of HTTPS, server storage, credential hashing, local vault encryption and E2EE. If Matrix infrastructure or native-to-Matrix permission integration is missing, name that exact limitation. Finish the independently deliverable standard messenger and cosmetics without claiming production encrypted exchange has passed.
+
+6. CREATE AN ORIGINAL ENTRANCE AND LOADING MENU
+
+Reference supplied by the user:
+https://vt.tiktok.com/ZSptGPURD/
+
+Inspection resolved this to a TikTok video page, but the clip could not actually be watched through the available tools. Do not claim to have copied or analyzed unseen animation. Obtain the playable clip if exact reference matching is essential. Otherwise implement an original provisional direction and identify it as such.
+
+Use a dark graphite stage, a precise chrome VOIDLINE mark, a restrained signal sweep and a brief transition into the application. Give first entry a skip control. Returning users should reach their conversations quickly. Authentication redirects must not replay a theatrical intro.
+
+Tie loading labels to real work: checking a session, opening local data or synchronizing accessible conversations. Never invent percentages, completed security checks or connection success. Handle timeouts and retry clearly. Reduced-motion users receive a static equivalent. The entrance must not block error recovery, keyboard use or the message composer.
+
+7. EXPAND TO A COHERENT 21-BADGE DECORATION CATALOG
+
+Preserve the nine existing free decoration IDs: larp, angel, ghost, velvet, night, unknown, dead, voidwalker and orbit. Keep recognizable identities including LARP PRO MAX, 404 Angel, Ghost Frequency and Voidwalker.
+
+Plan twelve additional decorations: six crypto-culture objects and six internet-meme objects, for 21 total free decorative badges. Reconcile against the latest authoritative catalog before adding anything; do not create duplicates or replace existing ownership.
+
+Crypto art-direction IDs: coin-bitforge, coin-etherglass, coin-crosssignal, coin-solarstack, coin-moonshibe and coin-diamondhands. Suggested directions are an engraved warm-metal coin, translucent geometric shard, linked signal seal, stacked spectral bars, playful lunar canine motif and faceted hands. Refine actual names and illustrations in the catalog.
+
+Meme art-direction IDs: meme-grass, meme-npc, meme-yapper, meme-copium, meme-cooked and meme-terminal. Explore Touch Grass, NPC Dialogue, Certified Yapper, Copium Reserve, Absolutely Cooked and Terminally Online through original small objects. Preserve humor without turning the interface into a wall of slogans.
+
+8. GIVE BADGE ART AND OWNERSHIP REAL RULES
+
+Create recognizable silhouettes at username size and richer inspection artwork. Use brushed chrome, dark glass, controlled enamel and limited accent colors. Avoid presenting the same generic token circle with six different letters. Provide textual names, descriptions and material cues.
+
+Crypto badges express internet culture or personal taste. They do not verify wallet holdings, token balances, project affiliation, financial value or staff status. No wallet connection, purchase, investment promise or token launch is required.
+
+Keep three independent models: free decorations, earned achievements and actual roles. Official owner/moderator indicators come from authorized server records. Earned awards show requirements, issuer, award date and revocation state. Claiming/equipping artwork must not award achievements or permissions. Validate ownership server-side; local storage and modified requests cannot mint official records. Support collection filters, inspection, clear equip/remove state and sensible display limits.
+
+9. DEVELOP TELEGRAM-INSPIRED FREE GIFTS
+
+Study the official references below for object presentation and collection behavior. Create original VOIDLINE artwork rather than reproducing Telegram's assets or interface exactly. Preserve the twelve existing gift identities and legitimate owned instances.
+
+Use distinct silhouettes, palettes and material finishes. Detail views should show the actual instance identifier, source, acquisition date and visibility. Optional model/backdrop/symbol traits are acceptable only when represented by real stored attributes. Do not invent edition counts, resale values or rarity probabilities.
+
+Complete recipient selection, eligibility checking, gift selection, review, confirmation, acknowledged receipt, recipient notification and collection acceptance. Clearly distinguish “send a new free gift” from “transfer this owned instance.” Ownership remains unchanged until the authorized transfer acceptance commits. Keep gifts nonmonetary; no Stars, Nitro, wallet, auction or payment infrastructure belongs in this stage.
+
+10. MAKE COLLECTIONS AND GIFT EXPRESSION PERSONAL
+
+Offer category filters, name search, received-date sorting, instance inspection and a small profile showcase. Add named collections if useful; one instance may appear in multiple organizational collections without duplicating its ownership.
+
+Explore “wear this gift” as an explicit profile action that previews a matching accent, restrained symbol or cosmetic status. Keep the user's prior settings recoverable when unequipped. Do not let a cosmetic change conversation privacy, authority or account identity.
+
+Provide sender/recipient privacy, block enforcement, gift acceptance preferences, hiding from public collections and deliberate unwrap behavior. Unwrapping is brief, silent and optional, with a static equivalent. Do not autoplay audio. Private gift messages must use an appropriate protection model; leave them unavailable if that path is not implemented rather than silently storing supposedly encrypted notes as plaintext.
+
+11. MAKE GIFTS CORRECT UNDER CONCURRENCY
+
+Server rules verify active participants, availability, ownership and recipient permission at commit time. Stable request IDs, unique constraints and atomic writes must protect grants, acceptance and transfers against retries and simultaneous requests.
+
+A transferred instance cannot be accepted twice, transferred concurrently to different owners or displayed in the previous owner's showcase. Reconcile legitimate historical server ownership without trusting imported local claims. Keep receipts useful without exposing private notes or sender details beyond the recipient's chosen visibility. A gift or collectible can never grant moderation or platform access.
+
+12. BUILD DISCORD-INSPIRED PROFILE CUSTOMIZATION
+
+Create a clear editor with Identity, Appearance, Badges, Gifts and Privacy sections. Provide compact-popover and full-profile previews, including a mobile preview. Keep changes local until Save, show progress/failure honestly, and protect unsaved edits when leaving.
+
+Support avatar, banner, display name, bio, optional status and a controlled profile accent. Where storage is available, implement safe upload/crop/preview behavior and deletion. Otherwise offer explicit presets; do not expose an upload button that cannot persist.
+
+Treat avatar ornament, profile frame, subtle effect and nameplate as separate cosmetic slots. Show how combinations look before applying them. Use authored chrome, enamel and nocturnal motifs, not constant glow. Provide reset/remove actions and maintain readable names. Server-specific nicknames or appearance require actual membership and separate scoped settings; they never change immutable identity or privileges.
+
+13. RESPECT PROFILE AND VIEWER PRIVACY
+
+Let people control message requests, gifts, collection visibility, richer profile details and supported presence information. Apply blocks across discovery, profiles, gifting and communication. Keep email, provider identity, recovery information and device security details private.
+
+Provide viewer-controlled reduced effects and a readable client theme. Custom profiles must remain usable with reduced motion, high contrast, long names, keyboard navigation and zoom. Decorations should not animate continuously beside every message or slow typing and scrolling. Appearance controls must be free and clearly separated from earned standing and authority.
+
+14. UNIFY EVERYDAY NAVIGATION
+
+Keep a compact community rail, contextual conversation/channel list, comfortable central message area and one optional secondary panel. Preserve conversation context when opening details, search, profiles or threads. Avoid several simultaneous sidebars squeezing the content.
+
+Provide All, Unread, Favorites, DMs and Communities filters; deliberate archive/mute behavior; pinned conversations; folders; draft indicators; exact source links; and a useful Ctrl/Cmd+K switcher. Browser back/forward and direct profile/invitation/message entry must work with root-correct assets.
+
+Search must show its scope. Standard server search requires permissions; encrypted search stays in its reviewed client-side scope. Saved bookmarks must recheck source access and define deleted-source behavior. Opening Inbox must not mark everything read. Notification preferences must not pretend that push delivery is configured.
+
+15. FINISH RESPONSIVE LAYOUT AND ACCESSIBILITY
+
+Test 320, 390, 768 and 1440 CSS-pixel widths. Phones need full-width list/conversation views, predictable Back behavior and a composer that remains usable with the keyboard open. Handle safe areas, longer text, long usernames and message wrapping without horizontal overflow.
+
+Provide comfortable touch targets, visible focus, accessible control names, keyboard-operable menus/pickers, modal focus trapping/restoration and touch alternatives to hover. Use legible secondary text and distinguish selected, hovered, focused, unread and disabled states. Honor reduced motion and zoom. Every loading, empty, offline, permission-denied and failed-save state needs a useful next action.
+
+16. KEEP SECURITY AND OPERATIONS INTACT
+
+Preserve native Argon2id credentials and safe legacy-hash upgrades, revocable secure sessions, CSRF/origin protections, rate limits, verified recovery flows and maintained passkey verification. Google and email controls must reflect real provider configuration.
+
+The intended owner is @xrp. That handle is not proof. Bind ownership only to a verified immutable account ID through the trusted one-time infrastructure process and fresh passkey proof. Ordinary signup, profile edits, community roles and browser flags cannot assign platform administration. Every admin API independently authorizes its caller and records sensitive changes.
+
+Keep secrets server-side and out of assets, archives, logs and repository history. Protect backups and verify restoration in isolation. Preserve schema history; never rewrite applied migrations. Recovery must remain compatible with Argon2id and current authorization controls rather than blindly rolling back an older Worker.
+
+17. VERIFY ACTUAL BEHAVIOR
+
+Use isolated accounts and test environments. Verify empty first launch, returning-data retention, unique usernames, logout/revocation/suspension, ordinary/admin denial and proof-based ownership. Exercise two real accounts exchanging persisted standard messages, then refresh/reconnect. Confirm retry deduplication, edits, deletion, replies, reactions, unread position, blocks and inaccessible-ID rejection.
+
+Test consent and privacy-mode boundaries explicitly: no standard conversation masquerades as encrypted, no encrypted draft reaches the standard API, and a missing Matrix service does not block standard conversation creation. Test gift grant/transfer races, stale ownership, badge authorization, profile privacy and source-access revocation. Check loading cancellation, reduced motion, failed network requests and account switching.
+
+Distinguish actual backend/database tests, controlled transport tests, client VM tests, interactive browser tests and production checks. A mocked Matrix transport does not prove cross-device E2EE. A native screenshot of an opening screen does not prove a complete signed-in layout.
+
+18. DELIVER A REVIEWABLE RELEASE
+
+Finish independent implementation before asking for missing credentials or owner proof. Publish through the existing project workflow unless explicitly instructed otherwise. Preserve the Site identity, audience and database. Commit and push the exact source used for the matching deployment archive and safe downloads.
+
+Return the working URL, source commit, main changes, migration details, authentication/privacy architecture, actual tests and remaining limitations. Provide genuine screenshots of empty home, an active standard conversation, mobile layout, profile customization, badge details, gift flow and authorized administration where access permits. Identify uncaptured screens honestly. Give the smallest exact remaining configuration or account-verification step. Never fabricate a successful login, delivery, ownership binding, encryption test or deployment.
+
+OFFICIAL REFERENCE APPENDIX
+
+Use these as functional inspiration; recheck current documentation before implementation. Feature availability in Telegram or Discord does not establish that VOIDLINE has implemented it. Create original artwork and free product rules.
+
+Telegram collectible presentation and gifting:
+https://telegram.org/blog/collectible-gifts-and-more
+
+Telegram wearable gifts and profile expression:
+https://telegram.org/blog/wear-gifts-blockchain-and-more
+
+Telegram custom gift collections and filters:
+https://telegram.org/blog/post-search-story-albums-and-more
+
+Discord profile customization:
+https://support.discord.com/hc/en-us/articles/4403147417623-Custom-Profiles
+
+Discord profile frames:
+https://support.discord.com/hc/en-us/articles/40775065582615-Profile-Frames-FAQ
+
+Discord nameplates:
+https://support.discord.com/hc/en-us/articles/30408457944215-Nameplates-FAQ
+
+TikTok inspection limitation: the supplied short link resolved to https://www.tiktok.com/@gdic/video/7704470044729740574, but available page/embed responses did not provide viewable footage. No specific animation, timing, colors or layout from that clip is claimed to have been observed.

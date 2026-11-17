@@ -1,5 +1,10 @@
 # Encryption architecture and delivery status
 
+Built-in Standard messaging is a separate, explicitly consented server-stored
+text mode. It needs no Matrix identity and is not E2EE. Nothing in this document
+labels those D1 conversations encrypted or permits protected Matrix content to
+fall back to them. See NATIVE-MESSAGING.md for that mode and its retention rules.
+
 VOIDLINE uses **Matrix JS SDK 45.1.0 with Matrix Rust crypto WASM 18.9.2** for its
 new protected messaging path. The packages are pinned in package-lock.json and
 bundled locally, including the WASM asset. No remote script CDN is used. This

@@ -4,140 +4,107 @@ APP
 https://voidline-afterhours.pipedcactus1.chatgpt.site/
 
 Create a native account with a unique username and a 12–128-character password.
-New accounts start with no joined communities, conversations, contacts, messages,
-collectibles or invented activity. Save the one-time account recovery code in a
-password manager. Existing legitimate accounts, memberships and history remain.
+New accounts have no communities, messages, contacts, collectibles or invented
+activity. Existing legitimate accounts and history remain intact. Keep the
+one-time account recovery code in your password manager.
 
-CURRENT IMPLEMENTATION
-The account client uses a graphite/ice-blue visual system, compact community
-rail, contextual lists, message area and full-width phone navigation. Empty home
-provides Create a community, Join with an invite, Find someone, Saved and profile
-customization. Filters, favorites, pins, archive/mute settings and folders belong
-to the account. Search results open the authorized source. Inbox opening does not
-mark everything read; notification preferences do not claim a working push service.
+THIS UPGRADE
+Built-in account messaging fixes the missing-service dead end. Add someone by
+username, have them accept the friend request, choose Message, review the
+security explanation and start a direct message or group. Community text uses
+the same clear Standard messaging disclosure and scoped server permissions.
 
-Friends and communities use real D1 records and server authorization. Exact-name
-friend requests, consent, blocking, invite previews/revocation, scoped moderation,
-member lists and audit records are implemented. Sample personas and communities
-remain recovery/test fixtures and are never seeded into a new account.
+Standard messaging is protected by HTTPS and authenticated access, with readable
+text stored on the service. It is not end-to-end encrypted. No existing Matrix
+room, key, protected draft or message is converted into standard messaging.
+The optional encrypted connection remains separate and requires its configured
+Matrix service. See docs/NATIVE-MESSAGING.md and docs/ENCRYPTION-DECISION.md.
 
-Profiles provide compact/full views, previewable edits, avatar/banner/accent
-presets, independent detail/collection privacy and three gift showcase slots.
-The nine original decorations, including LARP PRO MAX, 404 Angel, Ghost Frequency
-and Voidwalker, remain free personal cosmetics. Separate earned badges have
-server-validated requirements, issuers and revocation state. Neither kind grants
-a role. Twelve original gift designs support free grants and accepted transfers
-of concrete owned instances, stable retry IDs, blocking, consent and privacy.
-Private gift notes remain unavailable; no plaintext private note is stored.
+The graphite/ice-blue interface keeps navigation and conversational context
+clear. Native messages support server acknowledgments, stable retries, replies,
+edits/deletions, reactions, earlier history, exact links, real unread state and
+five-second change polling while open. Personal favorites/pins/archive/mute and
+folders include native chats. Inbox never silently marks everything read.
+Native file/voice uploads and calls are unavailable; their buttons do not fake
+connections. Search explicitly states loaded-history or community-server scope.
 
-ACCOUNT SECURITY AND OWNER ACCESS
-Native registration/login works without OAuth. Login also accepts a separately
-verified private email. New passwords use maintained Argon2id; older PBKDF2
-credentials upgrade atomically after successful login. Password managers, secure
-server sessions, logout/revocation, suspension checks and offline-code recovery
-are supported. Authentication is separate from message encryption.
+A short original chrome entry reveal is skippable, bounded to 1.19 seconds and
+bypassed for returning sessions, recovery links and reduced motion. It makes no
+fake percentage, connection or backend progress claim. The supplied TikTok link
+could not be watched through the available tools; the design is original.
 
-Google is an optional real OpenID Connect flow, shown only when configured.
-Google client credentials were not available for this upgrade. Verified-email
-verification/reset requires the configured Resend delivery service and sender;
-without it, the UI retains the offline recovery-code path. No provider callback
-or email delivery is fabricated. Passkeys use maintained SimpleWebAuthn and
-provide signed-in step-up verification, not standalone passkey login.
+COLLECTIONS AND PROFILES
+Twenty-one free original badge decorations now include six crypto-culture and
+six internet-meme designs alongside LARP PRO MAX, 404 Angel, Ghost Frequency and
+Voidwalker. Category/Collected filters show actual ownership. Token-inspired
+art does not represent money, wallet balances, verified holdings or affiliation.
 
-The intended owner handle is @xrp. No production owner was verified or bound by
-this upgrade. A username, decoration, community role or first registration grants
-no platform authority. The signed-in holder must prove control with recent
-authentication and a passkey; a trusted operator then binds the exact immutable
-account ID once. The owner dashboard independently checks authority/MFA on every
-API and has no universal message-decryption key. See docs/OWNER-BOOTSTRAP.md.
+Twelve original gift designs support free grants and accepted transfers of
+owned instances, consent, blocking, retry deduplication and three showcase slots.
+Separate earned awards have server requirements, issuers and revocation state.
+No decoration, gift or earned award grants a platform/community role.
 
-SAVED, MESSAGING AND ENCRYPTION BOUNDARIES
-Saved has three explicit scopes:
-  This device: private notes/links/tags in an encrypted IndexedDB vault, usable
-  without Matrix. A separate 16+ character passphrase protects it. It does not
-  sync, export or back up automatically. Losing the passphrase or browser data
-  can lose these notes; account password recovery cannot restore the vault.
-  Encrypted Saved: notes and source references in a protected Matrix self-room,
-  requiring the independent messaging service, keys and current source access.
-  Legacy bookmarks: permission-checked references to retained native history;
-  these older records do not become end-to-end encrypted retroactively.
+Profiles retain previewable avatar/banner/accent presets, bio/status, private
+collections and real owner indicators. The detailed improvement prompt develops
+future Telegram-inspired gift collections/wearable accents and Discord-inspired
+profile frames, nameplates and editing. Those future ideas are not all present
+features. The prompt includes official references and concrete acceptance tests.
 
-New protected messaging uses the pinned Matrix JS SDK and Rust crypto WASM.
-The adapter implements device verification/recovery, text/replies/threads,
-edits/deletions, encrypted custom reactions, authorized pins, encrypted persistent
-drafts/outbox, stable retries and encrypted files/voice notes. Files are limited
-to 8 MiB; recordings require an explicit microphone action and review. Search
-covers loaded decrypted history on the client and labels that limit.
+ACCOUNT SECURITY
+Native passwords use maintained Argon2id. Existing valid password hashes upgrade
+after successful login. Opaque secure cookies, revocation, suspension checks,
+offline-code reset, verified-email recovery and WebAuthn step-up are implemented.
+Google OIDC and email delivery require server provider credentials and truthful
+configuration gates; current production has neither provider configured.
 
-A compatible Matrix homeserver and authorized devices are still required. None
-was configured during this upgrade, and no live encrypted exchange was verified.
-The native account and Matrix identity remain separate. Native friend/block and
-community permissions are not yet mapped to Matrix rooms; creating a Voidline
-community does not create an encrypted channel. Native message history remains
-read-only and new protected content cannot fall back to plaintext D1 writes.
+@xrp identifies the intended owner. Username/display name/community ownership
+cannot grant platform administration. A verified passkey-backed session claim
+plus trusted infrastructure configuration binds the immutable account once.
+No production owner is bound merely by this release. See OWNER-BOOTSTRAP.md.
 
-HTTPS, server storage protection, password hashing, local vault encryption and
-message E2EE are different properties. Local notes and tested attachment crypto
-are not evidence of a completed cross-device E2EE deployment. Calls, live voice,
-video, screen sharing, full encrypted-history search, integrated encrypted-service
-moderation/retention and notification delivery remain incomplete. Detailed limits
-and exact setup are in docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
+STORAGE AND RECOVERY
+D1 is the shared authority. Additive migrations 0000–0007 create 47 application
+tables and preserve existing records. Standard drafts/failed sends use per-tab,
+per-account/sessionStorage and clear on lock/sign-out. The independent encrypted
+local Saved tool uses a separate vault passphrase and is clearly device-only.
+Explicit local-archive review never uploads history or mints official ownership.
 
-DATA AND DOWNLOADS
-Migration 0006_hard_tombstone.sql extends the existing immutable migration chain
-to 41 application tables. D1 remains authoritative for accounts, permissions,
-organization and legitimate collectible ownership. Local archive inspection is
-explicit, read-only and device/origin scoped; no archive is silently uploaded or
-trusted to mint badges, gifts or privileges.
+Account deletion removes native memberships/preferences and credentials, then
+anonymizes author identity; legitimate recipient conversation history remains.
+Password recovery does not recover missing Matrix encryption keys. Operator
+SQLite backups use maintained authenticated encryption and isolated restore;
+hosted D1 retention/restore still requires provider infrastructure access.
 
-The hosted app offers a source ZIP and an offline account/archive viewer. The
-offline copy cannot sign in or make networked chats. Historical recovery exports
-may contain plaintext; store them privately. Source downloads exclude credentials,
-runtime account data, dependency directories and generated recursive output.
-Protected snapshot tooling and isolated restore checks exist; a production D1
-export, restore or backup schedule still requires the managed provider operator.
+DOWNLOADS
+  /downloads/voidline-improvement-prompt.txt  2,480-word improvement prompt
+  /downloads/voidline-source.zip              source without runtime credentials
+  /downloads/voidline-offline.html            offline archive/recovery viewer
+The offline viewer cannot sign in or exchange network messages. These are not
+a signed desktop installer. Recovery exports may contain plaintext history.
 
-BUILD AND VERIFICATION
-Use Node >=22.13 (Node 24 used here), Python 3 and pinned dependencies:
-  npm ci --no-audit --no-fund --cache /tmp/voidline-npm-cache
+BUILD AND CHECKS (Node24 and Python3)
+  npm ci --no-audit --no-fund
   npm run test:server
   npm run test:client
   python3 -m pip install -r requirements-backup.txt
   npm run check:restore
-Generate browser bundles, downloads and the final Worker in this order:
-  npm run build
   python3 build_offline.py
   npm run build
   node scripts/check-build.mjs
 
-Server checks use real handlers and isolated migrated SQLite. Argon2id, JWT and
-WebAuthn signature checks use actual maintained implementations; Google exchange
-and email transport are controlled test doubles. Vault tests use real WebCrypto
-with fake-indexeddb; media tests invoke actual pinned Rust WASM. Client tests use
-controlled DOM/transport and include 43 production-entry behavior checks. These
-are distinct from browser layout, physical authenticator, real Google/email,
-production CPU/load and live two-device Matrix acceptance, which remain unverified.
-Any hosted checks/screenshots must be reported separately by the release report.
+SOURCE GUIDE
+  dist/home.js/.css        account and messaging client
+  dist/entry.js/.css       bounded first-entry reveal
+  dist/cosmetics.js/.css   original badge/gift collection
+  dist/organize.js/.css    private organization, Inbox, Saved and search
+  worker/messages.mjs     standard DM/group authorization and persistence
+  worker/index.mjs        community channels and permissioned standard text
+  worker/auth.mjs          native credentials, sessions and provider integration
+  worker/admin.mjs         passkey-protected owner operations
+  src/secure-messenger.js optional Matrix/Rust encrypted adapter
+  docs/                    setup, threat model, implementation and prompt
 
-SOURCE MAP AND OPERATIONS
-  dist/home.js/.css                    account client, navigation, message UI
-  dist/organize.js/.css                filters, Inbox, Saved, search, communities
-  dist/profiles-panel.js/.css          privacy-aware profiles and editing
-  dist/cosmetics.js/.css; social.js/.css collections, gifts and social controls
-  dist/admin.js/.css                   verified-owner dashboard
-  src/passkey-client.js                maintained WebAuthn browser serialization
-  src/secure-messenger.js              independent Matrix/Rust crypto adapter
-  src/secure-vault.js; local-saved.js   encrypted browser storage and private notes
-  worker/*.mjs                        authorized account/application APIs
-  db/schema.ts; drizzle/              schema, SQL migrations, journal/snapshots
-
-See docs/UPGRADE-STATUS.md for release status and remaining work. See
-DEVELOPMENT.txt, docs/ACCOUNT-SETUP.md, docs/AUTHENTICATION.md,
-docs/COSMETICS.md, docs/ORGANIZATION.md and docs/BACKUP-RESTORE.md.
-Preserve the existing Site project ID, audience and DB binding. Publish through
-the normal Sites workflow. Argon2id credential upgrades make blind rollback to
-the v10 Worker unsafe: it cannot verify upgraded passwords or enforce the new
-suspension state. Roll forward a compatible fix, or use a vetted coordinated
-snapshot restoration after isolated verification; never destructively downgrade
-the schema. Do not edit an applied migration or put secrets in
-source, client bundles, public configuration, logs or downloadable exports.
+Full suites mix actual SQLite/crypto checks with controlled DOM/transport and
+historical fixture regressions. They do not prove interactive browser/device or
+live Matrix behavior. Supported browser controls were unavailable for this work.
+See docs/UPGRADE-STATUS.md for current delivery boundaries.

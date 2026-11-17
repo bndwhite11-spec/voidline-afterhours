@@ -275,3 +275,25 @@ export const badgeAwards = sqliteTable("badge_awards", {
 export const giftCatalog = sqliteTable("gift_catalog", {
  id:text("id").primaryKey(),name:text("name").notNull(),description:text("description").notNull(),active:integer("active").notNull().default(1),updatedBy:text("updated_by").references(()=>liveAccounts.id),updatedAt:integer("updated_at").notNull(),
 });
+
+// Explicitly selected standard messaging. These are access-controlled server
+// records; they are never advertised as end-to-end encrypted Matrix rooms.
+export const nativeConversations = sqliteTable("native_conversations", {
+ id:text("id").primaryKey(),kind:text("kind").notNull(),name:text("name").notNull().default(""),securityMode:text("security_mode").notNull().default("standard"),
+ createdBy:text("created_by").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),requestHash:text("request_hash").notNull(),pairKey:text("pair_key").unique("native_conversations_pair_unique"),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull(),
+},t=>[unique("native_conversations_creator_client_unique").on(t.createdBy,t.clientId),check("native_conversations_kind",sql`${t.kind} IN ('dm','group')`),check("native_conversations_security",sql`${t.securityMode}='standard'`)]);
+export const nativeMembers = sqliteTable("native_members", {
+ conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),accountId:text("account_id").notNull().references(()=>liveAccounts.id),joinedAt:integer("joined_at").notNull(),readSeq:integer("read_seq").notNull().default(0),readChangeSeq:integer("read_change_seq").notNull().default(0),
+},t=>[primaryKey({columns:[t.conversationId,t.accountId]}),index("native_members_account").on(t.accountId,t.conversationId)]);
+export const nativeMessages = sqliteTable("native_messages", {
+ seq:integer("seq").primaryKey({autoIncrement:true}),id:text("id").notNull().unique("native_messages_id_unique"),conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),authorId:text("author_id").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),text:text("text").notNull(),replyToId:text("reply_to_id"),originalHash:text("original_hash").notNull(),editedAt:integer("edited_at"),deletedAt:integer("deleted_at"),createdAt:integer("created_at").notNull(),
+},t=>[unique("native_messages_retry_unique").on(t.conversationId,t.authorId,t.clientId),index("native_messages_conversation_seq").on(t.conversationId,t.seq),index("native_messages_reply").on(t.replyToId)]);
+export const nativeReactions = sqliteTable("native_reactions", {
+ messageId:text("message_id").notNull().references(()=>nativeMessages.id),accountId:text("account_id").notNull().references(()=>liveAccounts.id),emoji:text("emoji").notNull(),createdAt:integer("created_at").notNull(),
+},t=>[primaryKey({columns:[t.messageId,t.accountId,t.emoji]})]);
+export const nativeChanges = sqliteTable("native_changes", {
+ seq:integer("seq").primaryKey({autoIncrement:true}),conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),messageId:text("message_id").notNull().references(()=>nativeMessages.id),actorId:text("actor_id").notNull().references(()=>liveAccounts.id),kind:text("kind").notNull(),createdAt:integer("created_at").notNull(),
+},t=>[index("native_changes_conversation_seq").on(t.conversationId,t.seq)]);
+export const nativeConversationPreferences = sqliteTable("native_conversation_preferences", {
+ accountId:text("account_id").notNull().references(()=>liveAccounts.id),conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),favorite:integer("favorite").notNull().default(0),pinned:integer("pinned").notNull().default(0),archived:integer("archived").notNull().default(0),muted:integer("muted").notNull().default(0),folderId:text("folder_id").references(()=>organizationFolders.id,{onDelete:"set null"}),readSeq:integer("read_seq").notNull().default(0),updatedAt:integer("updated_at").notNull(),
+},t=>[primaryKey({columns:[t.accountId,t.conversationId]})]);

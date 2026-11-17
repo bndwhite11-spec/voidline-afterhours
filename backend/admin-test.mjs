@@ -112,7 +112,7 @@ test('community invitation revocation and report reviews are authorized and audi
   assert.equal((await f.ok('owner','/communities')).communities[0].name,'Private room');await f.ok('owner','/communities/community/revoke-invites',{reason:'Community abuse investigation'});assert.ok(f.sqlite.prepare('SELECT revoked_at FROM live_invites').get().revoked_at);
   f.sqlite.prepare("INSERT INTO abuse_reports(id,reporter_id,target_type,target_id,reason,detail_text,status,created_at) VALUES('report','member','account','name-only','Spam','Only voluntarily submitted evidence','open',1)").run();
   assert.match((await f.ok('owner','/reports')).reports[0].detail_text,/voluntarily/);await f.ok('owner','/reports/report/resolve',{status:'resolved',reason:'Reviewed submitted evidence'});assert.equal(f.sqlite.prepare('SELECT status FROM abuse_reports').get().status,'resolved');
-  const health=await f.ok('owner','/health');assert.equal(health.e2eeDecryptionAvailable,false);assert.equal(health.ownerMessageContentAccess,false);assert.equal(health.legacyTextMode,'read-only-plaintext');assert.equal(health.backup.manualExportAvailable,false);
+  const health=await f.ok('owner','/health');assert.equal(health.e2eeDecryptionAvailable,false);assert.equal(health.ownerMessageContentAccess,false);assert.equal(health.legacyTextMode,'explicit-consent-server-stored');assert.equal(health.backup.manualExportAvailable,false);
  }finally{f.sqlite.close();}
 });
 test('official gifts remain free and reviewed awards cannot become platform roles',async()=>{

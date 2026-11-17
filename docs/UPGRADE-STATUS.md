@@ -1,137 +1,112 @@
-# VOIDLINE upgrade: implementation and release boundaries
+# VOIDLINE delivery status: loading, collections and account messaging
 
-The existing public Site, account IDs, histories, memberships and legitimate
-cosmetic ownership are preserved. New native accounts remain empty. Explicit
-local-archive review never silently uploads messages or trusts local ownership.
+This upgrade starts from the existing public version 12 source a284c4e. It keeps
+the same Site, database, accounts, histories, community memberships and genuine
+ownership. The TikTok clip could not be played through the available tools.
+The loading design is original, not a verified reproduction of that reference.
 
-## Delivered implementation
+## Implemented scope
 
-- Graphite/ice-blue navigation, contextual lists, empty home, exact links,
-  keyboard switcher, responsive panes and consistent error/loading states.
-- Native username or verified-email login, Argon2id password hashing, atomic
-  migration of existing password hashes, opaque revocable cookie sessions,
-  recovery-code reset, optional verified-email reset and Google OIDC.
-- Maintained WebAuthn verification with user verification required; one-time
-  infrastructure ownership binding to an immutable account ID. Public @xrp is
-  not authority. The protected dashboard independently checks every API.
-- Durable private filters, folders, conversation preferences, explicit Inbox
-  read actions, permission-aware legacy search and source navigation.
-- Independent encrypted local Saved notes, plus separate self-only encrypted
-  Matrix Saved. Device-only notes are not advertised as cloud synchronization.
-- Richer profiles and visibility settings, blocking, 12 free original gift
-  designs, atomic grant/owned-instance transfer requests, collection details,
-  three showcase slots, separate earned awards and cosmetic decorations.
-- Matrix SDK/Rust crypto adapter actions for encrypted conversations, threads,
-  replies, edits, deletions, reactions, bookmarks and encrypted attachments or
-  voice notes. Durable encrypted per-thread drafts and outbox use stable IDs.
-- Additive migration 0006, retaining migrations 0000–0005 unchanged: account
-  security, ownership/audit, profile, organization and collectible records.
-  The schema has 41 application tables. D1 remains the shared-data authority;
-  browser storage cannot mint server gifts, awards, roles or memberships.
-- Protected local SQLite snapshots and an isolated, authenticated restore
-  procedure. Downloads remain a credential-free source ZIP and an offline
-  archive/recovery viewer, not a desktop cloud-chat executable.
+- Built-in native account DMs and private groups, with accepted-friend creation,
+  explicit Standard messaging consent and durable server text. It removes the
+  requirement to configure a separate Matrix account merely to start a chat.
+- Scoped community text/announcement sending, with explicit mode consent,
+  author/role/timeout checks, replies, edits/deletions, reactions and read state.
+- Native message stable retries, pending/error states, earlier history, exact
+  source links and five-second change polling. Organization includes private
+  native favorites, pins, mute/archive and folders. Inbox opening is read-only;
+  loaded account search states its scope and source. Friends has a Message
+  action that opens review, never creates a conversation without confirmation.
+- Original chrome entry reveal, skippable/Escape, bounded to 1.19 seconds, bypassed
+  on reduced motion, returning sessions, recovery links and offline copies.
+  No fake progress percentage or simulated connection status.
+- Twelve additional original free badge designs: six crypto-culture and six
+  internet memes. Total 21 cosmetic badges and 12 gift designs. Category/Collected
+  filters, distinct inspectable artwork and actual server-owned/equipped state.
+- A 2,480-word plain-text improvement prompt with Telegram gift and Discord
+  profile customization research. Broader proposed frames/nameplates, gift
+  collections and wearable effects are plans rather than claimed completion.
+- Additive migration 0007_cloudy_orphan.sql, six new native messaging tables;
+  complete 0000–0007 schema totals 47 application tables. Applied earlier SQL is
+  unchanged. Account deletion removes native preferences/membership and
+  anonymizes retained message authors under the existing guarded transaction.
+- Encrypted local backup/restore fixtures now include both community and native
+  history. Native organization metadata requires current membership and folders
+  clear references on deletion. Existing native auth, passkeys and owner proof
+  requirements are retained.
 
-## Architecture
+## Security modes
 
-The Sites Worker owns application APIs and uses the existing D1 binding `DB`.
-Native passwords use pinned @noble/hashes Argon2id, 19 MiB memory, two iterations,
-one lane, independent random salts. Previously valid PBKDF2 credentials upgrade
-only after successful login. SimpleWebAuthn verifies real public-key signatures.
-Optional Google OIDC uses jose, provider subject identity, state, PKCE, nonce,
-issuer/audience checks and server-side token verification. Resend supplies the
-optional verified recovery channel. Configuration secrets stay server-side.
+Standard messaging uses HTTPS and permission-checked server persistence. The
+service/database operator can read its message text. The UI and API label it
+not end-to-end encrypted. New conversations and content require explicit mode
+acknowledgment. It is a distinct mode, not a fallback for Matrix conversations,
+protected drafts or outbox data. Native sessionStorage drafts are readable local
+storage, isolated by account/conversation and purged on lock/sign-out; that is
+separate from the encrypted local Saved/Matrix vault.
 
-Private message encryption uses matrix-js-sdk 45.1 and Rust crypto 18.9.2, not
-a key embedded in the client or a server universal decryption key. Matrix
-attachment encryption is implemented by the maintained Rust Attachment API.
-The service and Matrix still observe account, routing, timing and room metadata.
-HTTPS, server storage security, password hashing and E2EE are separate properties.
+The optional maintained Matrix SDK/Rust crypto path remains unchanged and
+unconfigured. Its existing tests use controlled transport; no real homeserver,
+physical-device verification, group rekeying or recovery acceptance is inferred.
+A native account or community does not create a Matrix identity or room. Full
+E2EE product acceptance still requires operated infrastructure and identity/
+permission integration. Existing plaintext history is never relabeled E2EE.
 
-The local vault is a separate at-rest protection: a user-supplied passphrase,
-PBKDF2-HMAC-SHA256 600,000 rounds and AES-256-GCM, account/device-scoped IndexedDB,
-authenticated record IDs and fresh IVs. It does not create an E2EE messaging
-protocol. Password recovery does not restore missing encryption keys. Retained
-plaintext history remains explicitly read-only and plaintext.
+## Authentication and ownership
 
-## Verification performed before publication
+Native username/password login works without provider setup. Passwords use
+maintained Argon2id, and older valid password hashes upgrade on successful login.
+Google OIDC and verified email/reset delivery are implemented but require actual
+provider credentials in the host's server secret store. Their configured state
+remains truthful. No OAuth/client credential or account database goes into the
+public source or browser bundle.
 
-The full current server and client runners pass, along with encrypted backup
-restore, actual Rust attachment roundtrip/tamper, real WebCrypto/IndexedDB, real
-WebAuthn generated-key signatures and local Worker-runtime Argon2id tests.
-Database tests use migrated isolated SQLite and actual HTTP handlers. Adapter
-transport tests use controlled Matrix SDK/network doubles. Client VM tests
-exercise UI logic and account switching; they do not replace a browser/device.
-Production dependency audit reports no known vulnerabilities.
+@xrp remains the intended owner handle, not authentication evidence. No owner is
+assigned by username, first registration, client flags or community ownership.
+The actual account holder must sign in, enroll/verify a passkey and create an
+Owner verification request; trusted infrastructure resolves its immutable ID
+and performs the one-time atomic binding. No production owner is bound merely
+by this release. See OWNER-BOOTSTRAP.md.
 
-The built Worker is checked for exact asset bytes, HEAD/ETag behavior, deep-page
-asset resolution, private build-path exclusion, provider configuration gates,
-project identity and all seven packaged migrations. Download tests reject
-runtime database/backup files and credential material. Live HTTP/API smoke and
-source-byte comparison are separate release operations, not inferred successes.
+## Verification boundaries
 
-## Configuration and unfinished acceptance
+Focused implementation suites exercise actual handlers and migrated SQLite,
+including object access, friendship/block rules, roles, retries, session/account
+revocation and deterministic commit races. An independent handler review covers
+account deletion, preserved anonymized history, remaining group messaging,
+source deletion and revoked membership. Client checks use controlled DOM and
+transport, and loading checks use a controlled clock; they are not physical
+browser, animation, keyboard or microphone acceptance.
 
-These limits must remain visible and must not be represented as completed:
+Full server/client runners, backup restore and built Worker asset/migration
+checks are run for packaging. Public release checks compare served bytes and
+use isolated temporary accounts for standard message exchange, retry and
+mutation synchronization; release reporting records the actual results rather
+than assuming successful deployment proves these flows.
 
-1. **Owner:** no real owner account was bound during implementation. The holder
-   must sign into the intended @xrp, confirm authentication, enroll and verify
-   a passkey, and create an owner-access request. Trusted infrastructure then
-   resolves the five-minute proof, configures the exact immutable ID, binds
-   once, and removes bootstrap settings. See OWNER-BOOTSTRAP.md.
-2. **Google:** requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, VOIDLINE_ORIGIN
-   and the exact registered `/api/auth/google/callback`. A missing provider
-   returns unavailable and its sign-in button stays hidden.
-3. **Email:** requires RESEND_API_KEY, EMAIL_FROM and a verified sending domain.
-   No verified email delivery or reset-inbox acceptance is claimed without it.
-4. **Encrypted conversations:** MATRIX_HOMESERVER is unconfigured. Account and
-   community creation do not create a Matrix identity/room. Native-to-Matrix
-   identity and permission mapping remains an integration stage. Two-device
-   exchange, device verification/revocation, recovery, group membership and
-   attachment lifecycle tests require that infrastructure. The adapter's local
-   tests do not complete the product E2EE requirement.
-5. **Remaining product infrastructure:** push delivery, calls/video/screenshare,
-   private encrypted gift notes, full-history encrypted search, structured
-   mention selection, authoritative presence/read receipts and coordinated
-   server-media retention are unavailable. Community timeouts do not revoke
-   a separately authorized Matrix room membership.
-6. **Operations:** this environment has no hosted D1 export/restore/scheduling
-   controls. Local encrypted restore proves the tool, not production backups.
-   Provider backup policy and an isolated hosted restore still need operator
-   infrastructure access.
-7. **Browser/device proof:** no supported interactive browser controls were
-   available in this workspace. Width rules and UI state tests were inspected;
-   real 320/390/768/1440px interaction, keyboard/microphone/media/passkey devices,
-   authenticated screenshots and production cross-device encryption are not
-   claimed. A native hosted screenshot is only proof of its captured page.
+## Remaining limits
 
-Refer to AUTHENTICATION.md, OWNER-BOOTSTRAP.md, ENCRYPTION-DECISION.md,
-ENCRYPTION-THREAT-MODEL.md, ORGANIZATION.md, COSMETICS.md and BACKUP-RESTORE.md
-for precise flows and operating procedures.
+Native uploads/voice notes, calls/video/screenshare, push delivery, complete group
+management, full-history DM search, verified presence and recipient-read receipts
+remain unavailable. A suspended participant currently blocks new content in a
+native group until resolved; account deletion removes membership so remaining
+participants can continue. Matrix moderation remains separate from native roles.
 
-## Release verification, 17 November 2026
+Google/email need provider settings. Full E2EE needs Matrix infrastructure and
+integration. Hosted D1 export/backup scheduling/restoration needs provider
+infrastructure controls; local restore tests do not prove production retention.
+The owner must complete authenticated proof. Supported interactive browser
+controls are unavailable, so mobile/device acceptance and authenticated
+conversation/profile/gift/admin screenshots are not claimed.
 
-The implementation was published as version 11 at the existing public URL and
-pushed to GitHub, source commit f3c1908c851dfdea5c5a831320fdc90bad95c1a9.
-The final runners passed 158 server checks and 236 client checks. The separate
-backup/restore suite passed two checks. These counts include controlled transport
-and historical-client fixtures; they are not counts of real-browser scenarios.
+## References and deliverables
 
-Two isolated live accounts passed Argon2id registration (1.79s and 1.10s), empty
-first launch, logout invalidation, stable-identity password login, profile scope,
-persisted organization preferences, ordinary-account administration denial,
-friend acceptance, free gift retry deduplication, collection and blocking.
-Both accounts were deleted afterward and their old sessions were rejected.
-This smoke did not exercise a real encrypted conversation or an owner account.
+- VOIDLINE-MEGA-IMPROVEMENT-5.txt: detailed copyable plain-text implementation brief.
+- NATIVE-MESSAGING.md: standard-mode architecture, authorization and retention.
+- COSMETICS.md: current 21 badge / 12 gift catalog and legitimate ownership rules.
+- ENCRYPTION-DECISION.md and ENCRYPTION-THREAT-MODEL.md: separate Matrix/vault model.
+- AUTHENTICATION.md, OWNER-BOOTSTRAP.md and BACKUP-RESTORE.md: operator procedures.
 
-Production D1 inspection showed all 41 application tables. All 24 public assets
-(10,587,969 bytes for that release) matched the local build exactly after one
-HTTP decompression. Four direct-entry routes, seven private/nonproduction paths,
-three anonymous private APIs, HEAD and unconfigured Google behavior were checked.
-The Site remains public. The native hosted screenshot captured only the early
-Opening Voidline state; it is not an authenticated UI or finished-layout check.
-No authenticated, mobile, gift-flow or admin screenshot is represented as taken.
-
-A subsequent documentation-only release corrects the exact owner-request label
-and packages this evidence. Its client/API logic is unchanged from the tested
-implementation; matching build bytes are verified again after publication.
+The source ZIP and offline viewer are downloadable; the offline viewer cannot
+sign in or perform shared messaging. The plain-text prompt has its own download.
+These outputs do not constitute a signed desktop installer.

@@ -12,6 +12,10 @@ root = Path(__file__).resolve().parent
 dist = root / 'dist'
 downloads = dist / 'downloads'
 downloads.mkdir(exist_ok=True)
+prompt_source = root / 'docs' / 'VOIDLINE-MEGA-IMPROVEMENT-5.txt'
+if not prompt_source.is_file():
+    raise ValueError('Missing the authored improvement prompt.')
+(downloads / 'voidline-improvement-prompt.txt').write_text(prompt_source.read_text(encoding='utf-8'), encoding='utf-8')
 html = (dist / 'index.html').read_text(encoding='utf-8')
 inlined_styles = []
 inlined_scripts = []
@@ -89,8 +93,8 @@ html = re.sub(r'<html\b[^>]*>', mark_offline, html, count=1, flags=re.IGNORECASE
 html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
-required_styles = {'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profiles-panel.css', 'admin.css'}
-required_scripts = {'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'profiles-panel.js', 'admin.js'}
+required_styles = {'entry.css', 'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profiles-panel.css', 'admin.css'}
+required_scripts = {'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'profiles-panel.js', 'admin.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
     raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:
