@@ -154,7 +154,7 @@ for different text fails. History/catch-up uses the committed sequence cursor,
 not client wall-clock order. A saved state does not imply delivery/read receipts.
 
 17. Schema ownership belongs to generated migrations.
-db/schema.ts preserves backend/schema.sql's six-table contract. Run npm run
+db/schema.ts extends the six-table v6 contract with additive migrations. Run npm run
 db:generate after schema edits. Review and retain the generated SQL, journal
 and snapshot. Applied migration history is immutable. Request handlers perform
 bounded data operations and never create or alter migration-owned tables.
@@ -176,13 +176,40 @@ BUILD / PREVIEW ORDER
   node tests/run.cjs
   node backend/test.mjs
   python3 build_offline.py
-  node /home/agent/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/scripts/build-site.mjs
+  npm run build
+  node scripts/check-build.mjs
 
 For local D1 only, apply each pending migration once after the build:
   node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/0000_grey_zarda.sql
 Local and hosted databases are separate. Use the managed preview daemon:
-  sites-preview start /workspace/sites/voidline-afterhours/.sites-checkout
+  sites-preview start /workspace/work/voidline
 No standalone preview server is started. The package dev adapter runs Wrangler
 with local D1 through the daemon, without an authentication mock. Publish only
 through the Sites source/package/deploy workflow, preserving project identity
 and current hosting audience. See backend/README.txt for API contracts.
+
+SHARED CONVERSATIONS / UPGRADE INVARIANTS
+
+19. Changes are durable events, not only new message sequence numbers.
+Mutations and their change records commit together. Reconnection replays edits,
+deletions, reactions and pins from the last applied cursor. Deletion blanks
+content while retaining IDs for references. A retry validates the original
+request fingerprint, so editing a confirmed message cannot create a duplicate.
+
+20. Account tools never inherit another identity's state.
+Shared favorites, bookmarks and read watermarks are private account records.
+Every mutation must contain the expected authenticated account ID. Both client
+identity epochs and navigation/request generations reject stale responses.
+Search query ordering is independent from dialog and account ordering.
+
+21. Permissions are reevaluated for every source access.
+A saved message is not a permanent grant to private conversation content.
+Leaving/removal revokes history, search, source jumps and bookmark previews.
+References remain opaque and removable when the original is unavailable.
+
+22. Client, download and deployed Worker must agree.
+scripts/check-build.mjs imports the actual generated Worker and compares every
+served asset with the source bytes, checks HEAD/ETag and hidden build paths,
+and checks packaged migrations and the preserved Site identity. The isolated
+delivery suite injects secret/dependency/recursive-output canaries and verifies
+they cannot enter the source ZIP. These are not browser screenshot tests.

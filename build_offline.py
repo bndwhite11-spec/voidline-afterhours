@@ -90,9 +90,9 @@ html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
 required_styles = {'styles.css', 'polish.css', 'live.css'}
-required_scripts = {'app.js', 'live.js'}
+required_scripts = {'app.js', 'live.js', 'live-tools.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
-    raise ValueError('The entrypoint must load the complete client, including polish.css, live.css, and live.js.')
+    raise ValueError('The entrypoint must load the complete client, including polish.css, live.css, live.js, and live-tools.js.')
 if 'data-offline="true"' not in html:
     raise ValueError('The offline edition flag was not inserted.')
 

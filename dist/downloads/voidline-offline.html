@@ -1216,6 +1216,89 @@ dialog::backdrop { background: #060409bb; backdrop-filter: blur(5px); }
   dialog::backdrop { backdrop-filter: none; }
 }
 
+/* Shared and personal spaces keep the same reading, focus and recovery rules. */
+:root {
+  --p-radius-small: 7px;
+  --p-radius-panel: 14px;
+  --p-danger: #f0b7b9;
+  --p-success: #b9d5c7;
+  --p-focus: 2px solid var(--p-signal);
+}
+.channel-header { height: auto; flex-shrink: 0; }
+.channel-header-title { min-width: 0; }
+.message-text, .thread-feed .message-text, .compact .message-text {
+  font-size: var(--type-message);
+  line-height: var(--reading-line);
+}
+.composer>textarea, .thread-composer>textarea { max-height: min(160px,24dvh); }
+.composer-wrap, .thread-composer { flex-shrink: 0; }
+.message-text pre { max-width: 100%; overflow: auto; }
+.message-text code, .message-text a { overflow-wrap: anywhere; }
+.message-text pre code { overflow-wrap: normal; }
+.replying-bar, .attachment-chip { min-width: 0; }
+.replying-bar>span, .attachment-chip>span { min-width: 0; overflow-wrap: anywhere; }
+.search-hit, .search-person, .saved-message, .inbox-entry, .notification-item { min-width: 0; }
+.search-hit-location, .saved-message-source p, .inbox-entry-source p { overflow-wrap: anywhere; white-space: normal; }
+.saved-message-actions, .inbox-entry-actions { flex-wrap: wrap; }
+.inbox-entry-actions>span { overflow-wrap: anywhere; }
+.context-menu { max-width: calc(100vw - 16px); max-height: min(560px,calc(100dvh - 24px)); overflow-y: auto; overscroll-behavior: contain; }
+.context-menu>button { overflow-wrap: anywhere; }
+.context-menu>button.danger, .danger-button { color: var(--p-danger); }
+.danger-button { border-color: #b67f8a80; background: #a45d6d19; }
+.danger-button:hover { border-color: #d6a0a9; color: #ffe0e5; background: #bd6b7d29; }
+button:disabled, button[aria-disabled="true"] { cursor: not-allowed; }
+form[aria-busy="true"] button:disabled { cursor: progress; }
+.server-rail [data-tooltip]::after { max-width: min(270px,calc(100vw - 110px)); white-space: normal; width: max-content; text-align: left; }
+.vp-profile-heading, .vp-profile-identity, .vp-editor-form, .va-card-info { min-width: 0; }
+.vp-profile-heading h2, .vp-bio, .vp-profile-status, .va-card-info strong, .va-card-info>span, .va-detail-lore { overflow-wrap: anywhere; }
+.vp-profile-actions, .vp-editor-footer { flex-wrap: wrap; }
+.va-filter-tabs { flex-wrap: wrap; }
+.va-archive-toolbar { align-items: flex-start; }
+.va-archive-footer { flex-wrap: wrap; }
+.vp-order-item>div { flex-shrink: 0; }
+dialog { overscroll-behavior: contain; scrollbar-gutter: stable; }
+#modal-content { min-width: 0; }
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: var(--p-focus); outline-offset: 3px; }
+.message:focus-visible { outline-offset: -3px; }
+.titlebar-command, .download-top, .context-filter, .context-favorite, .live-favorite-button { transition: color 120ms, background-color 120ms, border-color 120ms; }
+@media (max-width:760px) {
+  .titlebar-command, .download-top { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  .header-actions>.inbox-top { display: inline-flex; }
+  .header-actions>.icon-button, .self-controls .icon-button { min-width: 44px; min-height: 44px; }
+  .saved-message-actions button, .inbox-entry-actions button, .inbox-toolbar button { min-height: 44px; }
+  .context-filter { min-height: 44px; }
+  .thread-heading .icon-button { width: 44px; height: 44px; }
+  .channel-scope { font-size: 11px; }
+  .vp-world-body { overflow-wrap: anywhere; }
+  .composer-caption>button { min-width: 36px; min-height: 36px; }
+  .va-archive-head { align-items: flex-start; }
+  .va-archive-head h2 { font-size: clamp(22px,6vw,31px); }
+  .va-inspect-nav { flex-wrap: wrap; }
+}
+@media (max-width:390px) {
+  .header-actions>.inbox-top { display: inline-flex; }
+  .channel-header-title { min-width: 0; }
+  .channel-header { gap: 3px; padding-left: 7px; padding-right: 7px; }
+  .channel-header-title h1 { font-size: 15px; }
+  .header-actions { padding-left: 0; }
+  .vp-fields-two { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-height:560px) {
+  .channel-header { min-height: 56px; }
+  .channel-scope { min-height: 26px; padding-top: 3px; padding-bottom: 3px; }
+  .composer-wrap { padding-top: 6px; padding-bottom: max(6px,env(safe-area-inset-bottom)); }
+  .chat-feed { min-height: 44px; }
+  dialog { max-height: calc(100dvh - 18px); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .titlebar-command, .download-top, .context-filter, .context-favorite, .live-favorite-button { transition: none; }
+}
+body.reduce-motion .titlebar-command, body.reduce-motion .download-top, body.reduce-motion .context-filter, body.reduce-motion .context-favorite, body.reduce-motion .live-favorite-button { transition: none; }
+@media (forced-colors:active) {
+  .context-filter[aria-pressed="true"], .channel-button.active, .live-channel-list .is-active, .live-channel-filters .is-active { outline: 2px solid Highlight; outline-offset: -3px; }
+  .reaction.active, .live-reactions [aria-pressed="true"], .live-favorite-button[aria-pressed="true"] { border: 2px solid Highlight; }
+}
+
 </style>
 <style data-source="live.css">
 /* A shared frequency in the same VOIDLINE shell. */
@@ -1229,11 +1312,11 @@ body.vl-live-mode .local-tag { display:flex; gap:7px; align-items:center; color:
 body.vl-live-mode .local-tag .icon { width:14px; height:14px; }
 body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing:.06em; }
 .live-sidebar { min-width:0; display:flex; flex-direction:column; background:var(--sidebar); border-right:1px solid var(--line); overflow-y:auto; }
-.live-sidebar-heading { padding:24px 20px 20px; border-bottom:1px solid var(--line); }
+.live-sidebar-heading { padding:17px 20px 15px; border-bottom:1px solid var(--line); }
 .live-sidebar-heading .eyebrow { font-size:9px; letter-spacing:.11em; color:#aca0bd; }
 .live-sidebar-heading h2 { font-size:18px; font-weight:560; letter-spacing:-.35px; margin:10px 0 7px; color:#ede6f5; }
 .live-sidebar-heading p { font-size:12px; color:#9f95ae; margin:0; }
-.live-space-picker { padding:23px 15px 10px; }
+.live-space-picker { padding:16px 15px 10px; }
 .live-space-picker label,.live-channel-heading { font-size:9px; color:#aaa0b8; letter-spacing:.09em; font-weight:550; }
 .live-space-picker label { display:block; margin:0 5px 10px; }
 .live-space-picker select { margin:0; height:42px; width:100%; min-width:0; border:1px solid #4d425e; background:#25212e; border-radius:8px; padding:8px 10px; color:#ded4ed; font-size:13px; text-overflow:ellipsis; }
@@ -1247,10 +1330,10 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 .live-channel-heading button:hover { background:#b198cf17; }
 .live-channel-heading .icon { width:16px; height:16px; }
 .live-channel-list { padding:0 11px 18px; flex:1; }
-.live-channel-list>button { display:flex; align-items:center; gap:9px; width:100%; min-height:40px; text-align:left; color:#b2a6c2; padding:8px 10px; border:1px solid transparent; border-radius:8px; font-size:13px; margin:3px 0; }
-.live-channel-list>button>span:nth-child(2) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.live-channel-list>button:hover { color:#e6d9f8; background:#b29ccc10; }
-.live-channel-list>button.is-active { color:#eadefb; border-color:#ae8bd42e; background:linear-gradient(100deg,#a283d02a,#9b7fc512); }
+.live-channel-list [data-live-channel] { display:flex; align-items:center; gap:9px; width:100%; min-height:40px; text-align:left; color:#b2a6c2; padding:8px 10px; border:1px solid transparent; border-radius:8px; font-size:13px; margin:3px 0; }
+.live-channel-list [data-live-channel]>span:nth-child(2) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.live-channel-list [data-live-channel]:hover { color:#e6d9f8; background:#b29ccc10; }
+.live-channel-list [data-live-channel].is-active { color:#eadefb; border-color:#ae8bd42e; background:linear-gradient(100deg,#a283d02a,#9b7fc512); }
 .live-channel-symbol { color:#b29bc9; font-size:21px; width:19px; flex-shrink:0; font-weight:400; }
 .live-channel-symbol .icon { width:17px; height:17px; }
 .live-channel-list small { margin-left:auto; font-size:8px; color:#b59eca; letter-spacing:.04em; }
@@ -1259,7 +1342,7 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 .live-sidebar-account>button { text-align:left; min-width:0; flex:1; }
 .live-sidebar-account b,.live-sidebar-account small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .live-sidebar-account b { font-size:13px; font-weight:550; color:#e1d5ee; }
-.live-sidebar-account small { font-size:10px; color:#a294b3; margin-top:5px; }
+.live-sidebar-account small { font-size:12px; color:#a294b3; margin-top:5px; }
 .live-sidebar-account>.icon { width:15px; color:#9d89b8; }
 .live-back { display:flex; align-items:center; gap:9px; min-height:47px; text-align:left; padding:10px 17px; border-top:1px solid var(--line); color:#b1a2c2; font-size:11px; }
 .live-back>.icon { width:15px; height:15px; transform:rotate(180deg); }
@@ -1314,19 +1397,19 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 .live-conversation { display:flex; flex-direction:column; }
 .live-header { height:70px; min-height:70px; padding:12px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; background:#15171e80; }
 .live-header-hash { font-size:30px; color:#a495b5; font-weight:350; }
-.live-header>div:not(.live-header-actions) { min-width:0; }
-.live-header>div>span { display:block; font-size:9px; color:#a79bb8; letter-spacing:.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.live-header>div:not(.live-header-actions) { min-width:0; flex:1; }
+.live-header>div>span { display:block; font-size:12px; color:#a79bb8; letter-spacing:.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .live-header h1 { font-size:17px; font-weight:600; margin:5px 0 0; letter-spacing:-.3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ece2f5; }
 .live-header-actions { margin-left:auto; display:flex; align-items:center; gap:5px; }
 .live-header-actions .icon-button { width:36px; height:36px; }
 .live-invite-button { height:34px; display:flex; align-items:center; gap:7px; border:1px solid #665373; border-radius:7px; color:#d1bde2; background:#a084b910; padding:6px 10px; font-size:11px; }
 .live-invite-button:hover { background:#a084b928; }
 .live-invite-button .icon { width:15px; height:15px; }
-.live-connection { display:flex; align-items:center; gap:7px; min-height:32px; padding:6px 24px; font-size:10px; color:#a89cb9; border-bottom:1px solid #a989be11; background:#0d0f133f; }
+.live-connection { display:flex; align-items:center; gap:7px; min-height:36px; padding:6px 24px; font-size:12px; color:#a89cb9; border-bottom:1px solid #a989be11; background:#0d0f133f; }
 #live-connection-dot { width:5px; height:5px; border-radius:50%; background:#bb9a78; flex-shrink:0; }
 #live-connection-dot.is-connected { background:#a2c4b8; }
 .live-connection-copy { padding-left:11px; margin-left:3px; border-left:1px solid #83718e3d; color:#8e829f; }
-.live-connection>button { margin-left:auto; color:#b9a3cd; font-size:10px; }
+.live-connection>button { margin-left:auto; color:#d1bde3; font-size:12px; min-height:32px; padding:4px 7px; border-radius:6px; }
 .live-stream { overflow:auto; overscroll-behavior:contain; min-height:0; flex:1; padding:20px 0; scrollbar-gutter:stable; scroll-padding:24px; }
 .live-load-earlier { display:block; margin:0 auto 24px; min-height:34px; color:#c1a6d9; font-size:12px; border:1px solid #8870984d; padding:6px 16px; border-radius:8px; background:#af90cb0a; }
 .live-feed-empty { padding:35px 35px 30px; max-width:570px; }
@@ -1343,15 +1426,15 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 .live-message-content { min-width:0; flex:1; }
 .live-message-content>header { display:flex; align-items:center; flex-wrap:wrap; gap:9px; min-height:23px; }
 .live-message-content>header>b { color:#e5d9ef; font-weight:600; font-size:14px; overflow-wrap:anywhere; }
-.live-message-content time { color:#9d8faa; font-size:10px; }
+.live-message-content time { color:#aea2bc; font-size:12px; font-variant-numeric:tabular-nums; }
 .live-you { color:#a68eb9; font-size:8px; letter-spacing:.06em; }
-.live-message-text { white-space:pre-wrap; overflow-wrap:anywhere; font-size:15px; line-height:1.7; color:#d3c9dd; padding:1px 28px 2px 0; }
+.live-message-text { white-space:pre-wrap; overflow-wrap:anywhere; font-size:var(--type-message,15px); line-height:1.7; color:var(--reading-text); padding:1px 0 2px; }
 .live-message-text a { color:#ceb0ed; text-decoration:underline; text-underline-offset:3px; }
 .live-message-text code { font-family:ui-monospace,monospace; font-size:13px; background:#100e1880; color:#d3bde5; padding:2px 5px; border:1px solid #7f5f9b40; border-radius:4px; }
 .live-message-copy { opacity:0; position:absolute; top:8px; right:17px; height:29px; width:29px; display:grid; place-items:center; border:1px solid #70598052; border-radius:6px; background:#272131; color:#baa3cf; }
 .live-message-copy .icon { width:14px; height:14px; }
 .live-message:hover .live-message-copy,.live-message:focus-within .live-message-copy { opacity:1; }
-.live-pending-state { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:6px; font-size:10px; line-height:1.6; color:#c2a58e; }
+.live-pending-state { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:6px; font-size:12px; line-height:1.6; color:#c2a58e; }
 .live-pending-state button { color:#d5b8ed; text-decoration:underline; text-underline-offset:3px; }
 .live-message.is-pending { background:#c4a87e05; }
 .live-message.is-pending .live-message-text { color:#b4a6bf; }
@@ -1371,7 +1454,7 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 .live-send .icon { width:18px; height:18px; }
 .live-send:hover { background:#dac3f0; }
 .live-send:disabled { background:#494054; color:#a490b9; opacity:.6; cursor:default; }
-.live-compose-caption { display:flex; justify-content:space-between; gap:8px; color:#9d8cae; font-size:9px; line-height:1.6; padding:9px 3px 0; }
+.live-compose-caption { display:flex; justify-content:space-between; gap:8px; color:#b3a4c1; font-size:12px; line-height:1.6; padding:9px 3px 0; }
 .live-compose-caption kbd { font-family:inherit; color:#baa6ca; }
 .live-readonly { display:flex; align-items:center; gap:11px; font-size:12px; color:#bdabc9; min-height:60px; padding:15px; border:1px solid #6953744a; border-radius:9px; background:#a68ab80a; }
 .live-readonly .icon { width:20px; height:20px; flex-shrink:0; }
@@ -1380,13 +1463,13 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 .live-members>header>span { color:#b3a3c2; font-size:9px; letter-spacing:.06em; }
 .live-members>header b { color:#d0b8e1; margin-left:9px; font-weight:500; }
 .live-members>header>button { display:none; }
-.live-member-note { font-size:10px; color:#92809f; padding:0 19px 16px; margin:0; border-bottom:1px solid #a48ab718; line-height:1.7; }
+.live-member-note { font-size:12px; color:#92809f; padding:0 19px 16px; margin:0; border-bottom:1px solid #a48ab718; line-height:1.7; }
 .live-member-list { padding:12px 15px; }
 .live-member { display:flex; align-items:center; gap:10px; padding:11px 2px; min-width:0; }
 .live-member>div { min-width:0; }
-.live-member b { display:block; font-size:12px; font-weight:500; color:#cbb9db; overflow-wrap:anywhere; }
+.live-member b { display:block; font-size:14px; font-weight:500; color:#cbb9db; overflow-wrap:anywhere; }
 .live-member b small { font-size:8px; color:#9f85b5; margin-left:5px; }
-.live-member>div>span { display:block; font-size:10px; color:#9883aa; margin-top:6px; }
+.live-member>div>span { display:block; font-size:12px; color:#9883aa; margin-top:6px; }
 .live-member>.icon { width:14px; height:14px; margin-left:auto; color:#ac90bd; flex-shrink:0; }
 .live-members-card { margin:auto 17px 20px; padding:21px 16px; border:1px solid #a48abb33; border-radius:10px; background:linear-gradient(140deg,#6550701c,#2d243708); }
 .live-members-card>span { color:#b79bc9; font-size:8px; letter-spacing:.08em; }
@@ -1447,33 +1530,33 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
   .live-splash-footer>span:last-child { font-size:9px; max-width:160px; text-align:right; }
   .live-header { min-height:64px; height:64px; padding:8px 10px 8px 5px; gap:7px; }
   .live-header-hash { display:none; }
-  .live-header h1 { font-size:16px; max-width:calc(100vw - 190px); }
-  .live-header>div>span { max-width:calc(100vw - 190px); }
+  .live-header h1 { font-size:16px; max-width:100%; }
+  .live-header>div>span { max-width:100%; font-size:11px; }
   .live-header-actions { gap:1px; }
-  .live-header-actions .icon-button { width:36px; min-width:36px; height:42px; }
-  .live-invite-button { border:0; background:none; padding:4px; width:36px; min-width:36px; height:42px; justify-content:center; }
+  .live-header-actions .icon-button { width:44px; min-width:44px; height:44px; }
+  .live-invite-button { border:0; background:none; padding:4px; width:44px; min-width:44px; height:44px; justify-content:center; }
   .live-invite-button>span { display:none; }
   .live-invite-button .icon { width:18px; height:18px; }
-  .live-connection { padding:7px 17px; font-size:9px; gap:6px; }
-  .live-connection-copy { font-size:8px; padding-left:8px; }
+  .live-connection { padding:4px 12px; font-size:12px; gap:6px; }
+  .live-connection-copy { font-size:11px; padding-left:8px; }
   .live-stream { padding:12px 0; }
   .live-message { padding:10px 14px; gap:10px; }
   .live-avatar { width:32px; height:32px; border-radius:10px; font-size:11px; }
   .live-message-content>header { gap:7px; }
   .live-message-content>header>b { font-size:13px; }
-  .live-message-text { font-size:14px; line-height:1.7; padding-right:6px; }
+  .live-message-text { font-size:var(--type-message,15px); line-height:1.65; padding-right:0; }
   .live-message-copy { opacity:.7; position:static; width:25px; height:32px; flex-shrink:0; border:0; background:none; margin-left:-8px; }
   .live-compose-wrap { padding:9px 12px max(12px,env(safe-area-inset-bottom)); }
   #live-message-form { padding:7px 8px 7px 12px; border-radius:10px; }
   #live-message-input { font-size:16px; min-height:38px; padding:6px 0; }
-  .live-send { width:39px; height:39px; min-width:39px; }
-  .live-compose-caption { padding-top:7px; font-size:9px; }
+  .live-send { width:44px; height:44px; min-width:44px; }
+  .live-compose-caption { padding-top:7px; font-size:12px; }
   .live-compose-caption>span:last-child { display:none; }
   .live-feed-empty { padding:28px 25px; }
   .live-feed-empty h2 { font-size:25px; }
   .live-day-divider { margin:18px 16px; font-size:9px; }
-  .live-space-actions button,.live-channel-list>button,.live-back { min-height:44px; }
-  .live-channel-list>button { font-size:14px; }
+  .live-space-actions button,.live-channel-list [data-live-channel],.live-back { min-height:44px; }
+  .live-channel-list [data-live-channel] { font-size:14px; }
   .live-splash-actions { flex-direction:column; align-items:flex-start; }
   .live-dialog input,.live-dialog select,.live-alias-form input { font-size:16px; }
   .live-new-messages { bottom:103px; }
@@ -1482,6 +1565,232 @@ body.vl-live-mode .local-tag b { font-size:10px; font-weight:500; letter-spacing
 @media(max-width:370px) { .live-splash-copy h1 { font-size:36px; } .live-splash-body { padding-left:21px; padding-right:21px; } .live-feature-row { gap:12px; } .live-feature-row>span { font-size:9px; } .live-connection-copy { display:none; } }
 @media(prefers-reduced-motion:reduce) { .live-loading-mark { animation:none; } }
 body.reduce-motion .live-loading-mark { animation:none; }
+
+/* Everyday conversation tools use the same material and spacing as the archive. */
+#live-workspace { --live-rule:var(--line); --live-surface:var(--panel); --live-accent:var(--p-signal,#c3b7ed); --live-muted:#b1a4bd; --live-danger:#f0b7b9; }
+.live-sidebar,.live-main,.live-message-content,.live-tools-results,.live-dialog,.live-dialog form { min-width:0; }
+.live-header,.live-connection,.live-compose-wrap { flex-shrink:0; }
+.live-header { height:auto; }
+.live-header-actions { flex-shrink:0; }
+.live-sidebar-heading h2 { font-size:17px; margin:8px 0 5px; }
+.live-sidebar-heading .eyebrow,.live-space-picker label,.live-channel-heading { font-size:11px; letter-spacing:.06em; }
+.live-sidebar-heading p { line-height:1.6; }
+.live-space-picker select { min-height:44px; }
+.live-channel-list [data-live-channel].is-active { box-shadow:inset 3px 0 var(--live-accent); }
+.live-channel-list [data-live-channel] .live-tool-count { margin-left:auto; }
+.live-channel-list [data-live-channel]>span:nth-child(2) { min-width:0; }
+.live-channel-list [data-live-channel] small { font-size:10px; flex-shrink:0; }
+.live-channel-row { display:flex; align-items:center; gap:2px; min-width:0; }
+.live-channel-row>[data-live-channel] { flex:1; min-width:0; }
+.live-favorite-button { display:grid; place-items:center; flex-shrink:0; width:34px; min-height:40px; color:#a394b5; border-radius:7px; }
+.live-favorite-button:hover { color:#e9cdff; background:#bb99d51c; }
+.live-favorite-button[aria-pressed="true"] { color:#dec6a4; background:#bc9d6d14; }
+.live-favorite-button .icon { width:16px; height:16px; }
+.live-community-tools { display:flex; align-items:center; gap:8px; margin:0 13px 13px; padding:8px 10px; border:1px solid #9173a241; border-radius:8px; min-height:40px; font-size:12px; color:#c8b4d8; text-align:left; }
+.live-community-tools:hover { background:#b89cd117; border-color:#aa8dbd78; }
+.live-community-tools .icon { width:16px; height:16px; flex-shrink:0; }
+.live-back { font-size:12px; }
+.live-back>span { font-size:10px; }
+.live-member { width:100%; text-align:left; border-radius:8px; }
+button.live-member:hover { background:#c5b1e012; }
+.live-member b small,.live-you,.live-edited { font-size:11px; letter-spacing:0; }
+.live-members>header>span,.live-members>footer { font-size:11px; }
+.live-message { min-width:0; }
+.live-message-content>header { padding-right:0; gap:6px 10px; }
+.live-message-content>header>b { line-height:1.5; }
+.live-author { color:#e5d9ef; font-weight:600; font-size:14px; line-height:1.5; overflow-wrap:anywhere; text-align:left; border-radius:4px; }
+.live-author:hover { color:#f2dfff; text-decoration:underline; text-underline-offset:3px; }
+.live-avatar img,.live-profile-avatar img { width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+.live-message-text pre { max-width:100%; white-space:pre; overflow:auto; padding:13px; border:1px solid #77628c4d; border-radius:8px; background:#0e1016; margin:10px 0; tab-size:2; }
+.live-message-text pre code { border:0; padding:0; background:none; font-size:13px; line-height:1.6; }
+.live-message-text :not(pre)>code { overflow-wrap:anywhere; white-space:break-spaces; }
+.live-message-text a { overflow-wrap:anywhere; }
+.live-message-deleted .live-message-text { color:var(--live-muted); font-size:14px; font-style:italic; padding:5px 0; }
+.live-edited { color:var(--live-muted); }
+.live-pinned { display:inline-flex; align-items:center; gap:4px; color:#d6c1ec; font-size:11px; }
+.live-pinned .icon { width:13px; height:13px; }
+.live-message-actions { display:flex; align-items:center; gap:3px; flex-wrap:wrap; margin-top:6px; }
+.live-message-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:32px; min-height:32px; padding:5px 8px; border:1px solid transparent; border-radius:7px; font-size:12px; line-height:1.4; color:#b5a6c5; }
+.live-message-actions button:hover,.live-message-actions button:focus-visible { color:#f1e2ff; background:#bfa4db12; border-color:#ad8ecd3b; }
+.live-message-actions .icon { height:15px; width:15px; flex-shrink:0; }
+.live-message-actions button[aria-pressed="true"] { color:#e8ccff; background:#ad85d12a; }
+.live-reply-preview { display:block; max-width:100%; margin:4px 0 6px; }
+button.live-reply-preview,.live-reply-preview button { display:block; width:100%; min-height:36px; text-align:left; padding:7px 10px; border-left:2px solid #a38cbd; border-radius:0 6px 6px 0; background:#bca4d509; color:#bdaecb; font-size:12px; line-height:1.6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.live-reply-preview b { color:#e0c9ee; font-weight:550; }
+.live-reply-preview button:hover,button.live-reply-preview:hover { background:#bca4d515; }
+.live-reactions { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.live-reactions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:32px; min-width:38px; padding:4px 9px; border-radius:8px; border:1px solid #675779; background:#312938; color:#d1bedf; font-size:13px; font-variant-numeric:tabular-nums; }
+.live-reactions button[aria-pressed="true"] { background:#554066; border-color:#b699d1; color:#f5e8ff; }
+.live-reactions button:hover { border-color:#cbb2df; }
+.live-thread-link { display:inline-flex; align-items:center; gap:7px; min-height:36px; max-width:100%; padding:6px 0; color:#c8b4e4; font-size:12px; text-align:left; overflow-wrap:anywhere; }
+.live-thread-link .icon { width:15px; height:15px; flex-shrink:0; }
+.live-thread-link:hover { color:#f2ddff; text-decoration:underline; text-underline-offset:3px; }
+.live-thread-root { padding:0 0 14px; margin-bottom:16px; border-bottom:1px solid #a58bbe3d; }
+.live-thread-root>.live-message { background:#ab8cc50a; }
+.live-thread-root>.eyebrow { display:block; margin:7px 24px 12px; color:#baa7ca; font-size:11px; letter-spacing:.06em; }
+.live-thread-panel { min-width:0; }
+.live-thread-panel .live-header { border-bottom-color:#b196cc55; background:#a28ac40a; }
+.live-composer-context { display:flex; align-items:center; gap:8px; min-width:0; padding:7px 10px; margin-bottom:5px; border:1px solid #7c66914d; border-radius:8px; background:#a587c211; color:#c6b2d8; font-size:12px; line-height:1.6; }
+.live-composer-context>span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.live-composer-context>span>small { display:block; overflow:hidden; text-overflow:ellipsis; color:#b19dbf; font-size:12px; }
+.live-composer-context>button { flex-shrink:0; display:grid; place-items:center; min-width:36px; min-height:36px; color:#d9bfec; border-radius:6px; }
+.live-composer-context>button:hover { background:#c0a0d523; }
+.live-composer-context .icon { width:16px; height:16px; }
+.live-action-error,.live-draft-warning,.live-tool-error { color:#f0bfb5; background:#97635215; border:1px solid #bd8c715e; border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.65; overflow-wrap:anywhere; }
+.live-action-error:empty,.live-tool-error:empty { display:none; }
+.live-action-error { margin-top:8px; }
+.live-draft-warning { margin-bottom:9px; display:flex; flex-wrap:wrap; gap:7px 12px; align-items:center; }
+.live-draft-warning p { margin:0; flex:1 1 180px; }
+.live-draft-warning button { min-height:36px; color:#f0dbff; text-decoration:underline; text-underline-offset:3px; }
+.live-pending-state button { min-height:32px; padding:3px 5px; border-radius:5px; }
+.live-message-menu { display:grid; gap:6px; margin:16px 0 0; }
+.live-message-menu>button { min-height:44px; display:flex; align-items:center; gap:10px; text-align:left; border-radius:8px; color:#d4c1e4; padding:10px 12px; border:1px solid #ad8ac229; background:#a584bd0a; }
+.live-message-menu>button:hover { background:#b59bcc1c; border-color:#b79ccc61; }
+.live-message-menu .icon { width:18px; height:18px; }
+.live-danger,.live-message-menu>button.is-danger,.live-dialog button[data-destructive] { color:var(--live-danger,#f0b7b9); border-color:#ce8c965c; background:#a35a6812; }
+.live-danger { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 15px; border:1px solid #ce8c965c; border-radius:8px; font-size:13px; line-height:1.5; }
+.live-danger:hover,.live-message-menu>button.is-danger:hover { color:#ffe0e1; background:#bd6d7a24; border-color:#e5a9b0; }
+.live-dialog textarea { display:block; width:100%; min-height:106px; resize:vertical; max-height:40dvh; padding:11px 12px; color:#e1cbed; border:1px solid #76598780; background:#100f1780; border-radius:8px; font:inherit; font-size:14px; line-height:1.7; }
+.live-dialog input,.live-dialog select,.live-dialog textarea { scroll-margin-block:18px; }
+.live-dialog label { line-height:1.5; }
+.live-dialog h2 { overflow-wrap:anywhere; padding-right:16px; }
+.live-dialog :is(button,a):focus-visible,#live-workspace :is(button,a,[tabindex]):focus-visible { outline:2px solid var(--p-signal); outline-offset:3px; }
+.live-dialog button:disabled,#live-workspace button:disabled { cursor:not-allowed; opacity:.55; }
+.live-dialog [aria-busy="true"] button:disabled,#live-workspace button[aria-busy="true"] { cursor:progress; }
+.live-dialog .live-primary { margin-top:16px; }
+.live-dialog .live-form-note { font-size:12px!important; }
+.live-dialog [hidden],#live-workspace [hidden] { display:none!important; }
+
+/* Inbox, private bookmarks and full-history search share one result grammar. */
+.live-tools-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; padding:0 13px 13px; }
+.live-tools-nav button { min-width:0; min-height:44px; padding:7px 5px; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:5px; border:1px solid #66537655; border-radius:8px; background:#a487bf09; color:#d0bddf; font-size:12px; }
+.live-tools-nav button:hover { border-color:#ad91c574; background:#bfa1dd17; }
+.live-tools-nav .icon { width:15px; height:15px; }
+.live-tool-count { display:inline-grid; place-items:center; min-width:20px; min-height:20px; padding:2px 5px; color:#1d1727; background:#cab4e6; border-radius:6px; font-size:11px; font-weight:650; line-height:1.25; font-variant-numeric:tabular-nums; }
+.live-channel-filters { display:flex; gap:3px; margin:0 13px 12px; padding:3px; border:1px solid #705b813d; background:#0b0b1266; border-radius:8px; }
+.live-channel-filters button { min-width:0; flex:1; min-height:36px; padding:6px 3px; border-radius:5px; font-size:11px; color:#b3a0c3; }
+.live-channel-filters button.is-active,.live-channel-filters button[aria-pressed="true"] { color:#eee0ff; background:#574366a8; box-shadow:inset 0 0 0 1px #b99ad52e; }
+.live-filter-note { margin:0 16px 12px; color:#b5a3c4; font-size:12px; line-height:1.65; overflow-wrap:anywhere; }
+.live-filter-note button { color:#e4c8fa; min-height:36px; text-decoration:underline; text-underline-offset:3px; }
+.live-tools-tabs { display:flex; gap:4px; padding:4px; margin:17px 0 13px; background:#0c0b1380; border:1px solid #7157845e; border-radius:10px; }
+.live-tools-tabs button { flex:1; min-width:0; display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:6px; min-height:44px; border-radius:7px; padding:7px 9px; color:#bea8cf; font-size:13px; line-height:1.5; }
+.live-tools-tabs button.is-active,.live-tools-tabs button[aria-selected="true"],.live-tools-tabs button[aria-pressed="true"] { background:#4a3658; color:#f0dfff; }
+.live-tools-actions { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:12px 0 16px; color:#bba5cc; font-size:12px; line-height:1.65; }
+.live-tools-actions button { min-height:44px; font-size:12px; }
+.live-tools-results { display:grid; gap:10px; margin:16px 0; }
+.live-tools-panel h3 { color:#e0cbed; font-size:17px; font-weight:550; margin:20px 0 12px; overflow-wrap:anywhere; }
+.live-tool-result { min-width:0; padding:15px; border:1px solid #80639145; border-radius:10px; background:#100e1770; }
+.live-tool-source { display:flex; gap:5px 12px; flex-wrap:wrap; align-items:center; color:#cbb1df; font-size:12px; line-height:1.65; overflow-wrap:anywhere; }
+button.live-tool-source { width:100%; text-align:left; }
+.live-tool-source b,.live-tool-source strong { color:#e1ceee; font-weight:600; }
+.live-tool-source small,.live-tool-source time { color:#b19bbf; font-size:11px; }
+.live-tool-copy { color:#cec0dc; white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; line-height:1.75; margin:9px 0; }
+.live-tool-copy mark { color:#f2ddff; background:#ad82c83d; border-radius:2px; padding:0 2px; }
+.live-tool-result-actions { display:flex; gap:6px 10px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+.live-tool-result-actions button,.live-tools-pagination button { min-height:40px; padding:8px 11px; border:1px solid #81629666; border-radius:7px; color:#d9bfea; font-size:12px; background:#a27bb414; }
+.live-tool-result-actions button:hover,.live-tools-pagination button:hover { border-color:#bd96d2; background:#b58acd24; }
+.live-tool-result-actions>span { font-size:12px; color:#b39dc3; }
+.live-tool-empty { padding:26px 18px; border:1px dashed #8e70a249; border-radius:11px; background:#a181b708; color:#c5b0d3; font-size:14px; line-height:1.8; text-align:left; }
+.live-tool-empty h3 { color:#e4d2ef; font-weight:550; font-size:18px; margin:0 0 9px; }
+.live-tool-empty p { margin:0; }
+.live-tool-empty button { min-height:44px; margin-top:12px; }
+.live-tools-pagination { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-top:14px; border-top:1px solid #8063913b; color:#bca3cd; font-size:12px; }
+.live-tools-search-form { padding:0 0 14px; border-bottom:1px solid #86659b33; }
+.live-tools-field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 14px; }
+.live-tools-field-grid>div,.live-tools-field-grid>label { min-width:0; }
+.live-tools-field-grid input,.live-tools-field-grid select { max-width:100%; }
+.live-profile-preview { --live-profile-glow:#8b75ac; position:relative; min-width:0; border:1px solid #a087b95c; border-radius:14px; padding:24px; margin:18px 0; background:radial-gradient(ellipse at 100% 0%,color-mix(in srgb,var(--live-profile-glow) 25%,transparent),transparent 70%),#17151f; }
+.live-profile-preview[data-theme="ice"] { --live-profile-glow:#7fa5b5; }
+.live-profile-preview[data-theme="obsidian"] { --live-profile-glow:#8f95a6; }
+.live-profile-preview h2,.live-profile-preview h3 { margin:12px 0 7px; color:#f1e9f9; font-size:24px; overflow-wrap:anywhere; }
+.live-profile-avatar { width:68px; height:68px; border-radius:19px; border:1px solid #d6bedc63; background:linear-gradient(145deg,#8a749a33,#221e2e); color:#e4d2f1; display:grid; place-items:center; overflow:hidden; font-size:23px; }
+.live-profile-avatar>svg { width:60%; height:60%; }
+.live-profile-preview>.eyebrow { display:block; margin-top:17px; color:#b5a0c8; font-size:11px; letter-spacing:.08em; }
+.live-profile-preview h3 { font-size:24px; margin:10px 0 7px; }
+#live-profile-save-state { color:#c4afd4; font-size:12px; line-height:1.6; }
+.live-profile-bio { color:#cdbdd7; font-size:14px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
+.live-profile-status { color:#bea5d0; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.live-settings-members { display:grid; gap:8px; margin:15px 0; }
+.live-settings-member,.live-invite-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:12px; border:1px solid #8d6da047; border-radius:9px; background:#a380ba09; }
+.live-settings-member>div:first-child,.live-invite-row>div:first-child { min-width:0; flex:1 1 150px; }
+.live-settings-member>div:not(.live-tools-actions) { min-width:0; flex:1 1 130px; }
+.live-settings-member>.live-profile-avatar { width:44px; height:44px; border-radius:12px; flex:none; }
+.live-settings-member>.live-tools-actions { flex-basis:100%; justify-content:flex-start; margin:0; }
+.live-settings-member p,.live-invite-row p { color:#bda6cc; font-size:12px; line-height:1.7; margin:6px 0 0; overflow-wrap:anywhere; }
+.live-settings-member b,.live-invite-row b { color:#decaec; font-size:14px; overflow-wrap:anywhere; }
+.live-settings-member small,.live-invite-row small { display:block; margin-top:5px; color:#bca4ca; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.live-settings-member button,.live-invite-row button { min-height:44px; font-size:12px; padding:8px 11px; border:1px solid #8e6ea45c; border-radius:7px; }
+.live-invite-row { margin:8px 0; }
+
+@media (max-width:1100px) {
+  .live-header-actions { gap:2px; }
+  .live-members { max-width:calc(100vw - 32px); padding-bottom:env(safe-area-inset-bottom); }
+}
+@media (max-width:760px) {
+  .live-sidebar { left:var(--rail-width); width:min(280px,calc(100vw - var(--rail-width) - 14px)); padding-bottom:env(safe-area-inset-bottom); }
+  .live-menu { width:44px; min-width:44px; height:44px; }
+  .live-header { gap:4px; padding-left:6px; padding-right:6px; }
+  .live-header-actions .icon-button,.live-invite-button { min-width:44px; width:44px; height:44px; }
+  .live-header-actions .icon { width:18px; height:18px; }
+  .live-connection { flex-wrap:wrap; }
+  .live-connection-copy { display:none; }
+  .live-connection>button { min-height:36px; }
+  .live-message { padding:10px 12px; gap:9px; }
+  .live-message-content>header>b { font-size:14px; }
+  .live-message-content time { font-size:11px; }
+  .live-message-actions { gap:2px; margin-top:4px; }
+  .live-message-actions button,.live-reactions button,.live-thread-link,.live-pending-state button { min-height:44px; min-width:44px; }
+  .live-message-actions button { padding:6px 7px; font-size:12px; }
+  .live-reactions { gap:6px; margin-top:5px; }
+  .live-composer-context>button { min-width:44px; min-height:44px; }
+  .live-composer-context { padding-top:3px; padding-bottom:3px; }
+  .live-draft-warning { padding:8px 10px; }
+  .live-draft-warning button,.live-load-earlier,.live-new-messages { min-height:44px; }
+  #live-message-input { max-height:min(160px,24dvh); }
+  .live-compose-wrap { padding-left:10px; padding-right:10px; }
+  .live-compose-caption { overflow-wrap:anywhere; }
+  .live-tools-nav { gap:6px; }
+  .live-channel-filters button { min-height:44px; }
+  .live-favorite-button { min-width:44px; min-height:44px; }
+  .live-community-tools { min-height:44px; }
+  .live-thread-root>.eyebrow { margin-left:14px; }
+  .live-author { min-height:32px; }
+  .live-dialog textarea { font-size:16px; }
+  .live-tools-tabs { gap:2px; padding:3px; }
+  .live-tools-tabs button { padding:7px 4px; font-size:12px; }
+  .live-tool-result { padding:12px; }
+  .live-tool-result-actions button,.live-tools-pagination button { min-height:44px; }
+  .live-profile-preview { padding:20px; }
+  .live-tools-field-grid { column-gap:10px; }
+}
+@media (max-width:390px) {
+  .live-tools-field-grid { grid-template-columns:minmax(0,1fr); }
+  .live-header>div>span { font-size:10px; }
+  .live-header h1 { font-size:15px; }
+  .live-message { gap:8px; }
+  .live-message>.live-avatar { width:28px; height:28px; font-size:10px; }
+  .live-message-actions button { padding-left:6px; padding-right:6px; }
+  .live-tools-tabs .live-tool-count { min-width:18px; min-height:18px; font-size:10px; }
+  .live-dialog h2 { font-size:25px; }
+}
+@media (max-height:560px) {
+  .live-header { min-height:56px; }
+  .live-connection { min-height:30px; padding-top:0; padding-bottom:0; }
+  .live-compose-wrap { padding-top:6px; padding-bottom:max(6px,env(safe-area-inset-bottom)); }
+  .live-compose-caption { padding-top:4px; }
+  .live-stream { min-height:44px; padding-top:8px; padding-bottom:8px; }
+  .live-sidebar-heading { padding-top:12px; padding-bottom:12px; }
+  .live-sidebar-heading p { display:none; }
+  .live-splash-body { min-height:0; padding-block:28px; }
+}
+@media (hover:none) and (pointer:coarse) {
+  .live-message-copy { opacity:1; width:44px; min-width:44px; height:44px; }
+  .live-message-actions button,.live-reactions button,.live-thread-link,.live-tool-result-actions button { min-height:44px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .live-drawer-overlay { backdrop-filter:none; }
+  #live-workspace *,#live-workspace *::before,#live-workspace *::after { scroll-behavior:auto!important; }
+}
 
 </style>
 </head>
@@ -2634,7 +2943,7 @@ function replaceState(next){const location={server:state.server,channel:state.ch
 function saveStatus(){let n=$('save-status');if(!n){n=document.createElement('section');n.id='save-status';n.setAttribute('role','status');(document.querySelector('.conversation')||document.body).prepend(n);}n.hidden=!failedMutations.length&&!sessionIssue;n.innerHTML=sessionIssue?`<strong>This tab’s latest draft is not stored.</strong><span>Keep the tab open, retry, or export recovery before refreshing.</span><button data-action="retry-save">Retry</button><button data-action="recover-save">Export recovery</button>`:failedMutations.length?`<strong>${failedMutations.length} change(s) need saving.</strong><span>Your content is recoverable in this session.</span><button data-action="retry-save">Retry</button><button data-action="recover-save">Export recovery</button>`:'';}
 function retrySaves(){saveTab();const previousArtifacts=new Set(Object.keys(state.artifacts||{}));while(failedMutations.length){const item=failedMutations[0];const result=durable.retry(item.patch);if(!result.ok){toast('Storage is still unavailable. Export recovery before closing this tab.');break;}replaceState(result.state);committed=clone(state);failedMutations.shift();}saveStatus();renderAll();const recovered=Object.keys(state.artifacts||{}).filter(id=>!previousArtifacts.has(id));window.VoidBadges?.revealCommitted?.(recovered);for(const id of recovered){const record=window.VoidBadges?.catalog?.find(badge=>badge.id===id);if(record)window.dispatchEvent(new CustomEvent('voidline:artifact-earned',{detail:{id,name:record.name}}));}if(!failedMutations.length&&!sessionIssue){toast('Recovered changes are now saved. Your draft is kept for review.');}}
 let priorFocus,toastTimer,threadId='',replyId='',pendingImage='',pendingAudio='',pendingName='',installPrompt=null,recorder=null,recordStream=null,recordTimer=null,recordChunks=[],recordRequest=0,recordPending=false,activeThreadKey='';
-let modalReturn=null,readTimer;
+let modalReturn=null,readTimer,localDrawer='',drawerReturn=null,threadReturn=null;
 const drafts=new Map(Object.entries(tabSnapshot.drafts||{})),threadDrafts=new Map(Object.entries(tabSnapshot.threads||{})),reading=new Map(Object.entries(tabSnapshot.reading||{})),historyLimits=new Map(),threadLimits=new Map();
 function tabData(){return {location:{server:state.server,channel:state.channel},drafts:Object.fromEntries(drafts),threads:Object.fromEntries(threadDrafts),reading:Object.fromEntries(reading),thread:threadId};}
 function saveTab(){const saved=tabJournal?.save(tabData())===true;const previous=sessionIssue;sessionIssue=!saved;const label=$('draft-status');if(label)label.textContent=sessionIssue?'Draft needs recovery before refresh':(drafts.get(key())?.text||drafts.get(key())?.image||drafts.get(key())?.audio)?'Draft saved in this tab':'Your words stay on this device.';if(sessionIssue||previous)saveStatus();return saved;}
@@ -2664,7 +2973,33 @@ function persist(){
 }
 function notify(text,action='',artifact=''){state.notifications.push({id:uid(),text,time:Date.now(),read:false,action,artifact,context:key()});state.notifications=state.notifications.slice(-80);if(persist())updateNotificationCount();}
 function updateNotificationCount(){const c=Object.entries(state.messages).reduce((count,[context,list])=>count+list.filter(message=>message.author!=='self'&&message.author!=='system'&&message.time>(state.lastRead[context]||0)).length,0)+state.notifications.filter(n=>!n.read).length,n=$('notification-count');if(n){n.textContent=c>99?'99+':c||'';n.hidden=!c;n.setAttribute('aria-label',c+' unread local inbox items');}}
-function modal(content,options={}){if(recordPending||recorder?.state==='recording')stopRecording(true);const d=$('app-modal');if(!d.open)priorFocus=document.activeElement;$('modal-content').innerHTML=content;d.className=options.wide?'modal-wide':'';if(options.className)d.classList.add(...options.className.split(/\s+/).filter(Boolean));const heading=$('modal-content').querySelector('h1,h2');if(heading){heading.id='current-modal-title';d.setAttribute('aria-labelledby',heading.id);}else d.removeAttribute('aria-labelledby');if(!d.open)d.showModal();requestAnimationFrame(()=>{$('modal-content').querySelector('[autofocus]')?.focus();});}
+function localPanelState(){
+ const mobile=window.matchMedia('(max-width:760px)').matches,wide=window.matchMedia('(min-width:1051px)').matches;
+ const conversation=document.querySelector('.conversation'),rail=document.querySelector('.server-rail'),sidebar=document.querySelector('.channel-sidebar'),members=document.querySelector('.members-sidebar');
+ if(conversation){conversation.inert=!!localDrawer;for(const child of conversation.children||[])if(child.id!=='thread-panel')child.inert=mobile&&!!threadId;}
+ if(rail)rail.inert=localDrawer==='members'||(mobile&&localDrawer!=='nav');
+ if(sidebar)sidebar.inert=localDrawer==='members'||(mobile&&localDrawer!=='nav');
+ if(members)members.inert=localDrawer==='nav'||(!wide&&localDrawer!=='members')||(wide&&(state.settings.memberSidebar===false||!!threadId));
+ document.querySelectorAll('[data-action="menu"]').forEach(button=>button.setAttribute('aria-expanded',String(localDrawer==='nav')));
+ document.querySelectorAll('[data-action="members"]').forEach(button=>button.setAttribute('aria-expanded',String(wide?state.settings.memberSidebar!==false:localDrawer==='members')));
+}
+function focusableReturn(node){return node?.isConnected&&!node.closest('[inert],[hidden]')&&(!node.getClientRects||node.getClientRects().length>0);}
+function closeLocalDrawers(restore=true){
+ const had=!!localDrawer,previous=drawerReturn;localDrawer='';drawerReturn=null;document.body.classList.remove('mobile-nav','members-open');localPanelState();
+ if(had&&restore){if(focusableReturn(previous))previous.focus({preventScroll:true});else (threadId?$('thread-input'):$('message-input'))?.focus({preventScroll:true});}if(had)scheduleRead();return had;
+}
+function drawerFocusables(){
+ const panels=localDrawer==='nav'?[document.querySelector('.server-rail'),document.querySelector('.channel-sidebar')]:localDrawer==='members'?[document.querySelector('.members-sidebar')]:threadId&&window.matchMedia('(max-width:760px)').matches?[$('thread-panel')]:[];
+ return panels.flatMap(panel=>Array.from(panel?.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex="0"]')||[])).filter(node=>!node.hidden&&!node.closest('[hidden],[inert]'));
+}
+function toggleLocalDrawer(which,button){
+ if(window.VoidEntrance?.isPlaying?.())return;if(localDrawer===which)return closeLocalDrawers();closeLocalDrawers(false);
+ localDrawer=which;drawerReturn=button||document.activeElement;document.body.classList.add(which==='nav'?'mobile-nav':'members-open');localPanelState();drawerFocusables()[0]?.focus({preventScroll:true});
+}
+function resizeLocalPanels(){
+ if((localDrawer==='nav'&&!window.matchMedia('(max-width:760px)').matches)||(localDrawer==='members'&&window.matchMedia('(min-width:1051px)').matches))closeLocalDrawers();else localPanelState();scheduleRead();
+}
+function modal(content,options={}){closeLocalDrawers();if(recordPending||recorder?.state==='recording')stopRecording(true);const d=$('app-modal');if(!d.open)priorFocus=document.activeElement;$('modal-content').innerHTML=content;d.className=options.wide?'modal-wide':'';if(options.className)d.classList.add(...options.className.split(/\s+/).filter(Boolean));const heading=$('modal-content').querySelector('h1,h2');if(heading){heading.id='current-modal-title';d.setAttribute('aria-labelledby',heading.id);}else d.removeAttribute('aria-labelledby');if(!d.open)d.showModal();requestAnimationFrame(()=>{$('modal-content').querySelector('[autofocus]')?.focus();});}
 function closeModal(){stopRecording(true);$('app-modal').close();priorFocus?.focus?.();scheduleRead();}
 function format(text){let h=esc(text);h=h.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*\n]+)\*/g,'<em>$1</em>').replace(/~~([^~\n]+)~~/g,'<s>$1</s>');h=h.replace(/(https?:\/\/[^\s<&]+)/g,u=>`<a href="${u}" rel="noopener noreferrer" target="_blank">${u}</a>`);h=h.replace(/(^|\s)(@[a-zA-Z0-9_.-]+)/g,'$1<span class="mention">$2</span>');return h.replace(/\n/g,'<br>');}
 function getStats(){const communityMessages=Object.entries(state.messages).filter(([k])=>!k.startsWith('direct/'));const own=communityMessages.flatMap(([,l])=>l).filter(m=>m.author==='self');return{ownMessages:own.length,channelsUsed:communityMessages.filter(([,l])=>l.some(m=>m.author==='self')).length,attachments:own.filter(m=>m.image).length,replies:own.filter(m=>m.threadRoot).length,pins:own.filter(m=>m.pinned).length,customServers:state.customServers.filter(s=>s.owner).length,customChannels:Math.max(0,...state.customServers.filter(s=>s.owner).map(s=>Math.max(0,s.channels.length-2))),profileComplete:!!window.VoidProfiles?.isComplete?.(),friends:state.friends.length};}
@@ -2824,12 +3159,12 @@ function renderMessages(scroll=false){
  const button=$('jump-latest');if(button)button.hidden=scroll||nearBottom;
  if(threadId)renderThread(false);
 }
-function renderAll(scroll=false){ensureContext();document.body.classList.toggle('members-hidden',state.settings.memberSidebar===false);document.body.classList.toggle('compact',!!state.settings.compact);renderServers();renderChannels();renderMembers();renderMessages(scroll);updateNotificationCount();window.VoidProfiles?.applyAppearance();}
+function renderAll(scroll=false){ensureContext();document.body.classList.toggle('members-hidden',state.settings.memberSidebar===false);document.body.classList.toggle('compact',!!state.settings.compact);renderServers();renderChannels();renderMembers();renderMessages(scroll);updateNotificationCount();window.VoidProfiles?.applyAppearance();localPanelState();}
 function draft(){drafts.set(key(),{text:$('message-input').value,image:pendingImage,audio:pendingAudio,name:pendingName,reply:replyId});saveTab();}
 function restoreDraft(){const d=drafts.get(key())||{};$('message-input').value=d.text||'';if(d.attachmentMissing)toast('This draft’s attachment is missing from session storage. Reattach it before sending.');pendingImage=d.image||'';pendingAudio=d.audio||'';pendingName=d.name||'';replyId=d.reply||'';renderComposerContext();resizeInput();}
 function renderComposerContext(){const m=(state.messages[key()]||[]).find(x=>x.id===replyId);$('composer-context').innerHTML=`${m?`<div class="replying-bar">${icon('reply')}<span>Replying to <b>${esc(person(m.author).name)}</b></span><button data-action="cancel-reply" aria-label="Cancel reply">×</button></div>`:''}${pendingImage||pendingAudio?`<div class="attachment-chip">${icon(pendingAudio?'mic':'image')}<span>${esc(pendingName||'Voice note')}</span><button data-action="remove-attachment" aria-label="Remove attachment">×</button></div>`:''}`;}
 function resizeInput(){const n=$('message-input');n.style.height='auto';n.style.height=Math.min(n.scrollHeight,130)+'px';}
-function changeContext(s,c){draft();reading.set(key(),{top:$('chat-feed').scrollTop,limit:historyLimits.get(key())||100});state.readingPositions=state.readingPositions||{};state.readingPositions[key()]=reading.get(key());closeThread();state.server=s;state.channel=c;threadId='';$('thread-panel').hidden=true;document.body.classList.remove('mobile-nav','thread-open');ensureContext();renderAll(false);const position=reading.get(key())||state.readingPositions?.[key()];if(position){historyLimits.set(key(),position.limit);renderMessages();$('chat-feed').scrollTop=position.top;}else if((state.messages[key()]||[]).filter(m=>!m.threadRoot).length>5)$('chat-feed').scrollTop=$('chat-feed').scrollHeight;restoreDraft();saveTab();scheduleRead();document.querySelector('.conversation')?.classList.remove('channel-enter');requestAnimationFrame(()=>document.querySelector('.conversation')?.classList.add('channel-enter'));}
+function changeContext(s,c){const fromDrawer=closeLocalDrawers(false);draft();reading.set(key(),{top:$('chat-feed').scrollTop,limit:historyLimits.get(key())||100});state.readingPositions=state.readingPositions||{};state.readingPositions[key()]=reading.get(key());closeThread(false);state.server=s;state.channel=c;threadId='';$('thread-panel').hidden=true;document.body.classList.remove('mobile-nav','thread-open');ensureContext();renderAll(false);const position=reading.get(key())||state.readingPositions?.[key()];if(position){historyLimits.set(key(),position.limit);renderMessages();$('chat-feed').scrollTop=position.top;}else if((state.messages[key()]||[]).filter(m=>!m.threadRoot).length>5)$('chat-feed').scrollTop=$('chat-feed').scrollHeight;restoreDraft();saveTab();scheduleRead();document.querySelector('.conversation')?.classList.remove('channel-enter');requestAnimationFrame(()=>document.querySelector('.conversation')?.classList.add('channel-enter'));if(fromDrawer)(readOnly()?$('chat-feed'):$('message-input'))?.focus({preventScroll:true});}
 function sendMessage(event){
  event?.preventDefault();if(readOnly())return toast('This channel is read only.');
  const input=$('message-input'),text=input.value.trim().slice(0,4000);if(!text&&!pendingImage&&!pendingAudio)return false;
@@ -2854,13 +3189,13 @@ function renderThread(scroll=true){
  const same=activeThreadKey===requested;
  if(activeThreadKey&&!same)threadDrafts.set(activeThreadKey,$('thread-input')?.value||'');
  const prior=same?$('thread-input')?.value||'':threadDrafts.get(requested)||'';
- if(!same){panel.innerHTML=`<header class="thread-heading"><span>${icon('thread')}Thread <small>#${esc(state.channel)}</small></span><button class="icon-button" data-action="close-thread" aria-label="Close thread">×</button></header><div id="thread-feed" class="thread-feed"></div><form id="thread-form" class="thread-composer"><label class="sr-only" for="thread-input">Reply in thread</label><textarea id="thread-input" placeholder="Reply in thread…" maxlength="4000" rows="2"${readOnly()?' disabled':''}>${esc(prior)}</textarea><button class="primary-button"${readOnly()?' disabled':''}>Send reply ${icon('arrow')}</button></form>`;}
- activeThreadKey=requested;panel.hidden=false;document.body.classList.add('thread-open');
+ if(!same){if(!activeThreadKey)threadReturn=document.activeElement;panel.innerHTML=`<header class="thread-heading"><span>${icon('thread')}Thread <small>#${esc(state.channel)}</small></span><button class="icon-button" data-action="close-thread" aria-label="Close thread">×</button></header><div id="thread-feed" class="thread-feed"></div><form id="thread-form" class="thread-composer"><label class="sr-only" for="thread-input">Reply in thread</label><textarea id="thread-input" placeholder="Reply in thread…" maxlength="4000" rows="2"${readOnly()?' disabled':''}>${esc(prior)}</textarea><button class="primary-button"${readOnly()?' disabled':''}>Send reply ${icon('arrow')}</button></form>`;}
+ activeThreadKey=requested;panel.hidden=false;document.body.classList.add('thread-open');localPanelState();
  const feed=$('thread-feed'),position=feed.scrollTop,anchor=captureAnchor(feed),replies=list.filter(m=>m.threadRoot===threadId),limit=threadLimits.get(requested)||100,shown=replies.slice(-limit);
  reconcile(feed,messageHTML(root,true)+(replies.length>shown.length?'<button data-static-key="older-replies" class="load-history" data-action="load-thread-older">Load older replies ('+(replies.length-shown.length)+' retained)</button>':'')+'<div data-static-key="thread-divider" class="thread-divider">THE CONVERSATION CONTINUES</div>'+shown.map(m=>messageHTML(m,true)).join(''));
  feed.scrollTop=scroll?feed.scrollHeight:position;if(!scroll)restoreAnchor(feed,anchor);saveTab();
 }
-function closeThread(){if(activeThreadKey)threadDrafts.set(activeThreadKey,$('thread-input')?.value||'');activeThreadKey='';threadId='';$('thread-panel').hidden=true;document.body.classList.remove('thread-open');saveTab();}
+function closeThread(restore=true){const wasOpen=!!activeThreadKey,previous=threadReturn;threadReturn=null;if(activeThreadKey)threadDrafts.set(activeThreadKey,$('thread-input')?.value||'');activeThreadKey='';threadId='';$('thread-panel').hidden=true;document.body.classList.remove('thread-open');localPanelState();saveTab();if(wasOpen&&restore){if(focusableReturn(previous))previous.focus({preventScroll:true});else (threadId?$('thread-input'):$('message-input'))?.focus({preventScroll:true});}}
 function sendThread(event){
  event.preventDefault();if(readOnly())return false;const input=$('thread-input'),text=input.value.trim();if(!text)return false;
  const context=key()+':'+threadId,id=failedMessageIds.get(context)||uid();failedMessageIds.set(context,id);
@@ -2881,7 +3216,7 @@ function showNewServer(){modal(`<span class="eyebrow">MAKE ROOM FOR YOUR PEOPLE<
 function showNewChannel(){if(!canModerate())return toast('Channel creation is available in communities you own.');modal(`<span class="eyebrow">${esc(server().name)}</span><h2 class="modal-heading">Open a new channel.</h2><form id="channel-form"><label class="field-label" for="new-channel-name">Channel name</label><input id="new-channel-name" class="text-field" name="name" maxlength="32" pattern="[a-zA-Z0-9 -]+" required placeholder="late-night-ideas" autofocus><label class="field-label" for="new-channel-description">Topic</label><input id="new-channel-description" class="text-field" name="description" maxlength="160" placeholder="Give the conversation a direction"><div class="modal-actions"><button class="primary-button">Create channel ${icon('arrow')}</button></div></form>`);}
 function showCommunity(){if(direct())return showFriends();const own=canModerate();modal(`<span class="eyebrow">COMMUNITY / ${own?'OWNER CONTROLS':'MEMBERSHIP'}</span><h2 class="modal-heading">${esc(server().name)}</h2><p class="modal-copy">${esc(server().description)}</p><div class="role-policy"><div><span class="role-swatch owner"></span><strong>Owner</strong><p>Creates channels, edits branding, publishes announcements, pins and moderates messages.</p></div><div><span class="role-swatch resident"></span><strong>Resident</strong><p>Posts in text channels, replies, reacts, and manages their own messages. Announcements stay read only.</p></div></div>${own?`<form id="community-form"><label class="field-label" for="community-name">Community name</label><input class="text-field" id="community-name" name="name" maxlength="32" value="${esc(server().name)}" required><label class="field-label" for="community-description">Description</label><textarea class="text-field" id="community-description" name="description" maxlength="160" rows="2">${esc(server().description)}</textarea><div class="modal-actions"><button class="primary-button">Save branding</button><button class="secondary-button" type="button" data-action="add-channel">Create channel</button></div></form>`:`<div class="sample-panel">This is a sample community. Your profile has resident permissions. Create a community to use the owner tools.</div><div class="modal-actions"><button class="primary-button" data-action="add-server">Create your community</button><button class="secondary-button" data-action="discovery">Discover more</button></div>`}`);}
 const discoveryItems=[{id:'afterhours',name:'Afterhours',category:'Culture',code:'AH—001',copy:'For the beautifully over-online. The conversation after the conversation.',design:'orbital'},{id:'studio',name:'Studio 404',category:'Art & design',code:'ST—404',copy:'Unfinished masterpieces, experiments, and people who make things.',design:'grid'},{id:'arcade',name:'The Arcade',category:'Gaming',code:'AR—008',copy:'Co-op people in a competitive world. Find your next side quest.',design:'arcade'},{id:'low-frequency',name:'Low Frequency',category:'Music',code:'LF—033',copy:'Deep cuts, lost records, and playlists that understand you.',design:'waves'},{id:'soft-machines',name:'Soft Machines',category:'Technology',code:'SM—010',copy:'Creative code. Humane technology. Strange little inventions.',design:'grid'},{id:'no-signal',name:'No Signal Club',category:'Culture',code:'NS—000',copy:'A quiet corner for analog hobbies and things made by hand.',design:'orbital'}];
-function showDiscovery(category='All'){modal(`<div class="discovery-header"><div><span class="eyebrow">THE DIRECTORY / FIND YOUR PEOPLE</span><h2 class="discovery-title">Somewhere,<br><em>you belong.</em></h2><p>Independent frequencies. Shared obsessions.<br>Explore the sample communities, or start your own.</p></div><div class="directory-sculpture" aria-hidden="true"><span></span><span></span><span></span><b>VL</b></div></div><div class="discovery-filters" role="group" aria-label="Filter communities">${['All','Culture','Art & design','Music','Gaming','Technology'].map(c=>`<button data-discover-category="${esc(c)}" class="${c===category?'active':''}">${esc(c)}</button>`).join('')}</div><div class="discovery-grid">${discoveryItems.filter(c=>category==='All'||c.category===category).map(c=>{const joined=Object.hasOwn(allServers(),c.id)||state.customServers.some(s=>s.id==='custom-discover-'+c.id);return `<article class="discovery-card"><div class="discovery-card-art design-${c.design}"><span class="discovery-code">${c.code}</span><span class="discovery-monogram">${esc(c.name[0])}</span><span class="discovery-card-category">${esc(c.category)}</span></div><div class="discovery-card-content"><h3>${esc(c.name)}</h3><p>${esc(c.copy)}</p><div><span>SAMPLE COMMUNITY</span><button class="secondary-button" data-discover-join="${c.id}">${joined?'Open':'Join locally'} ${icon('arrow')}</button></div></div></article>`;}).join('')}</div><div class="discovery-footer"><p>These communities are curated demo spaces. Joining adds a local archive; it does not connect you to live members.</p><button class="text-button" data-action="add-server">Start your own frequency ↗</button></div>`,{wide:true,className:'directory-dialog'});}
+function showDiscovery(category='All'){modal(`<div class="discovery-header"><div><span class="eyebrow">THE DIRECTORY / FIND YOUR PEOPLE</span><h2 class="discovery-title">Somewhere,<br><em>you belong.</em></h2><p>Independent frequencies. Shared obsessions.<br>Explore the sample communities, or start your own.</p></div><div class="directory-sculpture" aria-hidden="true"><span></span><span></span><span></span><b>VL</b></div></div><div class="discovery-filters" role="group" aria-label="Filter communities">${['All','Culture','Art & design','Music','Gaming','Technology'].map(c=>`<button data-discover-category="${esc(c)}" class="${c===category?'active':''}">${esc(c)}</button>`).join('')}</div><div class="discovery-grid">${discoveryItems.filter(c=>category==='All'||c.category===category).map(c=>{const joined=Object.hasOwn(allServers(),c.id)||state.customServers.some(s=>s.id==='custom-discover-'+c.id);return `<article class="discovery-card"><div class="discovery-card-art design-${c.design}"><span class="discovery-code">${c.code}</span><span class="discovery-monogram">${esc(c.name[0])}</span><span class="discovery-card-category">${esc(c.category)}</span></div><div class="discovery-card-content"><h3>${esc(c.name)}</h3><p>${esc(c.copy)}</p><div><span>SAMPLE COMMUNITY</span><button class="secondary-button" data-discover-join="${c.id}">${joined?'Open':'Join locally'} ${icon('arrow')}</button></div></div></article>`;}).join('')}</div><div class="discovery-footer"><p>These communities are curated samples stored on this device. For conversations with other people, create or join an invite-only shared community.</p><button class="primary-button" data-action="live">Open shared rooms ${icon('live')}</button><button class="text-button" data-action="add-server">Create a local space</button></div>`,{wide:true,className:'directory-dialog'});}
 function joinDiscovery(id){const item=discoveryItems.find(c=>c.id===id);if(!item)return;let target=Object.hasOwn(allServers(),id)?id:'custom-discover-'+id;if(!Object.hasOwn(allServers(),target)){if(state.customServers.length>=24)return toast('Your archive supports up to 24 local communities.');state.customServers.push({id:target,name:item.name,description:item.copy,owner:false,category:item.category,accent:'#8b97b4',channels:[['general','Your place in the conversation.'],['inspiration','Signals worth sharing.'],['announcements','Community notes.']]});notify(`You joined the local ${item.name} archive.`,'discovery');}closeModal();changeContext(target,'general');}
 function dm(id){if(!Object.hasOwn(people,id))return;const conv='dm-'+id;if(!state.conversations.some(c=>c.id===conv))state.conversations.push({id:conv,name:people[id].name,members:[id],group:false});closeModal();changeContext('direct',conv);}
 function toggleFriend(id){if(!Object.hasOwn(people,id))return;const i=state.friends.indexOf(id);if(i<0)state.friends.push(id);else state.friends.splice(i,1);if(!persist())return false;renderChannels();toast(i<0?`${people[id].name} added to your local contacts.`:'Contact removed.');return i<0;}
@@ -3036,7 +3371,7 @@ function commandResults(query=''){
 }
 function showCommands(){modal(`<div class="command-search">${icon('search')}<input id="command-input" role="combobox" aria-expanded="true" aria-controls="command-results" aria-autocomplete="list" aria-activedescendant="command-result-0" placeholder="Search people, channels, messages, commands" autocomplete="off" aria-label="Search people, channels, messages and commands" autofocus><kbd>ESC</kbd></div><div id="command-results" class="command-results" role="listbox" aria-label="Commands and channels">${commandResults()}</div><div class="command-footer"><span>↑↓ to navigate</span><span>↵ to open</span><b>VOIDLINE</b></div>`,{className:'command-dialog'});}
 function showPins(){const list=state.messages[key()].filter(m=>m.pinned);modal(`<span class="eyebrow">#${esc(state.channel)} / SAVED TO THE WALL</span><h2 class="modal-heading">Pinned transmissions.</h2>${list.map(m=>`<button class="search-hit" data-jump-modal="${esc(m.id)}"><strong>${esc(person(m.author).name)}</strong><p>${esc(m.text||'Media attachment')}</p></button>`).join('')||'<div class="empty-state">Nothing pinned here yet.<br>Use a message’s options to pin your own transmission.</div>'}`);}
-function showDownload(){const offline=document.documentElement.dataset.offline==='true';modal(`<span class="eyebrow">THE CLIENT / TAKE IT WITH YOU</span><h2 class="modal-heading">Your frequency.<br>Wherever you go.</h2><p class="modal-copy">The complete device-local client in a single file. Entrance, conversations, profiles, and artifact collection — all included.</p><a class="download-option" href="${offline?esc(location.href):'downloads/voidline-offline.html'}" download="VOIDLINE-AFTERHOURS.html"><span class="download-icon">${icon('download')}</span><span><strong>${offline?'Save an offline copy':'Download offline client'}</strong><small>Single HTML file · Desktop browsers · No install required</small></span>${icon('arrow')}</a>${!offline?'<a class="download-option" href="downloads/voidline-source.zip" download="VOIDLINE-source.zip"><span class="download-icon">'+icon('code')+'</span><span><strong>The source archive</strong><small>Complete source · No build dependencies</small></span>'+icon('arrow')+'</a>':''}${installPrompt?'<button class="secondary-button install-button" data-action="install">Install web app on this device</button>':''}<div class="sample-panel">Your history belongs to this browser. Export your archive in settings to move it between copies. Shared accounts and live calls require a messaging backend.</div><button class="text-button" data-action="export">Export my data before downloading ↗</button>`);}
+function showDownload(){const offline=document.documentElement.dataset.offline==='true';modal(`<span class="eyebrow">THE CLIENT / TAKE IT WITH YOU</span><h2 class="modal-heading">Your frequency.<br>Wherever you go.</h2><p class="modal-copy">The complete device-local client in a single file. Entrance, conversations, profiles, and artifact collection — all included.</p><a class="download-option" href="${offline?esc(location.href):'downloads/voidline-offline.html'}" download="VOIDLINE-AFTERHOURS.html"><span class="download-icon">${icon('download')}</span><span><strong>${offline?'Save an offline copy':'Download offline client'}</strong><small>Single HTML file · Desktop browsers · No install required</small></span>${icon('arrow')}</a>${!offline?'<a class="download-option" href="downloads/voidline-source.zip" download="VOIDLINE-source.zip"><span class="download-icon">'+icon('code')+'</span><span><strong>The source archive</strong><small>Client, Worker API, migrations & tests</small></span>'+icon('arrow')+'</a>':''}${installPrompt?'<button class="secondary-button install-button" data-action="install">Install web app on this device</button>':''}<div class="sample-panel">Your history belongs to this browser. Export your archive in settings to move it between copies. Shared rooms are available in the hosted app after sign-in. This download keeps its personal archive on this device; shared media and live calls are unavailable.</div><button class="text-button" data-action="export">Export my data before downloading ↗</button>`);}
 function showHelp(){modal(`<span class="eyebrow">A PLACE BETWEEN DAYS</span><h2 class="modal-heading">Welcome to Afterhours.</h2><p class="modal-copy">An independent communication client with a device-local archive. The residents and communities supplied with the app are sample content. You can create communities, keep conversations, customize a profile, and earn artifacts through your own activity.</p><div class="help-shortcuts"><div><kbd>Ctrl / ⌘ K</kbd><span>Command palette</span></div><div><kbd>Ctrl / ⌘ ,</kbd><span>Appearance</span></div><div><kbd>Enter</kbd><span>Send a message</span></div><div><kbd>Shift + Enter</kbd><span>New line</span></div><div><kbd>Esc</kbd><span>Close a panel</span></div></div><p class="modal-footnote">Formatting: **bold**, *italic*, ~~strikethrough~~, and \`inline code\`. Image and voice attachments stay on this device. The client synchronizes saved messages between tabs in the same browser.</p><div class="modal-actions"><button class="primary-button" data-action="discovery">Find your frequency</button><button class="secondary-button" data-action="download">Get the client</button></div>`);}
 function showNetwork(){modal(`<span class="eyebrow">CLIENT STATUS / TRANSPARENT BY DESIGN</span><h2 class="modal-heading">A private frequency.</h2><div class="client-status-grid"><div><span>Archive</span><strong>On this device</strong></div><div><span>Messaging server</span><strong>Not connected</strong></div><div><span>Open-tab updates</span><strong>Browser storage events</strong></div><div><span>IP lookup / tracking</span><strong>Not used</strong></div><div><span>Edition</span><strong>AFTERHOURS / 02</strong></div><div><span>Stored transmissions</span><strong>${Object.values(state.messages).flat().length}</strong></div></div><p class="modal-footnote">No fabricated connection metrics. The hosted page uses normal hosting and sign-in traffic; the offline client needs no network connection.</p><div class="modal-actions"><button class="secondary-button" data-action="export">Export your archive</button></div>`);}
 async function copyText(text){try{await navigator.clipboard.writeText(text);toast('Copied to your clipboard.');}catch(_){modal(`<h2 class="modal-heading">Copy this signal.</h2><textarea class="text-field" rows="4" readonly autofocus>${esc(text)}</textarea><p class="modal-footnote">Select the text and use your browser’s Copy command.</p>`);}}
@@ -3104,8 +3439,8 @@ function handleAction(action,button){const actions={
  'saved-messages':showSavedMessages,'favorite-channel':()=>toggleFavorite(button?.dataset?.context||key()),'inbox-mark-all':()=>{if(markAllInboxRead())showNotifications(inboxView,true);},'search-more':loadMoreSearch,
  'profile':()=>window.VoidProfiles.edit(),'profile-view':()=>window.VoidProfiles.open('self'),'appearance':()=>window.VoidProfiles.settings(),'badges':()=>window.VoidBadges.open(),'gift':()=>window.VoidBadges.open(),'discovery':()=>showDiscovery(),'friends':()=>showFriends(),'new-dm':showNewDM,'direct':()=>changeContext('direct','notes'),'command':showCommands,'search':()=>showSearch(),'inbox':showNotifications,'pinned':showPins,'download':showDownload,'load-older':()=>{const f=$('chat-feed'),height=f.scrollHeight;historyLimits.set(key(),(historyLimits.get(key())||100)+100);renderMessages();f.scrollTop+=f.scrollHeight-height;},'load-thread-older':()=>{const f=$('thread-feed'),height=f.scrollHeight;threadLimits.set(key()+':'+threadId,(threadLimits.get(key()+':'+threadId)||100)+100);renderThread(false);f.scrollTop+=f.scrollHeight-height;},'jump-latest':()=>{renderMessages(true);markReached();},'retry-save':retrySaves,'recover-save':exportRecovery,'help':showHelp,'network':showNetwork,'voice':showVoice,'record-voice':recordVoice,'add-server':showNewServer,'add-channel':showNewChannel,'community':showCommunity,'server-menu':showCommunity,'attachment':attachImage,'emoji':emojiPicker,'export':exportData,'import':importData,'commit-import':commitImport,
  'invite':()=>direct()?showNewDM():canModerate()?showCommunity():showDiscovery(),
- 'members':()=>{if(window.matchMedia('(min-width:1051px)').matches){state.settings.memberSidebar=!state.settings.memberSidebar;persist();renderAll();}else{const open=document.body.classList.toggle('members-open');if(!open)scheduleRead();}},
- 'menu':()=>{const open=document.body.classList.toggle('mobile-nav');if(!open)scheduleRead();},'close-thread':closeThread,'cancel-reply':()=>{replyId='';renderComposerContext();draft();},'remove-attachment':()=>{pendingImage='';pendingAudio='';pendingName='';renderComposerContext();draft();},'close-modal':()=>{stopRecording(true);closeModal();},
+ 'members':()=>{if(window.matchMedia('(min-width:1051px)').matches){state.settings.memberSidebar=!state.settings.memberSidebar;persist();renderAll();}else toggleLocalDrawer('members',button);},
+ 'menu':()=>toggleLocalDrawer('nav',button),'close-thread':closeThread,'cancel-reply':()=>{replyId='';renderComposerContext();draft();},'remove-attachment':()=>{pendingImage='';pendingAudio='';pendingName='';renderComposerContext();draft();},'close-modal':()=>{stopRecording(true);closeModal();},
  'replay':()=>{closeModal();window.VoidEntrance.replay();},'mute':showVoice,'deafen':()=>window.VoidProfiles.settings(),
  'install':async()=>{if(installPrompt){await installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;closeModal();}},
  'challenge':()=>{modal(`<span class="eyebrow">OPEN STUDIO / A CREATIVE PROMPT</span><h2 class="modal-heading">Make something<br>from the static.</h2><p class="modal-copy">A tiny creative challenge with no deadline: share an original image, sketch, photo, or piece of writing. Give it a title. Reply to the post with the story behind it.</p><div class="challenge-steps"><span>01 / MAKE A SIGNAL</span><span>02 / SHARE YOUR WORK</span><span>03 / TELL ITS STORY</span></div><p class="modal-footnote">Keep it in your own archive. This is a personal creative prompt, not a live event or public submission.</p><div class="modal-actions"><button class="primary-button" data-start-challenge>Open the studio ${icon('arrow')}</button></div>`);}
@@ -3181,7 +3516,8 @@ function boot(){
   if(window.VoidEntrance?.isPlaying?.())return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();showCommands();}
   if((e.ctrlKey||e.metaKey)&&e.key===','){e.preventDefault();window.VoidProfiles.settings();}
   if(e.target.dataset?.inboxTab&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const views=['unread','mentions','activity'],current=views.indexOf(inboxView),next=e.key==='Home'?0:e.key==='End'?2:(current+(e.key==='ArrowRight'?1:2))%3;showNotifications(views[next],true);return;}
-  if(e.key==='Escape'){$('context-menu').hidden=true;document.body.classList.remove('mobile-nav','members-open');if(!$('app-modal').open)closeThread();}
+  if(e.key==='Escape'){$('context-menu').hidden=true;if(!$('app-modal').open){if(closeLocalDrawers()){e.preventDefault();return;}closeThread();}}
+  if(e.key==='Tab'&&!$('app-modal').open){const list=drawerFocusables();if(list.length){const first=list[0],last=list.at(-1);if(e.shiftKey&&(document.activeElement===first||!list.includes(document.activeElement))){e.preventDefault();last.focus();}else if(!e.shiftKey&&(document.activeElement===last||!list.includes(document.activeElement))){e.preventDefault();first.focus();}}}
   if(e.target.id==='thread-input'&&e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendThread({preventDefault(){}});}
   if(e.target.id==='command-input'&&['ArrowDown','ArrowUp','Enter'].includes(e.key)){e.preventDefault();const list=Array.from($('command-results').querySelectorAll('button'));let idx=list.findIndex(n=>n.classList.contains('selected'));if(e.key==='Enter'){list[Math.max(0,idx)]?.click();return;}list.forEach(n=>{n.classList.remove('selected');n.setAttribute('aria-selected','false');});idx=(idx+(e.key==='ArrowDown'?1:-1)+list.length)%list.length;list[idx]?.classList.add('selected');list[idx]?.setAttribute('aria-selected','true');if(list[idx])e.target.setAttribute('aria-activedescendant',list[idx].id);list[idx]?.scrollIntoView({block:'nearest'});}
   if(!$('context-menu').hidden&&['ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();const list=Array.from($('context-menu').querySelectorAll('button')),idx=list.indexOf(document.activeElement);list[(idx+(e.key==='ArrowDown'?1:-1)+list.length)%list.length]?.focus();}
@@ -3192,8 +3528,8 @@ function boot(){
  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;});
  window.addEventListener('beforeunload',event=>{draft();if(activeThreadKey)threadDrafts.set(activeThreadKey,$('thread-input')?.value||'');saveTab();stopRecording(true);if(sessionIssue||failedMutations.length||window.VoidProfiles?.hasUnsavedChanges?.()){event.preventDefault();event.returnValue='';}});
  window.addEventListener('pagehide',()=>{draft();saveTab();});
- window.addEventListener('resize',scheduleRead);window.addEventListener('voidline:entered',scheduleRead);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleRead();else saveTab();});
- window.VoidApp={...api,normalize,format,changeContext,sendMessage,sendThread,messageAction,removeMessage,createLocalServer,addChannel,canModerate,renderAll,reconcile,searchResults,searchArchive,bookmarkedMessages,toggleBookmark,removeBookmark,toggleFavorite,setContextFilter,getContextEntries,inboxEntries,markInboxRead,markAllInboxRead,openMessageSource,prepareImport,commitImport,closeThread};
+ window.addEventListener('resize',resizeLocalPanels);window.addEventListener('voidline:entered',resizeLocalPanels);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleRead();else saveTab();});
+ window.VoidApp={...api,normalize,format,changeContext,sendMessage,sendThread,messageAction,removeMessage,createLocalServer,addChannel,canModerate,renderAll,reconcile,searchResults,searchArchive,bookmarkedMessages,toggleBookmark,removeBookmark,toggleFavorite,setContextFilter,getContextEntries,inboxEntries,markInboxRead,markAllInboxRead,openMessageSource,prepareImport,commitImport,closeThread,closeLocalDrawers};
  window.dispatchEvent(new Event('voidline:ready'));
 }
 function launch(){try{boot();}catch(error){console.error('VOIDLINE could not initialize',error);window.VoidEntrance?.skip?.();const feed=$('chat-feed');if(feed){feed.innerHTML='<div class="client-error"><span class="eyebrow">CLIENT INITIALIZATION</span><h2>The signal was interrupted.</h2><p>Your saved archive has not been cleared. Reload the client, or export this session before trying again.</p><button id="retry-client" class="primary-button">Reload client</button><button id="export-recovery" class="secondary-button">Export archive</button></div>';$('retry-client').addEventListener('click',()=>location.reload());$('export-recovery').addEventListener('click',exportData);}}}
@@ -3211,40 +3547,50 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const offlineEdition = document.documentElement.dataset.offline === 'true' || location.protocol === 'file:';
-  const state = {active:false, phase:'idle', account:null, communities:[], communityId:'', channels:[], channelId:'', members:[], rooms:new Map(), generation:0, identityGeneration:0, poll:0, pendingInvite:'', error:'', network:'', drawer:'', sessionWarning:false};
-  let app, root, originalScope, originalSearch, originalSearchLabel, focusBeforeDrawer;
+  const state = {active:false, phase:'idle', account:null, communities:[], communityId:'', channels:[], channelId:'', members:[], rooms:new Map(), generation:0, identityGeneration:0, poll:0, pendingInvite:'', error:'', network:'', drawer:'', sessionWarning:false, threadRootId:'', deepLink:'', actionBusy:new Set()};
+  let app, root, originalScope, originalSearch, originalSearchLabel, focusBeforeDrawer, toolsModule;
+  const tools = () => toolsModule || window.VoidLiveTools;
+  const roomKey = (id, threadId = '') => id + (threadId ? '::' + threadId : '');
+  const activeRoom = () => room(state.channelId, state.threadRootId);
+  const guard = () => { const id = state.account?.id, epoch = state.identityGeneration; return {current:() => state.account?.id === id && state.identityGeneration === epoch}; };
+  const dateValue = value => { const d = new Date(typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value); return Number.isFinite(d.getTime()) ? d : new Date(0); };
   const initials = name => String(name || '?').trim().split(/\s+/).map(x => Array.from(x)[0]).slice(0,2).join('').toUpperCase();
   const community = () => state.communities.find(c => c.id === state.communityId);
   const channel = () => state.channels.find(c => c.id === state.channelId);
   const sessionKey = id => `voidline.shared.session.v1.${state.account?.id || 'guest'}.${id}`;
   const navKey = () => `voidline.shared.navigation.v1.${state.account?.id || 'guest'}`;
   const canPost = () => channel()?.kind !== 'announcement' || ['owner','moderator'].includes(community()?.role);
-  function room(id = state.channelId) {
-    if (!state.rooms.has(id)) {
+  function room(id = state.channelId, threadId = '') {
+    const key = roomKey(id,threadId);
+    if (!state.rooms.has(key)) {
       let saved = {};
-      try { saved = JSON.parse(sessionStorage.getItem(sessionKey(id)) || '{}'); } catch (_) { /* private window */ }
-      state.rooms.set(id, {messages:[], loaded:false, older:false, loading:false, syncing:false, draft:typeof saved.text === 'string' ? saved.text.slice(0,4000) : '', pending:Array.isArray(saved.pending) ? saved.pending.filter(p => p && typeof p.text === 'string' && p.text.length <= 4000 && /^[A-Za-z0-9_-]{8,100}$/.test(p.clientId)).slice(0,20).map(p => ({clientId:p.clientId,text:p.text,status:'failed',error:'Not confirmed. Retry uses the same message ID.'})) : [], error:''});
+      try { saved = JSON.parse(sessionStorage.getItem(sessionKey(key)) || '{}'); } catch (_) { /* private window */ }
+      const pending = Array.isArray(saved.pending) ? saved.pending.filter(p => p && typeof p.text === 'string' && p.text.length <= 4000 && /^[A-Za-z0-9_-]{8,100}$/.test(p.clientId)).slice(0,20).map(p => ({clientId:p.clientId,text:p.text,replyToId:typeof p.replyToId === 'string' ? p.replyToId : null,threadRootId:threadId || null,status:'failed',error:'Not confirmed. Retry uses the same message ID.'})) : [];
+      state.rooms.set(key, {channelId:id,threadRootId:threadId,messages:[], loaded:false, older:false, newer:false, windowEnd:0, loading:false, syncing:false, changeCursor:null, draft:typeof saved.text === 'string' ? saved.text.slice(0,4000) : '', replyToId:typeof saved.replyToId === 'string' ? saved.replyToId : null, pending, reading:saved.reading && Number.isFinite(saved.reading.top) ? saved.reading : null,error:''});
     }
-    return state.rooms.get(id);
+    return state.rooms.get(key);
   }
-  function saveSession(id = state.channelId) {
+  function saveSession(id = state.channelId, threadId = state.threadRootId) {
     if (!id || !state.account) return true;
-    const r = room(id);
+    const r = room(id,threadId);
     try {
-      sessionStorage.setItem(sessionKey(id), JSON.stringify({text:r.draft,pending:r.pending.map(p => ({clientId:p.clientId,text:p.text}))}));
+      sessionStorage.setItem(sessionKey(roomKey(id,threadId)), JSON.stringify({text:r.draft,replyToId:r.replyToId,reading:r.reading,pending:r.pending.map(p => ({clientId:p.clientId,text:p.text,replyToId:p.replyToId,threadRootId:p.threadRootId}))}));
       return true;
     } catch (_) {
-      if (!state.sessionWarning) { state.sessionWarning = true; app.toast('This browser cannot save shared drafts. Keep this tab open until your messages are confirmed.'); }
-      return false;
+      if (!state.sessionWarning) { state.sessionWarning = true; app.toast('This browser cannot save shared drafts. Copy a recovery draft before closing this tab.'); }
+      updateConnection(); return false;
     }
   }
   function captureDraft() {
-    if (!state.channelId || !$('live-message-input')) return;
-    room().draft = $('live-message-input').value;
+    if (!state.channelId) return;
+    const input = $('live-message-input');
+    if (input) activeRoom().draft = input.value;
+    const feed = $('live-stream');
+    if (feed) activeRoom().reading = {top:feed.scrollTop,bottom:feed.scrollHeight - feed.clientHeight - feed.scrollTop < 80};
     saveSession();
   }
   function saveNavigation() {
-    try { sessionStorage.setItem(navKey(), JSON.stringify({communityId:state.communityId,channelId:state.channelId})); } catch (_) { /* optional */ }
+    try { sessionStorage.setItem(navKey(), JSON.stringify({communityId:state.communityId,channelId:state.channelId,threadRootId:state.threadRootId})); } catch (_) { /* optional */ }
   }
   async function request(path, body) {
     const payload = body === undefined ? undefined : {...body,...(state.account?.id ? {expectedAccountId:state.account.id} : {})};
@@ -3271,8 +3617,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     if (/^[a-f0-9]{64}$/.test(text)) return text;
     try { const token = new URL(text).hash.match(/^#join=([a-f0-9]{64})$/)?.[1]; return token || ''; } catch (_) { return ''; }
   }
+  function deepLinkFromHash() { try { const id = decodeURIComponent(location.hash.slice(8)); return /^#shared\//.test(location.hash) && /^[A-Za-z0-9_-]{1,100}$/.test(id) ? id : ''; } catch (_) { return ''; } }
   function signInLink() {
-    const path = location.pathname + location.search + (state.pendingInvite ? '#join=' + state.pendingInvite : '#shared');
+    const path = location.pathname + location.search + (state.pendingInvite ? '#join=' + state.pendingInvite : state.deepLink ? '#shared/' + encodeURIComponent(state.deepLink) : /^#shared\//.test(location.hash) ? location.hash : '#shared');
     return '/signin-with-chatgpt?return_to=' + encodeURIComponent(path);
   }
   function syncChrome() {
@@ -3281,8 +3628,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     document.querySelector('[data-action="live"]')?.setAttribute('aria-pressed',String(state.active));
     if (scope) { scope.innerHTML = state.active ? `${icon('live')}<b>SHARED TEXT</b>` : originalScope; scope.title = state.active ? 'Shared rooms status' : 'Local archive status'; }
     if (search) {
-      search.innerHTML = state.active ? `${icon('search')}<span>Search this room</span><kbd>${/Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘ K' : 'Ctrl K'}</kbd>` : originalSearch;
-      search.setAttribute('aria-label',state.active ? 'Search loaded shared messages' : originalSearchLabel);
+      search.innerHTML = state.active ? `${icon('search')}<span>Search shared rooms</span><kbd>${/Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘ K' : 'Ctrl K'}</kbd>` : originalSearch;
+      search.setAttribute('aria-label',state.active ? 'Search shared messages, channels, and people' : originalSearchLabel);
     }
     document.querySelector('.skip-link')?.setAttribute('href',state.active ? '#live-main' : '#message-input');
   }
@@ -3305,21 +3652,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   function exitLive() {
     captureDraft(); clearTimeout(state.poll); state.generation++; state.active = false; closeDrawers(false);
     root.hidden = true; document.body.classList.remove('vl-live-mode'); syncChrome();
-    if (location.hash === '#shared' || /^#join=/.test(location.hash)) history.replaceState(null,'',location.pathname + location.search);
+    if (/^#(?:shared|join=)/.test(location.hash)) history.replaceState(null,'',location.pathname + location.search);
     app.renderAll();
   }
   async function enterLive() {
-    app.closeModal(); app.closeThread(); document.body.classList.remove('mobile-nav','members-open');
+    app.closeModal(); app.closeLocalDrawers?.(false); app.closeThread(false); document.body.classList.remove('mobile-nav','members-open');
     state.active = true; root.hidden = false; document.body.classList.add('vl-live-mode'); syncChrome();
-    if (!/^#join=/.test(location.hash)) history.replaceState(null,'',location.pathname + location.search + '#shared');
+    if (!/^#(?:join=|shared\/)/.test(location.hash)) history.replaceState(null,'',location.pathname + location.search + '#shared');
     await connect();
   }
   function adoptAccount(account) {
     if (state.account?.id !== account?.id) {
       captureDraft(); state.identityGeneration++; clearTimeout(state.poll);
-      state.rooms.clear(); state.communities = []; state.communityId = ''; state.channels = []; state.channelId = ''; state.members = []; state.network = ''; state.sessionWarning = false;
+      state.rooms.clear(); state.threadRootId = ''; state.actionBusy.clear(); state.communities = []; state.communityId = ''; state.channels = []; state.channelId = ''; state.members = []; state.network = ''; state.sessionWarning = false;
     }
-    state.account = account;
+    state.account = account; tools()?.onData?.();
   }
   function signOut() {
     captureDraft(); clearTimeout(state.poll); state.generation++; adoptAccount(null);
@@ -3351,43 +3698,116 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     let saved = {};
     try { saved = JSON.parse(sessionStorage.getItem(navKey()) || '{}'); } catch (_) { /* optional */ }
     const selected = data.communities.find(c => c.id === (preferredId || state.communityId || saved.communityId)) || data.communities[0];
-    if (selected) await selectCommunity(selected.id, saved.channelId);
-    else { state.communityId = ''; state.channelId = ''; state.channels = []; state.members = []; renderShell(); }
+    let route = generation;
+    if (selected) {
+      route = await selectCommunity(selected.id, saved.channelId);
+      if (!state.active || route !== state.generation) return;
+      if (saved.threadRootId && state.channelId === saved.channelId) { route = await openThread(saved.threadRootId); if (!state.active || route !== state.generation) return; }
+    } else { state.communityId = ''; state.channelId = ''; state.channels = []; state.members = []; renderShell(); }
+    if (state.deepLink && state.active && route === state.generation) { const target = state.deepLink; state.deepLink = ''; await jumpMessage(target); }
     if (state.pendingInvite && state.active) joinDialog(state.pendingInvite);
   }
   async function selectCommunity(id, preferredChannel = '') {
     captureDraft(); closeDrawers(false); clearTimeout(state.poll);
     const generation = ++state.generation;
-    state.communityId = id; state.channelId = ''; state.channels = []; state.members = []; state.network = 'Connecting'; state.error = ''; renderShell();
+    state.communityId = id; state.channelId = ''; state.threadRootId = ''; state.channels = []; state.members = []; state.network = 'Connecting'; state.error = ''; renderShell();
     try {
       const [channels, members] = await Promise.all([request(`/communities/${encodeURIComponent(id)}/channels`),request(`/communities/${encodeURIComponent(id)}/members`)]);
       if (!state.active || generation !== state.generation) return;
       state.channels = channels.channels; state.members = members.members;
       const selected = state.channels.find(c => c.id === preferredChannel) || state.channels[0];
-      if (selected) await selectChannel(selected.id);
-      else { state.network = 'Connected'; renderShell(); }
+      if (selected) return await selectChannel(selected.id);
+      else { state.network = 'Connected'; renderShell(); return generation; }
     } catch (error) { if (generation === state.generation && state.active) { state.error = error.message; state.network = 'Connection interrupted'; renderShell(); } }
   }
-  async function selectChannel(id) {
+  async function selectChannel(id, latest = false) {
     if (!state.channels.some(c => c.id === id)) return;
     captureDraft(); closeDrawers(false); clearTimeout(state.poll);
     const generation = ++state.generation;
-    state.channelId = id; state.error = ''; state.network = 'Connecting'; const r = room(id);
+    state.channelId = id; state.threadRootId = ''; state.error = ''; state.network = 'Connecting'; const r = room(id);
     r.loading = !r.loaded; renderShell(); saveNavigation();
+    if (r.loaded && r.newer && !latest) { state.network = 'Checking'; updateConnection(); schedulePoll(0); return generation; }
     try {
       const data = await request(`/channels/${encodeURIComponent(id)}/messages?limit=50`);
       if (!state.active || generation !== state.generation) return;
-      mergeMessages(id,data.messages); r.loaded = true; r.loading = false; r.older = data.page.hasMore || (r.older && r.messages.length > data.messages.length); r.error = ''; state.network = 'Connected';
-      renderFeed({bottom:true}); updateConnection(); schedulePoll();
+      if (latest && r.newer) { r.messages = []; r.newer = false; r.reading = null; }
+      mergeMessages(id,data.messages); r.loaded = true; r.loading = false; r.older = data.page.hasMore || (r.older && r.messages.length > data.messages.length); if (r.changeCursor === null && Number.isFinite(data.changeCursor)) r.changeCursor = data.changeCursor; r.error = ''; state.network = 'Connected';
+      renderFeed({restore:true}); updateConnection(); schedulePoll(); tools()?.onData?.(); return generation;
     } catch (error) { if (generation === state.generation && state.active) { r.loading = false; r.error = error.message; state.network = 'Connection interrupted'; renderFeed(); updateConnection(); schedulePoll(5000); } }
   }
   function mergeMessages(id, incoming) {
-    const r = room(id), all = new Map(r.messages.map(m => [m.id,m]));
+    if (!Array.isArray(incoming)) return;
     for (const message of incoming) {
-      all.set(message.id,message);
+      if (!message || message.channel_id !== id) continue;
+      const r = room(id,message.thread_root_id || ''), old = r.messages.find(m => m.id === message.id);
+      if (old && (Number(message.change_seq) || 0) < (Number(old.change_seq) || 0)) continue;
+      if (old) Object.assign(old,message); else r.messages.push(message);
       if (message.author_id === state.account?.id) r.pending = r.pending.filter(p => p.clientId !== message.client_id);
+      r.messages.sort((a,b) => a.seq - b.seq); saveSession(id,message.thread_root_id || '');
+      // Reply previews remain useful when the source is edited or tombstoned.
+      for (const cached of state.rooms.values()) for (const reply of cached.messages) if (reply.reply_to_id === message.id) reply.reply_preview = {id:message.id,text:message.text,author_name:message.author_name,deleted_at:message.deleted_at};
     }
-    r.messages = Array.from(all.values()).sort((a,b) => a.seq - b.seq); saveSession(id);
+    tools()?.onData?.();
+  }
+  function findMessage(id) {
+    for (const r of state.rooms.values()) { const message = r.messages.find(m => m.id === id); if (message) return message; }
+    return null;
+  }
+  async function openThread(id, latest = false) {
+    const source = findMessage(id), rootId = source?.thread_root_id || id;
+    if (!state.channelId) return;
+    captureDraft(); closeDrawers(false); clearTimeout(state.poll);
+    const generation = ++state.generation, channelId = state.channelId;
+    state.threadRootId = rootId; const r = activeRoom(); r.loading = !r.loaded;
+    renderShell(); saveNavigation();
+    if (r.loaded && r.newer && !latest) { schedulePoll(0); return generation; }
+    try {
+      const [rootData,data] = await Promise.all([request(`/messages/${encodeURIComponent(rootId)}`),request(`/channels/${encodeURIComponent(channelId)}/messages?threadRootId=${encodeURIComponent(rootId)}&limit=50`)]);
+      if (!state.active || generation !== state.generation) return;
+      if (latest && r.newer) { r.messages = []; r.newer = false; r.reading = null; }
+      mergeMessages(channelId,[rootData.message,...data.messages]); r.loaded = true; r.loading = false; r.error = ''; r.older = data.page.hasMore || r.older;
+      if (room(channelId).changeCursor === null && Number.isFinite(data.changeCursor)) room(channelId).changeCursor = data.changeCursor;
+      renderFeed({restore:true}); updateComposerContext(); schedulePoll(); return generation;
+    } catch (error) { if (state.active && generation === state.generation) { r.loading = false; r.error = error.message; renderFeed(); schedulePoll(5000); } }
+  }
+  async function closeThread() { if (state.threadRootId) { const id = state.channelId; captureDraft(); const generation = await selectChannel(id); if (generation === state.generation) $('live-message-input')?.focus(); return generation; } }
+  async function navigate(target) {
+    if (!state.active) await enterLive();
+    const identity = guard(); let route = state.generation;
+    const current = () => identity.current() && state.active && route === state.generation;
+    if (state.phase !== 'ready') return;
+    if (target.communityId && target.communityId !== state.communityId) route = await selectCommunity(target.communityId,target.channelId);
+    else if (target.channelId && target.channelId !== state.channelId) route = await selectChannel(target.channelId);
+    if (!current()) return;
+    if (target.messageId) return jumpMessage(target.messageId);
+    if (target.threadRootId) return openThread(target.threadRootId);
+  }
+  async function jumpMessage(id) {
+    clearTimeout(state.poll);
+    const identity = guard(); let route = ++state.generation;
+    const current = () => identity.current() && state.active && route === state.generation;
+    try {
+      const data = await request(`/messages/${encodeURIComponent(id)}`), message = data.message;
+      if (!current()) return;
+      app.closeModal();
+      if (message.community_id && message.community_id !== state.communityId) route = await selectCommunity(message.community_id,message.channel_id);
+      else if (message.channel_id !== state.channelId) route = await selectChannel(message.channel_id);
+      if (!current() || state.channelId !== message.channel_id) return;
+      if (message.thread_root_id) { if (state.threadRootId !== message.thread_root_id) route = await openThread(message.thread_root_id); }
+      else if (state.threadRootId) route = await closeThread();
+      if (!current() || state.channelId !== message.channel_id) return;
+      // Build a contiguous page around an exact result. Merging only one old
+      // result into the latest page would hide the gap from pagination.
+      const suffix = message.thread_root_id ? '&threadRootId=' + encodeURIComponent(message.thread_root_id) : '';
+      const [before,after] = await Promise.all([request(`/channels/${encodeURIComponent(message.channel_id)}/messages?before=${message.seq + 1}&limit=25${suffix}`),request(`/channels/${encodeURIComponent(message.channel_id)}/messages?after=${message.seq}&limit=25${suffix}`)]);
+      if (!current()) return;
+      const r = activeRoom(); r.messages = []; r.older = before.page.hasMore; r.newer = after.page.hasMore;
+      r.windowEnd = Math.max(message.seq,...after.messages.map(m => m.seq));
+      mergeMessages(message.channel_id,[...before.messages,message,...after.messages]); renderFeed();
+      history.replaceState(null,'',location.pathname + location.search + '#shared/' + encodeURIComponent(message.id));
+      const node = $('live-message-' + message.id); node?.scrollIntoView({block:'center',behavior:window.VoidMotion?.enabled() ? 'smooth' : 'auto'}); node?.focus({preventScroll:true}); node?.classList.add('live-message-highlight'); setTimeout(() => node?.classList.remove('live-message-highlight'),1800);
+    } catch (error) { if (current()) app.toast(error.status === 403 || error.status === 404 ? 'This source is no longer available to your account.' : error.message); }
+    finally { if (current()) schedulePoll(0); }
   }
   function schedulePoll(delay = 3000) { clearTimeout(state.poll); if (state.active && state.phase === 'ready' && state.channelId) state.poll = setTimeout(poll,delay); }
   async function poll() {
@@ -3400,34 +3820,47 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       const identity = await request('/me');
       if (!state.active || generation !== state.generation) return;
       if (identity.account.id !== state.account?.id) { await connect(); return; }
-      const after = r.messages.at(-1)?.seq || 0;
-      const data = await request(`/channels/${encodeURIComponent(id)}/messages?after=${after}&limit=100`);
+      const path = r.changeCursor !== null ? `/channels/${encodeURIComponent(id)}/changes?after=${r.changeCursor}&limit=100` : `/channels/${encodeURIComponent(id)}/messages?after=${r.messages.at(-1)?.seq || 0}&limit=100`;
+      const data = await request(path);
       if (!state.active || generation !== state.generation) return;
-      const newMessages = data.messages.filter(m => !r.messages.some(old => old.id === m.id));
+      const relevant = data.messages.filter(m => (m.thread_root_id || '') === state.threadRootId), fresh = relevant.filter(m => !findMessage(m.id));
       mergeMessages(id,data.messages); r.error = ''; r.loaded = true; state.network = 'Connected';
-      if (newMessages.length) { renderFeed(); $('live-announcer').textContent = `${newMessages.length} new ${newMessages.length === 1 ? 'message' : 'messages'} in ${channel()?.name || 'this room'}.`; }
+      if (Number.isFinite(data.cursor)) r.changeCursor = data.cursor;
+      if (data.messages.length) { renderFeed({newMessages:fresh.length > 0}); updateComposerContext(); if (fresh.length && $('live-announcer')) $('live-announcer').textContent = `${fresh.length} new ${fresh.length === 1 ? 'message' : 'messages'} in ${channel()?.name || 'this room'}.`; }
       else if ($('live-stream')?.querySelector('.live-history-error')) renderFeed();
-      updateConnection(); schedulePoll(data.page.hasMore ? 80 : 3000);
+      updateConnection(); tools()?.onData?.(); schedulePoll((data.hasMore ?? data.page?.hasMore) ? 80 : 3000);
     } catch (error) {
       if (generation !== state.generation || !state.active) return;
       if (error.status === 401) { signOut(); return; }
+      if (error.status === 403) { captureDraft(); const inaccessible = new Set(state.channels.map(c => c.id)); for (const cached of state.rooms.values()) if (inaccessible.has(cached.channelId)) { cached.messages = []; cached.loaded = false; cached.changeCursor = null; cached.error = 'Your access to this room changed. Unsent text is still retained in this tab.'; } await connect(); return; }
       state.network = navigator.onLine ? 'Reconnecting' : 'Offline'; updateConnection(); schedulePoll(5000);
     } finally { r.syncing = false; }
   }
   async function olderMessages(button) {
-    const id = state.channelId, generation = state.generation, r = room(id);
+    const id = state.channelId, generation = state.generation, r = activeRoom();
     if (!r.older || !r.messages.length) return;
     button.disabled = true; button.textContent = 'Loading…';
     try {
-      const data = await request(`/channels/${encodeURIComponent(id)}/messages?before=${r.messages[0].seq}&limit=50`);
+      const data = await request(`/channels/${encodeURIComponent(id)}/messages?before=${r.messages[0].seq}&limit=50${state.threadRootId ? '&threadRootId=' + encodeURIComponent(state.threadRootId) : ''}`);
       if (!state.active || generation !== state.generation) return;
       mergeMessages(id,data.messages); r.older = data.page.hasMore; renderFeed({prepend:true});
     } catch (error) { if (generation === state.generation) app.toast(error.message); }
     finally { if (button.isConnected) { button.disabled = false; button.textContent = 'Load earlier messages'; } }
   }
+  async function newerMessages(button) {
+    const id = state.channelId, generation = state.generation, r = activeRoom();
+    if (!r.newer) return;
+    button.disabled = true; button.textContent = 'Loading…';
+    try {
+      const data = await request(`/channels/${encodeURIComponent(id)}/messages?after=${r.windowEnd}&limit=50${state.threadRootId ? '&threadRootId=' + encodeURIComponent(state.threadRootId) : ''}`);
+      if (!state.active || generation !== state.generation) return;
+      mergeMessages(id,data.messages); r.newer = data.page.hasMore; r.windowEnd = Math.max(r.windowEnd,...data.messages.map(m => m.seq)); renderFeed();
+    } catch(error) { if (generation === state.generation) app.toast(error.message); }
+    finally { if (button.isConnected) {button.disabled=false;button.textContent='Load newer messages';} }
+  }
   function sidebarHTML() {
     const signedIn = !!state.account && ['ready','alias'].includes(state.phase), selected = community();
-    return `<aside class="live-sidebar" aria-label="Shared room navigation"><header class="live-sidebar-heading"><span class="eyebrow">THE SHARED FREQUENCY</span><h2>Afterhours, together.</h2><p>Small rooms. Familiar voices.</p></header>${signedIn ? `<div class="live-space-picker"><label for="live-community-select">YOUR COMMUNITIES</label><select id="live-community-select" aria-label="Choose a shared community" ${state.communities.length ? '' : 'disabled'}>${state.communities.length ? state.communities.map(c => `<option value="${esc(c.id)}" ${c.id === state.communityId ? 'selected' : ''}>${esc(c.name)}</option>`).join('') : '<option>No communities yet</option>'}</select></div><div class="live-space-actions"><button data-live="create">${icon('plus')} Create</button><button data-live="join">${icon('live')} Join</button></div><div class="live-channel-heading"><span>TEXT ROOMS</span>${selected?.role === 'owner' ? `<button data-live="add-channel" aria-label="Create a shared channel">${icon('plus')}</button>` : ''}</div><nav class="live-channel-list" aria-label="Shared text channels">${state.channels.map(c => `<button data-live-channel="${esc(c.id)}" class="${c.id === state.channelId ? 'is-active' : ''}" ${c.id === state.channelId ? 'aria-current="page"' : ''}><span class="live-channel-symbol">${c.kind === 'announcement' ? icon('volume') : '#'}</span><span>${esc(c.name)}</span>${c.kind === 'announcement' ? '<small>NEWS</small>' : ''}</button>`).join('') || '<p class="live-sidebar-empty">Your rooms will appear here.</p>'}</nav><div class="live-sidebar-account"><span class="live-avatar">${esc(initials(state.account.displayName))}</span><button data-live="profile"><b>${esc(state.account.displayName)}</b><small>Edit shared alias</small></button>${icon('shield')}</div>` : `<div class="live-side-art" aria-hidden="true"><span></span><span></span><span></span><i>WL / 02</i></div><div class="live-sidebar-note"><b>A room of your own.</b><p>Make a community, invite your people, and leave a little signal behind.</p></div>`}<button class="live-back" data-live="archive">${icon('arrow')} Personal archive <span>LOCAL</span></button></aside>`;
+    return `<aside class="live-sidebar" aria-label="Shared room navigation"><header class="live-sidebar-heading"><span class="eyebrow">THE SHARED FREQUENCY</span><h2>Afterhours, together.</h2><p>Small rooms. Familiar voices.</p></header>${signedIn ? `<div class="live-space-picker"><label for="live-community-select">YOUR COMMUNITIES</label><select id="live-community-select" aria-label="Choose a shared community" ${state.communities.length ? '' : 'disabled'}>${state.communities.length ? state.communities.map(c => `<option value="${esc(c.id)}" ${c.id === state.communityId ? 'selected' : ''}>${esc(c.name)}</option>`).join('') : '<option>No communities yet</option>'}</select></div><div class="live-space-actions"><button data-live="create">${icon('plus')} Create</button><button data-live="join">${icon('live')} Join</button></div>${tools()?.sidebarHTML?.(state) || ''}<div class="live-channel-heading"><span>TEXT ROOMS</span>${selected?.role === 'owner' ? `<button data-live="add-channel" aria-label="Create a shared channel">${icon('plus')}</button>` : ''}</div><nav class="live-channel-list" aria-label="Shared text channels">${(tools()?.filterChannels?.(state.channels,state) || state.channels).map(c => `<button data-live-channel="${esc(c.id)}" class="${c.id === state.channelId ? 'is-active' : ''}" ${c.id === state.channelId ? 'aria-current="page"' : ''}><span class="live-channel-symbol">${c.kind === 'announcement' ? icon('volume') : '#'}</span><span>${esc(c.name)}</span>${c.kind === 'announcement' ? '<small>NEWS</small>' : ''}</button>`).join('') || '<p class="live-sidebar-empty">Your rooms will appear here.</p>'}</nav><div class="live-sidebar-account"><span class="live-avatar">${esc(initials(state.account.displayName))}</span><button data-live="profile"><b>${esc(state.account.displayName)}</b><small>Edit shared alias</small></button>${icon('shield')}</div>` : `<div class="live-side-art" aria-hidden="true"><span></span><span></span><span></span><i>WL / 02</i></div><div class="live-sidebar-note"><b>A room of your own.</b><p>Make a community, invite your people, and leave a little signal behind.</p></div>`}<button class="live-back" data-live="archive">${icon('arrow')} Personal archive <span>LOCAL</span></button></aside>`;
   }
   function invitationCard() { return state.pendingInvite ? '<div class="live-invitation-note">You arrived with an invitation. Sign in and choose your alias, then review joining the community.</div>' : ''; }
   function splashHTML() {
@@ -3443,42 +3876,68 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     return `<main id="live-main" class="live-main live-splash" tabindex="-1"><header class="live-splash-top"><button class="icon-button live-menu" data-live="menu" aria-label="Open shared navigation" aria-expanded="false">${icon('menu')}</button><span>SHARED ROOMS <i>VOL. 02</i></span><button class="live-text-button" data-live="archive">Personal archive ${icon('arrow')}</button></header><div class="live-splash-body"><div class="live-orbit" aria-hidden="true"><span></span><span></span><span></span><i></i></div><div class="live-splash-copy">${content}</div></div><footer class="live-splash-footer"><span>VOIDLINE / AFTERHOURS</span><span>No public directory. Just an invitation.</span></footer></main>`;
   }
   function conversationHTML() {
-    const c = channel(), r = room(), allowed = canPost();
-    return `<main id="live-main" class="live-main live-conversation" tabindex="-1"><header class="live-header"><button class="icon-button live-menu" data-live="menu" aria-label="Open shared navigation" aria-expanded="false">${icon('menu')}</button><span class="live-header-hash">#</span><div><span>${esc(community()?.name)}</span><h1>${esc(c.name)}</h1></div><div class="live-header-actions"><button class="icon-button" data-live="search" aria-label="Search loaded messages" title="Search loaded messages">${icon('search')}</button>${community()?.role === 'owner' ? `<button class="live-invite-button" data-live="invite">${icon('users')}<span>Invite</span></button>` : ''}<button class="icon-button live-people-toggle" data-live="people" aria-label="Show community members" aria-expanded="false">${icon('users')}</button></div></header><div class="live-connection"><span id="live-connection-dot"></span><span id="live-connection-label">Connecting</span><span class="live-connection-copy">Invite-only · Shared text</span><button data-live="refresh" aria-label="Refresh shared messages">Refresh</button></div><div id="live-stream" class="live-stream" tabindex="0" role="log" aria-label="Messages in ${esc(c.name)}" aria-live="off"></div><button class="live-new-messages" id="live-new-messages" data-live="latest" hidden>New messages ${icon('down')}</button><div class="live-compose-wrap">${allowed ? `<form id="live-message-form"><label class="sr-only" for="live-message-input">Message ${esc(c.name)}</label><textarea id="live-message-input" name="text" rows="1" maxlength="4000" placeholder="Message #${esc(c.name)}">${esc(r.draft)}</textarea><button type="submit" class="live-send" aria-label="Send shared message">${icon('arrow')}</button></form><div class="live-compose-caption"><span id="live-draft-status">Shared with this community.</span><span><kbd>Enter</kbd> to send · <kbd>Shift Enter</kbd> for a new line</span></div>` : `<div class="live-readonly">${icon('volume')} Only community staff can post in this announcement room.</div>`}</div><div id="live-announcer" class="sr-only" role="status"></div></main><aside class="live-members" aria-label="Shared community members"><header><span>IN THIS COMMUNITY <b>${state.members.length}</b></span><button class="icon-button" data-live="close-drawer" aria-label="Close member list">${icon('close')}</button></header><p class="live-member-note">A membership list. Presence is private.</p><div class="live-member-list">${state.members.map(m => `<div class="live-member"><span class="live-avatar">${esc(initials(m.display_name))}</span><div><b>${esc(m.display_name)}${m.id === state.account.id ? '<small> YOU</small>' : ''}</b><span>${m.role === 'owner' ? 'Community host' : m.role === 'moderator' ? 'Moderator' : 'Resident'}</span></div>${m.role === 'owner' ? icon('shield') : ''}</div>`).join('')}</div><div class="live-members-card"><span>AFTERHOURS ETIQUETTE</span><h3>Leave a good signal.</h3><p>Make room for the strange ideas, the half-finished things, and each other.</p></div><footer>${icon('live')} An actual shared room.<br>Text updates every few seconds.</footer></aside>`;
+    const c = channel(), r = activeRoom(), allowed = canPost();
+    return `<main id="live-main" class="live-main live-conversation ${state.threadRootId ? 'live-thread-panel' : ''}" tabindex="-1"><header class="live-header"><button class="icon-button live-menu" data-live="menu" aria-label="Open shared navigation" aria-expanded="false">${icon('menu')}</button>${state.threadRootId ? `<button class="icon-button" data-live="close-thread" aria-label="Back to channel">${icon('arrow')}</button>` : '<span class="live-header-hash">#</span>'}<div><span>${esc(community()?.name)}</span><h1>${state.threadRootId ? 'Thread · ' : ''}${esc(c.name)}</h1></div><div class="live-header-actions"><button class="icon-button" data-live="search" aria-label="Search shared rooms" title="Search shared rooms">${icon('search')}</button>${community()?.role === 'owner' ? `<button class="live-invite-button" data-live="invite">${icon('users')}<span>Invite</span></button>` : ''}<button class="icon-button" data-live="pins" aria-label="Community pins" title="Community pins">${icon('pin')}</button><button class="icon-button live-people-toggle" data-live="people" aria-label="Show community members" aria-expanded="false">${icon('users')}</button></div></header><div class="live-connection"><span id="live-connection-dot"></span><span id="live-connection-label">Connecting</span><span class="live-connection-copy">Invite-only · Shared text</span><button data-live="refresh" aria-label="Refresh shared messages">Refresh</button></div><div id="live-stream" class="live-stream" tabindex="0" role="log" aria-label="Messages in ${esc(c.name)}" aria-live="off"></div><button class="live-new-messages" id="live-new-messages" data-live="latest" hidden>New messages ${icon('down')}</button><div class="live-compose-wrap"><div id="live-composer-context" class="live-composer-context" hidden></div><div id="live-draft-warning" class="live-draft-warning" role="status" hidden>Draft storage is unavailable. Keep this tab open or <button data-live="copy-drafts">copy your unsent text</button>.</div>${allowed ? `<form id="live-message-form"><label class="sr-only" for="live-message-input">Message ${esc(c.name)}</label><textarea id="live-message-input" name="text" rows="1" maxlength="4000" placeholder="Message #${esc(c.name)}">${esc(r.draft)}</textarea><button type="submit" class="live-send" aria-label="Send shared message">${icon('arrow')}</button></form><div class="live-compose-caption"><span id="live-draft-status">Shared with this community.</span><span><kbd>Enter</kbd> to send · <kbd>Shift Enter</kbd> for a new line</span></div>` : `<div class="live-readonly">${icon('volume')} Only community staff can post in this announcement room.</div>`}</div><div id="live-announcer" class="sr-only" role="status"></div></main><aside class="live-members" aria-label="Shared community members"><header><span>IN THIS COMMUNITY <b>${state.members.length}</b></span><button class="icon-button" data-live="close-drawer" aria-label="Close member list">${icon('close')}</button></header><p class="live-member-note">Community members. Online status is not tracked.</p><div class="live-member-list">${state.members.map(m => `<button class="live-member" data-live-tool="member" data-member="${esc(m.id)}"><span class="live-avatar">${esc(initials(m.display_name))}</span><div><b>${esc(m.display_name)}${m.id === state.account.id ? '<small> YOU</small>' : ''}</b><span>${m.role === 'owner' ? 'Community host' : m.role === 'moderator' ? 'Moderator' : 'Resident'}</span></div>${m.role === 'owner' ? icon('shield') : ''}</button>`).join('')}</div><div class="live-members-card"><span>AFTERHOURS ETIQUETTE</span><h3>Leave a good signal.</h3><p>Make room for the strange ideas, the half-finished things, and each other.</p></div><footer>${icon('live')} An actual shared room.<br>Text updates every few seconds.</footer></aside>`;
   }
   function renderShell() {
     if (!state.active) return;
     root.innerHTML = sidebarHTML() + (state.phase === 'ready' && channel() ? conversationHTML() : splashHTML()) + '<button class="live-drawer-overlay" data-live="close-drawer" aria-label="Close shared navigation"></button>';
-    if (state.channelId && channel() && state.phase === 'ready') { renderFeed({bottom:true}); updateConnection(); resizeComposer(); }
-    syncChrome();
+    if (state.channelId && channel() && state.phase === 'ready') { renderFeed({restore:true}); updateConnection(); resizeComposer(); updateComposerContext(); }
+    syncChrome(); tools()?.onRender?.();
+  }
+  function renderSidebar() {
+    const previous = root?.querySelector('.live-sidebar'); if (!previous) return;
+    const focused = previous.contains(document.activeElement) ? document.activeElement : null;
+    // Native selects should never disappear while their option menu is open.
+    if (focused?.tagName === 'SELECT') return;
+    const identity = focused ? {id:focused.id,channel:focused.dataset.liveChannel,tool:focused.dataset.liveTool,action:focused.dataset.live} : null;
+    const template = document.createElement('template'); template.innerHTML = sidebarHTML();
+    if (template.content?.firstElementChild) {
+      const next = template.content.firstElementChild; previous.replaceWith(next);
+      if (identity) { const target = Array.from(next.querySelectorAll('button,a,input,select')).find(n => identity.id ? n.id === identity.id : identity.channel ? n.dataset.liveChannel === identity.channel : identity.tool ? n.dataset.liveTool === identity.tool : identity.action && n.dataset.live === identity.action); target?.focus({preventScroll:true}); }
+    }
+    tools()?.onRender?.();
   }
   function textHTML(text) { return app.format(text); }
   function messageHTML(message, pending = false) {
-    const name = pending ? state.account.displayName : message.author_name;
-    const own = pending || message.author_id === state.account?.id;
-    const date = new Date(message.created_at || Date.now());
-    return `<article class="live-message ${own ? 'is-own' : ''} ${pending ? 'is-pending' : ''}" ${pending ? '' : `id="live-message-${esc(message.id)}" data-live-message="${esc(message.id)}"`}><span class="live-avatar">${esc(initials(name))}</span><div class="live-message-content"><header><b>${esc(name)}</b>${own ? '<span class="live-you">YOU</span>' : ''}<time datetime="${date.toISOString()}" title="${esc(date.toLocaleString())}">${pending ? (message.status === 'sending' ? 'Sending…' : 'Not confirmed') : date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</time></header><div class="live-message-text">${textHTML(message.text)}</div>${pending ? `<div class="live-pending-state">${message.status === 'failed' ? `<span>${esc(message.error || 'Could not confirm this message.')}</span><button data-live-retry="${esc(message.clientId)}">Retry</button><button data-live-restore="${esc(message.clientId)}">Copy to draft</button>` : '<span>Waiting for server confirmation.</span>'}</div>` : ''}</div>${pending ? '' : `<button class="live-message-copy" data-live-copy="${esc(message.id)}" aria-label="Copy message" title="Copy message">${icon('copy')}</button>`}</article>`;
+    const name = pending ? state.account.displayName : message.author_name, own = pending || message.author_id === state.account?.id;
+    const date = dateValue(message.created_at || Date.now()), deleted = !!message.deleted_at;
+    const preview = message.reply_preview, reactions = message.reactions || [];
+    return `<article class="live-message ${own ? 'is-own' : ''} ${pending ? 'is-pending' : ''} ${deleted ? 'live-message-deleted' : ''}" ${pending ? '' : `id="live-message-${esc(message.id)}" data-live-message="${esc(message.id)}" tabindex="-1"`}><span class="live-avatar">${esc(initials(name))}</span><div class="live-message-content"><header><button class="live-author" data-live-tool="member" data-member="${esc(message.author_id || state.account.id)}">${esc(name)}</button>${own ? '<span class="live-you">YOU</span>' : ''}<time datetime="${date.toISOString()}" title="${esc(date.toLocaleString())}">${pending ? (message.status === 'sending' ? 'Sending…' : 'Not confirmed') : date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</time>${message.edited_at && !deleted ? '<span class="live-edited">edited</span>' : ''}${message.pinned ? '<span class="live-pinned">Pinned</span>' : ''}</header>${message.reply_to_id ? `<button class="live-reply-preview" data-live-jump="${esc(message.reply_to_id)}"><b>${esc(preview?.author_name || 'Original message')}</b><span>${esc(preview?.deleted_at ? 'Message deleted' : preview?.text?.slice(0,180) || 'Open the original message')}</span></button>` : ''}<div class="live-message-text">${deleted ? '<em>This message was deleted.</em>' : textHTML(message.text)}</div>${pending ? `<div class="live-pending-state">${message.status === 'failed' ? `<span>${esc(message.error || 'Could not confirm this message.')}</span><button data-live-retry="${esc(message.clientId)}">Retry</button><button data-live-restore="${esc(message.clientId)}">Copy to draft</button>` : '<span>Waiting for server confirmation.</span>'}</div>` : `<div class="live-reactions">${reactions.map(r => `<button data-live-message-action="reaction" data-message="${esc(message.id)}" data-emoji="${esc(r.emoji)}" aria-pressed="${!!r.mine}" aria-label="${esc(r.emoji)} reaction, ${r.count}${r.mine ? ', you reacted' : ''}" ${deleted ? 'disabled' : ''}>${esc(r.emoji)} <span>${r.count}</span></button>`).join('')}</div>${!message.thread_root_id && (message.thread_count || 0) > 0 ? `<button class="live-thread-link" data-live-message-action="thread" data-message="${esc(message.id)}">${message.thread_count} ${message.thread_count === 1 ? 'reply' : 'replies'} in thread ${icon('arrow')}</button>` : ''}<div class="live-message-actions">${!deleted && canPost() ? `<button data-live-message-action="reply" data-message="${esc(message.id)}">Reply</button>` : ''}<button data-live-message-action="thread" data-message="${esc(message.id)}">Thread</button>${!deleted ? `<button data-live-message-action="react" data-message="${esc(message.id)}">React</button>` : ''}<button data-live-message-action="more" data-message="${esc(message.id)}" aria-label="More actions for ${esc(name)}'s message">${icon('more')}<span>More</span></button></div>`}</div></article>`;
+  }
+  function updateComposerContext() {
+    const node = $('live-composer-context'); if (!node || !state.channelId) return;
+    const id = activeRoom().replyToId, message = id && findMessage(id);
+    node.hidden = !id;
+    node.innerHTML = id ? `<span>Replying to <b>${esc(message?.author_name || 'an earlier message')}</b><small>${esc(message?.deleted_at ? 'Message deleted' : message?.text?.slice(0,120) || 'Open the original to view it')}</small></span><button data-live="cancel-reply" aria-label="Cancel reply">${icon('close')}</button>` : '';
   }
   function renderFeed(options = {}) {
     const feed = $('live-stream'); if (!feed || !state.channelId) return;
-    const r = room(), oldHeight = feed.scrollHeight, oldTop = feed.scrollTop, atBottom = oldHeight - feed.clientHeight - oldTop < 80;
+    const r = activeRoom(), oldHeight = feed.scrollHeight, oldTop = feed.scrollTop, atBottom = oldHeight - feed.clientHeight - oldTop < 80;
+    const focused = feed.contains(document.activeElement) ? document.activeElement : null, focusIdentity = focused ? {id:focused.id,...focused.dataset} : null;
+    const visibleAnchor = !atBottom ? Array.from(feed.querySelectorAll('[data-live-message]')).find(n => n.getBoundingClientRect().bottom > feed.getBoundingClientRect().top) : null;
+    const anchor = visibleAnchor ? {id:visibleAnchor.id,top:visibleAnchor.getBoundingClientRect().top} : null;
     let html = r.older ? '<button class="live-load-earlier" data-live="older">Load earlier messages</button>' : '';
+    if (state.threadRootId) { const parent = findMessage(state.threadRootId); if (parent) html += `<div class="live-thread-root"><span class="eyebrow">THREAD STARTED HERE</span>${messageHTML(parent)}</div>`; }
     if (r.loading) html += '<div class="live-feed-empty" role="status"><span class="live-loading-mark" aria-hidden="true"></span><p>Opening the conversation…</p></div>';
     else if (!r.messages.length && !r.error) html += `<div class="live-feed-empty"><span class="live-empty-symbol">#</span><span class="eyebrow">THE START OF SOMETHING</span><h2>Welcome to ${esc(channel()?.name)}.</h2><p>A quiet room, ready for your first signal.</p>${community()?.role === 'owner' ? '<button class="live-secondary" data-live="invite">Invite your people</button>' : ''}</div>`;
     if (r.error) html += `<div class="live-history-error" role="alert"><span>${esc(r.error)}</span><button data-live="reload-channel">Retry history</button></div>`;
     let day = '';
-    for (const message of r.messages) {
-      const nextDay = new Date(message.created_at).toLocaleDateString([], {weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    for (const message of r.messages.filter(m => !r.newer || m.seq <= r.windowEnd)) {
+      const nextDay = dateValue(message.created_at).toLocaleDateString([], {weekday:'short',month:'short',day:'numeric',year:'numeric'});
       if (nextDay !== day) { html += `<div class="live-day-divider"><span>${esc(nextDay)}</span></div>`; day = nextDay; }
       html += messageHTML(message);
     }
+    if (r.newer) html += '<button class="live-load-earlier" data-live="newer">Load newer messages</button><button class="live-secondary" data-live="latest-window">Return to latest</button>';
     for (const message of r.pending) html += messageHTML(message,true);
     feed.innerHTML = html;
     if (options.prepend) feed.scrollTop = oldTop + feed.scrollHeight - oldHeight;
-    else if (options.bottom || atBottom) { feed.scrollTop = feed.scrollHeight; if ($('live-new-messages')) $('live-new-messages').hidden = true; }
-    else { feed.scrollTop = oldTop; if ($('live-new-messages')) $('live-new-messages').hidden = false; }
+    else if (options.restore && r.reading && !r.reading.bottom) feed.scrollTop = r.reading.top;
+    else if (options.bottom || options.restore || atBottom) { feed.scrollTop = feed.scrollHeight; if ($('live-new-messages')) $('live-new-messages').hidden = true; }
+    else { const replacement = anchor && $(anchor.id); feed.scrollTop = replacement ? oldTop + replacement.getBoundingClientRect().top - anchor.top : oldTop; if (options.newMessages && $('live-new-messages')) $('live-new-messages').hidden = false; }    if (focusIdentity) { const target = focusIdentity.id ? $(focusIdentity.id) : Array.from(feed.querySelectorAll('button')).find(n => Object.entries(focusIdentity).filter(([key]) => key !== 'id').every(([key,value]) => n.dataset[key] === value)); target?.focus({preventScroll:true}); }
   }
   function updateConnection() {
+    if ($('live-draft-warning')) $('live-draft-warning').hidden = !state.sessionWarning;
     const label = $('live-connection-label'); if (label) label.textContent = state.network || 'Connecting';
     $('live-connection-dot')?.classList.toggle('is-connected', state.network === 'Connected');
     const status = $('live-draft-status'); if (status) status.textContent = !navigator.onLine ? 'Offline. Your draft stays in this tab.' : state.sessionWarning ? 'Draft cannot be saved by this browser.' : 'Shared with this community.';
@@ -3491,38 +3950,98 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   async function send() {
     const input = $('live-message-input');
     if (!state.active || state.phase !== 'ready' || !state.account || !state.channelId || !input || !canPost()) return;
-    const text = input.value.trim(), id = state.channelId, r = room(id);
+    const text = input.value.trim(), id = state.channelId, r = activeRoom();
     if (!text || text.length > 4000) return;
-    let message = r.pending.find(p => p.text === text);
+    let message = r.pending.find(p => p.text === text && (p.replyToId || null) === (r.replyToId || null));
     if (message?.status === 'sending') return app.toast('That message is still waiting for confirmation.');
     if (!message && r.pending.length >= 20) return app.toast('Retry or restore your unconfirmed messages before sending more.');
-    if (!message) { message = {clientId:crypto.randomUUID(),text,status:'sending',error:''}; r.pending.push(message); }
-    r.draft = ''; input.value = ''; saveSession(id); resizeComposer(); renderFeed({bottom:true}); input.focus();
+    if (!message) { message = {clientId:crypto.randomUUID(),text,replyToId:r.replyToId || null,threadRootId:state.threadRootId || null,status:'sending',error:''}; r.pending.push(message); }
+    r.draft = ''; r.replyToId = null; input.value = ''; saveSession(id); updateComposerContext(); resizeComposer(); renderFeed({bottom:true}); input.focus();
     await transmit(id,message);
   }
   function confirmsPending(data, id, pending, accountId) {
-    const message = data?.message;
-    return data?.acknowledged === true && message && message.channel_id === id && message.author_id === accountId && message.client_id === pending.clientId && message.text === pending.text && typeof message.id === 'string' && Number.isFinite(message.seq) && Number.isFinite(new Date(message.created_at).getTime());
+    const message = data?.message, original = data?.acknowledgedPayload;
+    const textMatches = original ? original.text === pending.text && original.clientId === pending.clientId && (original.replyToId || null) === (pending.replyToId || null) && (original.threadRootId || null) === (pending.threadRootId || null) : message?.text === pending.text;
+    return data?.acknowledged === true && message && message.channel_id === id && message.author_id === accountId && message.client_id === pending.clientId && textMatches && (message.reply_to_id || null) === (pending.replyToId || null) && (message.thread_root_id || null) === (pending.threadRootId || null) && typeof message.id === 'string' && Number.isFinite(message.seq) && Number.isFinite(new Date(message.created_at).getTime());
   }
   async function transmit(id, pending) {
-    const accountId = state.account?.id, identityGeneration = state.identityGeneration, r = state.rooms.get(id);
+    const accountId = state.account?.id, identityGeneration = state.identityGeneration, r = state.rooms.get(roomKey(id,pending.threadRootId || ''));
     if (!accountId || !r || !r.pending.includes(pending)) return;
     pending.status = 'sending'; pending.error = '';
-    if (state.active && state.channelId === id) renderFeed();
+    if (state.active && state.channelId === id && state.threadRootId === (pending.threadRootId || '')) renderFeed();
     try {
-      const data = await request('/channels/'+encodeURIComponent(id)+'/messages',{clientId:pending.clientId,text:pending.text});
+      const data = await request('/channels/'+encodeURIComponent(id)+'/messages',{clientId:pending.clientId,text:pending.text,replyToId:pending.replyToId || null,threadRootId:pending.threadRootId || null});
       if (state.account?.id !== accountId || identityGeneration !== state.identityGeneration) return;
       if (!confirmsPending(data,id,pending,accountId)) throw new Error('The server did not confirm this exact message. Retry safely.');
       mergeMessages(id,[data.message]);
-      if (state.active && state.channelId === id) { renderFeed(); state.network = 'Connected'; updateConnection(); $('live-announcer').textContent = 'Message saved to this shared room.'; }
+      if (state.active && state.channelId === id && state.threadRootId === (pending.threadRootId || '')) { renderFeed(); state.network = 'Connected'; updateConnection(); $('live-announcer').textContent = 'Message saved to this shared room.'; }
     } catch (error) {
       if (state.account?.id !== accountId || identityGeneration !== state.identityGeneration) return;
       if (!r.pending.some(message => message.clientId === pending.clientId)) return;
-      pending.status = 'failed'; pending.error = error.message; saveSession(id);
+      pending.status = 'failed'; pending.error = error.message; saveSession(id,pending.threadRootId || '');
       if (error.status === 401) { signOut(); return; }
       if (error.code === 'account_changed' && state.active) { await connect(); return; }
-      if (state.active && state.channelId === id) { renderFeed(); $('live-announcer').textContent = 'Message not confirmed. Retry or copy it to your draft.'; }
+      if (state.active && state.channelId === id && state.threadRootId === (pending.threadRootId || '')) { renderFeed(); $('live-announcer').textContent = 'Message not confirmed. Retry or copy it to your draft.'; }
     }
+  }
+  function messageMenu(message) {
+    const own = message.author_id === state.account?.id, staff = ['owner','moderator'].includes(community()?.role), deleted = !!message.deleted_at;
+    dialog('Message options.',`${esc(message.author_name)} · ${esc(dateValue(message.created_at).toLocaleString())}`,`<div class="live-message-menu">${!deleted ? `<button data-live-message-action="save" data-message="${esc(message.id)}">${message.saved ? 'Remove from personal Saved' : 'Save privately to your account'}</button><button data-live-message-action="copy" data-message="${esc(message.id)}">Copy text</button>` : '<p>This message was deleted. Its place in the conversation remains.</p>'}<button data-live-message-action="link" data-message="${esc(message.id)}">Copy message link</button>${!deleted && own ? `<button data-live-message-action="edit" data-message="${esc(message.id)}">Edit message</button>` : ''}${!deleted && staff ? `<button data-live-message-action="pin" data-message="${esc(message.id)}">${message.pinned ? 'Unpin for this community' : 'Pin for this community'}</button>` : ''}${!deleted && (own || staff) ? `<button class="live-danger" data-live-message-action="delete" data-message="${esc(message.id)}">Delete message</button>` : ''}</div><p class="live-action-error" role="alert"></p>`);
+  }
+  async function mutateMessage(message, action, body, button) {
+    const identity = guard(), key = message.id + ':' + action;
+    if (state.actionBusy.has(key)) return;
+    state.actionBusy.add(key); if (button) { button.disabled = true; button.setAttribute('aria-busy','true'); }
+    const errorNode = document.querySelector('.live-action-error'); if (errorNode) errorNode.textContent = '';
+    try {
+      const data = await request(`/messages/${encodeURIComponent(message.id)}/${action}`,body);
+      if (!identity.current()) return;
+      if (!data.message || data.message.id !== message.id || data.message.channel_id !== message.channel_id) throw new Error('The server did not confirm this message change. Try again.');
+      mergeMessages(message.channel_id,[data.message]);
+      if (state.active && state.channelId === message.channel_id) { renderFeed(); updateComposerContext(); }
+      if (button?.closest('.live-dialog')?.isConnected) app.closeModal();
+      app.toast(({edit:'Message edited.',delete:'Message deleted.',reaction:'Reaction saved.',pin:body.active ? 'Pinned for the community.' : 'Message unpinned.',save:body.active ? 'Saved privately to your account.' : 'Removed from your Saved messages.'})[action] || 'Change saved.');
+      return data.message;
+    } catch (error) {
+      if (!identity.current()) return;
+      if (error.code === 'account_changed') { await connect(); return; }
+      if (error.status === 401) { signOut(); return; }
+      if (errorNode?.isConnected) errorNode.textContent = error.message; else app.toast(error.message);
+    } finally { state.actionBusy.delete(key); if (button?.isConnected) { button.disabled = false; button.removeAttribute('aria-busy'); } }
+  }
+  function messageAction(action, id, button) {
+    const message = findMessage(id); if (!message) return app.toast('This source is not loaded. Open the message again.');
+    if (action === 'thread') return openThread(message.thread_root_id || message.id);
+    if (action === 'more') return messageMenu(message);
+    if (action === 'link') return copyText(location.origin + location.pathname + '#shared/' + encodeURIComponent(message.id),'Message link copied. Only community members can open it.');
+    if (message.deleted_at) return app.toast('This message was deleted.');
+    if (action === 'reply') {
+      if (!canPost()) return app.toast('Only community staff can post here.');
+      activeRoom().replyToId = message.id; saveSession(); updateComposerContext(); $('live-message-input')?.focus(); return;
+    }
+    if (action === 'copy') return copyText(message.text,'Message copied.');
+    if (action === 'save') return mutateMessage(message,'save',{active:!message.saved},button);
+    if (action === 'pin') return mutateMessage(message,'pin',{active:!message.pinned},button);
+    if (action === 'react') { dialog('Leave a reaction.','Reactions are visible to members of this community.',`<div class="live-reaction-picker">${['♥','🔥','✨','👀','👍','😂'].map(emoji => `<button data-live-message-action="reaction" data-message="${esc(id)}" data-emoji="${emoji}" aria-label="React ${emoji}">${emoji}</button>`).join('')}</div><p class="live-action-error" role="alert"></p>`); return; }
+    if (action === 'reaction') { const emoji = button.dataset.emoji; return mutateMessage(message,'reaction',{emoji,active:!message.reactions?.find(r => r.emoji === emoji)?.mine},button); }
+    if (action === 'edit') { dialog('Refine your signal.','Only the author can edit this message. Other members will see an edited label.',`<form data-live-edit="${esc(id)}"><label for="live-edit-text">Message text</label><textarea id="live-edit-text" name="text" maxlength="4000" rows="6" required autofocus>${esc(message.text)}</textarea><p class="live-action-error" role="alert"></p><button class="live-primary" type="submit">Save edit</button></form>`); return; }
+    if (action === 'delete') { dialog('Delete this message?','Its text will be removed for everyone. Replies and thread history will retain a deleted-message reference.',`<p class="live-delete-preview">${esc(message.text.slice(0,240))}</p><p class="live-action-error" role="alert"></p><button class="live-danger" data-live-message-action="confirm-delete" data-message="${esc(id)}">Delete for everyone</button><button class="live-secondary" data-live="cancel-dialog">Keep message</button>`); return; }
+    if (action === 'confirm-delete') return mutateMessage(message,'delete',{},button);
+  }
+  async function pinsDialog() {
+    const identity = guard(), channelId = state.channelId, generation = state.generation;
+    dialog('Community pins.','Pinned by the host or moderators. Personal Saved messages are private to your account.','<div id="live-pins-results" role="status">Loading pins…</div>');
+    try {
+      const data = await request(`/channels/${encodeURIComponent(channelId)}/pins`);
+      if (!identity.current() || generation !== state.generation || !$('live-pins-results')) return;
+      mergeMessages(channelId,data.messages);
+      $('live-pins-results').innerHTML = data.messages.map(m => `<button class="live-pin-result" data-live-jump="${esc(m.id)}"><b>${esc(m.author_name)}</b><p>${esc(m.deleted_at ? 'Message deleted' : m.text.slice(0,220))}</p></button>`).join('') || '<p>No pins in this room yet.</p>';
+    } catch(error) { if (identity.current() && $('live-pins-results')) $('live-pins-results').textContent = error.message; }
+  }
+  function copyDrafts() {
+    captureDraft(); const rows = [];
+    for (const r of state.rooms.values()) { if (r.draft || r.pending.length) rows.push(`Channel ${r.channelId}${r.threadRootId ? ' / thread ' + r.threadRootId : ''}\n${r.draft}${r.pending.map(p => '\nUnconfirmed [' + p.clientId + ']: ' + p.text).join('')}`); }
+    copyText(rows.join('\n\n'),'Unsent text copied. This recovery copy stays under your control.');
   }
   function dialog(title, copy, body) { app.modal(`<div class="live-dialog"><span class="eyebrow">VOIDLINE / SHARED ROOMS</span><h2>${title}</h2><p>${copy}</p>${body}</div>`); }
   const formError = '<p class="live-form-error" role="alert"></p>';
@@ -3601,6 +4120,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     catch (_) { if (fallback) { fallback.focus(); fallback.select(); app.toast('Select and copy the invitation link.'); } else dialog('Copy this message.','Select the text below to copy it.',`<textarea class="live-copy-text" readonly>${esc(text)}</textarea>`); }
   }
   function searchDialog() {
+    if (tools()?.search) return tools().search();
     if (!state.channelId || state.phase !== 'ready') { app.toast('Open a shared room to search its messages.'); return; }
     dialog('Find a signal.',`Search the ${room().messages.length} messages loaded in #${esc(channel()?.name)}. Load earlier history to search more.`,`<label class="sr-only" for="live-search">Search this room</label><input id="live-search" type="search" placeholder="Words, phrases, or an alias" autofocus><div id="live-search-results" class="live-search-results"></div>`);
     renderSearch('');
@@ -3615,25 +4135,28 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     dialog('Your shared connection.','Shared rooms store text on the server so community members can read it across devices.',`<div class="live-status-card"><b>${esc(state.network || (state.phase === 'guest' ? 'Sign-in required' : state.phase === 'ready' ? 'Connected' : 'Not connected'))}</b><p>Messages refresh every few seconds while this tab is visible. A message is confirmed only after the server saves it.</p><p>Local archives, attachments, and personal profile worlds stay on this device. Shared rooms currently support text.</p></div><button class="live-secondary" data-live="archive">Open personal archive</button>`);
   }
   function handleAction(action, button) {
-    const actions = {archive:() => {app.closeModal();exitLive();},menu:() => toggleDrawer('nav'),people:() => toggleDrawer('people'),'close-drawer':() => closeDrawers(),reconnect:connect,create:createDialog,join:() => joinDialog(state.pendingInvite),profile:profileDialog,'add-channel':channelDialog,invite:inviteDialog,search:searchDialog,older:() => olderMessages(button),'reload-community':() => selectCommunity(state.communityId),'reload-channel':() => selectChannel(state.channelId),refresh:() => {if (room().error) selectChannel(state.channelId); else {state.network = 'Checking';updateConnection();schedulePoll(0);}},latest:() => {const feed = $('live-stream');if (feed) feed.scrollTop = feed.scrollHeight;$('live-new-messages').hidden = true;},'copy-invite':() => copyText($('live-generated-invite').value,'Invitation copied.',$('live-generated-invite'))};
-    if (actions[action]) actions[action]();
+    const actions = {archive:() => {app.closeModal();exitLive();},menu:() => toggleDrawer('nav'),people:() => toggleDrawer('people'),'close-drawer':() => closeDrawers(),reconnect:connect,create:createDialog,join:() => joinDialog(state.pendingInvite),profile:() => tools()?.profile ? tools().profile() : profileDialog(),'add-channel':channelDialog,invite:() => tools()?.invite ? tools().invite() : inviteDialog(),search:searchDialog,pins:pinsDialog,'close-thread':closeThread,'cancel-dialog':() => app.closeModal(),'cancel-reply':() => {activeRoom().replyToId = null;saveSession();updateComposerContext();$('live-message-input')?.focus();},'copy-drafts':copyDrafts,older:() => olderMessages(button),newer:() => newerMessages(button),'latest-window':() => state.threadRootId ? openThread(state.threadRootId,true) : selectChannel(state.channelId,true),'reload-community':() => selectCommunity(state.communityId),'reload-channel':() => state.threadRootId ? openThread(state.threadRootId) : selectChannel(state.channelId),refresh:() => {if (activeRoom().error) state.threadRootId ? openThread(state.threadRootId) : selectChannel(state.channelId); else {state.network = 'Checking';updateConnection();schedulePoll(0);}},latest:() => {if(activeRoom().newer)return state.threadRootId ? openThread(state.threadRootId,true) : selectChannel(state.channelId,true);const feed = $('live-stream');if (feed) feed.scrollTop = feed.scrollHeight;$('live-new-messages').hidden = true;},'copy-invite':() => copyText($('live-generated-invite').value,'Invitation copied.',$('live-generated-invite'))};
+    if (actions[action]) return actions[action]();
+    tools()?.handleAction?.(action,button);
   }
   function bind() {
     document.addEventListener('click',event => {
       const button = event.target.closest('button,a,[data-action]'); if (!button) return;
       if (button.dataset.action === 'live') { event.preventDefault(); event.stopImmediatePropagation(); enterLive(); return; }
-      if (button.dataset.live) { event.preventDefault(); event.stopImmediatePropagation(); handleAction(button.dataset.live,button); return; }
+      if (button.dataset.liveMessageAction) { event.preventDefault(); event.stopImmediatePropagation(); return messageAction(button.dataset.liveMessageAction,button.dataset.message,button); }
+      if (button.dataset.live) { event.preventDefault(); event.stopImmediatePropagation(); return handleAction(button.dataset.live,button); }
       if (button.dataset.liveChannel) { event.preventDefault(); event.stopImmediatePropagation(); selectChannel(button.dataset.liveChannel); return; }
-      if (button.dataset.liveRetry) { event.preventDefault(); event.stopImmediatePropagation(); const p = room().pending.find(m => m.clientId === button.dataset.liveRetry); if (p?.status === 'failed') transmit(state.channelId,p); return; }
-      if (button.dataset.liveRestore) { event.preventDefault(); event.stopImmediatePropagation(); const r = room(), p = r.pending.find(m => m.clientId === button.dataset.liveRestore); if (!p || p.status !== 'failed') return; captureDraft(); if (r.draft === p.text) { $('live-message-input').focus(); return; } if (r.draft.length + p.text.length + 2 > 4000) return app.toast('Save or send your current draft before restoring this message.'); r.draft = r.draft ? r.draft + '\n\n' + p.text : p.text; saveSession(); $('live-message-input').value = r.draft; renderFeed(); resizeComposer(); $('live-message-input').focus(); app.toast('Copied to your draft. Sending the same text retries its original message ID.'); return; }
+      if (button.dataset.liveRetry) { event.preventDefault(); event.stopImmediatePropagation(); const p = activeRoom().pending.find(m => m.clientId === button.dataset.liveRetry); if (p?.status === 'failed') transmit(state.channelId,p); return; }
+      if (button.dataset.liveRestore) { event.preventDefault(); event.stopImmediatePropagation(); const r = activeRoom(), p = r.pending.find(m => m.clientId === button.dataset.liveRestore); if (!p || p.status !== 'failed') return; captureDraft(); if (r.draft === p.text) { $('live-message-input').focus(); return; } if (r.draft.length + p.text.length + 2 > 4000) return app.toast('Save or send your current draft before restoring this message.'); r.draft = r.draft ? r.draft + '\n\n' + p.text : p.text; r.replyToId = p.replyToId || null; saveSession(); updateComposerContext(); $('live-message-input').value = r.draft; renderFeed(); resizeComposer(); $('live-message-input').focus(); app.toast('Copied to your draft. Sending the same text retries its original message ID.'); return; }
       if (button.dataset.liveCopy) { event.preventDefault(); event.stopImmediatePropagation(); const m = room().messages.find(m => m.id === button.dataset.liveCopy); if (m) copyText(m.text,'Message copied.'); return; }
-      if (button.dataset.liveJump) { event.preventDefault(); event.stopImmediatePropagation(); app.closeModal(); const node = $('live-message-' + button.dataset.liveJump); node?.scrollIntoView({block:'center',behavior:window.VoidMotion?.enabled() ? 'smooth' : 'auto'}); node?.classList.add('live-message-highlight'); setTimeout(() => node?.classList.remove('live-message-highlight'),1800); return; }
+      if (button.dataset.liveJump) { event.preventDefault(); event.stopImmediatePropagation(); return jumpMessage(button.dataset.liveJump); }
       if (!state.active) return;
       if (button.dataset.action === 'network' || button.dataset.action === 'command') { event.preventDefault(); event.stopImmediatePropagation(); button.dataset.action === 'network' ? sharedStatus() : searchDialog(); return; }
       if (button.closest('.server-rail') || button.classList.contains('wordmark')) exitLive();
     },true);
     document.addEventListener('submit',event => {
-      if (event.target.id === 'live-message-form') { event.preventDefault(); event.stopImmediatePropagation(); send(); }
+      if (event.target.dataset.liveEdit) { event.preventDefault(); event.stopImmediatePropagation(); const message = findMessage(event.target.dataset.liveEdit), text = String(new FormData(event.target).get('text') || '').trim(); if (message && text && text.length <= 4000) return mutateMessage(message,'edit',{text},event.target.querySelector('[type="submit"]')); }
+      else if (event.target.id === 'live-message-form') { event.preventDefault(); event.stopImmediatePropagation(); send(); }
       else if (event.target.dataset.liveForm) { event.preventDefault(); event.stopImmediatePropagation(); submitForm(event.target); }
     },true);
     document.addEventListener('input',event => {
@@ -3644,7 +4167,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     document.addEventListener('keydown',event => {
       if (!state.active || window.VoidEntrance?.isPlaying?.()) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); event.stopImmediatePropagation(); searchDialog(); return; }
-      if (event.target.id === 'live-message-input' && event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); event.stopImmediatePropagation(); send(); return; }
+      if (event.target.id === 'live-message-input' && event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) { event.preventDefault(); event.stopImmediatePropagation(); send(); return; }
+      if (event.key === 'Escape' && state.threadRootId && !state.drawer && !document.querySelector('dialog[open]')) { event.preventDefault(); event.stopImmediatePropagation(); closeThread(); return; }
       if (event.key === 'Escape' && state.drawer) { event.preventDefault(); event.stopImmediatePropagation(); closeDrawers(); }
       if (event.key === 'Tab' && state.drawer) {
         const panel = root.querySelector(state.drawer === 'nav' ? '.live-sidebar' : '.live-members');
@@ -3660,20 +4184,291 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     document.addEventListener('visibilitychange',() => { if (document.hidden) { captureDraft();clearTimeout(state.poll); } else if (state.active) schedulePoll(0); });
     window.addEventListener('online',() => { if (state.active) { updateConnection();schedulePoll(0); } });
     window.addEventListener('offline',() => { if (state.active) { state.network = 'Offline';updateConnection(); } });
-    window.addEventListener('hashchange',() => { if (/^#join=/.test(location.hash)) { state.pendingInvite = inviteFrom(location.href); enterLive(); } else if (location.hash === '#shared') enterLive(); else if (state.active) exitLive(); });
-    window.addEventListener('resize',() => { if (state.drawer && matchMedia('(min-width:1051px)').matches) closeDrawers(false); });
+    window.addEventListener('hashchange',() => { if (/^#shared\//.test(location.hash)) { state.deepLink = deepLinkFromHash(); if (state.active && state.phase === 'ready') { const id=state.deepLink;state.deepLink='';jumpMessage(id); } else enterLive(); } else if (/^#join=/.test(location.hash)) { state.pendingInvite = inviteFrom(location.href); enterLive(); } else if (location.hash === '#shared') enterLive(); else if (state.active) exitLive(); });
+    window.addEventListener('resize',() => { if (state.drawer && matchMedia(state.drawer === 'nav' ? '(min-width:761px)' : '(min-width:1051px)').matches) closeDrawers(false); });
   }
   function init() {
     if (root || !window.VoidApp) return;
     app = window.VoidApp; originalScope = document.querySelector('.local-tag')?.innerHTML || ''; originalSearch = document.querySelector('.titlebar-command')?.innerHTML || ''; originalSearchLabel = document.querySelector('.titlebar-command')?.getAttribute('aria-label') || 'Search messages, channels, and people';
     root = document.createElement('section'); root.id = 'live-workspace'; root.hidden = true; root.setAttribute('aria-label','Shared rooms'); document.querySelector('.app-shell').append(root);
     bind();
-    window.VoidLive = Object.freeze({open:enterLive,close:exitLive,isActive:() => state.active});
+    window.VoidLive = Object.freeze({open:enterLive,close:exitLive,isActive:() => state.active,state,request,guard,esc,icon,app,dialog,closeDialog:() => app.closeModal(),toast:message => app.toast(message),captureDraft,renderSidebar,refreshSidebar:renderSidebar,refreshView:() => {captureDraft();renderShell();},selectCommunity,selectChannel,jumpMessage,navigate,refreshCommunities:() => loadCommunities(),updateMessage:message => {mergeMessages(message.channel_id,[message]);if(state.active && state.channelId === message.channel_id)renderFeed();},getRoom:activeRoom,copyText,community,channel,registerTools(module){toolsModule=module;module.init?.(window.VoidLive);if(state.active)renderSidebar();}});
+    if (window.VoidLiveTools) window.VoidLive.registerTools(window.VoidLiveTools);
     state.pendingInvite = inviteFrom(location.href);
-    if (location.hash === '#shared' || state.pendingInvite) enterLive();
+    state.deepLink = deepLinkFromHash();
+    if (location.hash === '#shared' || state.deepLink || state.pendingInvite) enterLive();
   }
   window.addEventListener('voidline:ready',init,{once:true});
   if (window.VoidApp) init();
+})();
+
+</script>
+<script data-source="live-tools.js">
+/* Account-scoped discovery and community tools for the shared service. */
+(() => {
+  'use strict';
+  let live, initialized = false, identity = '', epoch = 0, refreshPromise = null, refreshedAt = 0, panel = 0;
+  let favorites = new Set(), unread = new Map(), counts = {unread:0,mentions:0,activity:0}, filter = 'all', summaryError = '', favoriteQueue = Promise.resolve(), unreadVersion = 0, favoritesVersion = 0;
+  let inboxView = 'unread', searchValues = {}, panelPage = 0, searchGeneration = 0;
+  const $ = id => document.getElementById(id);
+  const state = () => live?.state || {};
+  const esc = value => live.esc(value);
+  const icon = value => live.icon(value);
+  const encode = value => encodeURIComponent(String(value));
+  const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const time = value => { const date = new Date(typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value); return Number.isFinite(date.getTime()) ? date.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Time unavailable'; };
+  const ready = () => !!state().account && state().phase === 'ready';
+  const profileName = profile => profile.displayName || profile.display_name || 'Resident';
+  function syncIdentity() {
+    const next = state().account?.id || '';
+    if (next === identity) return;
+    identity = next; epoch++; panel++; refreshedAt = 0; refreshPromise = null; favoriteQueue = Promise.resolve(); unreadVersion++; favoritesVersion++;
+    favorites = new Set(); unread = new Map(); counts = {unread:0,mentions:0,activity:0}; summaryError = ''; searchValues = {};
+    filter = 'all';
+    try { const saved = sessionStorage.getItem('voidline.shared.filter.v1.' + identity); if (['all','unread','favorites'].includes(saved)) filter = saved; } catch (_) { /* optional UI preference */ }
+  }
+  function guard() {
+    syncIdentity(); const ownEpoch = epoch, ownIdentity = identity, upstream = live.guard();
+    return () => state().active && ownEpoch === epoch && ownIdentity === state().account?.id && upstream.current();
+  }
+  function panelGuard() { const current = guard(), ticket = ++panel; return () => current() && ticket === panel && $('app-modal')?.open !== false; }
+  function dialog(title, copy, html) { live.dialog(title,copy,`<div class="live-tools-panel">${html}</div>`); }
+  const errorHTML = '<p class="live-tool-error" id="live-tools-error" role="alert"></p>';
+  function failure(error, current = () => true) {
+    if (!current()) return;
+    const node = $('live-tools-error'); if (node) node.textContent = error.message || 'This action could not be completed. Try again.';
+    else live.toast(error.message || 'This action could not be completed.');
+  }
+  function empty(title, copy) { return `<div class="live-tool-empty"><h3>${esc(title)}</h3><p>${esc(copy)}</p></div>`; }
+  function pagination(data, action, offset) {
+    const total = finite(data.total), limit = finite(data.page?.limit) || 30;
+    return `<div class="live-tools-pagination"><span>${total ? `${offset + 1}–${Math.min(offset + limit,total)} of ${total}` : '0 results'}</span><button class="live-secondary" data-live-tool="${action}" data-offset="${Math.max(0,offset-limit)}" ${offset ? '' : 'disabled'}>Previous</button><button class="live-secondary" data-live-tool="${action}" data-offset="${offset+limit}" ${data.page?.hasMore ? '' : 'disabled'}>Next</button></div>`;
+  }
+  function destination(message) {
+    return `data-community="${esc(message.community_id || '')}" data-channel="${esc(message.channel_id || '')}" data-message="${esc(message.id || message.message_id || '')}" data-thread="${esc(message.thread_root_id || '')}"`;
+  }
+  function resultHTML(message, kind) {
+    const unavailable = !!message.unavailable, deleted = !!message.deleted_at, id = message.id || message.message_id;
+    const copy = deleted ? 'This message was deleted. Its conversation reference is retained.' : unavailable ? 'The original is unavailable. You may have left its community or lost access.' : message.text || '';
+    return `<article class="live-tool-result"><div class="live-tool-source"><b>${esc(message.author_name || 'Original author')}</b><time>${esc(time(message.created_at || message.saved_at))}</time></div><p class="live-tool-source">${esc(message.community_name || 'Former community')} / #${esc(message.channel_name || 'unavailable room')}${message.thread_root_id ? ' · thread reply' : ''}</p><p class="live-tool-copy">${esc(copy.slice(0,700))}</p><div class="live-tool-result-actions">${!unavailable || deleted ? `<button class="live-secondary" data-live-tool="jump" ${destination(message)}>Open ${message.thread_root_id ? 'thread reply' : 'message'} ${icon('arrow')}</button>` : ''}${kind === 'saved' ? `<button class="live-secondary" data-live-tool="unsave" data-message="${esc(id)}">Remove from Saved</button>` : kind === 'inbox' ? `<button class="live-secondary" data-live-tool="read" data-channel="${esc(message.channel_id)}" data-seq="${finite(message.seq)}" data-change="${finite(message.activity_seq || message.change_seq)}">Mark conversation read through here</button>` : ''}</div></article>`;
+  }
+  async function refresh(force = false) {
+    syncIdentity(); if (!ready()) return;
+    if (refreshPromise || (!force && Date.now() - refreshedAt < 15000)) return refreshPromise;
+    const current = guard(), requestUnreadVersion = ++unreadVersion, requestFavoritesVersion = favoritesVersion;
+    const running = (async () => {
+      try {
+        const [activity, star] = await Promise.all([live.request('/inbox?view=unread&limit=1&offset=0'),live.request('/favorites')]);
+        if (!current()) return;
+        if (requestUnreadVersion === unreadVersion) {unread = new Map((activity.conversations || []).map(c => [c.channel_id,c])); counts = {...counts,...activity.counts};}
+        if (requestFavoritesVersion === favoritesVersion) favorites = new Set(star.favorites || []); summaryError = ''; refreshedAt = Date.now();
+        live.renderSidebar();
+      } catch (error) { if (current()) { summaryError = 'Counts unavailable. Open Inbox to retry.'; refreshedAt = Date.now(); live.renderSidebar(); } }
+    })();
+    refreshPromise = running;
+    try { await running; } finally { if (refreshPromise === running) refreshPromise = null; }
+  }
+  function sidebarHTML() {
+    syncIdentity(); if (!ready()) return '';
+    return `<nav class="live-tools-nav" aria-label="Shared conversation tools"><button data-live-tool="inbox">${icon('inbox')}<span>Inbox</span>${finite(counts.unread) ? `<b class="live-tool-count" aria-label="${finite(counts.unread)} unread messages">${finite(counts.unread)}</b>` : ''}</button><button data-live-tool="saved">${icon('bookmark')}<span>Saved</span></button><button data-live-tool="search">${icon('search')}<span>Search</span></button></nav><div class="live-channel-filters" role="group" aria-label="Filter shared channels">${[['all','All'],['unread','Unread'],['favorites','Favorites']].map(([id,label]) => `<button data-live-tool="filter" data-filter="${id}" class="${filter === id ? 'is-active' : ''}" aria-pressed="${filter === id}">${label}</button>`).join('')}</div>${summaryError ? `<p class="live-filter-note">${summaryError}</p>` : ''}${filter !== 'all' && !filterChannels(state().channels || []).length ? `<p class="live-filter-note">No ${filter} rooms in this community. <button data-live-tool="filter" data-filter="all">Show all</button></p>` : ''}${filter !== 'all' && state().channelId && !visibleChannel(state().channelId) ? `<p class="live-filter-note">Your open conversation is outside this filter.</p>` : ''}<button class="live-community-tools" data-live-tool="settings">${icon('settings')} Community ${live.community()?.role === 'owner' ? 'settings' : 'details'}</button>`;
+  }
+  const visibleChannel = id => filter === 'all' || (filter === 'favorites' ? favorites.has(id) : finite(unread.get(id)?.unread_count) > 0);
+  function filterChannels(channels) { syncIdentity(); return channels.filter(c => visibleChannel(c.id)); }
+  function onRender() {
+    syncIdentity(); if (!ready()) return;
+    document.querySelectorAll('#live-workspace [data-live-channel]').forEach(button => {
+      const id = button.dataset.liveChannel;
+      const container = button.parentElement; if (!container || container.querySelector(`[data-live-favorite="${id}"]`)) return;
+      // A sibling button preserves the channel button's native keyboard behavior.
+      const star = document.createElement('button'); star.className = 'live-favorite-button'; star.dataset.liveTool = 'favorite'; star.dataset.channel = id; star.dataset.liveFavorite = id;
+      star.setAttribute('aria-label',`${favorites.has(id) ? 'Remove' : 'Add'} #${state().channels.find(c => c.id === id)?.name || 'room'} ${favorites.has(id) ? 'from' : 'to'} Favorites`);
+      star.setAttribute('aria-pressed',String(favorites.has(id))); star.innerHTML = icon('star');
+      const row = document.createElement('div'); row.className = 'live-channel-row'; button.replaceWith(row); row.append(button,star);
+      const count = finite(unread.get(id)?.unread_count); if (count) { const badge = document.createElement('span'); badge.className = 'live-tool-count'; badge.textContent = String(count); button.append(badge); }
+    });
+  }
+  function onData() { syncIdentity(); if (ready()) refresh(); }
+  function setFavorite(id, button) {
+    const current = guard(); if (button) button.disabled = true;
+    // Serialize account preference mutations so out-of-order responses cannot
+    // replace the list returned by a newer favorite change.
+    const operation = favoriteQueue.catch(() => {}).then(async () => {
+      if (!current()) return;
+      try { const data = await live.request('/favorites',{channelId:id,active:!favorites.has(id)}); if (!current()) return; favorites = new Set(data.favorites || []); favoritesVersion++; live.renderSidebar(); }
+      catch (error) { failure(error,current); }
+      finally { if (current() && button?.isConnected) button.disabled = false; }
+    });
+    favoriteQueue = operation;
+    return operation;
+  }
+  async function inbox(view = 'unread', offset = 0) {
+    if (!ready()) return; inboxView = ['unread','mentions','activity'].includes(view) ? view : 'unread'; panelPage = offset;
+    const current = panelGuard(), requestUnreadVersion = ++unreadVersion;
+    dialog('Your shared inbox.','Real activity in communities you belong to. Opening this view does not mark anything read.',`<div class="live-tools-tabs" role="group" aria-label="Inbox view">${['unread','mentions','activity'].map(name => `<button data-live-tool="inbox-tab" data-view="${name}" aria-pressed="${name===inboxView}" class="${name===inboxView?'is-active':''}">${name[0].toUpperCase()+name.slice(1)} <span>${finite(counts[name])}</span></button>`).join('')}</div><div class="live-tools-actions"><button class="live-secondary" data-live-tool="read-all">Mark all shared conversations read</button></div>${errorHTML}<div id="live-tools-results" class="live-tools-results" role="status">Loading shared activity…</div>`);
+    const results=$('live-tools-results');
+    try {
+      const data = await live.request(`/inbox?view=${inboxView}&limit=30&offset=${offset}`);
+      if (!current() || !results?.isConnected) return;
+      if (requestUnreadVersion === unreadVersion) {counts = {...counts,...data.counts}; unread = new Map((data.conversations || []).map(c => [c.channel_id,c]));} refreshedAt = Date.now(); live.renderSidebar();
+      document.querySelectorAll('[data-live-tool="inbox-tab"]').forEach(button => {const label=button.querySelector('span');if(label)label.textContent=String(finite(counts[button.dataset.view]));});
+      results.innerHTML = (data.items || []).map(m=>resultHTML(m,'inbox')).join('') || empty(inboxView==='unread' ? 'You are caught up.' : inboxView==='mentions' ? 'No unread mentions.' : 'No unread shared activity.',inboxView==='mentions' ? 'Mentions of your exact shared alias will appear here.' : 'New activity from your shared communities appears here. Sample archive activity stays in the personal archive.');
+      results.insertAdjacentHTML('beforeend',pagination(data,'inbox-page',offset));
+    } catch (error) { if (current() && results?.isConnected) { results.innerHTML = empty('Activity could not load.','Your read state has not changed.'); failure(error,current); } }
+  }
+  async function markRead(channelId, seq, all = false, button, changeSeq) {
+    const current = guard(),ticket=panel; if(button)button.disabled=true;
+    try { await live.request('/read',all ? {all:true} : {channelId,seq:finite(seq),...(changeSeq ? {changeSeq:finite(changeSeq)} : {})}); if(!current())return; await refresh(true); if(current()&&ticket===panel&&(!button||button.isConnected))await inbox(inboxView,0); }
+    catch(error){failure(error,current);}
+    finally { if(current()&&button?.isConnected)button.disabled=false; }
+  }
+  async function saved(offset = 0) {
+    if(!ready())return; panelPage=offset; const current=panelGuard();
+    dialog('Signals worth keeping.','Private bookmarks for this signed-in account, available across your devices. Community pins are separate.',`${errorHTML}<div id="live-tools-results" class="live-tools-results" role="status">Loading Saved…</div>`);
+    const results=$('live-tools-results');
+    try { const data=await live.request(`/saved?limit=30&offset=${offset}`); if(!current()||!results?.isConnected)return;
+      results.innerHTML=(data.messages||[]).map(m=>resultHTML(m,'saved')).join('')||empty('Nothing saved yet.','Choose Save from a shared message’s actions. Your device-local saved messages remain in the personal archive.');
+      results.insertAdjacentHTML('beforeend',pagination(data,'saved-page',offset));
+    }catch(error){if(current()&&results?.isConnected){results.innerHTML=empty('Saved could not load.','Your bookmarks are unchanged.');failure(error,current);}}
+  }
+  async function save(message, active = true, button) {
+    if(!ready()||!message?.id)return; const current=guard(),ticket=panel;if(button)button.disabled=true;
+    try { await live.request(`/messages/${encode(message.id)}/save`,{active});if(!current())return;live.toast(active?'Saved privately to your shared account.':'Removed from Saved. The original message is unchanged.');if(!active&&ticket===panel&&(!button||button.isConnected)&&$('live-tools-results'))await saved(panelPage); }
+    catch(error){failure(error,current);}finally{if(current()&&button?.isConnected)button.disabled=false;}
+  }
+  function validateSearch(values) {
+    for(const name of ['before','after'])if(values[name]){if(!/^\d{4}-\d{2}-\d{2}$/.test(values[name])||new Date(values[name]+'T00:00:00Z').toISOString().slice(0,10)!==values[name])throw new Error('Use a real calendar date in YYYY-MM-DD format.');}
+    if(values.before&&values.after&&values.after>=values.before)throw new Error('After must be earlier than Before. After is inclusive; Before is exclusive.');
+    return values;
+  }
+  function search() {
+    if(!ready())return live.toast('Sign in and join a shared community to search.'); const current=panelGuard();
+    const values=searchValues;
+    dialog('Find a shared signal.','Search the full text history you have permission to read. Dates use UTC: After includes that day; Before excludes it.',`<form id="live-tools-search-form" class="live-tools-search-form" data-live-tools-form="search"><label for="live-tools-query">Words or phrase</label><input id="live-tools-query" name="q" type="search" value="${esc(values.q||'')}" maxlength="200" autofocus placeholder="Search messages, people, rooms…"><div class="live-tools-field-grid"><label>Community<select name="communityId"><option value="">All my communities</option>${(state().communities||[]).map(c=>`<option value="${esc(c.id)}" ${values.communityId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>Conversation<select name="channelId"><option value="">All permitted rooms</option>${(state().channels||[]).map(c=>`<option value="${esc(c.id)}" ${values.channelId===c.id?'selected':''}>${esc(live.community()?.name)} / #${esc(c.name)}</option>`).join('')}</select></label><label>Author<select name="authorId"><option value="">Anyone</option>${(state().members||[]).map(m=>`<option value="${esc(m.id)}" ${values.authorId===m.id?'selected':''}>${esc(m.display_name)}</option>`).join('')}</select></label><label>Content<select name="has"><option value="text">Shared text</option></select></label><label>After (UTC, inclusive)<input type="date" name="after" value="${esc(values.after||'')}"></label><label>Before (UTC, exclusive)<input type="date" name="before" value="${esc(values.before||'')}"></label></div>${errorHTML}<button class="live-primary" type="submit">Search shared history ${icon('search')}</button><p class="live-form-note">Shared attachments are not available. Search your personal archive separately for local media.</p></form><div id="live-tools-results" class="live-tools-results"></div>`);
+    if(current()&&values.q)runSearch(values,0);
+  }
+  async function runSearch(values,offset=0) {
+    const current=guard(), ticket=panel, queryGeneration=++searchGeneration;
+    try { validateSearch(values); } catch(error){failure(error,current);return;}
+    searchValues={...values};panelPage=offset;
+    const results=$('live-tools-results');if(!results)return;results.innerHTML='<p role="status">Searching your permitted shared history…</p>';if($('live-tools-error'))$('live-tools-error').textContent='';
+    const params=new URLSearchParams({limit:'30',offset:String(offset)});for(const [key,value]of Object.entries(values))if(value)params.set(key,value);
+    try{const data=await live.request('/search?'+params);if(!current()||ticket!==panel||queryGeneration!==searchGeneration||!results.isConnected)return;
+      let html='';if(offset===0){
+        if(data.communities?.length)html+=`<h3>Communities</h3><div class="live-tools-actions">${data.communities.map(c=>`<button class="live-secondary" data-live-tool="jump" data-community="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>`;
+        if(data.channels?.length)html+=`<h3>Rooms</h3><div class="live-tools-actions">${data.channels.map(c=>`<button class="live-secondary" data-live-tool="jump" data-community="${esc(c.community_id)}" data-channel="${esc(c.id)}">${esc(c.community_name||'Community')} / #${esc(c.name)}</button>`).join('')}</div>`;
+        if(data.people?.length)html+=`<h3>People</h3><div class="live-tools-actions">${data.people.map(p=>`<button class="live-secondary" data-live-tool="member-profile" data-account="${esc(p.id)}">${esc(p.display_name)}</button>`).join('')}</div>`;
+      }
+      html+=`<p class="live-form-note">People, communities and rooms show up to ${finite(data.entityLimit)||30} matches each. Message results include every permitted match and are paginated below.</p><h3>${finite(data.total)} matching messages</h3>`+(data.messages||[]).map(m=>resultHTML(m,'search')).join('');
+      if(!data.messages?.length)html+=empty('No matching messages.','Try a shorter phrase or clear a conversation, author, or date filter.');
+      results.innerHTML=html+pagination(data,'search-page',offset);
+    }catch(error){if(current()&&ticket===panel&&queryGeneration===searchGeneration&&results.isConnected){results.innerHTML=empty('Search could not finish.','Your existing conversations are unchanged.');failure(error,current);}}
+  }
+  const avatarPaths={moon:'M17 3a9 9 0 1 0 4 14A9 9 0 0 1 17 3Z',orbit:'M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0M2 16 22 8',spark:'m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5Z',leaf:'M20 3C8 2 3 8 5 16c7 7 15 0 15-13ZM5 20 16 8',ghost:'M5 20V9a7 7 0 0 1 14 0v11l-4-2-3 2-3-2-4 2M9 9v2m6-2v2'};
+  function avatar(value){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="${avatarPaths[value]||avatarPaths.moon}"/></svg>`;}
+  function profileCard(data){return `<div class="live-profile-preview" data-theme="${['obsidian','lilac','ice'].includes(data.theme)?data.theme:'obsidian'}"><span class="live-profile-avatar">${avatar(data.avatar)}</span><span class="eyebrow">SHARED PROFILE</span><h3>${esc(profileName(data))}</h3>${data.status?`<p class="live-profile-status">${esc(data.status)}</p>`:''}<p class="live-profile-bio">${esc(data.bio||'A little room for your story.')}</p></div>`;}
+  function profile(){
+    if(!state().account)return;panelGuard();const p=state().account;
+    dialog('Your shared identity.','Members see this profile with your shared alias. Your local profile world and artifact cabinet remain separate.',`<form data-live-tools-form="profile" id="live-tools-profile-form"><div id="live-profile-preview">${profileCard(p)}</div><label for="live-profile-alias">Public alias</label><input id="live-profile-alias" name="displayName" required minlength="2" maxlength="32" value="${esc(profileName(p))}"><label for="live-profile-bio">Short bio</label><textarea id="live-profile-bio" name="bio" maxlength="240" rows="3">${esc(p.bio||'')}</textarea><label for="live-profile-status">Status</label><input id="live-profile-status" name="status" maxlength="80" value="${esc(p.status||'')}"><div class="live-tools-field-grid"><label>Visual theme<select name="theme">${['obsidian','lilac','ice'].map(v=>`<option ${p.theme===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Original avatar<select name="avatar">${Object.keys(avatarPaths).map(v=>`<option ${p.avatar===v?'selected':''}>${v}</option>`).join('')}</select></label></div><p id="live-profile-save-state" role="status">Saved account profile.</p>${errorHTML}<button type="submit" class="live-primary">Save shared profile</button><p class="live-form-note">Local artwork, uploads and artifact ownership are not transferred to this account.</p></form>`);
+  }
+  async function memberProfile(id){
+    const current=panelGuard();dialog('A shared resident.','Public information this person chose to share.',`${errorHTML}<div id="live-tools-results" role="status">Loading profile…</div>`);
+    const results=$('live-tools-results');
+    try{const data=await live.request('/profiles/'+encode(id));if(!current()||!results?.isConnected)return;const p=data.profile||data.account||data; results.innerHTML=profileCard(p)+'<p class="live-form-note">Shown because you share a community. This is not a presence or delivery indicator.</p>';}
+    catch(error){if(current()&&results?.isConnected){results.innerHTML=empty('Profile unavailable.','You may no longer share a community with this person.');failure(error,current);}}
+  }
+  async function saveProfile(form){
+    const current=guard(),values=Object.fromEntries(new FormData(form));const button=form.querySelector('[type="submit"]');if(form.dataset.busy)return;form.dataset.busy='1';if(button)button.disabled=true;
+    try{const data=await live.request('/profile',values);if(!current()||!form.isConnected)return;
+      if(data.account?.id!==state().account?.id)throw Error('The signed-in account changed. Reconnect before saving.');
+      state().account={...state().account,...data.account};for(const r of state().rooms.values())for(const m of r.messages)if(m.author_id===data.account.id)m.author_name=data.account.displayName;
+      state().members=(state().members||[]).map(m=>m.id===data.account.id?{...m,...data.account,display_name:data.account.displayName}:m);
+      const visibleValues=Object.fromEntries(new FormData(form));
+      const hasNewerEdits=Object.keys(values).some(key=>visibleValues[key]!==values[key]);
+      if($('live-profile-save-state'))$('live-profile-save-state').textContent=hasNewerEdits?'Submitted version saved. Your newer edits are still unsaved.':'Saved to your shared account.';
+      live.renderSidebar();live.toast(hasNewerEdits?'Submitted profile saved. Save again to keep your newer edits.':'Shared profile saved.');
+    }catch(error){failure(error,current);}finally{delete form.dataset.busy;if(button?.isConnected)button.disabled=false;}
+  }
+  function profileInput(form){const values=Object.fromEntries(new FormData(form));const preview=$('live-profile-preview');if(preview)preview.innerHTML=profileCard(values);const saved=$('live-profile-save-state');if(saved)saved.textContent='Unsaved changes. Save before closing.';}
+  function settings(){
+    const c=live.community();if(!c)return;panelGuard();const owner=c.role==='owner',staff=owner||c.role==='moderator';
+    dialog(esc(c.name),'Community identity and permissions are enforced by the shared service.',`<p class="live-form-note">Your role: <strong>${esc(c.role)}</strong>. ${owner?'Owners manage rooms, invitations, membership and community identity.':staff?'Moderators manage community pins and may remove ordinary members.':'Members can read rooms and post in ordinary text rooms. Announcement posting is reserved for staff.'}</p><form data-live-tools-form="community" data-community="${esc(c.id)}"><label for="live-settings-name">Community name</label><input id="live-settings-name" name="name" required maxlength="64" value="${esc(c.name)}" ${owner?'':'readonly'}><label for="live-settings-description">Description</label><textarea id="live-settings-description" name="description" maxlength="240" rows="3" ${owner?'':'readonly'}>${esc(c.description||'')}</textarea><label for="live-settings-icon">Community mark</label><input id="live-settings-icon" name="icon" maxlength="8" value="${esc(c.icon||'')}" placeholder="WL" ${owner?'':'readonly'}>${errorHTML}${owner?'<button type="submit" class="live-primary">Save community</button>':''}</form><div class="live-tools-actions"><button class="live-secondary" data-live-tool="members" data-community="${esc(c.id)}">${icon('users')} Members</button>${owner?`<button class="live-secondary" data-live-tool="invites" data-community="${esc(c.id)}">Manage invitations</button>`:''}<button class="live-danger" data-live-tool="leave-confirm" data-community="${esc(c.id)}">${owner?'Transfer ownership to leave':'Leave community'}</button></div>`);
+  }
+  async function members(communityId=state().communityId){
+    const c=state().communities.find(c=>c.id===communityId);if(!c)return;const current=panelGuard();
+    dialog('People in the room.',esc(c.name)+' · Roles determine what each person can do.',`${errorHTML}<div id="live-tools-results" class="live-settings-members" role="status">Loading members…</div>`);
+    const results=$('live-tools-results');
+    try{const data=await live.request(`/communities/${encode(communityId)}/members`);if(!current()||!results?.isConnected)return;
+      results.innerHTML=(data.members||[]).map(m=>`<article class="live-settings-member"><span class="live-profile-avatar">${avatar(m.avatar)}</span><div><button class="live-text-button" data-live-tool="member-profile" data-account="${esc(m.id)}">${esc(m.display_name)}</button><small>${esc(m.role)}</small>${m.status?`<p>${esc(m.status)}</p>`:''}</div><div class="live-tools-actions">${c.role==='owner'&&m.role!=='owner'?`<button class="live-secondary" data-live-tool="member-role" data-community="${esc(communityId)}" data-account="${esc(m.id)}" data-role="${m.role==='moderator'?'member':'moderator'}">${m.role==='moderator'?'Make member':'Make moderator'}</button><button class="live-secondary" data-live-tool="transfer-confirm" data-community="${esc(communityId)}" data-account="${esc(m.id)}" data-name="${esc(m.display_name)}">Transfer ownership</button>`:''}${m.id!==state().account.id&&((c.role==='owner'&&m.role!=='owner')||(c.role==='moderator'&&m.role==='member'))?`<button class="live-danger" data-live-tool="remove-confirm" data-community="${esc(communityId)}" data-account="${esc(m.id)}" data-name="${esc(m.display_name)}">Remove</button>`:''}</div></article>`).join('')||empty('No members to display.','Refresh the community and try again.');
+    }catch(error){if(current()&&results?.isConnected){results.innerHTML=empty('Members could not load.','No membership changes were made.');failure(error,current);}}
+  }
+  function invite(){invites(state().communityId);}
+  async function invites(communityId=state().communityId){
+    const c=state().communities.find(c=>c.id===communityId);if(c?.role!=='owner')return;const current=panelGuard();
+    dialog('Doors into your community.',esc(c.name)+' · Invitations grant access to its message history. Links are shown once, when created.',`<form data-live-tools-form="invite" data-community="${esc(communityId)}"><div class="live-tools-field-grid"><label>Maximum uses<input type="number" name="maxUses" min="1" max="100" value="1" required></label><label>Expires after<select name="expiresInHours"><option value="1">1 hour</option><option value="24">1 day</option><option value="168" selected>7 days</option><option value="720">30 days</option></select></label></div><button type="submit" class="live-primary">Create invitation</button></form>${errorHTML}<div id="live-generated-link"></div><h3>Existing invitations</h3><div id="live-tools-results" role="status">Loading invitations…</div>`);
+    const results=$('live-tools-results');
+    try{const data=await live.request(`/communities/${encode(communityId)}/invites`);if(!current()||!results?.isConnected)return;renderInvites(data.invites||[],communityId);}
+    catch(error){if(current()&&results?.isConnected){results.innerHTML=empty('Invitations could not load.','Retry before changing access.');failure(error,current);}}
+  }
+  function renderInvites(list,communityId){$('live-tools-results').innerHTML=list.map(item=>`<article class="live-invite-row"><div><b>${esc(item.state||'active')}</b><p>${finite(item.uses)} / ${finite(item.max_uses)} uses · Expires ${esc(time(item.expires_at))}</p></div>${!item.revoked_at&&item.state!=='revoked'?`<button class="live-danger" data-live-tool="revoke" data-community="${esc(communityId)}" data-invite="${esc(item.id||item.token_hash)}">Revoke</button>`:''}</article>`).join('')||empty('No invitations yet.','Create a limited invitation, then share it with someone you want here.');}
+  async function createInvite(form){
+    const current=guard(),communityId=form.dataset.community,values=new FormData(form),submit=form.querySelector('[type="submit"]');if(form.dataset.busy)return;form.dataset.busy='1';if(submit)submit.disabled=true;
+    try{const data=await live.request(`/communities/${encode(communityId)}/invites`,{maxUses:Number(values.get('maxUses')),expiresInHours:Number(values.get('expiresInHours'))});if(!current()||!form.isConnected)return;
+      const link=location.origin+location.pathname+'#join='+data.invite.token;const output=$('live-generated-link');if(output)output.innerHTML=`<label for="live-tools-invite-link">New invitation link</label><input id="live-tools-invite-link" readonly value="${esc(link)}"><p class="live-form-note">${finite(data.invite.maxUses)} uses · expires ${esc(time(data.invite.expiresAt))}</p><button class="live-secondary" data-live-tool="copy-invite">${icon('copy')} Copy link</button>`;
+      const listing=await live.request(`/communities/${encode(communityId)}/invites`);if(current()&&form.isConnected)renderInvites(listing.invites||[],communityId);
+    }catch(error){failure(error,current);}finally{delete form.dataset.busy;if(submit?.isConnected)submit.disabled=false;}
+  }
+  function confirmAction(kind,button){
+    const c=state().communities.find(c=>c.id===button.dataset.community);if(!c)return;
+    if(kind==='leave'&&c.role==='owner'){members(c.id);live.toast('Transfer ownership to another member before leaving.');return;}
+    panelGuard();const name=button.dataset.name||c.name;
+    const details=kind==='remove'?['Remove this member?',`${name} will lose access to ${c.name} and its history. Existing messages remain. They can return only with a valid invitation.`,'Remove member']:kind==='transfer'?['Transfer ownership?',`${name} will become the owner of ${c.name}. You will become a moderator and lose owner-only controls.`,'Transfer ownership']:['Leave this community?',`You will lose access to ${c.name} and its message history. Your existing messages remain. You will need a new invitation to return.`,'Leave community'];
+    dialog(details[0],esc(details[1]),`${errorHTML}<form data-live-tools-form="confirm" data-kind="${kind}" data-community="${esc(c.id)}" data-account="${esc(button.dataset.account||'')}"><button class="live-danger" type="submit">${details[2]}</button><button class="live-secondary" type="button" data-live-tool="settings">Keep current access</button></form>`);
+  }
+  async function mutate(path,body,button,after){
+    const current=guard(),ticket=panel;if(button)button.disabled=true;
+    try{const data=await live.request(path,body);if(!current()||ticket!==panel||(button&&!button.isConnected))return;if(after)await after(data,current);}
+    catch(error){failure(error,current);}finally{if(current()&&button?.isConnected)button.disabled=false;}
+  }
+  async function submit(form){
+    const kind=form.dataset.liveToolsForm;
+    if(kind==='search'){const data=Object.fromEntries(new FormData(form));return runSearch(data,0);}
+    if(kind==='profile')return saveProfile(form);
+    if(kind==='invite')return createInvite(form);
+    if(form.dataset.busy)return;form.dataset.busy='1';const button=form.querySelector('[type="submit"]');
+    try{
+      if(kind==='community'){const id=form.dataset.community,values=Object.fromEntries(new FormData(form));await mutate(`/communities/${encode(id)}/settings`,values,button,async(_data,current)=>{await live.refreshCommunities();if(current()){live.toast('Community settings saved.');settings();}});}
+      if(kind==='confirm'){
+        const id=form.dataset.community,target=form.dataset.account,action=form.dataset.kind;
+        const path=action==='leave'?`/communities/${encode(id)}/leave`:action==='transfer'?`/communities/${encode(id)}/transfer`:`/communities/${encode(id)}/members/${encode(target)}`;
+        await mutate(path,action==='transfer'?{accountId:target}:action==='remove'?{remove:true}:{},button,async(_data,current)=>{if(form.isConnected)live.closeDialog();await live.refreshCommunities();if(current()){live.toast(action==='leave'?'You left the community.':action==='transfer'?'Community ownership transferred.':'Member removed.');await refresh(true);}});
+      }
+    }finally{delete form.dataset.busy;}
+  }
+  function handleAction(action,button){
+    if(!ready())return;
+    const data=button?.dataset||{};
+    const actions={inbox:()=>inbox('unread'),'inbox-tab':()=>inbox(data.view),'inbox-page':()=>inbox(inboxView,finite(data.offset)),saved:()=>saved(),'saved-page':()=>saved(finite(data.offset)),search,profile,settings,members:()=>members(data.community),invites:()=>invites(data.community),invite,
+      filter:()=>{filter=['all','unread','favorites'].includes(data.filter)?data.filter:'all';try{sessionStorage.setItem('voidline.shared.filter.v1.'+identity,filter);}catch(_){}live.renderSidebar();},favorite:()=>setFavorite(data.channel,button),
+      read:()=>markRead(data.channel,data.seq,false,button,data.change),'read-all':()=>markRead('',0,true,button),unsave:()=>save({id:data.message},false,button),'search-page':()=>runSearch(searchValues,finite(data.offset)),
+      jump:()=>{live.closeDialog();return live.navigate({communityId:data.community,channelId:data.channel,messageId:data.message,threadRootId:data.thread});},'member-profile':()=>memberProfile(data.account),member:()=>memberProfile(data.member),
+      revoke:()=>mutate(`/communities/${encode(data.community)}/invites/${encode(data.invite)}/revoke`,{},button,()=>invites(data.community)),
+      'member-role':()=>mutate(`/communities/${encode(data.community)}/members/${encode(data.account)}`,{role:data.role},button,()=>members(data.community)),
+      'leave-confirm':()=>confirmAction('leave',button),'remove-confirm':()=>confirmAction('remove',button),'transfer-confirm':()=>confirmAction('transfer',button),
+      'copy-invite':()=>{const input=$('live-tools-invite-link');if(input)return live.copyText(input.value,'Invitation copied.',input);}
+    };
+    return actions[action]?.();
+  }
+  function init(bridge){
+    live=bridge;if(initialized)return;initialized=true;
+    document.addEventListener('click',event=>{const button=event.target.closest('[data-live-tool]');if(!button||!state().active)return;event.preventDefault();event.stopImmediatePropagation();Promise.resolve(handleAction(button.dataset.liveTool,button)).catch(error=>failure(error));},true);
+    document.addEventListener('submit',event=>{const form=event.target;if(!form.dataset.liveToolsForm||!state().active)return;event.preventDefault();event.stopImmediatePropagation();submit(form).catch(error=>failure(error));},true);
+    document.addEventListener('input',event=>{const form=event.target.closest('[data-live-tools-form="profile"]');if(form)profileInput(form);});
+    document.addEventListener('change',event=>{const form=event.target.closest('[data-live-tools-form="profile"]');if(form)profileInput(form);});
+    syncIdentity();
+  }
+  const api=Object.freeze({init,sidebarHTML,filterChannels,handleAction,search,profile,invite,communitySettings:settings,onRender,onData,save,refresh,memberProfile});
+  window.VoidLiveTools=api;
+  if(window.VoidLive?.registerTools)window.VoidLive.registerTools(api);
 })();
 
 </script>

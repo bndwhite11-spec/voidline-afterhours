@@ -1,59 +1,52 @@
-SHARED SERVICE / SOURCE VERIFICATION
+SHARED SERVICE / V7 VERIFICATION BOUNDARIES
 
-SUPPORTED SCAFFOLD NOW PRESENT
-The Sites 1.1.6 helpers are installed. The previous missing-binding/migration
-blocker is resolved in this source revision. Installed starter db/index.ts
-instructs setting d1 to DB, and vite.config.ts uses that string as the binding.
-The source hosting manifest now preserves the existing project_id, omits
-static, declares "d1": "DB", and leaves r2 null. No audience change is made
-by these source files.
+The existing v6 Site was synchronized from its hosted source repository before
+editing. Its source declares D1 binding DB and an ESM Worker; native database
+overview confirmed the six v6 tables exist in production. Existing Site ID and
+public audience remain unchanged by this upgrade.
 
-Drizzle Kit 0.31.10 generated the schema-only six-table migration:
-  drizzle/0000_grey_zarda.sql
-  drizzle/meta/_journal.json
-  drizzle/meta/0000_snapshot.json
-The build copies metadata to dist/.openai, and the supported Sites packager
-copies root drizzle/ to dist/.openai/drizzle. No request-time DDL is used.
+The v7 source adds generated schema-only migrations:
+  drizzle/0001_absent_pete_wisdom.sql
+  drizzle/0002_watery_starhawk.sql
+  drizzle/0003_famous_living_tribunal.sql
+  drizzle/0003_famous_living_tribunal.sql
+The original 0000 SQL, snapshot and journal entry remain unchanged. New tables
+hold reactions, personal bookmarks, favorites, read positions and change events.
+Added columns have constant defaults or are nullable. New indexes support
+message revision lookups and thread/reply references as history grows. No data backfill or
+request-time schema mutation is used. The build copies the complete migration
+chain and metadata to dist/.openai/drizzle for supported Sites deployment.
 
-The self-contained Worker routes /api/live/* to the API and serves the authored
-static client assets. The source ZIP and Worker asset collection both exclude
-generated dist/server and dist/.openai files, avoiding recursive embedding.
+SOURCE VERIFICATION
+node backend/test.mjs: 24 SQLite contract checks, including the real generated
+migration chain, ownership/moderation, exact thread references, durable retries,
+change propagation, rollback, bookmarks, punctuated mentions and activity reads.
+node backend/review-test.mjs: independent retained-data, access loss, deletion,
+search, read-cursor and cross-account privacy review checks.
 
-VERIFIED DURING SCAFFOLD PREPARATION
-- Dependency installation and the supported Sites build helper succeeded.
-- Generated SQL applies to an empty SQLite database.
-- All six expected table/column sets are present.
-- Foreign-key enforcement, membership-role and invite-use checks, and retry
-  uniqueness were exercised against generated SQL.
-- Built Worker module exports fetch and serves source-equivalent HTML, CSS,
-  SVG and ZIP asset bytes.
-- /server and /.openai are not served as public assets.
-- ETag conditional responses work.
-- /api/live/me reaches the authenticated API and rejects missing identity.
+The source uses the existing supported project build script when managed helper
+files are unavailable. Shared message text and metadata remain in D1. R2 is not
+provisioned, so shared attachments and live voice/video are not advertised.
 
-BOUNDARIES OF THAT EVIDENCE
-Those checks are local source/build/SQLite checks. They do not independently
-prove that the latest native deployment has provisioned D1, applied migrations,
-or exchanged messages between two real signed-in browser accounts. Consult
-the latest Sites deployment result for the live publication state. Do not
-infer a two-account result from synthetic-header contract tests.
+PUBLICATION
+Generate offline/source downloads after all client edits, then build the Worker.
+Package authored source and matching Worker/migration outputs, push the existing
+Sites source branch, save that exact source SHA, then deploy to the existing
+public Site. Hosted migrations run before Worker upload; a later deployment
+failure can still leave applied migrations, so inspect status before repair.
+Never change the immutable applied migration history.
 
-PUBLICATION CHECKS FOR THIS REVISION
-Use the existing Site's latest audience and project identity. Run the offline
-generator after client files are stable, then the final Worker build, source
-workflow and supported Sites publication. Verify the deployment's terminal
-status and literal URL. Confirm the hosted health response, authenticated
-alias/profile flow, community creation and membership-gated history.
+EVIDENCE LIMITS
+Source/SQLite tests use synthetic identities. No two independently authorized
+signed-in accounts were supplied for this upgrade. No messages were sent to
+real contacts. Browser/mobile screenshots, hardware media and actual visual
+flows require the supported browser tool. The final delivery report must state
+whether that tool and those accounts were available rather than imply that
+Node or SQLite checks provide equivalent proof.
 
-For the end-to-end social check, use two independently authorized accounts:
-owner creates a community and invite; second account claims membership; each
-sends a message; both read committed history; a nonmember is denied. Verify
-lost-response retry deduplication and cursor catch-up. Do not send invitations
-to anyone or broaden hosting access without the user's authorization.
-
-CURRENT FEATURE BOUNDARY
-Shared text uses platform identity, public aliases, server membership, D1
-commit acknowledgments and cursor polling. Local archive conversations,
-images, voice notes, sample residents and collectibles remain local. Live
-voice transport, shared attachments, read receipts and presence are outside
-this implemented shared-text scope.
+After publication verify terminal native deployment status and the literal URL.
+When supported, verify the hosted health endpoint and authorized sign-in path.
+A successful public page/health response does not independently prove a full
+member-to-member exchange. A separate two-account test should cover invitation,
+both directions of messaging, edit/delete/reactions, bookmarks, reconnection,
+permission revocation and history, with isolated test communities.

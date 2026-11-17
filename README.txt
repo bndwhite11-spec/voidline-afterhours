@@ -44,17 +44,41 @@ the API does not publish your sign-in email or account full name in messages
 or the member directory.
 
 Create a community with a general channel, or claim a community invite. Owners
-can create text/announcement channels and invite tokens. Invites expire after
-seven days and have a configured use limit. The app does not message recipients
-on your behalf. A valid invite adds membership; it does not override the Site's
-hosting access restrictions. Announcement posting is limited to community
-owners/moderators by the API.
+can edit its name, description and icon, create text/announcement channels,
+manage moderator/member roles and remove members. Members may leave; owners
+must retain responsibility for their community. Posting to announcements and
+community pin management are authorized by the server.
 
-Messages are plain shared text, up to 4,000 characters. A send is acknowledged
-only after the database commits it. Stable client retry IDs prevent duplicate
-messages after a retry or a lost response. New messages arrive through cursor
-polling, and older history is paginated. A saved acknowledgment does not mean
-another member has read the message.
+Owners can create invitations with an expiry and bounded uses, inspect their
+status and revoke them. The app does not send invitations to anyone. A valid
+invite adds membership; it does not override the Site's access restrictions.
+
+Shared text supports contextual replies, separate threads, editing, deletion
+with retained references, reactions, community pins and private account Saved
+messages. Source links open the exact message or thread reply. Deleted or
+inaccessible sources have explicit states; removal from Saved never deletes
+the original. Public profiles contain the alias, short bio, optional status,
+selected original avatar mark and theme. Local profile worlds and artifacts
+are preserved separately, with no automatic upload or ownership claims.
+
+Inbox has Unread, Mentions and Activity views with explicit per-conversation
+and bulk read actions. Favorites and All/Unread/Favorites filters are account
+scoped. Search covers permitted shared text history with exact result counts
+and pagination, conversation/author/date filters, and distinct people/room/
+community suggestions. Dates are UTC days: After includes the selected day,
+Before excludes it. Entity suggestions have a stated limit of 30 per type.
+
+Messages accept up to 4,000 characters. Confirmation follows a durable write.
+Stable client IDs and original-payload validation deduplicate retries, even
+when the first response was lost. Change cursors synchronize edits, deletion,
+reactions and pins as well as new messages. History is paginated. A saved
+acknowledgment does not mean another member has read the message.
+
+Shared drafts and pending retries stay separate by signed-in account, channel
+and thread. Session storage preserves them across refresh in the same tab;
+blocked storage keeps the in-memory draft and offers a recovery copy. Drafts
+are not synchronized across devices. Responses from an earlier account or
+navigation context cannot replace the current conversation.
 
 This shared service does not currently provide live voice calls, shared image
 or audio attachments, delivery/read receipts, live presence, or synchronized
@@ -104,8 +128,8 @@ Drizzle schema; drizzle/ contains generated SQL and immutable metadata.
 
 The Python offline generator has no third-party dependencies:
   python3 build_offline.py
-It inlines the current local styles/scripts, including polish.css, live.css
-and live.js. It regenerates the offline HTML and source ZIP. The source ZIP
+It inlines the current local styles/scripts, including polish.css, live.css,
+live.js and live-tools.js. It regenerates the offline HTML and source ZIP. The source ZIP
 contains source, tests, package inputs and migration history; it excludes
 generated Worker bundles, node_modules, runtime state and local secret files.
 
@@ -115,21 +139,26 @@ dist files and embeds them in dist/server/index.js. Generated dist/server and
 dist/.openai files are excluded from that embedding to prevent recursion.
 
 HOSTED BUILD AND PREVIEW
-Node 24 is used for the checks, including Node's built-in SQLite backend tests.
-The deployed Worker has no runtime package dependency. Drizzle and Wrangler are
-pinned development tools. In this managed Sites environment, install with:
-  node /home/agent/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/scripts/install-dependencies.mjs
-After editing db/schema.ts, generate and review migration SQL/metadata:
+Node 24 is used for checks, including Node's built-in SQLite backend tests.
+The deployed Worker has no runtime package dependency. Drizzle and Wrangler
+are pinned development tools. Install with the Sites dependency helper when
+available; the portable project equivalent is:
+  npm ci --no-audit --no-fund --cache /tmp/voidline-npm-cache
+After editing db/schema.ts, generate and review additive SQL/metadata:
   npm run db:generate
-Build through the supported helper:
-  node /home/agent/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/scripts/build-site.mjs
+Applied SQL and metadata are immutable. Run the offline generator before the
+Worker builder so the hosted downloads contain the latest client:
+  python3 build_offline.py
+  npm run build
+  node scripts/check-build.mjs
+When installed, the Sites build helper runs this same project build script.
 
-For a fresh local preview database, apply the initial migration once:
-  node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/0000_grey_zarda.sql
-Apply later pending migrations in order; never replay already-applied SQL.
-Local and hosted databases are separate. Start managed preview only through:
-  sites-preview start /workspace/sites/voidline-afterhours/.sites-checkout
-The daemon owns the process. Use its returned URL; status/stop are available.
+For local D1, apply each pending migration once in journal order, using:
+  node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/<pending-migration>.sql
+Local and hosted databases are separate. In managed environments, use:
+  sites-preview start /workspace/work/voidline
+Only start preview when supported browser controls are available. The daemon
+owns the preview process; use its returned URL and status/stop commands.
 
 Publish through the Sites source/package/deploy workflow. Preserve the existing
 project ID and hosting audience for updates. Sites provisions DB and applies
@@ -140,6 +169,7 @@ Never put credentials or actual hosted database IDs in browser source.
 VALIDATION
   node tests/run.cjs
   node backend/test.mjs
+  node backend/review-test.mjs
 Client tests exercise local persistence and interaction contracts in a DOM/VM
 harness. Backend tests use SQLite and synthetic identities. They do not prove
 actual hosted D1 or two independent signed-in browser sessions. Browser layout,

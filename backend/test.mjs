@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import worker from '../worker/index.mjs';
 
@@ -36,7 +36,7 @@ class LocalD1 {
 }
 
 const sqlite = new DatabaseSync(':memory:');
-sqlite.exec(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));
+for(const file of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort()) sqlite.exec(readFileSync(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const db = new LocalD1(sqlite);
 const env = {DB: db};
 const users = {
@@ -55,7 +55,7 @@ async function call(user, path, {method = 'GET', body, headers = {}, environment
   }
   if (body !== undefined && !h['content-type']) h['content-type'] = 'application/json';
   const response = await worker.fetch(new Request('https://voidline.test/api/live' + path, {
-    method, headers: h, body: body === undefined ? undefined : JSON.stringify(body),
+    method, headers: h, body: body === undefined ? undefined : JSON.stringify({expectedAccountId:who?.id,...body}),
   }), environment);
   return {status: response.status, data: await response.json(), headers: response.headers};
 }
@@ -235,6 +235,93 @@ test('community creation batch rolls back if a later statement fails', async () 
   db.batch = originalBatch;
   assert.equal(response.status, 500);
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM live_communities').get().n, before);
+});
+
+let threadRoot, threadReply;
+test('shared replies, thread history, exact jumps and change cursors stay connected', async () => {
+ const send=await call('owner',`/channels/${channel.id}/messages`,{method:'POST',body:{clientId:'thread-root-0001',text:'A root to discuss'}});threadRoot=send.data.message;
+ const start=(await call('member',`/channels/${channel.id}/messages`)).data.changeCursor;
+ const reply=await call('member',`/channels/${channel.id}/messages`,{method:'POST',body:{clientId:'thread-reply-0001',text:'Inside the thread',replyToId:threadRoot.id,threadRootId:threadRoot.id}});assert.equal(reply.status,200);threadReply=reply.data.message;
+ assert.equal(threadReply.reply_preview.text,'A root to discuss');assert.equal(threadReply.community_id,community.id);
+ assert.equal((await call('member',`/channels/${channel.id}/messages?threadRootId=${threadRoot.id}`)).data.messages[0].id,threadReply.id);
+ assert.equal((await call('member',`/channels/${channel.id}/messages`)).data.messages.some(m=>m.id===threadReply.id),false);
+ const delta=await call('owner',`/channels/${channel.id}/changes?after=${start}`);assert.equal(delta.status,200);assert.equal(delta.data.messages.find(m=>m.id===threadRoot.id).thread_count,1);assert.ok(delta.data.messages.some(m=>m.id===threadReply.id));
+ const exact=await call('member',`/messages/${threadReply.id}`);assert.equal(exact.data.message.thread_root_id,threadRoot.id);
+});
+
+test('edits notify replies and original retry fingerprints survive later edits', async () => {
+ const high=(await call('member',`/channels/${channel.id}/messages`)).data.changeCursor;
+ assert.equal((await call('member',`/messages/${threadRoot.id}/edit`,{method:'POST',body:{text:'Not mine'}})).status,403);
+ const edit=await call('owner',`/messages/${threadRoot.id}/edit`,{method:'POST',body:{text:'Edited root'}});assert.equal(edit.data.message.text,'Edited root');assert.ok(edit.data.message.edited_at);
+ const changes=(await call('member',`/channels/${channel.id}/changes?after=${high}`)).data.messages;assert.equal(changes.find(m=>m.id===threadReply.id).reply_preview.text,'Edited root');
+ const retry=await call('owner',`/channels/${channel.id}/messages`,{method:'POST',body:{clientId:'thread-root-0001',text:'A root to discuss'}});assert.equal(retry.data.message.id,threadRoot.id);assert.equal(retry.data.message.text,'Edited root');assert.equal(retry.data.acknowledgedPayload.text,'A root to discuss');
+});
+
+test('reactions, staff pins and private saved records use durable actor state', async () => {
+ const reaction=()=>call('member',`/messages/${threadRoot.id}/reaction`,{method:'POST',body:{emoji:'💜',active:true}});
+ assert.equal((await reaction()).status,200);const result=await reaction();assert.deepEqual(result.data.message.reactions,[{emoji:'💜',count:1,mine:true}]);
+ assert.equal((await call('owner',`/messages/${threadRoot.id}`)).data.message.reactions[0].mine,false);
+ assert.equal((await call('member',`/messages/${threadRoot.id}/pin`,{method:'POST',body:{active:true}})).status,403);
+ assert.equal((await call('owner',`/messages/${threadRoot.id}/pin`,{method:'POST',body:{active:true}})).data.message.pinned,true);
+ assert.equal((await call('member',`/channels/${channel.id}/pins`)).data.messages[0].id,threadRoot.id);
+ assert.equal((await call('member',`/messages/${threadReply.id}/save`,{method:'POST',body:{active:true}})).data.message.saved,true);
+ assert.equal((await call('member','/saved')).data.messages[0].id,threadReply.id);assert.equal((await call('owner','/saved')).data.total,0);
+});
+
+test('Inbox pagination, literal punctuated mentions and deliberate reads are accurate', async () => {
+ await call('owner','/read',{method:'POST',body:{all:true}});
+ const texts=['@night.window hello','@nightXwindow no','@night.window.more no','@night.window.','(@night.window) yes','@night.window.more and then @night.window yes'];
+ for(let i=0;i<texts.length;i++)assert.equal((await call('member',`/channels/${channel.id}/messages`,{method:'POST',body:{clientId:'mention-case-000'+i,text:texts[i]}})).status,200);
+ const inbox=await call('owner','/inbox?view=mentions&limit=2');assert.equal(inbox.status,200);assert.equal(inbox.data.counts.unread,6);assert.equal(inbox.data.total,4);assert.equal(inbox.data.items.length,2);assert.equal(inbox.data.page.hasMore,true);
+ assert.equal((await call('owner','/inbox?view=mentions&offset=2&limit=2')).data.items.length,2);
+ assert.equal((await call('owner','/inbox?view=mentions')).data.total,4,'Opening inbox must not mark messages read');
+ await call('owner','/read',{method:'POST',body:{all:true}});assert.equal((await call('owner','/inbox')).data.counts.unread,0);
+});
+
+test('Activity detects a new reaction on an older read message and honors its own watermark', async () => {
+ await call('owner','/read',{method:'POST',body:{all:true}});
+ assert.equal((await call('owner','/inbox?view=activity')).data.total,0);
+ await call('member',`/messages/${threadRoot.id}/reaction`,{method:'POST',body:{emoji:'🔥',active:true}});
+ const inbox=await call('owner','/inbox?view=activity');assert.equal(inbox.status,200);assert.equal(inbox.data.total,1);assert.equal(inbox.data.items[0].id,threadRoot.id);
+ const m=inbox.data.items[0];assert.ok(m.activity_seq>0);
+ await call('owner','/read',{method:'POST',body:{channelId:channel.id,seq:m.seq,changeSeq:m.activity_seq}});
+ assert.equal((await call('owner','/inbox?view=activity')).data.total,0);
+ await call('member',`/messages/${threadRoot.id}/reaction`,{method:'POST',body:{emoji:'✨',active:true}});
+ assert.equal((await call('owner','/inbox?view=activity')).data.total,1);
+});
+
+test('shared profile fields, invitations, moderation and ownership transfer obey roles', async () => {
+ const profile=await call('member','/profile',{method:'POST',body:{displayName:'moon.reader',bio:'Makes tiny books',status:'printing',theme:'lilac',avatar:'orbit'}});assert.equal(profile.data.account.bio,'Makes tiny books');
+ assert.equal((await call('owner',`/profiles/${users.member.id}`)).data.profile.avatar,'orbit');assert.equal((await call('stranger',`/profiles/${users.member.id}`)).status,403);
+ assert.equal((await call('member','/profile',{method:'POST',body:{avatar:'https://tracking.invalid/pixel'}})).status,400);
+ const made=await call('owner',`/communities/${community.id}/invites`,{method:'POST',body:{maxUses:3,expiresInHours:1}});assert.equal(made.status,201);
+ assert.equal((await call('owner',`/communities/${community.id}/invites/${made.data.invite.id}/revoke`,{method:'POST',body:{}})).data.revoked,true);
+ assert.equal((await call('stranger','/invites/claim',{method:'POST',body:{token:made.data.invite.token}})).data.error.code,'invite_revoked');
+ const invites=await call('owner',`/communities/${community.id}/invites`);assert.equal(invites.data.invites.find(i=>i.id===made.data.invite.id).state,'revoked');
+ assert.equal((await call('owner',`/communities/${community.id}/leave`,{method:'POST',body:{}})).status,409);
+ assert.equal((await call('owner',`/communities/${community.id}/members/${users.member.id}`,{method:'POST',body:{role:'moderator'}})).status,200);
+ assert.equal((await call('member',`/messages/${threadRoot.id}/pin`,{method:'POST',body:{active:false}})).status,200);
+ assert.equal((await call('member',`/communities/${community.id}/members/${users.owner.id}`,{method:'POST',body:{remove:true}})).status,403);
+ const settings=await call('owner',`/communities/${community.id}/settings`,{method:'POST',body:{description:'A quiet studio',icon:'🌙'}});assert.equal(settings.data.community.description,'A quiet studio');
+});
+
+test('deletion is a synchronized tombstone, retains thread context and durable retry identity', async () => {
+ const high=(await call('member',`/channels/${channel.id}/messages`)).data.changeCursor;
+ const deleted=await call('owner',`/messages/${threadRoot.id}/delete`,{method:'POST',body:{}});assert.equal(deleted.data.message.text,'');assert.ok(deleted.data.message.deleted_at);assert.equal(deleted.data.message.pinned,false);assert.deepEqual(deleted.data.message.reactions,[]);
+ const reply=(await call('member',`/messages/${threadReply.id}`)).data.message;assert.equal(reply.reply_preview.text,'');assert.ok(reply.reply_preview.deleted_at);
+ assert.ok((await call('member',`/channels/${channel.id}/changes?after=${high}`)).data.messages.some(m=>m.id===threadReply.id));
+ const retry=await call('owner',`/channels/${channel.id}/messages`,{method:'POST',body:{clientId:'thread-root-0001',text:'A root to discuss'}});assert.equal(retry.status,200);assert.ok(retry.data.message.deleted_at);
+ const delReply=await call('member',`/messages/${threadReply.id}/delete`,{method:'POST',body:{}});assert.equal(delReply.status,200);assert.equal((await call('owner',`/messages/${threadRoot.id}`)).data.message.thread_count,0);
+ assert.equal((await call('member','/saved')).data.messages.find(m=>m.id===threadReply.id).unavailable,true);
+});
+
+test('mutation and all dependent change notifications roll back together', async () => {
+ const before=(await call('member',`/messages/${threadReply.id}`)).data.message;
+ const changesBefore=sqlite.prepare('SELECT COUNT(*) AS n FROM live_changes').get().n;
+ const originalBatch=db.batch.bind(db);db.batch=async statements=>originalBatch([...statements,{run:async()=>{throw new Error('forced final change failure');}}]);
+ const failed=await call('owner',`/channels/${channel.id}/messages`,{method:'POST',body:{clientId:'atomic-new-0001',text:'Must roll back all event writes'}});db.batch=originalBatch;
+ assert.equal(failed.status,500);assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM live_changes').get().n,changesBefore);assert.equal(sqlite.prepare("SELECT COUNT(*) AS n FROM live_messages WHERE client_id='atomic-new-0001'").get().n,0);
+ assert.equal((await call('member',`/messages/${threadReply.id}`)).data.message.change_seq,before.change_seq);
 });
 
 let failures = 0;

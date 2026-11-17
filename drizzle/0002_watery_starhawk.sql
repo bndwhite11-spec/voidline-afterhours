@@ -1,0 +1,1 @@
+ALTER TABLE `live_read_states` ADD `activity_seq` integer DEFAULT 0 NOT NULL;
