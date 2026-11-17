@@ -1,6 +1,7 @@
 /** Native-account enrollment for a separately operated Synapse JWT service.
  * Login JWTs stay server-side. This endpoint never receives message keys. */
 import {SignJWT} from 'jose';
+import {matrixPolicyHealth} from './matrix-policy.mjs';
 import {authenticate,validateSessionMutation,authRateLimit,authHash,normalizeUsername,AuthError} from './auth.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
@@ -38,7 +39,8 @@ export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>f
    user=await authenticate(request,env);const db=env.DB;config=configuration(env);
    if(path.length===1&&path[0]==='config'&&request.method==='GET'){
     const password=await q(db,'SELECT 1 AS present FROM auth_credentials WHERE account_id=?',user.id).first();
-    return json({configured:config.configured,provider:'synapse-jwt',homeserver:config.configured?config.homeserver:null,serverName:config.configured?config.serverName:null,requiresNativePassword:true,nativePasswordAvailable:!!password,encryptedDefaultReady:false,accountRestrictionsSynced:false,description:config.configured?'An encrypted service is configured. Device verification and recovery remain separate.':'Encrypted account enrollment is not configured. Standard messaging remains a separate choice.'});
+    const policy=await matrixPolicyHealth(env,{accountId:user.id});
+    return json({policy,configured:config.configured,provider:'synapse-jwt',credentialHomeserver:config.homeserver,homeserver:config.configured?config.homeserver:null,serverName:config.configured?config.serverName:null,requiresNativePassword:true,nativePasswordAvailable:!!password,encryptedDefaultReady:false,accountRestrictionsSynced:false,description:config.configured?'An encrypted service is configured. Device verification and recovery remain separate.':'Encrypted account enrollment is not configured. Standard messaging remains a separate choice.'});
    }
    need(config.configured,503,'encrypted_enrollment_unavailable','Encrypted account enrollment is not configured. Your existing account and Standard conversations remain available.');
    const identity=await expectedIdentity(user.id,config);need(identity.userId.length<=255,503,'encrypted_configuration_invalid','The encrypted service identity configuration is invalid.');
@@ -60,7 +62,7 @@ export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>f
     q(db,'INSERT OR IGNORE INTO matrix_account_links(account_id,matrix_user_id,matrix_subject,homeserver_origin,created_at) SELECT ?,?,?,?,? WHERE '+guard.sql,user.id,identity.userId,identity.subject,config.homeserver,time,...guard.args),
     q(db,'INSERT OR IGNORE INTO matrix_enrollment_issues(jti,account_id,session_id,expires_at,created_at,state) SELECT ?,?,?,?,?,? WHERE '+guard.sql+" AND EXISTS(SELECT 1 FROM matrix_account_links WHERE account_id=? AND matrix_user_id=? AND matrix_subject=? AND homeserver_origin=?)",jti,user.id,user.sessionId,time+TTL_SECONDS*1000,time,'pending',...guard.args,user.id,identity.userId,identity.subject,config.homeserver)
    ]);
-   ownsIssue=reserved[1]?.meta?.changes===1;need(ownsIssue,409,'enrollment_attempt_used','This enrollment attempt was already reserved or account access changed. Review Devices before retrying.');
+   ownsIssue=reserved[1]?.meta?.changes>0;need(ownsIssue,409,'enrollment_attempt_used','This enrollment attempt was already reserved or account access changed. Review Devices before retrying.');
    const issue=await q(db,'SELECT account_id,session_id,state FROM matrix_enrollment_issues WHERE jti=?',jti).first();need(issue&&issue.account_id===user.id&&issue.session_id===user.sessionId&&issue.state==='pending',403,'enrollment_access_changed','Account or session access changed. No enrollment was authorized.');
    // The JWT never leaves this Worker except in its TLS request to Synapse.
    const flows=await matrix(config,'/_matrix/client/v3/login');need(Array.isArray(flows.flows)&&flows.flows.some(flow=>flow.type==='org.matrix.login.jwt'),503,'encrypted_login_unsupported','The encrypted service does not support the configured account enrollment method.');
@@ -78,7 +80,7 @@ export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>f
     q(db,"UPDATE matrix_enrollment_issues SET state='confirmed',matrix_device_id=?,completed_at=? WHERE jti=? AND account_id=? AND session_id=? AND state='pending' AND expires_at>? AND "+finalGuard.sql,deviceId,finalTime,jti,user.id,user.sessionId,finalTime,...finalGuard.args),
     q(db,'UPDATE matrix_account_links SET verified_at=? WHERE account_id=? AND matrix_user_id=? AND homeserver_origin=? AND EXISTS(SELECT 1 FROM matrix_enrollment_issues WHERE jti=? AND state=?) AND '+finalGuard.sql,finalTime,user.id,identity.userId,config.homeserver,jti,'confirmed',...finalGuard.args)
    ]);
-   need(result[0]?.meta?.changes===1&&result[1]?.meta?.changes===1,403,'enrollment_access_changed','Account or session access changed before enrollment completed.');
+   need(result[0]?.meta?.changes>0&&result[1]?.meta?.changes>0,403,'enrollment_access_changed','Account or session access changed before enrollment completed.');
    return json({accountId:user.id,homeserver:config.homeserver,userId:identity.userId,deviceId,accessToken:inFlightToken,enrollmentAttemptId:jti,expiresAt:Number.isSafeInteger(login.expires_in_ms)&&login.expires_in_ms>0?finalTime+login.expires_in_ms:null,accountRestrictionsSynced:false,encryptedDefaultReady:false});
   }catch(error){
    if(ownsIssue&&jti&&user&&env?.DB){let state='failed';if(inFlightToken&&config?.configured){const result=await logout(config,inFlightToken);state=result==='confirmed'?'revoked':'revocation_unknown';}else if(!(error instanceof AuthError)||error.code==='encrypted_service_unavailable')state='unknown';try{await markIssue(env.DB,user,jti,state,deviceId);}catch{/* A safe error response must not include credentials or database output. */}}

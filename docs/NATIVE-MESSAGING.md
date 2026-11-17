@@ -66,23 +66,31 @@ Related representation reads retain consistent message/reaction state. Bookmark
 state has its own account-private revision so a personal save does not become
 a public message mutation or resurrect a stale selection.
 
-While open, conversations poll changes with honest timestamps/status. Extra
-message/change pages drain promptly in bounded cancellable batches with backoff;
-cursors advance only after the page is processed. This is not a simulated socket,
-presence or delivery/read-receipt system. Real-time streaming remains a possible
-future transport choice, not a substitute for ordering and authorization.
+Authenticated SSE now carries content-free revision hints with bounded leases,
+session/membership rechecks, resume IDs, heartbeat and client watchdog/backoff.
+Authoritative message/change cursor pages still drain in bounded cancellable
+batches; cursors advance only after processing. The server checks D1 revisions
+periodically; it does not claim database-native push. Bounded client polling
+remains an honest fallback. See REALTIME.md. Presence and recipient delivery/read
+receipts are not inferred from stream connection or server acceptance.
 
 Keyed timeline updates preserve unrelated nodes, focused controls, composition,
 selection and scroll anchors. Earlier pages preserve the reading position;
 new activity does not force someone down from older history. Composer handling
-respects IME composition. Full windowed rendering and large-history accessibility
-still require further engineering and physical browser checks.
+respects IME composition. Standard native/community timelines now use measured
+variable-height windowing with focus/selection pins and bounded detached rows.
+Actual large-history browser accessibility and encrypted timeline parity remain
+separate acceptance work.
 
-The current tab retains Standard drafts/failed sends in account/conversation-
-scoped readable sessionStorage. That is separate from the protected Matrix vault.
-Account lock/sign-out removes the current account's native draft/acknowledgment
-keys. Never store passwords, sessions or encryption keys there, and never restore
-an old account's draft into another account/conversation.
+Standard sends first enter an account/conversation-scoped ordered IndexedDB
+outbox with stable IDs, atomic claims, leases and durable per-item states. A
+failed head pauses later items until deliberate retry/cancellation. Several
+messages can queue without waiting for a network roundtrip. The queue contains
+readable Standard text; it is separate from the protected Matrix vault. Drafts
+remain tab-scoped readable sessionStorage. Lock stops account workers; sign-out
+clears the account's local drafts/outbox according to the explicit lifecycle.
+Cancellation cannot retract a server-accepted send. Never store passwords,
+sessions or encryption keys in this queue or restore another account's draft.
 
 ## Read state, filters, search and Saved
 
@@ -110,8 +118,10 @@ folder removal clears references without deleting histories.
 Saved explains its distinct scopes: synced Standard source bookmarks, Matrix
 self-only encrypted Saved, and independent encrypted device-only notes. Native
 search may run on the server because its Standard text is already service-
-readable. Protected Matrix search stays client-side over loaded decrypted data;
-it never uploads plaintext to make a server index.
+readable. Protected Matrix search stays client-side with an encrypted local index and
+explicit earlier-history indexing/coverage. Bounded indexed history excludes
+thread-only history; remote changes outside synced/downloaded history can remain
+unrefreshed. It never uploads plaintext to make a server index.
 
 ## Notifications
 
@@ -128,7 +138,9 @@ unverified; encrypted Matrix push is a separate incomplete integration.
 `0008_correctness_and_enrollment.sql` adds revisions/ownership, immutable community
 mentions, private native bookmarks, list snapshots, Matrix enrollment records and
 notification state. The complete 0000–0008 chain yields 56 application tables;
-0008 adds 13 integrity/revision/activity triggers. Earlier applied SQL and genuine
+0008 adds 13 integrity/revision/activity triggers. Additive0009 introduces five
+operational/media tables (61 total), nullable profile-media links and revision/
+cleanup triggers. Earlier applied SQL and genuine
 accounts, histories, memberships and collectible ownership are preserved.
 
 Account deletion revokes native authentication and removes private memberships,
@@ -141,15 +153,18 @@ uses the database's deterministic remaining-member succession (active members
 first, then joined order/account ID). Community/platform-owner deletion has its
 own transfer/protection rules. This never assigns platform administration.
 Backups and exports must explain retained Standard plaintext. Local protected
-SQLite backup/restore tests include community/native content; production D1
-backup scheduling/export/restoration still needs trusted provider access.
+SQLite backup/restore tests include community/native content; scoped account exports and a protected hosted D1 snapshot writer now exist.
+Unattended execution, independent key retention, R2 media-byte backup and actual
+provider restoration still need separately verified operator setup.
 
 ## Availability and proof
 
 Native text, replies, edits/deletion, reactions, deliberate read state, group
 management, full-history search, private synced bookmarks, history and stable
-filtered lists are implemented. Native file/voice upload, calls, verified presence
-and recipient-delivered/read receipts are not supplied. Encrypted attachments,
+filtered lists are implemented. Standard file/voice uploads use private R2
+staging, atomic message claims, current-access reads and durable cleanup; see
+MEDIA-AND-PROFILES.md. Calls, verified presence and recipient delivery/read
+receipts are not supplied. Encrypted attachments,
 voice, invitations, recovery and device operations use the separate configured
 Matrix adapter. Native-to-Matrix restriction reconciliation and JWT-only provider
 reauthentication remain incomplete; Standard is never a silent fallback.

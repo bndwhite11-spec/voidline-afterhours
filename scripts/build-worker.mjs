@@ -27,7 +27,7 @@ const contentTypes = {
 const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
 // never an executable production fallback or automatically loaded fixture.
-const productionRoots = new Set(['index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
+const productionRoots = new Set(['account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
   'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
@@ -67,11 +67,18 @@ function matrixConnectOrigin(env) {
 
 async function apiResponse(request,env,ctx,handler){
   const response=await handler(request,env,ctx);
-  if(response.ok)await scheduleNotificationDelivery(request,env,ctx).catch(()=>{});
+  if(response.ok){
+    await scheduleNotificationDelivery(request,env,ctx).catch(()=>{});
+    await scheduleMaintenance(request,env,ctx).catch(()=>{});
+  }
   return response;
 }
 async function serveVoidline(request, env, ctx) {
   const url = new URL(request.url);
+  if (url.pathname==='/api/export') return apiResponse(request,env,ctx,handleAccountExportRequest);
+  if (url.pathname==='/mcp') return handleOperationsMCP(request,env);
+  if (url.pathname==='/api/realtime') return handleRealtimeRequest(request,env);
+  if (url.pathname.startsWith('/api/media/')) return apiResponse(request,env,ctx,handleMediaRequest);
   if (url.pathname.startsWith('/api/auth/')) return apiResponse(request,env,ctx,handleAuthRequest);
   if (url.pathname==='/api/encryption'||url.pathname.startsWith('/api/encryption/')) return apiResponse(request,env,ctx,handleEncryptionRequest);
   if (url.pathname==='/api/notifications'||url.pathname.startsWith('/api/notifications/')) return apiResponse(request,env,ctx,handleNotificationsRequest);
@@ -125,7 +132,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);
@@ -141,6 +148,7 @@ const localConfig = `${JSON.stringify({
   name: 'voidline-afterhours-local',
   main: '../dist/server/index.js',
   compatibility_date: '2026-05-15',
+  r2_buckets: [{binding:'MEDIA',bucket_name:'voidline-media-local'}],
   d1_databases: [{
     binding: 'DB',
     database_name: 'site-creator-d1',

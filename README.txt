@@ -4,135 +4,111 @@ APP
 https://voidline-afterhours.pipedcactus1.chatgpt.site/
 
 Create a native account with a unique username and a 12–128-character password.
-New accounts have no joined communities, conversations, sample contacts, gifts,
-messages or invented activity. Genuine existing accounts and records remain.
-Keep the one-time account recovery code safely in a password manager.
+New accounts have zero communities, conversations, sample contacts, gifts,
+messages or invented activity. Existing legitimate records remain. Save the
+one-time account recovery code in a password manager.
 
 CURRENT UPGRADE
-This release follows the version 14 review. It fixes community ownership races,
-stale message updates, group-wide blocking, loaded-page-only filters and the
-split native search/Saved experience before adding more decoration.
+A document-wide charcoal/violet theme, consistent preferences, adjustable list,
+ordered durable Standard outbox, authenticated SSE revision hints with fallback,
+measured Standard history window, private profile/media uploads and cropping,
+Standard voice recordings, original 21-badge/12-gift art and scoped exports.
+Source and configuration are separate: see docs/UPGRADE-STATUS.md and
+REVIEW-COVERAGE.md for the full24-section brief and exact remaining work.
 
-Standard messaging is available between VOIDLINE accounts. Add someone by
-username, have them accept the request, select Message, review the disclosure,
-and create a direct conversation or group. The service stores readable text
-in D1 over HTTPS; Standard messages are not end-to-end encrypted. Encrypted
-Matrix rooms, keys and pending content never fall back into that mode.
+MESSAGING AND PRIVACY
+Standard messages and their private R2 attachments are service-readable. HTTPS,
+session authorization and scoped permissions protect access; this mode is not
+E2EE. Add an accepted friend, choose Message, review the Standard disclosure and
+create a direct conversation or group. No encrypted send falls back to Standard.
 
-Native messages have server-generated revisions. Delayed polls cannot replace
-newer edits, reactions or deletion tombstones. Keyed timeline updates preserve
-unrelated focused controls and composition. Backlog pages drain promptly in
-bounded batches, with explicit catching-up and retry states. Read acknowledgments
-use actually viewed content in the active document, rather than the highest
-merely loaded message. Opening Inbox or a profile does not acknowledge a chat.
+Stable IDs, idempotent writes and monotonic revisions prevent retries and delayed
+responses from duplicating or replacing newer content. The ordered Standard
+IndexedDB queue contains readable device-local text, with individual states,
+retry/cancel and atomic leases. A failed head pauses later items. Tab drafts are
+separate. Cancellation cannot undo a server-accepted send. No recipient-delivery
+or online/presence claim is inferred from server acceptance.
 
-Conversation filters cover the account through stable, short-lived snapshots;
-a favorite, unread or foldered conversation can appear beyond the first page.
-Each page rechecks access. Full-history Standard search and synced source
-bookmarks respect current membership, deletion and private-preview settings.
-Groups have owner-checked name/member/ownership controls and explicit Leave.
-A personal block prevents unwanted direct delivery; it no longer freezes
-unrelated eligible group members. Existing authorized group members may still
-see group content. Blocking is not cryptographic removal.
+Standard search covers accessible retained history. Bookmarks and exports
+recheck current permissions. Seven export scopes require recent authentication
+and an explicit warning that downloads are readable plaintext. They exclude
+passwords, authentication/recovery secrets, Matrix content/keys, device-only
+Saved notes and uploaded file bytes. Browser exports are bounded at 10MiB/10k
+records and are not an atomic database backup.
 
-Community transfers use an authoritative immutable account-ID relationship,
-commit-time checks and database invariants. Invalid older ownership links are
-quarantined/audited for trusted infrastructure review, never assigned by a
-public handle. Community mentions store account IDs; mutable display names
-cannot redirect them to another person.
+Private profile media follows current profile visibility and blocking. Avatar
+and banner crop locally before staged upload; Save commits the actual reference.
+Standard files/voice use private R2 with current-access reads, stable digests,
+atomic message claims, ranges and durable cleanup. Browser/microphone/Canvas
+acceptance still needs actual devices.
 
-ENCRYPTED MESSAGING
-The maintained Matrix SDK/Rust crypto path remains separate. A supported,
-configured Synapse provider can enroll an ordinary VOIDLINE account without
-pasting an access token or inventing a second storage password. Native password
-confirmation unlocks a client-derived device vault; identity and device checks,
-verification, in-app invitations and encrypted media stay on the Matrix path.
-Advanced manual connection is separate from the normal enrollment flow.
+ENCRYPTION AND IDENTITY
+The separate maintained Matrix 45.1/Rust 18.9.2 integration retains verified-device
+checks, no plaintext fallback, protected local keys/outbox, encrypted attachments
+and resumable recovery. Password changes rewrap the stable local-store credential;
+account password recovery cannot restore missing encryption keys. Earlier-history
+search indexes locally after decryption with bounded, labeled coverage.
 
-Recovery resumes completed secret-storage/signing/backup steps without resetting
-existing keys. A backup-ready state is distinct from a verified restore. Local
-locking is immediate; the interface reports whether remote logout is confirmed,
-failed or unknown. Unsupported homeserver reauthentication remains an explicit
-error with retained recovery state.
+No Matrix homeserver exists yet. Operated enrollment, namespace reservation,
+complete community/block reconciliation and actual two-device recovery/media
+acceptance are incomplete. Encrypted-by-default remains OFF. Native and Matrix
+policy lifecycles are separate; supported remote operations queue only verified
+managed mappings and report actual retry/completion state.
 
-No Matrix homeserver is configured for this release. Native-to-Matrix suspension,
-block and room-permission reconciliation, JWT-only UIA restrictions and actual
-multi-device acceptance remain open. New private chats are not presented as
-secure-by-default merely because provider fields exist. See ENCRYPTED-SETUP.md
-and ENCRYPTION-DECISION.md for the exact provider requirements and boundaries.
+Native passwords use maintained Argon2id. Sessions are revocable HttpOnly cookies
+with CSRF/origin/account checks and server-side status/permissions. Google and
+verified-email recovery require actual provider configuration. They are not
+fabricated by buttons. The intended platform owner is @xrp; a matching username
+never grants authority. Follow docs/OWNER-BOOTSTRAP.md using authenticated native
+account/passkey proof and trusted immutable-ID configuration. A community owner
+never becomes platform administrator. No dashboard decrypts all private messages.
 
-NOTIFICATIONS, COLLECTIONS AND PROFILES
-Optional browser Web Push uses generic native-activity notifications and real
-subscription/delivery code when server keys are configured. Permission is asked
-only after the user enables it. Message text is excluded from push payloads;
-mute, quiet hours and session/access checks apply. A queued test or provider
-acceptance is not proof that a physical browser displayed a notification.
-Actual browser delivery remains unverified, and Matrix encrypted push is a
-separate unfinished integration.
+COLLECTIBLES AND LOCAL DATA
+Existing21 cosmetic badges,12 gifts, earned awards and legitimate ownership
+remain. Free cosmetic art is distinct from authoritative achievements and actual
+roles. Gift grants and accepted transfers use atomic server ownership; a replay
+is available only after an acknowledged receipt. No financial/token-balance or
+official-affiliation claim is made by crypto/meme artwork.
 
-Preserved: 21 original free cosmetic badges, 12 gift designs, legitimate
-owned-instance transfers, earned-award rules, three showcase slots and profile
-privacy. Cosmetics never grant roles or imply token holdings/financial value.
-Avatar/banner/accent presets remain previewable. File uploads/cropping, full
-profile frames/nameplates and broader wearable-gift ideas are future scope.
+Independent local Saved notes use their own encrypted device-only vault. Previous
+local archives are reviewed explicitly, never silently uploaded or trusted to
+mint ownership. Recovery, retention and export scopes are explained separately.
 
-The graphite/ice-blue interface, original chrome artwork and brief skippable
-entry reveal remain. Returning sessions, recovery links and reduced motion skip
-the reveal. The supplied TikTok clip was inaccessible; no reproduction is claimed.
-Public help pages explain security models, recovery, privacy, terms and support.
-
-ACCOUNT SECURITY AND STORAGE
-Native passwords use maintained Argon2id; older valid hashes upgrade after
-successful login. Opaque secure sessions, CSRF, status/revocation checks and
-WebAuthn step-up remain. Google OIDC and verified email/reset delivery require
-real provider credentials. Availability is shown truthfully.
-
-@xrp is the intended owner handle, not proof. Only a signed-in passkey-verified
-claim and trusted infrastructure binding can establish the immutable platform
-owner. A community owner is not a platform administrator. See OWNER-BOOTSTRAP.md.
-
-D1 remains authoritative. Migrations 0000–0008 yield 56 application tables; 0008 adds
-ownership/mention/revision, snapshot, bookmark, Matrix-enrollment and notification
-records plus 13 integrity/revision/activity triggers. Applied older migrations
-are unchanged. Account deletion removes private membership/preferences and
-credentials, then anonymizes authors in legitimate retained recipient history.
-An owned native group passes to a deterministic eligible remaining member;
-community/platform ownership has separate deletion protections.
-
-Standard drafts and failed sends use readable per-account/per-conversation tab
-storage and clear on account lock/sign-out. Independent local Saved notes use
-a separate encrypted device-only vault; they are not cloud-synced or restored
-by an account password reset. Existing local archives are reviewed explicitly,
-never silently uploaded or trusted to mint official ownership.
-
-KNOWN REMAINING WORK
-Native file/voice uploads, calls/video/screenshare, authoritative presence/read
-receipts, full-history encrypted indexing, full timeline windowing, custom avatar
-uploads, complete cross-service moderation and hosted backup restoration remain
-unfinished. Local backup tools/isolated restore tests do not prove production
-backup scheduling. Browser/mobile keyboard/screen-reader/device checks require
-actual interactive tooling; controlled UI tests are identified separately.
+OPERATIONS
+The Worker uses native managed D1(DB) and private R2(MEDIA). Migration 0009 is
+additive; applied 0000–0008 are unchanged. A narrow operator-restricted Site MCP
+writer processes queues and creates encrypted hosted D1 snapshots. Actual
+connected schedules, backup-key retention, R2 file backup and a real production
+restore drill need separate verified setup. See docs/OPERATIONS.md and
+BACKUP-RESTORE.md. A local restore test does not establish production recovery.
 
 DOWNLOADS
-  /downloads/voidline-improvement-prompt.txt  current 4,769-word review-based brief
-  /downloads/voidline-source.zip             source without runtime credentials
-  /downloads/voidline-offline.html           offline archive/recovery viewer
+ /downloads/voidline-improvement-prompt.txt  complete current 24-section brief
+ /downloads/voidline-source.zip             source without runtime credentials
+ /downloads/voidline-offline.html           offline archive/recovery viewer
 The offline viewer cannot sign in or exchange network messages. These files are
-not a signed desktop installer. Recovery exports may include plaintext history.
+not a signed desktop installer. Deliberate recovery exports may contain plaintext.
 
 BUILD AND CHECKS (Node 24 and Python 3)
-  npm ci --no-audit --no-fund
-  npm run test:server
-  npm run test:client
-  python3 -m pip install -r requirements-backup.txt
-  npm run check:restore
-  npm run build
-  python3 build_offline.py
-  npm run build
-  node scripts/check-build.mjs
+ npm ci --no-audit --no-fund
+ npm run test:server
+ npm run test:client
+ npm run check:restore
+ npm run build
+ python3 build_offline.py
+ npm run build
+ node scripts/check-build.mjs
 
-Authored application files live in dist/; generated bundles/downloads have a
-separate build contract. DEVELOPMENT.txt and docs/UPGRADE-STATUS.md describe
-architecture, release checks, infrastructure gates and exact verification limits.
-The strict CSP permits only same-site/known ChatGPT preview framing; do not
-restore frame-ancestors none or broaden it to arbitrary reflected origins.
+Media's shared generated validator must exist before the offline bundler. The
+final build embeds matching downloads into the self-contained Worker. Preserve
+Sites-managed HTTP compression, the static ChatGPT frame-ancestor allowlist and
+the exact existing project_id/public audience during publication.
+
+PROOF AND REMAINING WORK
+Current checks cover migrated SQLite, actual local workerd/D1/R2, WebCrypto,
+maintained attachment encryption and controlled provider/client interfaces.
+Hosted temporary-account/media/stream/asset checks are reported separately.
+Interactive browser/mobile keyboards, real zoom/screen readers, actual closed-
+browser push receipt, Matrix two-device recovery and independent external
+security review are not claimed. Calls/video/screenshare need real signaling,
+STUN/TURN/media infrastructure and cross-network verification.

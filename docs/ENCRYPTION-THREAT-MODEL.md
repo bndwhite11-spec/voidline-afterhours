@@ -30,8 +30,10 @@ metadata can remain visible to the Matrix service. Names and profiles are
 metadata, not protected message bodies. Pins expose source event IDs as room
 state, with permission checks; they do not expose a universal content key.
 
-Search runs over loaded decrypted messages in memory; it has no full-history
-index and sends no plaintext query/content to the service. Saved source links
+Search starts with loaded decrypted messages and can explicitly build a bounded
+encrypted local history index using SDK pagination. Its contents and plaintext
+queries never go to the service. Coverage, missing keys and thread-only exclusions
+are shown; a complete-coverage claim expires when the connection changes. Saved source links
 recheck authoritative current membership before revealing cached history and
 show unavailable states after access loss. They do not preserve a plaintext copy
 that bypasses source permissions. Existing participants may still possess old
@@ -78,15 +80,18 @@ unavailable. No email/display-name match grants another Matrix identity.
 While unlocked, Matrix access tokens and usable recovery material exist in
 memory. Native enrollment can retain a token only in its authenticated-encrypted
 local vault, unlocked through the client-derived native-password/device-seed
-secret. The seed is public salt material, not an encryption key. A password
-change/reset does not make an older encrypted token/key store decryptable; it
-requires deliberate recovery/fresh-device handling. Advanced manual-token
+secret. The seed is public salt material, not an encryption key. An intentional current-password
+change rewraps the credential envelope for this browser while preserving its
+existing crypto-store key. Reset and other-device password changes do not
+recover a missing/older wrapper; revoked devices require new-device/recovery
+handling. Advanced manual-token
 connection keeps its token in memory only. The Matrix SDK's Rust crypto uses
 encrypted IndexedDB through `storagePassword`, scoped by native account,
 homeserver, Matrix account and device. Published own-device keys are checked
 before upload, blocking reuse of another initialized client's device identity.
 Web Locks prevent concurrent writes to the same device store; unsupported
-browsers fail closed. Timeline content uses memory storage, not localStorage.
+browsers fail closed. SDK timeline content uses memory storage, not localStorage. The optional search
+index uses the encrypted account/device vault.
 
 Drafts, intended outbox payloads, upload descriptors and local Saved notes use
 the account-scoped IndexedDB vault in `src/secure-vault.js`. A user-held or client-derived
@@ -96,7 +101,7 @@ and authenticates its namespace and record ID. Stored salt/parameters and record
 identifiers reveal local metadata; contents remain ciphertext. An attacker with
 the browser profile can attempt offline passphrase guesses. This mechanism does
 not stop malicious running application code or protect an unlocked device.
-The passphrase and key are not saved; locking removes the active key reference,
+The native/vault passphrase and unwrapped AES key are not saved; locking removes the active key reference,
 but cannot guarantee erasure of immutable JavaScript strings from memory.
 
 Writes are ordered. Per-thread draft revision checks reject delayed earlier
@@ -117,7 +122,11 @@ purging. There is no automatic third-party thumbnail or transcription service.
 Disconnect stops sync and clears listeners/in-memory identity before another
 account is shown. When the shell detects account session revocation during pre-send, focus or
 periodic checks, it disconnects the local client. Detection is not instantaneous
-and does not remotely revoke an independently issued Matrix access token. The
+and does not itself remotely revoke an independently issued Matrix access token.
+Native lifecycle mutations now enqueue durable service reconciliation for
+verified mappings. That separate operation requires an operated Synapse/admin
+configuration and a working runner; missing or partial reconciliation is
+observable and is never reported as account-wide policy acceptance. The
 explicit Matrix logout action requests revocation from the homeserver and
 returns confirmed, failed or unknown. Local locking happens immediately; a
 failed request is never reported as successful remote revocation. A stopped
@@ -219,3 +228,45 @@ revoke group membership. Participant removal/cancellation checks current room
 power; server authorization remains authoritative. The VOIDLINE adapter limits
 accepted/sending groups to 16 participants; unrelated Matrix clients can still
 operate according to the homeserver's own policies.
+
+
+## v17 envelope and service authority additions
+
+The v2 enrollment envelope holds a stable random Rust-store password inside its
+AES-protected credential record. A native-password change prepares and commits
+a replacement outer wrapper without changing the Rust database key. Legacy
+v1 records preserve their derived crypto-store password during migration.
+Pending encrypted wrappers survive ambiguous server responses; a verified
+new-password unlock can finish the commit. Another browser's envelope is not
+automatically migrated. Reset/login does not recover a missing device key.
+Google-only login requires adding a native password for this implementation;
+provider login and passkeys without implemented PRF support are not key recovery.
+
+Approved tab handoff writes cached drafts, flushes the encrypted vault, stops
+the current SDK/Rust writer, and releases the Web Lock before another tab can
+open it. BroadcastChannel carries only request IDs, expiry and outcome. A
+forged acknowledgement cannot bypass the underlying lock. Same-origin malicious
+code remains an endpoint compromise, not a threat solved by tab coordination.
+
+The supported Synapse service adapter can suspend/deactivate native-mapped
+identities and revoke known session-linked devices with retries and sanitized
+audit receipts. Its server-held admin token is sensitive provider authority,
+not a content decryption key. No impersonation-login route, recovery secret,
+message-reading endpoint or universal private-message key is implemented. An
+operator can still observe service metadata and deliver malicious client code;
+fingerprint checking and trustworthy client delivery remain essential.
+
+Operation completion verifies the specific remote response/state. It does not
+prove all federated membership propagation, removal of recipient copies, media
+purging, offline-sender session rotation or native block/community equivalence.
+No authoritative native-community/Matrix-room policy registry exists yet; those
+restrictions and real multi-device acceptance are incomplete, so encrypted
+default readiness and account-wide restriction synchronization stay false.
+
+Verification additions: 18 client enrollment checks use actual WebCrypto and
+fake IndexedDB; 24 lifecycle checks use controlled SDK/transport; 12 policy
+checks use migrated SQLite and controlled supported Synapse HTTP routes; 5 index
+checks use actual WebCrypto/fake IndexedDB with controlled history. These are
+different from an operated service, physical browser/device or security audit.
+See ENCRYPTED-SETUP.md for the current official API references and exact provider
+configuration. No production homeserver was provisioned by these code changes.

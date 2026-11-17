@@ -7,8 +7,8 @@ import {AllDevicesIsolationMode} from 'matrix-js-sdk/lib/crypto-api/index.js';
 import loglevel from 'loglevel';
 import {openVault} from './secure-vault.js';
 import {createLocalSaved} from './local-saved.js';
-import {enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment} from './encrypted-enrollment.js';
-export {createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment};
+import {enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,prepareEncryptedPasswordChange} from './encrypted-enrollment.js';
+export {createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,prepareEncryptedPasswordChange};
 
 // SDK debugging is unsuitable for private chat content. No telemetry sink.
 loglevel.disableAll(false);
@@ -22,7 +22,7 @@ const safeMime=value=>['image/png','image/jpeg','image/webp','image/gif','audio/
 const plainName=value=>String(value||'attachment').replace(/[\u0000-\u001f\u007f\\/]/g,'_').slice(0,255)||'attachment';
 function validImage(bytes,mime){if(!mime.startsWith('image/'))return true;if(mime==='image/png')return bytes.length>8&&[137,80,78,71,13,10,26,10].every((v,i)=>bytes[i]===v);if(mime==='image/jpeg')return bytes.length>3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;if(mime==='image/gif')return new TextDecoder().decode(bytes.slice(0,6)).match(/^GIF8[79]a$/)!==null;if(mime==='image/webp')return new TextDecoder().decode(bytes.slice(0,4))==='RIFF'&&new TextDecoder().decode(bytes.slice(8,12))==='WEBP';return false;}
 const defaultDeps = {sdk:matrix,loadWasm,decodeRecoveryKey,AllDevicesIsolationMode,Attachment,EncryptedAttachment,vaultFactory:openVault,
- locks:globalThis.navigator?.locks,indexedDB:globalThis.indexedDB,
+ locks:globalThis.navigator?.locks,indexedDB:globalThis.indexedDB,BroadcastChannel:globalThis.BroadcastChannel,
  fetch:(...args)=>globalThis.fetch(...args)};
 
 function publicSigningPayload(raw,userId){
@@ -39,6 +39,8 @@ export function create(options={},injected={}) {
  const deps={...defaultDeps,...injected};
  let intent=0,client=null,epoch=0,releaseLock=null,lockPromise=null,secret=null,secretEpoch=-1,initializing=null,vault=null,tokenBinding='',savedRoomId=null,savedRoomOpening=null,mediaRequest=null,remoteSession=null,secretKeyId=null,recoveryJob=null;
  let state={phase:'locked',userId:null,deviceId:null,error:''};
+ let handoffName=null,handoffChannel=null,handoffBusy=false,indexConnection=null;
+ const handoffRequests=new Map(),indexJobs=new Map();
  const requests=new Map(),outbox=new Map(),attachmentJobs=new Map(),historyLimits=new Map(),draftVersions=new Map(),draftCache=new Map(),listeners=[];
  const emitState=patch=>{state={...state,...patch};options.onState?.({...state});};
  const safeError=error=>error?.code?.startsWith('VOID_')?error:fail('VOID_CONNECTION','The encrypted service could not complete this action. Check the connection, device verification and homeserver reauthentication.');
@@ -47,19 +49,51 @@ export function create(options={},injected={}) {
  function subscribe(target,event,fn){target.on(event,fn);listeners.push(()=>target.off?.(event,fn));}
  function eraseSecret(owner){if(owner!==undefined&&owner!==secretEpoch)return;secret?.fill(0);secret=null;secretEpoch=-1;secretKeyId=null;}
  function setSecret(key,owner,keyId=null){eraseSecret();secret=Uint8Array.from(key);secretEpoch=owner;secretKeyId=keyId;}
+ function publishHandoff(name,value){if(!deps.BroadcastChannel)return;const channel=new deps.BroadcastChannel(name+'.handoff');channel.postMessage(value);channel.close();}
+ async function respondToWriterHandoff(requestId,accept=false){
+  const request=handoffRequests.get(requestId);if(!request||request.expiresAt<Date.now())throw fail('VOID_HANDOFF_EXPIRED','This tab-switch request expired. Request it again in the other tab.');handoffRequests.delete(requestId);
+  if(!accept){publishHandoff(request.name,{type:'declined',requestId});return {released:false};}
+  if(handoffBusy)throw fail('VOID_HANDOFF_BUSY','A tab switch is already in progress.');
+  const ticket=current();handoffBusy=true;emitState({phase:'handing-off',error:''});
+  try{
+   // Persist drafts before stopping the sole Rust writer. Sends journal their
+   // stable transaction ID before dispatch. Credentials never cross this channel.
+   for(const [key,value]of draftCache){await vault.put(key,value);unchanged(ticket);}
+   await vault.flush?.();unchanged(ticket);await disconnect({revokeSession:false});
+   publishHandoff(request.name,{type:'released',requestId});return {released:true};
+  }catch(error){if(client===ticket.client)emitState({phase:'ready',error:'The tab switch could not save local changes. Keep this tab open and retry.'});publishHandoff(request.name,{type:'failed',requestId});throw safeError(error);}finally{handoffBusy=false;}
+ }
+ async function requestWriterHandoff({timeoutMs=15000}={}){
+  if(!handoffName||!deps.BroadcastChannel)throw fail('VOID_HANDOFF_UNAVAILABLE','Close or disconnect the encrypted device in the other tab, then retry. This browser cannot request a tab switch.');
+  const name=handoffName,requestId=globalThis.crypto.randomUUID(),channel=new deps.BroadcastChannel(name+'.handoff');
+  return new Promise((resolve,reject)=>{const finish=(error,value)=>{clearTimeout(timer);channel.close();error?reject(error):resolve(value);},timer=setTimeout(()=>finish(fail('VOID_HANDOFF_TIMEOUT','The other tab did not respond. Open it and approve the switch or disconnect there, then retry. The crypto-store lock was not removed.')),Math.max(1000,Math.min(30000,timeoutMs)));
+   channel.onmessage=event=>{const data=event.data;if(data?.requestId!==requestId)return;if(data.type==='released')finish(null,{released:true});else if(['declined','failed'].includes(data.type))finish(fail('VOID_HANDOFF_DECLINED','The other tab kept this encrypted device open. Approve the switch there or disconnect it before retrying.'));};
+   channel.postMessage({type:'request',requestId,expiresAt:Date.now()+Math.max(1000,Math.min(30000,timeoutMs))});
+  });
+ }
+ function listenForHandoff(name){
+  if(!deps.BroadcastChannel)return;handoffChannel=new deps.BroadcastChannel(name+'.handoff');
+  handoffChannel.onmessage=event=>{const data=event.data;if(data?.type!=='request'||typeof data.requestId!=='string'||!/^[a-f0-9-]{36}$/i.test(data.requestId)||!Number.isFinite(data.expiresAt)||data.expiresAt<Date.now()||data.expiresAt>Date.now()+31000||handoffBusy)return;
+   for(const [id,item]of handoffRequests)if(item.expiresAt<Date.now())handoffRequests.delete(id);if(handoffRequests.size>=8)return;
+   handoffRequests.set(data.requestId,{name,expiresAt:data.expiresAt});const info={requestId:data.requestId,expiresAt:data.expiresAt};
+   options.onEvent?.({type:'writer-handoff-request',...info});
+   if(options.onHandoffRequest)Promise.resolve(options.onHandoffRequest(info)).then(approved=>respondToWriterHandoff(data.requestId,approved===true)).catch(()=>{});
+  };
+ }
  async function lockStore(name,owns){
   if(!deps.locks?.request)throw fail('VOID_LOCKS_UNAVAILABLE','This browser cannot safely coordinate its encrypted device store. Use a browser with Web Locks support.');
-  let acquired,failed;const ready=new Promise((resolve,reject)=>{acquired=resolve;failed=reject;});
+  handoffName=name;let acquired,failed;const ready=new Promise((resolve,reject)=>{acquired=resolve;failed=reject;});
   lockPromise=deps.locks.request(name,{mode:'exclusive',ifAvailable:true},async lock=>{
    if(!owns()){failed(fail('VOID_ACCOUNT_CHANGED','A newer connection replaced this device request.'));return;}
    if(!lock){failed(fail('VOID_DEVICE_IN_USE','This encrypted device is open in another tab. Disconnect there before connecting here.'));return;}
-   await new Promise(resolve=>{releaseLock=resolve;acquired();});
+   await new Promise(resolve=>{releaseLock=resolve;listenForHandoff(name);acquired();});
   }).catch(failed);
   await ready;
  }
  async function clearConnection({revokeSession=false}={}){
   const cleanupEpoch=++epoch,old=client,pendingInit=initializing,oldRelease=releaseLock,oldLock=lockPromise,oldVault=vault,session=remoteSession;
   client=null;releaseLock=null;lockPromise=null;vault=null;tokenBinding='';savedRoomId=null;savedRoomOpening=null;mediaRequest=null;remoteSession=null;recoveryJob=null;oldVault?.close();
+  handoffChannel?.close();handoffChannel=null;handoffRequests.clear();indexJobs.clear();indexConnection=null;
   for(const remove of listeners.splice(0))remove();
   old?.stopClient();
   for(const item of requests.values()){try{Promise.resolve(item.request.cancel()).catch(()=>{});}catch{}}
@@ -94,7 +128,7 @@ export function create(options={},injected={}) {
  async function connect({homeserver,accountId,accessToken,storagePassword,expectedUserId,expectedDeviceId}){
   const myIntent=++intent;await clearConnection();
   if(myIntent!==intent)throw fail('VOID_ACCOUNT_CHANGED','A newer connection replaced this request.');
-  const ticket=epoch,owns=()=>myIntent===intent&&ticket===epoch;
+  indexConnection=globalThis.crypto.randomUUID();const ticket=epoch,owns=()=>myIntent===intent&&ticket===epoch;
   try{
    const url=new URL(homeserver);
    if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw fail('VOID_HOMESERVER','Use the configured HTTPS homeserver origin.');
@@ -214,7 +248,12 @@ export function create(options={},injected={}) {
  }
  async function listRooms(){
   const ticket=current(),result=[],direct=ticket.client.getAccountData?.('m.direct')?.getContent?.()||{},directIds=new Set(Object.values(direct).flatMap(ids=>Array.isArray(ids)?ids.filter(id=>typeof id==='string'):[]));
-  for(const room of ticket.client.getRooms())if(room.getMyMembership()==='join'&&await ticket.client.getCrypto().isEncryptionEnabledInRoom(room.roomId))result.push({id:room.roomId,name:cleanString(room.name,200),memberCount:room.getJoinedMemberCount(),unreadCount:room.getUnreadNotificationCount(),encrypted:true,isDirect:directIds.has(room.roomId)||!!room.getDMInviter?.()});
+  for(const room of ticket.client.getRooms())if(room.getMyMembership()==='join'&&await ticket.client.getCrypto().isEncryptionEnabledInRoom(room.roomId)){
+   const recent=[];for(const event of room.getLiveTimeline().getEvents().slice(-5)){const row=await normalizeEvent(event,ticket);unchanged(ticket);if(row)recent.push(row);}const sourceRows=reconcileEvents(recent).filter(row=>['text','unavailable','deleted'].includes(row.type)),latest=sourceRows.sort((a,b)=>(b.editedAt||b.time)-(a.editedAt||a.time))[0],lastEdit=recent.filter(row=>row.replaces).sort((a,b)=>b.time-a.time)[0];let row=latest;
+   if(lastEdit&&(!latest||lastEdit.time>(latest.editedAt||latest.time)))row={...lastEdit,id:lastEdit.replaces,text:'Message updated.',type:'text'};
+   const lastMessage=row?{id:row.id,type:row.type,text:row.text,sender:row.sender,senderName:row.senderName,createdAt:row.editedAt||row.time,unavailable:row.type==='unavailable',...(row.attachment?{attachment:row.attachment}:{})}:null;
+   result.push({id:room.roomId,name:cleanString(room.name,200),memberCount:room.getJoinedMemberCount(),unreadCount:room.getUnreadNotificationCount(),encrypted:true,isDirect:directIds.has(room.roomId)||!!room.getDMInviter?.(),lastMessage,updatedAt:lastMessage?.createdAt||null});
+  }
   unchanged(ticket);return result;
  }
  async function createRoom({name='',invites=[],isDirect=false}={}){
@@ -464,7 +503,36 @@ export function create(options={},injected={}) {
  async function saveMessage(sourceRoomId,sourceEventId,{clientId}={}){const message=await jumpToEvent(sourceRoomId,sourceEventId);if(message.type==='unavailable'||message.type==='deleted')throw fail('VOID_SOURCE','This source cannot be bookmarked.');const {roomId}=await savedRoom();return encryptedSend(roomId,'io.voidline.saved',{kind:'bookmark',sourceRoomId,sourceEventId},clientId);}
  async function savedMessages(){const {ticket,roomId}=await savedRoom({create:false});if(!roomId)return {roomId:null,messages:[],scope:'Loaded encrypted Saved history'};const messages=await timeline(roomId),results=[];for(const row of messages){if(row.type==='bookmark'){try{const source=await jumpToEvent(row.sourceRoomId,row.sourceEventId);results.push({...row,source,...(source.type==='deleted'||source.type==='unavailable'?{unavailable:true}:{})});}catch{results.push({...row,unavailable:true});}}else if(row.type==='note'||row.type==='deleted')results.push(row);unchanged(ticket);}return {roomId,messages:results,scope:'Loaded encrypted Saved history'};}
  async function removeSaved(eventId){const {roomId}=await savedRoom();return deleteMessage(roomId,eventId);}
- async function search(roomId,{q='',author='',after=null,before=null,has=null}={}){const rows=await timeline(roomId);const term=String(q).trim().toLocaleLowerCase();if(after!==null&&!Number.isFinite(after)||before!==null&&!Number.isFinite(before)||after!==null&&before!==null&&after>=before)throw fail('VOID_SEARCH_DATE','Use valid ordered date bounds.');if(has&&!['file','image','link'].includes(has))throw fail('VOID_SEARCH_FILTER','Choose files, images or links for this loaded-history search.');const messages=rows.filter(m=>m.type==='text'&&(!term||((m.text||'')+' '+(m.attachment?.name||'')+' '+m.sender).toLocaleLowerCase().includes(term))&&(!author||m.sender===author)&&(after===null||m.time>=after)&&(before===null||m.time<before)&&(!has||has==='file'&&m.hasAttachment||has==='image'&&m.attachment?.kind==='image'||has==='link'&&/https?:\/\//i.test(m.text||'')));return {messages,total:messages.length,loaded:rows.length,scope:'Loaded decrypted history in this conversation only; load earlier messages to search more.'};}
+ const searchPrefix=roomId=>'search-row:'+encodeURIComponent(roomId)+'|';
+ const searchMeta=roomId=>'search-meta:'+encodeURIComponent(roomId);
+ async function indexedRows(roomId,ticket){const store=privateStore(ticket),rows=new Map();for(const key of await store.list(searchPrefix(roomId))){const value=await store.get(key);unchanged(ticket);if(value?.id)rows.set(value.id,value);}return rows;}
+ async function updateSearchRows(room,roomId,ticket,rows){const store=privateStore(ticket);for(const event of room.getLiveTimeline().getEvents()){
+  const row=await normalizeEvent(event,ticket);unchanged(ticket);if(!row?.id)continue;
+  if(!rows.has(row.id)&&rows.size>=10000){rows.truncated=true;continue;}
+  if(JSON.stringify(rows.get(row.id))!==JSON.stringify(row)){await store.put(searchPrefix(roomId)+encodeURIComponent(row.id),row);unchanged(ticket);rows.set(row.id,row);}
+ }return rows;}
+ async function indexHistory(roomId,{maxPages=40,onProgress=()=>{},signal}={}){
+  if(indexJobs.has(roomId))throw fail('VOID_SEARCH_BUSY','History is already being indexed on this device.');
+  const job={};indexJobs.set(roomId,job);
+  try{const {ticket,room}=await requireEncrypted(roomId);await requireSourceMembership(roomId,ticket);const rows=await indexedRows(roomId,ticket),store=privateStore(ticket),pageLimit=Math.max(1,Math.min(200,Number.isInteger(maxPages)?maxPages:40));let pages=0,complete=false;
+   for(;;){if(signal?.aborted)throw fail('VOID_SEARCH_CANCELLED','Indexing stopped. The completed encrypted index remains on this device.');unchanged(ticket);
+    await updateSearchRows(room,roomId,ticket,rows);complete=room.oldState?.paginationToken===null&&!rows.truncated;const missing=[...rows.values()].filter(row=>row.type==='unavailable').length;
+    const progress={version:1,roomId,indexed:rows.size,missingKeys:missing,complete,connectionMarker:indexConnection,truncated:!!rows.truncated,indexedAt:Date.now(),scope:'Available conversation timeline on this device; thread-only history is not included.'};await store.put(searchMeta(roomId),progress);unchanged(ticket);onProgress(progress);
+    if(complete||pages>=pageLimit||rows.size>=10000)return progress;
+    const before=room.oldState?.paginationToken;await ticket.client.scrollback(room,50);unchanged(ticket);pages++;
+    if(room.oldState?.paginationToken===before&&before!==null){await updateSearchRows(room,roomId,ticket,rows);return {...progress,complete:false,reason:'History pagination did not advance. Reconnect or retry indexing.'};}
+   }
+  }finally{if(indexJobs.get(roomId)===job)indexJobs.delete(roomId);}
+ }
+ async function search(roomId,{q='',author='',after=null,before=null,has=null}={}){
+  const {ticket,room}=await requireEncrypted(roomId);await requireSourceMembership(roomId,ticket);const store=privateStore(ticket),meta=await store.get(searchMeta(roomId));unchanged(ticket);let rows,index;
+  if(meta){const indexed=await indexedRows(roomId,ticket);await updateSearchRows(room,roomId,ticket,indexed);rows=reconcileEvents([...indexed.values()]);const missing=[...indexed.values()].filter(row=>row.type==='unavailable').length;index={...meta,missingKeys:missing,complete:meta.complete&&meta.connectionMarker===indexConnection&&room.oldState?.paginationToken===null&&!indexed.truncated,indexed:indexed.size};}
+  else rows=await timeline(roomId);
+  const term=String(q).trim().toLocaleLowerCase();if(after!==null&&!Number.isFinite(after)||before!==null&&!Number.isFinite(before)||after!==null&&before!==null&&after>=before)throw fail('VOID_SEARCH_DATE','Use valid ordered date bounds.');if(has&&!['file','image','link'].includes(has))throw fail('VOID_SEARCH_FILTER','Choose files, images or links for local search.');
+  const messages=rows.filter(m=>m.type==='text'&&(!term||((m.text||'')+' '+(m.attachment?.name||'')+' '+m.sender).toLocaleLowerCase().includes(term))&&(!author||m.sender===author)&&(after===null||m.time>=after)&&(before===null||m.time<before)&&(!has||has==='file'&&m.hasAttachment||has==='image'&&m.attachment?.kind==='image'||has==='link'&&/https?:\/\//i.test(m.text||''))).sort((a,b)=>a.time-b.time);unchanged(ticket);
+  return {messages,total:messages.length,loaded:rows.length,index:index||null,scope:index?(index.complete?'Indexed available conversation timeline on this device.':'Partial encrypted local index; earlier or newly missed history may be absent.')+(index.missingKeys?' '+index.missingKeys+' events cannot currently be decrypted.':'')+' Thread-only history is not included.':'Loaded decrypted history in this conversation only; index earlier history to search more.'};
+ }
+
  async function fingerprint(){const ticket=current(),keys=await ticket.client.getCrypto().getOwnDeviceKeys();unchanged(ticket);return {userId:state.userId,deviceId:state.deviceId,...keys};}
  async function devices(userId=state.userId){const ticket=current(),crypto=ticket.client.getCrypto(),info=await crypto.getUserDeviceInfo([userId],true);const list=[];let sessions={devices:[]};if(userId===state.userId)sessions=await ticket.client.getDevices();for(const device of info.get(userId)?.values()||[]){const trust=await crypto.getDeviceVerificationStatus(userId,device.deviceId);const session=sessions.devices.find(s=>s.device_id===device.deviceId);list.push({userId,deviceId:device.deviceId,name:cleanString(device.displayName||device.deviceId,100),fingerprint:device.getFingerprint(),verified:!!trust?.isVerified(),current:userId===state.userId&&device.deviceId===state.deviceId,lastSeenAt:session?.last_seen_ts||null});}unchanged(ticket);return list;}
  async function verifyFingerprint(userId,deviceId,expected){const ticket=current(),crypto=ticket.client.getCrypto(),info=await crypto.getUserDeviceInfo([userId],true),device=info.get(userId)?.get(deviceId);unchanged(ticket);if(!device||device.getFingerprint()?.replace(/\s/g,'')!==String(expected).replace(/\s/g,''))throw fail('VOID_FINGERPRINT','The fingerprints do not match. Verification was not changed.');await crypto.setDeviceVerified(userId,deviceId,true);unchanged(ticket);return true;}
@@ -616,8 +684,8 @@ export function create(options={},injected={}) {
   for(const room of ticket.client.getRooms()){const encrypted=await ticket.client.getCrypto().isEncryptionEnabledInRoom(room.roomId);unchanged(ticket);if(encrypted){await ticket.client.getCrypto().forceDiscardSession(room.roomId);unchanged(ticket);}}
   return {deviceId,revoked:true,synchronizationRequired:true};
  }
- return Object.freeze({connect,disconnect,status:()=>({...state}),listRooms,listInvitations,invitation,acceptInvitation,declineInvitation,blockUser,leaveRoom,roomMembers,inviteParticipant,cancelInvitation,removeParticipant,createRoom,timeline,older,sendText,react,edit,deleteMessage,jumpToEvent,getRoomPermissions,getPins,setPinned,sendAttachment,downloadAttachment,saveDraft,getDraft,listDrafts,clearDraft,pendingSends,retryPending,saveNote,saveMessage,savedMessages,listSaved:savedMessages,removeSaved,search,devices,fingerprint,verifyFingerprint,requestVerification,acceptVerification,startVerification,confirmVerification,setupRecovery,restoreRecovery,securityStatus,revokeDevice});
+ return Object.freeze({connect,disconnect,requestWriterHandoff,respondToWriterHandoff,status:()=>({...state}),listRooms,listInvitations,invitation,acceptInvitation,declineInvitation,blockUser,leaveRoom,roomMembers,inviteParticipant,cancelInvitation,removeParticipant,createRoom,timeline,older,sendText,react,edit,deleteMessage,jumpToEvent,getRoomPermissions,getPins,setPinned,sendAttachment,downloadAttachment,saveDraft,getDraft,listDrafts,clearDraft,pendingSends,retryPending,saveNote,saveMessage,savedMessages,listSaved:savedMessages,removeSaved,search,indexHistory,devices,fingerprint,verifyFingerprint,requestVerification,acceptVerification,startVerification,confirmVerification,setupRecovery,restoreRecovery,securityStatus,revokeDevice});
 }
-const api=Object.freeze({create,createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,limits:Object.freeze({maxParticipants:MAX_PARTICIPANTS,maxInvites:MAX_PARTICIPANTS-1})});
+const api=Object.freeze({create,createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,prepareEncryptedPasswordChange,limits:Object.freeze({maxParticipants:MAX_PARTICIPANTS,maxInvites:MAX_PARTICIPANTS-1})});
 if(typeof window!=='undefined')window.VoidSecureMessenger=api;
 export default api;

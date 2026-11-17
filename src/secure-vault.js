@@ -28,6 +28,7 @@ export function indexedDBStorage(indexedDB){
   get:key=>transaction('readonly',(store,done)=>{const req=store.get(key);req.onsuccess=()=>done(req.result);}),
   put:(key,value)=>transaction('readwrite',store=>store.put(value,key)),
   remove:key=>transaction('readwrite',store=>store.delete(key)),
+  batch:({put=[],remove=[]}={})=>transaction('readwrite',store=>{for(const key of remove)store.delete(key);for(const [key,value]of put)store.put(value,key);}),
   keys:prefix=>transaction('readonly',(store,done)=>{const keys=[],req=store.openKeyCursor();req.onsuccess=()=>{const cursor=req.result;if(!cursor){done(keys);return;}if(typeof cursor.key==='string'&&cursor.key.startsWith(prefix))keys.push(cursor.key);cursor.continue();};}),
   close:()=>{database?.close();}
  };
@@ -65,6 +66,7 @@ export async function openVault({namespace,password,indexedDB,crypto=globalThis.
   put(id,value){safeId(id);return ordered(async()=>{const record=await encrypt(id,value);check();await store.put(prefix+id,record);check();});},
   remove(id){safeId(id);return ordered(async()=>{check();await store.remove(prefix+id);check();});},
   async list(startsWith=''){check();await queue;check();const keys=await store.keys(prefix+startsWith);check();return keys.map(k=>k.slice(prefix.length)).filter(k=>!k.startsWith('$'));},
+  async flush(){await queue;check();},
   close(){closed=true;key=null;store.close?.();},
   isUnlocked:()=>!closed
  });

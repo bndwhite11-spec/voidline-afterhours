@@ -1,4 +1,6 @@
+import {profileAvatarMediaForViewer} from './media.mjs';
 import {authenticate, validateSessionMutation, normalizeUsername, AuthError} from './auth.mjs';
+import {standardAttachmentIds,stagedAttachmentGuard,claimStandardAttachments,standardAttachmentMetadata} from './attachments.mjs';
 import {readProfile} from './profiles.mjs';
 /**
  * Authenticated standard-text API for Sites Workers + D1.
@@ -149,15 +151,17 @@ async function enriched(db,messages,userId) {
  if(!messages.length)return [];
  if(messages.length>80){const result=[];for(let i=0;i<messages.length;i+=80)result.push(...await enriched(db,messages.slice(i,i+80),userId));return result;}
  const ids=messages.map(m=>m.id),slots=ids.map(()=>'?').join(',');
- const [reactions,saved,threads,mentions] = await Promise.all([
+ const [reactions,saved,threads,mentions,media,avatars] = await Promise.all([
   query(db,`SELECT message_id,emoji,COUNT(*) AS count,MAX(CASE WHEN account_id=? THEN 1 ELSE 0 END) AS mine FROM live_reactions WHERE message_id IN (${slots}) GROUP BY message_id,emoji`,userId,...ids).all(),
   query(db,`SELECT message_id FROM live_bookmarks WHERE account_id=? AND message_id IN (${slots})`,userId,...ids).all(),
   query(db,`SELECT thread_root_id,COUNT(*) AS count FROM live_messages WHERE thread_root_id IN (${slots}) AND deleted_at IS NULL GROUP BY thread_root_id`,...ids).all(),
-  query(db,`SELECT message_id,account_id FROM live_message_mentions WHERE message_id IN (${slots})`,...ids).all()
+  query(db,`SELECT message_id,account_id FROM live_message_mentions WHERE message_id IN (${slots})`,...ids).all(),
+  query(db,`SELECT id,live_message_id,kind,content_type,filename,bytes,width,height FROM media_assets WHERE live_message_id IN (${slots}) AND state='attached' ORDER BY message_position,id`,...ids).all(),
+  profileAvatarMediaForViewer(db,userId,messages.map(m=>m.author_id))
  ]);
  const refs=[...new Set(messages.map(m=>m.reply_to_id).filter(Boolean))];
  const previews=refs.length?(await query(db,`SELECT m.id,m.text,m.deleted_at,m.thread_root_id,a.display_name AS author_name FROM live_messages m JOIN live_accounts a ON a.id=m.author_id WHERE m.id IN (${refs.map(()=>'?').join(',')})`,...refs).all()).results:[];
- return messages.map(m=>({...m,mention_ids:mentions.results.filter(t=>t.message_id===m.id).map(t=>t.account_id),pinned:!!m.pinned,reactions:reactions.results.filter(r=>r.message_id===m.id).map(r=>({emoji:r.emoji,count:r.count,mine:!!r.mine})),saved:saved.results.some(r=>r.message_id===m.id),thread_count:threads.results.find(t=>t.thread_root_id===m.id)?.count||0,reply_preview:previews.find(p=>p.id===m.reply_to_id)||null}));
+ return messages.map(m=>({...m,author_avatar_media_id:avatars.get(m.author_id)?.id||null,attachments:m.deleted_at?[]:media.results.filter(a=>a.live_message_id===m.id).map(standardAttachmentMetadata),mention_ids:mentions.results.filter(t=>t.message_id===m.id).map(t=>t.account_id),pinned:!!m.pinned,reactions:reactions.results.filter(r=>r.message_id===m.id).map(r=>({emoji:r.emoji,count:r.count,mine:!!r.mine})),saved:saved.results.some(r=>r.message_id===m.id),thread_count:threads.results.find(t=>t.thread_root_id===m.id)?.count||0,reply_preview:previews.find(p=>p.id===m.reply_to_id)||null}));
 }
 async function getMessage(db,id,userId) {
  const message=await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.id=?`,id).first();
@@ -184,7 +188,7 @@ export async function handleLiveRequest(request,env) {
   if(url.pathname===PREFIX+'/health'&&method==='GET'){
    requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Shared rooms are not available in this edition.');
    await query(env.DB,'SELECT id FROM live_accounts LIMIT 1').first();
-   return json({available:true,mode:'standard',transport:'cursor-polling',protectedSending:false,encryptionRequired:false,endToEndEncrypted:false,explicitAcknowledgementRequired:true});
+   return json({available:true,mode:'standard',transport:'revision-stream-with-cursor-refresh',realtimePath:'/api/realtime',fallback:'cursor-polling',protectedSending:false,encryptionRequired:false,endToEndEncrypted:false,explicitAcknowledgementRequired:true});
   }
   const user=await authenticate(request,env);requireThat(env?.DB?.prepare&&env.DB.batch,503,'backend_not_configured','Durable messaging is not configured for this deployment.');
   const db=env.DB,now=Date.now();
@@ -236,7 +240,8 @@ export async function handleLiveRequest(request,env) {
    if(path.length===3&&path[2]==='members'&&method==='GET'){
     const {limit,offset}=paging(url),term=(url.searchParams.get('query')||'').trim().replace(/^@/,'');requireThat(term.length<=64,400,'invalid_search','Search for a name or username up to 64 characters.');
     const where='m.community_id=?'+(term?" AND (a.username LIKE ? ESCAPE '\\' OR a.display_name LIKE ? ESCAPE '\\')":''),args=[communityId,...(term?[literalLike(term),literalLike(term)]:[])],total=(await query(db,'SELECT COUNT(*) AS n FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE '+where,...args).first()).n;
-    return json({members:(await query(db,'SELECT a.id,a.username,a.display_name,a.avatar,(a.account_status=\'active\' AND a.username IS NOT NULL) AS mentionable,m.role,m.joined_at,(SELECT t.expires_at FROM community_timeouts t WHERE t.community_id=m.community_id AND t.account_id=m.account_id AND t.expires_at>?) AS timeout_until FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE '+where+' ORDER BY m.joined_at,a.id LIMIT ? OFFSET ?',now,...args,limit,offset).all()).results,total,page:pageInfo(limit,offset,total)});
+    const members=(await query(db,'SELECT a.id,a.username,a.display_name,a.avatar,(a.account_status=\'active\' AND a.username IS NOT NULL) AS mentionable,m.role,m.joined_at,(SELECT t.expires_at FROM community_timeouts t WHERE t.community_id=m.community_id AND t.account_id=m.account_id AND t.expires_at>?) AS timeout_until FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE '+where+' ORDER BY m.joined_at,a.id LIMIT ? OFFSET ?',now,...args,limit,offset).all()).results;
+    const avatars=await profileAvatarMediaForViewer(db,user.id,members.map(m=>m.id));return json({members:members.map(m=>({...m,avatarMedia:avatars.get(m.id)||null})),total,page:pageInfo(limit,offset,total)});
    }
    if(path.length===4&&path[2]==='timeouts'){
     const target=await membership(db,communityId,path[3]);
@@ -353,23 +358,23 @@ export async function handleLiveRequest(request,env) {
     requireThat(channel.kind!=='announcement'||staff(channel.role),403,'posting_denied','Only community staff can post announcements.');
     const writeGuard=await requireChannelWrite(db,user,channelId,now,{staffOnly:channel.kind==='announcement'});
     requireThat(typeof body.clientId==='string'&&/^[A-Za-z0-9_-]{8,100}$/.test(body.clientId),400,'invalid_client_id','Use a stable client-generated ID for retry deduplication.');
-    requireThat(typeof body.text==='string'&&body.text.trim().length>0&&body.text.length<=4000,400,'invalid_text','Write a message between 1 and 4000 characters.');
-    const text=body.text.trim(),replyToId=body.replyToId||null,threadRootId=body.threadRootId||null,mentionIds=mentionsValue(body.mentionIds);
+    const attachmentIds=standardAttachmentIds(body.attachmentIds),rawText=body.text??'';requireThat(typeof rawText==='string'&&(rawText.trim().length>0||attachmentIds.length>0)&&rawText.length<=4000&&!/\u0000/.test(rawText),400,'invalid_text','Write at most 4000 characters. Empty messages need an attachment.');
+    const text=rawText.trim(),replyToId=body.replyToId||null,threadRootId=body.threadRootId||null,mentionIds=mentionsValue(body.mentionIds);
     requireThat([replyToId,threadRootId].every(id=>id===null||(typeof id==='string'&&id.length<=100)),400,'invalid_reference','Use valid message IDs for replies and threads.');
-    const hash=await tokenHash(JSON.stringify(mentionIds.length?[text,replyToId,threadRootId,mentionIds]:[text,replyToId,threadRootId]));
+    const hash=await tokenHash(JSON.stringify(attachmentIds.length?[text,replyToId,threadRootId,mentionIds,attachmentIds]:mentionIds.length?[text,replyToId,threadRootId,mentionIds]:[text,replyToId,threadRootId]));
     const previous=await query(db,'SELECT * FROM live_messages WHERE channel_id=? AND author_id=? AND client_id=?',channelId,user.id,body.clientId).first();
-    if(previous){const previousHash=previous.original_hash||await tokenHash(JSON.stringify([previous.text,previous.reply_to_id,previous.thread_root_id]));requireThat(hash===previousHash,409,'idempotency_conflict','This retry ID already belongs to a different message.');return json({message:await getMessage(db,previous.id,user.id),acknowledged:true,acknowledgedPayload:{text,replyToId,threadRootId,mentionIds,clientId:body.clientId}});}
+    if(previous){const previousHash=previous.original_hash||await tokenHash(JSON.stringify([previous.text,previous.reply_to_id,previous.thread_root_id]));requireThat(hash===previousHash,409,'idempotency_conflict','This retry ID already belongs to a different message.');return json({message:await getMessage(db,previous.id,user.id),acknowledged:true,acknowledgedPayload:{text,replyToId,threadRootId,mentionIds,attachmentIds,clientId:body.clientId}});}
     await mentionTargets(db,channel.community_id,mentionIds);includeMentionGuard(writeGuard,channel.community_id,mentionIds);
     if(replyToId){const source=await getMessage(db,replyToId,user.id);requireThat(source.channel_id===channelId,400,'invalid_reply','Reply to a message in this channel.');requireThat(!source.deleted_at,409,'source_deleted','This message was deleted. Remove the reply reference to send.');}
     if(threadRootId){const root=await getMessage(db,threadRootId,user.id);requireThat(root.channel_id===channelId&&!root.thread_root_id,400,'invalid_thread','Choose a root message in this channel.');}
-    const id=uuid(),record={id,channel_id:channelId};
-    const statements=[query(db,`INSERT OR IGNORE INTO live_messages(id,channel_id,author_id,client_id,text,reply_to_id,thread_root_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE ${writeGuard.sql}${replyToId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND deleted_at IS NULL)':''}${threadRootId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND thread_root_id IS NULL AND deleted_at IS NULL)':''}`,id,channelId,user.id,body.clientId,text,replyToId,threadRootId,hash,now,...writeGuard.args,...(replyToId?[replyToId,channelId]:[]),...(threadRootId?[threadRootId,channelId]:[])),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'send',? FROM live_messages WHERE id=?",user.id,now,id)];
+    const id=uuid(),record={id,channel_id:channelId},assetGuard=stagedAttachmentGuard(attachmentIds,user.id,{channelId},now);
+    const statements=[query(db,`INSERT OR IGNORE INTO live_messages(id,channel_id,author_id,client_id,text,reply_to_id,thread_root_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE ${writeGuard.sql}${replyToId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND deleted_at IS NULL)':''}${threadRootId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND thread_root_id IS NULL AND deleted_at IS NULL)':''}${assetGuard.sql}`,id,channelId,user.id,body.clientId,text,replyToId,threadRootId,hash,now,...writeGuard.args,...(replyToId?[replyToId,channelId]:[]),...(threadRootId?[threadRootId,channelId]:[]),...assetGuard.args),...claimStandardAttachments(db,attachmentIds,user.id,{channelId},id,hash,now),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'send',? FROM live_messages WHERE id=?",user.id,now,id)];
     if(mentionIds.length)statements.push(query(db,`INSERT OR IGNORE INTO live_message_mentions(message_id,account_id,created_at) SELECT m.id,t.account_id,? FROM live_messages m JOIN live_memberships t ON t.community_id=? WHERE m.id=? AND t.account_id IN (${mentionIds.map(()=>'?').join(',')})`,now,channel.community_id,id,...mentionIds));
     if(threadRootId)statements.push(query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,?,?,'thread',? FROM live_messages WHERE id=?",threadRootId,user.id,now,id));
     await db.batch(statements);
     const stored=await query(db,'SELECT id,original_hash FROM live_messages WHERE channel_id=? AND author_id=? AND client_id=?',channelId,user.id,body.clientId).first();
     requireThat(stored,403,'posting_denied','Membership, account status or reply access changed. The message was not sent.');
-    requireThat(stored.original_hash===hash,409,'idempotency_conflict','This retry ID already belongs to a different message.');return json({message:await getMessage(db,stored.id,user.id),acknowledged:true,acknowledgedPayload:{text,replyToId,threadRootId,mentionIds,clientId:body.clientId}});
+    requireThat(stored.original_hash===hash,409,'idempotency_conflict','This retry ID already belongs to a different message.');return json({message:await getMessage(db,stored.id,user.id),acknowledged:true,acknowledgedPayload:{text,replyToId,threadRootId,mentionIds,attachmentIds,clientId:body.clientId}});
    }
   }
   if(path[0]==='messages'&&(path.length===2||path.length===3)){
@@ -392,7 +397,7 @@ export async function handleLiveRequest(request,env) {
      requireThat(typeof body.active==='boolean',400,'invalid_state','Choose whether to save this message.');
      writes.push(query(db,'INSERT OR IGNORE INTO live_bookmarks(message_id,account_id,created_at) SELECT id,?,? FROM live_messages WHERE id=? AND '+guard.sql,user.id,now,message.id,...guard.args));
     }else if(action==='edit'){
-     const text=textValue(body.text,4000,'text');requireThat(text.length,400,'invalid_text','Write a nonempty message.');const hash=await tokenHash(JSON.stringify([message.text,message.reply_to_id,message.thread_root_id]));
+     const text=textValue(body.text,4000,'text');requireThat(text.length||message.attachments.length,400,'invalid_text','Empty messages need an attachment.');const hash=await tokenHash(JSON.stringify([message.text,message.reply_to_id,message.thread_root_id]));
      writes.push(query(db,"UPDATE live_messages SET text=?,edited_at=?,original_hash=CASE WHEN original_hash='' THEN ? ELSE original_hash END WHERE id=? AND deleted_at IS NULL AND "+guard.sql,text,now,hash,message.id,...guard.args),event('edit'),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'reference',? FROM live_messages WHERE reply_to_id=? AND "+guard.sql,user.id,now,message.id,...guard.args));
     }else if(action==='delete'){
      const hash=await tokenHash(JSON.stringify([message.text,message.reply_to_id,message.thread_root_id]));

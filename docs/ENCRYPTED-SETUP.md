@@ -190,8 +190,8 @@ operations. The two services do not provide one shared atomic transaction.
 
 A normal user confirms their ordinary VOIDLINE password through the existing
 reauthentication API. In the browser only, a persistent random 32-byte account/
-homeserver salt and PBKDF2-HMAC-SHA256 600,000 iterations derive a 32-byte storage
-password. The derived value and seed are never sent to the server. The seed is
+homeserver salt and PBKDF2-HMAC-SHA256 600,000 iterations derive a 32-byte outer
+wrapper secret. The derived value and seed are never sent to the server. The seed is
 nonsecret KDF salt in localStorage; it is not a session identifier or token.
 The existing local vault adds its own random salt/KDF and AES-256-GCM record
 protection. Raw password bytes, Matrix tokens and usable vault keys never enter
@@ -200,23 +200,28 @@ ordinary localStorage/sessionStorage.
 An encrypted IndexedDB envelope keeps the dedicated Matrix token so returning
 users unlock the same device and preserve its device namespace/outbox binding.
 The actual Matrix/Rust key store is separate, account/homeserver/user/device
-scoped, and also receives the derived storage password. Web Locks coordinate
+scoped. New devices use a separate stable random storage password held inside
+the encrypted v2 envelope; migrated v1 devices retain their original derived
+storage password so old stores remain readable. Web Locks coordinate
 initial enrollment and prevent two tabs opening the same device store.
 
 A Google-only account currently needs to add a native password before using
 this unlock route. A reviewed passkey-PRF/OIDC credential-persistence design is
 future work; this implementation does not fake PRF support.
 
-Changing/resetting the native password does not reveal or recover old message
-keys or the old local encrypted envelope. Failure to unlock never silently
-resets a store. An explicit new-device action can replace the enrollment
+An intentional current-password change now stages and promotes a new outer
+wrapper for this browser without changing its crypto-store key (section 11).
+Password reset cannot recover an older envelope or missing message keys, and
+other revoked browsers are not automatically migrated. Failure to unlock never
+silently resets a store. An explicit new-device action can replace the enrollment
 envelope while retaining old Matrix stores; authorized history recovery then
 needs the real message recovery key or a trusted existing device. A new native
 password alone does not grant old keys. The independent local Saved passphrase
 remains a separate recovery boundary.
 
-Native logout locks local access immediately. A Matrix logout is a separate
-operation with confirmed/failed/unknown results. On confirmed remote logout,
+Native logout locks local access immediately and queues verified mapped-device
+revocation. A direct Matrix logout is a separate operation with
+confirmed/failed/unknown results. On confirmed remote logout,
 the encrypted enrollment token envelope is removed. Unknown/failed outcomes
 retain only the encrypted envelope for a deliberate native-password unlock and
 retry, or resolution through another trusted device/operator. No raw token is
@@ -302,3 +307,116 @@ Synapse, browser CORS, physical-device verification or a two-device E2EE result.
   https://spec.matrix.org/latest/client-server-api/
 - OWASP HTML5 storage guidance:
   https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html
+
+## 10. Durable native lifecycle reconciliation (v17)
+
+Code is available; no homeserver or production acceptance is established by this
+release. `worker/matrix-policy.mjs` is a bounded service adapter, not a server
+provisioner. Configure `MATRIX_ADMIN_TOKEN` only in the hosting secret store after
+an operator has enabled and tested the supported Synapse admin APIs. The API
+origin and immutable `MATRIX_SERVER_NAME` must match the existing verified link.
+Protect the token and restrict its upstream proxy to the documented managed-user
+lifecycle paths where practical. Synapse's admin token itself is privileged;
+application route restrictions do not make a stolen token harmless.
+
+Native authenticated lifecycle mutations enqueue idempotent operations in the
+same atomic D1 batch. The service checks the immutable `v_<sha256(accountId)>`
+identity, verified mapping, current native status and non-admin remote account.
+It never uses Synapse's impersonation-login endpoint, reads private messages, or
+receives a message/recovery key. Supported operations are:
+
+| Native intent | Supported Synapse operation | Confirmation |
+| --- | --- | --- |
+| Suspend | Delete remote devices, `PUT /_synapse/admin/v1/suspend/{user}` | Re-list devices and read suspended state |
+| Reinstate | Same suspension endpoint with `suspend:false` | Read unsuspended state; never reactivate a deleted identity |
+| Delete | `POST /_synapse/admin/v1/deactivate/{user}` with `erase:true` | Read deactivated state |
+| Revoke all native sessions/recovery | List managed user's devices and `POST /_synapse/admin/v2/users/{user}/delete_devices` | Re-list affected devices |
+| Revoke one native session | Delete only devices linked by confirmed enrollment issue/session records | Native revocation plus remote device absence |
+| Revoke known device | Same supported device deletion endpoint after account/device mapping check | Remote device absence |
+
+Suspension alone does not invalidate read-capable tokens, so the operation also
+deletes devices. No password reset or impersonation token is used as a shortcut.
+Device-less tokens issued outside this integration are outside its session model;
+operate the reserved namespace so unrelated authentication cannot create them.
+Synapse deactivation removes devices, sessions and account data and schedules
+room departure. It does not erase other participants' copies, existing message
+events or uploaded media. Confirm its asynchronous completion and retention
+policy with the operator; an HTTP receipt is not universal deletion proof.
+
+Queue leases serialize one account's operations, recover interrupted workers,
+and prevent duplicate claims. Transient failures back off and retry, with a
+bounded attempt limit; permanent/unsupported states become `blocked`. Error
+codes and attempt receipts contain no provider responses or tokens. Inspect
+queue health and audit receipts, repair the cause, then deliberately reschedule
+blocked operations through trusted infrastructure. A missing configuration
+leaves queued work pending; it never marks it complete. Unknown in-flight
+enrollment cannot be silently treated as completed session revocation.
+
+The release's private operations runner can invoke this drain independently of
+an open client, subject to the runner's separately verified operator binding.
+Running a controlled API test or configuring that schedule does not prove an
+unattended production invocation or actual Matrix policy enforcement.
+
+An authoritative registry tying private community channels and room power to
+native communities does not yet exist. Native blocks do not automatically ban
+people from shared Matrix rooms or remove keys already received. Encrypted
+room/community/undesired-contact reconciliation and physical-device revocation
+acceptance remain incomplete. `accountRestrictionsSynced` and
+`encryptedDefaultReady` therefore remain **false**, even if the supported queue
+is empty. A working JWT login does not prove interactive authentication for
+device deletion or signing-key operations. Test the actual provider's UIA flow.
+
+## 11. Native password change, device handoff and local history
+
+Enrollment v2 wraps the dedicated Matrix credential together with a stable
+random crypto-store password. The native password derives only the outer local
+wrapper. Existing v1 devices carry their original derived crypto-store password
+into the encrypted v2 record; their Rust store, message keys, signing identity
+and recovery journals are not reset or rekeyed.
+
+The password-change UI prepares an encrypted new wrapper before changing the
+native credential. An acknowledged server change atomically promotes it and
+removes the old local wrapper. A definite server failure discards the proposed
+wrapper. An uncertain network response retains both encrypted generations and
+releases the coordination lock: after the native server verifies the password,
+unlock can select the matching generation and finish promotion. This is a
+recoverable two-service operation, not a claim of a distributed transaction.
+Changing a password on one browser does not migrate another browser's local
+envelope. Other revoked devices need a deliberate new-device/recovery flow; this release
+does not offer cross-browser rewrapping. Ordinary password reset cannot recreate
+a lost key.
+Google-only users must first add a native password for this implemented unlock
+method. OAuth provider login is not a recovery key; passkey PRF unlock is not
+implemented.
+
+Only one tab writes a Rust store. A second tab may request a switch; the current
+tab must explicitly approve. It saves local drafts, flushes its vault, stops the
+SDK/Rust client and releases the Web Lock before sending a metadata-only
+acknowledgement. Credentials, keys and messages never travel on BroadcastChannel.
+Decline, missing browser support, failed storage and an unresponsive tab preserve
+the lock. Close or disconnect that tab; never delete its lock or crypto database.
+
+Encrypted search can explicitly index earlier available conversation history
+through SDK pagination. Only the decrypted client writes the account/device
+vault; no plaintext query or index goes to a server. It is bounded to 10,000
+indexed events with resumable page limits, reports missing keys and incomplete
+coverage, and rechecks current source membership. Coverage must be confirmed
+again after reconnecting. Thread-only history is not indexed yet. Local storage
+clearance removes the index; it can be rebuilt when source history and keys are
+available. It is not a synced backup and is not full product search acceptance.
+
+## References reviewed for v17
+
+Reviewed 2026-11-18 (Asia/Yerevan), with the pinned local SDK source checked too:
+
+- Synapse account state, suspension, deactivation, device listing and supported
+  bulk deletion: https://element-hq.github.io/synapse/latest/admin_api/user_admin_api.html
+- Matrix JS SDK Rust-store warning, lifecycle and browser support:
+  https://matrix-org.github.io/matrix-js-sdk/classes/matrix.MatrixClient.html#initRustCrypto
+- Maintained SDK source, including `stopClient()` and `scrollback()`:
+  https://github.com/matrix-org/matrix-js-sdk/blob/v45.1.0/src/client.ts
+- SDK Apache-2.0 license: https://github.com/matrix-org/matrix-js-sdk/blob/v45.1.0/LICENSE
+
+The pinned SDK remains 45.1.0 with Rust/WASM crypto 18.9.2. No new cryptographic
+protocol, universal service key, unsupported native-password Matrix UIA, or
+independent security audit is claimed.

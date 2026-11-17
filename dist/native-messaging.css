@@ -1,0 +1,20 @@
+/* Ordered outgoing requests and measured timeline spacers share the app tokens. */
+.vh-timeline-spacer{height:0;min-height:0;pointer-events:none;overflow-anchor:none;flex-shrink:0}
+#home-native-feed[data-windowed=true]{overflow-anchor:none}
+.vh-outbox-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.vh-outbox-error{color:var(--vh-danger);font-size:calc(.8125rem * var(--vl-text-scale,1));line-height:1.5;margin:4px 0}
+.vh-message-pending[data-outbox-state=queued]{border-inline-start:2px dashed var(--vh-muted)}
+.vh-message-pending[data-outbox-state=sending]{border-inline-start:2px solid var(--vh-accent)}
+.vh-message-pending[data-outbox-state=failed]{border-inline-start:2px solid var(--vh-danger)}
+.vh-message-pending small{color:var(--vh-muted);opacity:1;font-size:calc(.75rem * var(--vl-text-scale,1))}
+.vh-native-composer{align-items:end}
+.vh-native-composer .vh-icon-button{width:40px;min-width:40px;height:44px}
+.vh-native-status{min-height:28px;flex-wrap:wrap;gap:6px 16px}
+.vh-native-status>span{font-size:calc(.75rem * var(--vl-text-scale,1));color:var(--vh-muted);line-height:1.5}
+.vh-message-attachments{display:grid;gap:8px;margin-top:8px;max-width:min(100%,440px)}
+.vh-message-attachment{padding:10px;border:1px solid var(--vh-line);border-radius:8px;background:var(--vh-surface);overflow:hidden}
+.vh-message-attachment img{display:block;max-width:100%;max-height:320px;object-fit:contain;border-radius:4px}
+.vh-message-attachment audio{width:100%;min-width:0}
+.vh-message-attachment a{display:block;color:var(--vh-accent);overflow-wrap:anywhere;font-size:calc(.8125rem * var(--vl-text-scale,1))}
+.vh-message-attachment small{color:var(--vh-muted);font-size:calc(.75rem * var(--vl-text-scale,1))}
+@media(max-width:520px){.vh-native-composer{flex-wrap:wrap}.vh-native-composer textarea{flex-basis:calc(100% - 52px);min-width:0}.vh-native-composer .vh-primary{margin-inline-start:auto}.vh-message-attachment{padding:8px}}

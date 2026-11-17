@@ -10,7 +10,7 @@ const origin='https://native-community.example',cases=[],test=(name,run)=>cases.
 const denied=result=>assert(result.status>=400&&result.status<500,`Expected client rejection, got ${result.status} ${JSON.stringify(result.data)}`);
 class Adapter{
  constructor(sqlite){this.sqlite=sqlite;this.beforeBatch=null;this.queue=Promise.resolve();}
- prepare(sql){const db=this.sqlite;return {bind(...values){if(values.length>100)throw Error('Modeled D1 statement parameter budget exceeded');const statement=db.prepare(sql);return {sql,first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>({success:true,meta:{changes:statement.run(...values).changes}})};}};}
+ prepare(sql){const db=this.sqlite;return {bind(...values){if(values.length>100)throw Error('Modeled D1 statement parameter budget exceeded');const statement=db.prepare(sql);return {sql,first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>{const before=db.prepare('SELECT total_changes() n').get().n;statement.run(...values);return {success:true,meta:{changes:db.prepare('SELECT total_changes() n').get().n-before}};}};}};}
  batch(statements){const task=this.queue.then(async()=>{if(this.beforeBatch)await this.beforeBatch(statements);this.sqlite.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());this.sqlite.exec('COMMIT');return result;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=task.catch(()=>{});return task;}
 }
 async function fixture(){
@@ -96,5 +96,12 @@ test('revocation before edit or reaction commit cannot mutate or append misleadi
   assert.equal(f.sqlite.prepare('SELECT text FROM live_messages WHERE id=?').get(message.id).text,'Standard community text');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM live_reactions').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM live_changes').get().n,events);
  }finally{f.sqlite.close();}}
 });
+
+test('community attachments bind to current channel author and stable payload, then redact through cleanup',async()=>{const f=await fixture();try{
+ const id=random(),now=Date.now();f.sqlite.prepare("INSERT INTO media_assets(id,owner_id,client_id,object_key,sha256,kind,content_type,filename,bytes,channel_id,state,expires_at,created_at,updated_at) VALUES(?,'member',?,?,?,'attachment','image/png','community.png',128,'text-channel','staged',?,?,?)").run(id,random(),'fixture/'+id,'a'.repeat(64),now+60000,now,now);
+ const clientId=random(),body={clientId,text:'',attachmentIds:[id],acknowledgeStandard:true},sent=await f.ok('member',channelURL('text-channel'),body);assert.equal(sent.message.attachments[0].id,id);assert.equal(sent.acknowledgedPayload.attachmentIds[0],id);assert.equal((await f.ok('member',channelURL('text-channel'),body)).message.id,sent.message.id);
+ denied(await f.call('member',channelURL('other-channel'),{...body,clientId:random()}));denied(await f.call('stranger',channelURL('text-channel'),{...body,clientId:random()}));assert.equal((await f.call('member',channelURL('text-channel'),{...body,text:'Changed'})).status,409);await f.ok('member',messageURL(sent.message.id)+'/edit',{text:'',acknowledgeStandard:true});
+ await f.ok('moderator',messageURL(sent.message.id)+'/delete',{});assert.equal((await f.ok('owner',messageURL(sent.message.id))).message.attachments.length,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM media_cleanup').get().n,1);
+}finally{f.sqlite.close();}});
 let failures=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${cases.length-failures}/${cases.length} native community checks passed. Actual migrated SQLite/session handler; standard server-stored text, no browser or E2EE claim.`);process.exitCode=failures?1:0;

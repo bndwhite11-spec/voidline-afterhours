@@ -335,6 +335,30 @@ test('the last group owner can leave when D1 metadata counts its ownership trigg
  const last=await f.call('bob',conversationURL(c.id)+'/leave',{});assert.equal(last.status,200);assert.equal(last.data.left,true);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_members WHERE conversation_id=?').get(c.id).n,0);assert.equal(f.sqlite.prepare('SELECT owner_id FROM native_conversations WHERE id=?').get(c.id).owner_id,null);
  denied(await f.call('bob',conversationURL(c.id)));
 }finally{f.sqlite.close();}});
+
+// These fixtures exercise persisted metadata authorization and atomic message
+// attachment claims. R2 byte upload/type validation is tested separately.
+function staged(f,conversationId,extra={}){const id=random(),now=Date.now();f.sqlite.prepare("INSERT INTO media_assets(id,owner_id,client_id,object_key,sha256,kind,content_type,filename,bytes,conversation_id,state,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,'staged',?,?,?)").run(id,extra.ownerId||'alice',random(),'fixture/'+id,'a'.repeat(64),extra.kind||'attachment','image/png','fixture.png',128,conversationId,extra.expiresAt??now+60000,now,now);return id;}
+test('uploaded Standard attachments are atomically claimed, payload-bound and retried without duplicating messages',async()=>{const f=await fixture();try{
+ const c=await f.dm(),a=staged(f,c.id),b=staged(f,c.id),clientId=random(),body={clientId,text:'',attachmentIds:[b,a],acknowledgeStandard:true};
+ const sent=await f.ok('alice',conversationURL(c.id)+'/messages',body);assert.equal(sent.message.text,'');assert.deepEqual(sent.message.attachments.map(a=>a.id),[b,a]);assert.equal(sent.message.attachments[0].url.startsWith('/api/media/'),true);
+ const retry=await f.ok('alice',conversationURL(c.id)+'/messages',body);assert.equal(sent.message.id,retry.message.id);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_messages').get().n,1);
+ assert.equal((await f.call('alice',conversationURL(c.id)+'/messages',{...body,attachmentIds:[a,b]})).status,409);assert.equal((await f.call('alice',conversationURL(c.id)+'/messages',{...body,text:'changed'})).status,409);
+ assert.equal(f.sqlite.prepare("SELECT COUNT(*) n FROM media_assets WHERE native_message_id=? AND state='attached' AND expires_at IS NULL").get(sent.message.id).n,2);
+ const history=await f.ok('bob',conversationURL(c.id)+'/messages');assert.equal(history.messages[0].attachments.length,2);await f.ok('alice',messageURL(sent.message.id)+'/edit',{text:'Caption',acknowledgeStandard:true});await f.ok('alice',messageURL(sent.message.id)+'/edit',{text:'',acknowledgeStandard:true});
+ await f.ok('alice',messageURL(sent.message.id)+'/delete',{});assert.equal((await f.ok('bob',messageURL(sent.message.id))).message.attachments.length,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM media_cleanup').get().n,2);assert.equal(f.sqlite.prepare("SELECT COUNT(*) n FROM media_assets WHERE state='deleting'").get().n,2);
+}finally{f.sqlite.close();}});
+test('Standard attachment claims reject foreign owners, scopes, expiry, duplicate IDs and profile artwork',async()=>{const f=await fixture();try{
+ const c=await f.dm(),other=await f.dm('alice','carol');
+ for(const asset of [staged(f,c.id,{ownerId:'bob'}),staged(f,other.id),staged(f,c.id,{expiresAt:Date.now()-1}),staged(f,c.id,{kind:'avatar'}),random()])denied(await f.call('alice',conversationURL(c.id)+'/messages',{clientId:random(),text:'',attachmentIds:[asset],acknowledgeStandard:true}));
+ const good=staged(f,c.id);denied(await f.call('alice',conversationURL(c.id)+'/messages',{clientId:random(),text:'',attachmentIds:[good,good],acknowledgeStandard:true}));assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_messages').get().n,0);
+}finally{f.sqlite.close();}});
+test('one staged asset cannot be committed to two different messages during simultaneous sends',async()=>{const f=await fixture();try{
+ const c=await f.dm(),id=staged(f,c.id),body={text:'Concurrent attachment',attachmentIds:[id],acknowledgeStandard:true};const results=await Promise.all([f.call('alice',conversationURL(c.id)+'/messages',{...body,clientId:random()}),f.call('alice',conversationURL(c.id)+'/messages',{...body,clientId:random()})]);assert.equal(results.filter(r=>r.status===201).length,1);assert.equal(results.filter(r=>r.status===403).length,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_messages').get().n,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_changes').get().n,1);
+}finally{f.sqlite.close();}});
+test('a staged asset cancelled before message commit cannot create an orphan message or event',async()=>{const f=await fixture();try{
+ const c=await f.dm(),id=staged(f,c.id);f.beforeCommit(()=>f.sqlite.prepare("UPDATE media_assets SET state='deleting' WHERE id=?").run(id));denied(await f.call('alice',conversationURL(c.id)+'/messages',{clientId:random(),text:'Caption',attachmentIds:[id],acknowledgeStandard:true}));assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_messages').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM native_changes').get().n,0);
+}finally{f.sqlite.close();}});
 let failures=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${cases.length-failures}/${cases.length} native standard messaging checks passed. Actual migrated SQLite/session handlers; no browser, Matrix or end-to-end encryption claim.`);
 process.exitCode=failures?1:0;

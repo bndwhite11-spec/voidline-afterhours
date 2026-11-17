@@ -10,7 +10,7 @@ const dist = path.join(root, 'dist');
 const worker = (await import(pathToFileURL(path.join(dist, 'server/index.js')))).default;
 const origin = 'https://voidline-build.example';
 const fetchAsset = (name, options) => worker.fetch(new Request(origin + name, options), {}, {});
-const productionRoots=new Set(['index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js','cosmetics.js','cosmetics.css','social.js','social.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
+const productionRoots=new Set(['account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js','cosmetics.js','cosmetics.css','social.js','social.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
 async function bytes(response){assert.equal(response.headers.get('content-encoding'),null,'The Sites proxy owns HTTP compression; Worker responses must contain original bytes.');return Buffer.from(await response.arrayBuffer());}
 let count = 0;
 async function verify(directory, prefix = '') {
@@ -52,7 +52,7 @@ for (const route of ['/server/index.js', '/.openai/hosting.json', '/.openai/driz
 }
 assert.equal((await fetchAsset('/', {method:'POST'})).status, 405);
 assert.equal((await fetchAsset('/api/live/me')).status, 503);
-for(const route of ['/api/encryption/config','/api/notifications/config','/api/messages/conversations','/api/organize/activity'])assert.equal((await fetchAsset(route)).status,503,'New API routes must reach their guarded handlers.');
+for(const route of ['/api/encryption/config','/api/notifications/config','/api/messages/conversations','/api/organize/activity','/api/media/uploads','/api/realtime'])assert.equal((await fetchAsset(route)).status,503,'New API routes must reach their guarded handlers.');
 assert.equal((await fetchAsset('/api/live/health')).status, 503);
 const config=await (await fetchAsset('/api/auth/config')).json();
 assert.equal(config.configured,false);
@@ -80,7 +80,8 @@ const manifest = JSON.parse(await readFile(path.join(root,'.openai/hosting.json'
 assert.deepEqual(JSON.parse(await readFile(path.join(dist,'.openai/hosting.json'))), manifest);
 assert.equal(manifest.project_id, 'appgprj_6afb6be77b9c8191ae8d2ee76b1afd34');
 assert.equal(manifest.d1, 'DB');
-assert.equal(manifest.r2, null);
+assert.equal(manifest.r2, 'MEDIA');
+assert(manifest.capabilities.includes('mcp'));
 assert.equal(manifest.static, undefined);
 const journal = JSON.parse(await readFile(path.join(root,'drizzle/meta/_journal.json')));
 for (const entry of journal.entries) {

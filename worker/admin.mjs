@@ -1,3 +1,5 @@
+import {matrixPolicyStatement,matrixPolicySessionsStatement,matrixPolicyHealth} from './matrix-policy.mjs';
+import {hostedBackupHealth} from './hosted-backup.mjs';
 /** Platform administration. A public name never confers a platform role. */
 import {authenticate,validateSessionMutation,authHash,authRateLimit,requestVerifiedResetForAccount,AuthError} from './auth.mjs';
 import {requireRecentPasskey} from './passkeys.mjs';
@@ -90,7 +92,7 @@ export async function handleAdminRequest(request,env){
   if(method==='POST')await authRateLimit(request,db,'admin-mutation',30,now,user.id);
   if(path.length===1&&path[0]==='health'&&method==='GET'){
    const counts={};for(const table of ['live_accounts','live_communities','live_channels','live_memberships','cosmetic_gifts','badge_awards','abuse_reports'])counts[table]=(await q(db,'SELECT COUNT(*) AS n FROM '+table).first()).n;
-   return json({database:'available',accountCounts:{active:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='active'").first()).n,suspended:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='suspended'").first()).n},counts,encryptionServiceConfigured:!!env.MATRIX_HOMESERVER,encryptedDefaultReady:false,accountRestrictionsSynced:false,notificationDelivery:notificationAvailability(env),communityOwnershipRepairRequired:(await q(db,'SELECT COUNT(*) AS n FROM live_communities WHERE ownership_repair_required=1').first()).n,e2eeDecryptionAvailable:false,ownerMessageContentAccess:false,legacyTextMode:'explicit-consent-server-stored',backup:{managedProvider:'Sites-managed D1',manualExportAvailable:false,restoreCheck:'npm run check:restore'}});
+   return json({database:'available',accountCounts:{active:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='active'").first()).n,suspended:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='suspended'").first()).n},counts,encryptionServiceConfigured:!!env.MATRIX_HOMESERVER,encryptedDefaultReady:false,accountRestrictionsSynced:false,notificationDelivery:notificationAvailability(env),communityOwnershipRepairRequired:(await q(db,'SELECT COUNT(*) AS n FROM live_communities WHERE ownership_repair_required=1').first()).n,e2eeDecryptionAvailable:false,ownerMessageContentAccess:false,legacyTextMode:'explicit-consent-server-stored',matrixPolicy:await matrixPolicyHealth(env),backup:{...await hostedBackupHealth(env),managedProvider:'Sites-managed D1',manualExportAvailable:false,restoreCheck:'npm run check:restore'}});
   }
   if(path.length===1&&path[0]==='users'&&method==='GET'){
    const p=page(url),term=text(url.searchParams.get('q')||'',100,'Search'),needle=like(term);
@@ -108,12 +110,24 @@ export async function handleAdminRequest(request,env){
    const account=await targetAccount(db,path[1]);const action=path[2];
    if(action==='status'){
     need(['active','suspended'].includes(body.status),400,'invalid_status','Choose active or suspended.');need(account.id!==user.id,409,'owner_protected','The platform owner cannot suspend their own account.');need(account.account_status!=='deleted',409,'account_deleted','Deleted accounts cannot be reinstated.');
-    const reason=text(body.reason,400,'Reason',5);await db.batch([q(db,'UPDATE live_accounts SET account_status=?,updated_at=? WHERE id=?',body.status,now,account.id),q(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL',now,account.id),audit(db,user.id,'account.'+body.status,'account',account.id,{reason},now)]);
-    return json({changed:true,status:body.status,sessionsRevoked:true});
+    const reason=text(body.reason,400,'Reason',5),auditId=crypto.randomUUID();
+    // Deletion may commit after the preliminary account read. A tombstone is
+    // terminal; the direct SQL changes() gate binds the audit and every later
+    // effect to this request's successful update inside the same transaction.
+    // D1 metadata can include trigger effects, so check the unique update >0.
+    const appliedSql='EXISTS(SELECT 1 FROM admin_audit WHERE id=? AND actor_id=? AND target_id=?)',appliedBinds=[auditId,user.id,account.id];
+    const result=await db.batch([
+     q(db,"UPDATE live_accounts SET account_status=?,updated_at=? WHERE id=? AND account_status<>'deleted'",body.status,now,account.id),
+     q(db,'INSERT INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) SELECT ?,?,?,?,?,?,? WHERE changes()=1',auditId,user.id,'account.'+body.status,'account',account.id,JSON.stringify({reason}),now),
+     q(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL AND '+appliedSql,now,account.id,...appliedBinds),
+     matrixPolicyStatement(db,{accountId:account.id,kind:body.status==='suspended'?'suspend':'reinstate',idempotencyKey:'admin-status:'+auditId,requestedBy:user.id,time:now,guardSql:appliedSql,guardBinds:appliedBinds})
+    ]);
+    need(result[0]?.meta?.changes>0&&result[1]?.meta?.changes>0,409,'account_changed','This account changed before the action committed. Refresh before trying again.');
+    return json({changed:true,status:body.status,sessionsRevoked:true,matrixPolicyCompletion:'queued-if-verified-mapping-exists'});
    }
    if(action==='revoke-sessions'){
     const includeCurrent=body.includeCurrent===true;const writes=[q(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL'+(!includeCurrent&&account.id===user.id?' AND id<>?':''),now,account.id,...(!includeCurrent&&account.id===user.id?[user.sessionId]:[])),audit(db,user.id,'account.sessions.revoked','account',account.id,{includeCurrent},now)];
-    await db.batch(writes);return json({revoked:true,currentSessionRevoked:includeCurrent&&account.id===user.id});
+    writes.push(matrixPolicySessionsStatement(db,{accountId:account.id,exceptSessionId:!includeCurrent&&account.id===user.id?user.sessionId:null,idempotencyKey:'admin-revoke:'+crypto.randomUUID(),requestedBy:user.id,time:now,revokedAt:now}));await db.batch(writes);return json({revoked:true,matrixPolicyCompletion:'queued-if-verified-mapping-exists',currentSessionRevoked:includeCurrent&&account.id===user.id});
    }
    if(action==='recovery'){
     // Record intent before external delivery, so an audit failure cannot send

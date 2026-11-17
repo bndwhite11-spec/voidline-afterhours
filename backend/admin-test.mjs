@@ -9,9 +9,9 @@ import {authenticate,authHash} from '../worker/auth.mjs';
 const origin='https://owner-test.example',bootstrapToken='test-infrastructure-token-'+crypto.randomUUID();
 const cases=[],test=(name,run)=>cases.push([name,run]);
 class Adapter {
- constructor(sqlite){this.sqlite=sqlite;this.failAudit=false;}
- prepare(sql){const db=this.sqlite,adapter=this;return {bind(...values){const s=db.prepare(sql),run=()=>{if(adapter.failAudit&&sql.includes('INSERT INTO admin_audit'))throw Error('Injected audit failure');return {success:true,meta:{changes:s.run(...values).changes}};};return {first:async()=>s.get(...values)||null,all:async()=>({results:s.all(...values)}),run:async()=>run()};}};}
- async batch(statements){this.sqlite.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());this.sqlite.exec('COMMIT');return result;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}}
+ constructor(sqlite){this.sqlite=sqlite;this.failAudit=false;this.beforeStatusBatch=null;}
+ prepare(sql){const db=this.sqlite,adapter=this;return {bind(...values){const s=db.prepare(sql),run=()=>{if(adapter.failAudit&&sql.includes('INSERT INTO admin_audit'))throw Error('Injected audit failure');return {success:true,meta:{changes:s.run(...values).changes}};};return {sql,first:async()=>s.get(...values)||null,all:async()=>({results:s.all(...values)}),run:async()=>run()};}};}
+ async batch(statements){if(this.beforeStatusBatch&&statements.some(s=>s.sql.includes('UPDATE live_accounts SET account_status'))){const before=this.beforeStatusBatch;this.beforeStatusBatch=null;await before();}this.sqlite.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());this.sqlite.exec('COMMIT');return result;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}}
 }
 async function fixture(){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');const journal=JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url),'utf8'));for(const entry of journal.entries)sqlite.exec(readFileSync(new URL('../drizzle/'+entry.tag+'.sql',import.meta.url),'utf8'));
@@ -98,6 +98,26 @@ test('an audit failure rolls back the administrative account mutation and sessio
  const f=await fixture();try{
   f.bindDirect();f.db.failAudit=true;assert.equal((await f.call('owner','/users/member/status',{status:'suspended',reason:'Must roll back with audit'})).status,503);
   assert.equal(f.sqlite.prepare('SELECT account_status FROM live_accounts WHERE id=?').get('member').account_status,'active');assert.equal(f.sqlite.prepare('SELECT revoked_at FROM auth_sessions WHERE account_id=?').get('member').revoked_at,null);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,0);
+ }finally{f.sqlite.close();}
+});
+test('a concurrent committed deletion cannot be undone or acknowledged by a stale administrative status request',async()=>{
+ for(const status of ['active','suspended']){
+  const f=await fixture();try{
+   f.bindDirect();f.sqlite.prepare('INSERT INTO matrix_account_links(account_id,matrix_user_id,matrix_subject,homeserver_origin,verified_at,created_at) VALUES(?,?,?,?,?,?)').run('member','@member:matrix.example','member','https://matrix.example',1,1);
+   let injected=false;f.db.beforeStatusBatch=()=>{injected=true;f.sqlite.prepare("UPDATE live_accounts SET account_status='deleted',username=NULL,display_name='Deleted account',updated_at=? WHERE id='member'").run(Date.now());};
+   const response=await f.call('owner','/users/member/status',{status,reason:'A status request racing account deletion'});
+   assert.equal(injected,true);assert.equal(response.status,409);assert.equal(response.data.error.code,'account_changed');assert.equal(response.data.changed,undefined);
+   assert.equal(f.sqlite.prepare("SELECT account_status FROM live_accounts WHERE id='member'").get().account_status,'deleted');
+   assert.equal(f.sqlite.prepare("SELECT revoked_at FROM auth_sessions WHERE account_id='member'").get().revoked_at,null);
+   assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,0);
+  }finally{f.sqlite.close();}
+ }
+});
+test('a successful status mutation atomically audits and queues its verified remote lifecycle decision',async()=>{
+ const f=await fixture();try{
+  f.bindDirect();f.sqlite.prepare('INSERT INTO matrix_account_links(account_id,matrix_user_id,matrix_subject,homeserver_origin,verified_at,created_at) VALUES(?,?,?,?,?,?)').run('member','@member:matrix.example','member','https://matrix.example',1,1);
+  const result=await f.ok('owner','/users/member/status',{status:'suspended',reason:'Reviewed status change with service reconciliation'});assert.equal(result.changed,true);assert.equal(result.sessionsRevoked,true);
+  const audit=f.sqlite.prepare('SELECT * FROM admin_audit').get(),operation=f.sqlite.prepare('SELECT * FROM matrix_policy_operations').get();assert.equal(audit.action,'account.suspended');assert.equal(operation.kind,'suspend');assert.equal(operation.account_id,'member');assert.equal(operation.status,'pending');assert.equal(operation.idempotency_key,'admin-status:'+audit.id);assert.ok(f.sqlite.prepare("SELECT revoked_at FROM auth_sessions WHERE account_id='member'").get().revoked_at);
  }finally{f.sqlite.close();}
 });
 test('owner mutations enforce origin, CSRF and the authenticated account expectation',async()=>{

@@ -1,3 +1,19 @@
+# Current upgrade plan — release v17
+
+The latest audit starts at published v16, commit a2882d48cc6fd90dd50b0f51e972b4e0cd34cbce. The supplied 24-section brief is preserved verbatim in `VOIDLINE-MEGA-IMPROVEMENT-7.txt`. Native password accounts, empty onboarding, D1 permissions/history, free ownership, server revisions and the separate Matrix adapter already work; they are retained. Sites hosts the Worker with managed D1; new private media uses the native R2 binding, not browser authority. No Matrix homeserver, Google client, email provider or verified platform-owner binding is configured.
+
+1. Fix global preference inheritance and consolidate the violet/charcoal visual system without changing account identity or existing data.
+2. Add additive schema 0009, authenticated content-free revision streams with fallback, a durable ordered Standard outbox and measured history windowing.
+3. Complete private profile/media storage, crop and Standard attachment/voice paths; preserve the separate encrypted transport boundary.
+4. Refine original 21-badge/12-gift artwork and collection inspection; keep earned awards, decorations and permissions distinct.
+5. Preserve encrypted local storage across native password changes, support deliberate crypto-writer handoff, and queue supported provider lifecycle reconciliation without inventing homeserver configuration.
+6. Add scoped plaintext account exports and protected hosted snapshot/queue writers. Connect an independently authorized scheduler only after verifying its actual unattended access.
+7. Verify meaningful SQLite, actual workerd/D1/R2, WebCrypto, client lifecycle and hosted HTTP behavior; publish the exact reviewed source and matching downloadable artifacts. Record browser/device/provider gaps explicitly.
+
+Only unapplied migration0009 is changed. Applied migrations0000–0008 remain byte-identical. Existing histories, account IDs, memberships and legitimate cosmetic ownership must survive. A release is reversible by redeploying the prior compatible Worker; leave additive schema in place. Before any production restore, preserve a pre-restore snapshot and use the managed provider’s supported maintenance procedure.
+
+## Earlier audit history
+
 # VOIDLINE substantial upgrade: audit and priorities
 
 The source audit began at release v10, commit cd3a397. Its normal entry was

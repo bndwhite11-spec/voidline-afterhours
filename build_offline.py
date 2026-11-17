@@ -12,7 +12,7 @@ root = Path(__file__).resolve().parent
 dist = root / 'dist'
 downloads = dist / 'downloads'
 downloads.mkdir(exist_ok=True)
-prompt_source = root / 'docs' / 'VOIDLINE-MEGA-IMPROVEMENT-6.txt'
+prompt_source = root / 'docs' / 'VOIDLINE-MEGA-IMPROVEMENT-7.txt'
 if not prompt_source.is_file():
     raise ValueError('Missing the authored improvement prompt.')
 (downloads / 'voidline-improvement-prompt.txt').write_text(prompt_source.read_text(encoding='utf-8'), encoding='utf-8')
@@ -94,8 +94,8 @@ html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
 html = html.replace('href="/help.html', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html')
-required_styles = {'entry.css', 'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profiles-panel.css', 'admin.css'}
-required_scripts = {'notifications.js', 'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'profiles-panel.js', 'admin.js'}
+required_styles = {'native-messaging.css', 'native-media.css', 'entry.css', 'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profiles-panel.css', 'admin.css'}
+required_scripts = {'account-export.js', 'theme.js', 'media-validation.js', 'profile-media.js', 'native-media.js', 'native-outbox.js', 'native-timeline.js', 'realtime.js', 'collectible-art.js', 'notifications.js', 'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'profiles-panel.js', 'admin.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
     raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:

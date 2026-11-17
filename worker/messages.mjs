@@ -1,5 +1,7 @@
+import {profileAvatarMediaForViewer} from './media.mjs';
 /** Native standard text messaging. Never a Matrix transport or an E2EE fallback. */
 import {authenticate,validateSessionMutation,normalizeUsername,authRateLimit,AuthError} from './auth.mjs';
+import {standardAttachmentIds,stagedAttachmentGuard,claimStandardAttachments,standardAttachmentMetadata} from './attachments.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -21,7 +23,7 @@ async function bodyJSON(request){
 }
 function retryId(id){need(typeof id==='string'&&/^[a-f0-9-]{36}$/i.test(id),400,'invalid_client_id','Use a stable client-generated UUID for retries.');return id;}
 function acknowledgement(body){need(body.acknowledgeStandard===true,400,'standard_acknowledgement_required','Review standard messaging before continuing. These messages are stored by the service and are not end-to-end encrypted.');}
-function textValue(value){need(typeof value==='string'&&value.trim().length>0&&value.length<=4000&&!/\u0000/.test(value),400,'invalid_text','Write a message between 1 and 4000 characters.');return value.trim();}
+function textValue(value,allowEmpty=false){need(typeof value==='string'&&(allowEmpty||value.trim().length>0)&&value.length<=4000&&!/\u0000/.test(value),400,'invalid_text','Write at most 4000 characters. Empty messages need an attachment.');return value.trim();}
 function cursor(value){if(value===null||value===undefined)return null;need(/^\d+$/.test(String(value))&&Number.isSafeInteger(Number(value)),400,'invalid_cursor','Use a nonnegative message position.');return Number(value);}
 function page(url){const limit=Number(url.searchParams.get('limit')??50);need(Number.isSafeInteger(limit)&&limit>=1&&limit<=100,400,'invalid_page','Choose a page size between 1 and 100.');return limit;}
 function activeSession(user,now){return {sql:"EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND s.account_id=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.account_status='active' AND a.onboarding_complete=1)",args:[user.sessionId,user.id,now]};}
@@ -46,12 +48,14 @@ async function enrich(db,messages,userId){
  if(!messages.length)return [];
  if(messages.length>80){const result=[];for(let i=0;i<messages.length;i+=80)result.push(...await enrich(db,messages.slice(i,i+80),userId));return result;}
  const ids=messages.map(m=>m.id),slots=ids.map(()=>'?').join(',');
- const [reactionResult,savedResult]=await Promise.all([
+ const [reactionResult,savedResult,mediaResult,avatars]=await Promise.all([
   q(db,`SELECT message_id,emoji,COUNT(*) AS count,MAX(CASE WHEN account_id=? THEN 1 ELSE 0 END) AS mine FROM native_reactions WHERE message_id IN (${slots}) GROUP BY message_id,emoji`,userId,...ids).all(),
-  q(db,`SELECT message_id,saved,revision FROM native_bookmarks WHERE account_id=? AND message_id IN (${slots})`,userId,...ids).all()
+  q(db,`SELECT message_id,saved,revision FROM native_bookmarks WHERE account_id=? AND message_id IN (${slots})`,userId,...ids).all(),
+  q(db,`SELECT id,native_message_id,kind,content_type,filename,bytes,width,height FROM media_assets WHERE native_message_id IN (${slots}) AND state='attached' ORDER BY message_position,id`,...ids).all(),
+  profileAvatarMediaForViewer(db,userId,messages.map(m=>m.author_id))
  ]);
  const saved=new Map(savedResult.results.map(row=>[row.message_id,row])),rows=reactionResult.results;
- return messages.map(m=>({...m,revision:Number(m.revision)||0,securityMode:'standard',saved:!!saved.get(m.id)?.saved,bookmarkRevision:saved.get(m.id)?.revision||0,reactions:rows.filter(r=>r.message_id===m.id).map(({emoji,count,mine})=>({emoji,count,mine:!!mine}))}));
+ return messages.map(m=>({...m,author_avatar_media_id:avatars.get(m.author_id)?.id||null,revision:Number(m.revision)||0,securityMode:'standard',attachments:m.deleted_at?[]:mediaResult.results.filter(a=>a.native_message_id===m.id).map(standardAttachmentMetadata),saved:!!saved.get(m.id)?.saved,bookmarkRevision:saved.get(m.id)?.revision||0,reactions:rows.filter(r=>r.message_id===m.id).map(({emoji,count,mine})=>({emoji,count,mine:!!mine}))}));
 }
 async function getMessage(db,id,userId){const message=await q(db,`SELECT ${columns} ${joins} JOIN native_members member ON member.conversation_id=m.conversation_id WHERE m.id=? AND member.account_id=?`,id,userId).first();need(message,404,'message_unavailable','This message is unavailable to this account.');return (await enrich(db,[message],userId))[0];}
 async function describeMany(db,records,userId){
@@ -65,9 +69,10 @@ async function describeMany(db,records,userId){
    q(db,`SELECT conversation_id,MAX(seq) AS seq FROM native_changes WHERE conversation_id IN(${slots}) GROUP BY conversation_id`,...ids).all(),
    q(db,`SELECT c.id FROM native_conversations c WHERE c.id IN(${slots}) AND c.kind='dm' AND (EXISTS(SELECT 1 FROM native_members m JOIN live_accounts a ON a.id=m.account_id WHERE m.conversation_id=c.id AND a.account_status<>'active') OR EXISTS(SELECT 1 FROM social_blocks b JOIN native_members x ON x.account_id=b.blocker_id AND x.conversation_id=c.id JOIN native_members y ON y.account_id=b.blocked_id AND y.conversation_id=x.conversation_id))`,...ids).all()
   ]);
+  const participantAvatars=await profileAvatarMediaForViewer(db,userId,members.results.map(m=>m.id));
   const enrichedLast=await enrich(db,lastMessages.results,userId),restrictedIds=new Set(restricted.results.map(c=>c.id));
   for(const record of part){
-   const participants=members.results.filter(m=>m.conversation_id===record.id).map(({conversation_id,...member})=>({...member,role:record.kind==='group'&&record.owner_id===member.id?'owner':'member'})),last=enrichedLast.find(m=>m.conversation_id===record.id),counts=totals.results.find(t=>t.conversation_id===record.id);
+   const participants=members.results.filter(m=>m.conversation_id===record.id).map(({conversation_id,...member})=>({...member,avatarMedia:participantAvatars.get(member.id)||null,role:record.kind==='group'&&record.owner_id===member.id?'owner':'member'})),last=enrichedLast.find(m=>m.conversation_id===record.id),counts=totals.results.find(t=>t.conversation_id===record.id);
    result.push({ownerId:record.owner_id||null,capabilities:{canManage:record.kind==='group'&&record.owner_id===userId,canAddMembers:record.kind==='group'&&record.owner_id===userId,canRemoveMembers:record.kind==='group'&&record.owner_id===userId,canTransferOwnership:record.kind==='group'&&record.owner_id===userId,canLeave:record.kind==='group'&&(record.owner_id!==userId||participants.length===1),canSend:!restrictedIds.has(record.id)},historyPolicy:'Current joined members can read retained history. New members receive earlier group history.',blockingPolicy:'Blocking stops direct messages and requests. Shared group members can still read and post; leave or remove a member to change membership.',favorite:!!record.favorite,pinned:!!record.pinned,archived:!!record.archived,muted:!!record.muted,folderId:record.folder_id||null,id:record.id,kind:record.kind,name:record.name,title:record.kind==='dm'?(participants.find(a=>a.id!==userId)?.displayName||'Deleted account'):record.name,securityMode:'standard',endToEndEncrypted:false,createdAt:record.created_at,updatedAt:record.updated_at,participants,lastMessage:last?{...last,securityMode:'standard'}:null,lastSeq:counts?.lastSeq||0,unreadCount:counts?.unreadCount||0,changeSeq:highs.results.find(h=>h.conversation_id===record.id)?.seq||0,readSeq:record.read_seq||0,readChangeSeq:record.read_change_seq||0});
   }
  }
@@ -182,7 +187,7 @@ export async function handleMessagesRequest(request,env){
   need(url.pathname==='/api/messages'||url.pathname.startsWith('/api/messages/'),404,'not_found','No messaging action matches this request.');need(['GET','POST'].includes(method),405,'method_not_allowed','Use a supported messaging action.');
   const user=await authenticate(request,env),db=env.DB,now=Date.now(),path=url.pathname.replace(/^\/api\/messages\/?/,'').split('/').filter(Boolean).map(decodeURIComponent);let body;
   if(method==='POST'){body=await bodyJSON(request);await validateSessionMutation(request,user,body);await authRateLimit(request,db,'native-messages',90,now,user.id);}
-  if(path.length===0&&method==='GET')return json({available:true,security,transport:'cursor-polling'});
+  if(path.length===0&&method==='GET')return json({available:true,security,transport:'revision-stream-with-cursor-refresh',realtimePath:'/api/realtime',fallback:'cursor-polling'});
   if(method==='GET'&&path.length===1&&['search','saved'].includes(path[0]))return await searchOrSaved(url,db,user,path[0]==='saved');
   if(path[0]==='conversations'&&path.length===1){
    if(method==='GET'){
@@ -225,14 +230,16 @@ export async function handleMessagesRequest(request,env){
      if(changesAfter!==null){const events=(await q(db,'SELECT seq,message_id FROM native_changes WHERE conversation_id=? AND seq>? AND seq<=? ORDER BY seq LIMIT ?',id,changesAfter,high,limit+1).all()).results,window=events.slice(0,limit),ids=[...new Set(window.map(e=>e.message_id))];changeCursor=window.at(-1)?.seq??changesAfter;changesHasMore=events.length>limit;if(ids.length){const changed=[];for(let n=0;n<ids.length;n+=80){const part=ids.slice(n,n+80);changed.push(...(await q(db,`SELECT ${columns} ${joins} WHERE m.conversation_id=? AND m.id IN(${part.map(()=>'?').join(',')})`,id,...part).all()).results);}changes=await enrich(db,changed,user.id);}}
      return json({messages:await enrich(db,messages,user.id),changes,hasMore:records.length>limit,cursor:messages[0]?.seq??before??0,changeCursor,changesHasMore,securityMode:'standard',endToEndEncrypted:false,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
     }
-    acknowledgement(body);retryId(body.clientId);const text=textValue(body.text),replyToId=body.replyToId||null;need(replyToId===null||(typeof replyToId==='string'&&replyToId.length<=100),400,'invalid_reply','Choose a valid reply source.');
-    const guard=await ensureWritable(db,user,id,now),originalHash=await hash(JSON.stringify([text,replyToId]));
+    acknowledgement(body);retryId(body.clientId);const attachmentIds=standardAttachmentIds(body.attachmentIds);const text=textValue(body.text??'',attachmentIds.length>0),replyToId=body.replyToId||null;need(replyToId===null||(typeof replyToId==='string'&&replyToId.length<=100),400,'invalid_reply','Choose a valid reply source.');
+    const guard=await ensureWritable(db,user,id,now),originalHash=await hash(JSON.stringify(attachmentIds.length?[text,replyToId,attachmentIds]:[text,replyToId]));
     const previous=await q(db,'SELECT * FROM native_messages WHERE conversation_id=? AND author_id=? AND client_id=?',id,user.id,body.clientId).first();
     if(previous){need(previous.original_hash===originalHash,409,'idempotency_conflict','This retry ID belongs to another message.');return json({message:await getMessage(db,previous.id,user.id),acknowledged:true});}
     if(replyToId){const source=await getMessage(db,replyToId,user.id);need(source.conversation_id===id,400,'invalid_reply','Reply inside this conversation.');need(!source.deleted_at,409,'source_deleted','This reply source was deleted.');}
     const messageId=uuid(),replySQL=replyToId?' AND EXISTS(SELECT 1 FROM native_messages WHERE id=? AND conversation_id=? AND deleted_at IS NULL)':'';
+    const assetGuard=stagedAttachmentGuard(attachmentIds,user.id,{conversationId:id},now);
     await db.batch([
-     q(db,`INSERT OR IGNORE INTO native_messages(id,conversation_id,author_id,client_id,text,reply_to_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,? WHERE ${guard.sql}${replySQL}`,messageId,id,user.id,body.clientId,text,replyToId,originalHash,now,...guard.args,...(replyToId?[replyToId,id]:[])),
+     q(db,`INSERT OR IGNORE INTO native_messages(id,conversation_id,author_id,client_id,text,reply_to_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,? WHERE ${guard.sql}${replySQL}${assetGuard.sql}`,messageId,id,user.id,body.clientId,text,replyToId,originalHash,now,...guard.args,...(replyToId?[replyToId,id]:[]),...assetGuard.args),
+     ...claimStandardAttachments(db,attachmentIds,user.id,{conversationId:id},messageId,originalHash,now),
      q(db,"INSERT INTO native_changes(conversation_id,message_id,actor_id,kind,created_at) SELECT conversation_id,id,?,'send',? FROM native_messages WHERE id=?",user.id,now,messageId),
      q(db,'UPDATE native_conversations SET updated_at=? WHERE id=? AND EXISTS(SELECT 1 FROM native_messages WHERE id=?)',now,id,messageId)
     ]);
@@ -246,7 +253,7 @@ export async function handleMessagesRequest(request,env){
    const guard=action==='delete'?memberGuard(user,message.conversation_id,now):await ensureWritable(db,user,message.conversation_id,now);if(action!=='delete'){guard.sql+=' AND EXISTS(SELECT 1 FROM native_messages source WHERE source.id=? AND source.deleted_at IS NULL)';guard.args.push(message.id);}need(!message.deleted_at||action==='delete',409,'source_deleted','This message was deleted.');
    if(action==='edit'||action==='delete')need(message.author_id===user.id,403,'ownership_required','Only the author can change this message.');
    const writes=[q(db,'UPDATE native_members SET joined_at=joined_at WHERE conversation_id=? AND account_id=? AND '+guard.sql,message.conversation_id,user.id,...guard.args)];
-   if(action==='edit'){acknowledgement(body);const text=textValue(body.text);writes.push(q(db,'UPDATE native_messages SET text=?,edited_at=? WHERE id=? AND deleted_at IS NULL AND '+guard.sql,text,now,message.id,...guard.args));}
+   if(action==='edit'){acknowledgement(body);const text=textValue(body.text,message.attachments.length>0);writes.push(q(db,'UPDATE native_messages SET text=?,edited_at=? WHERE id=? AND deleted_at IS NULL AND '+guard.sql,text,now,message.id,...guard.args));}
    else if(action==='delete')writes.push(q(db,"UPDATE native_messages SET text='',deleted_at=COALESCE(deleted_at,?) WHERE id=? AND "+guard.sql,now,message.id,...guard.args),q(db,'DELETE FROM native_reactions WHERE message_id=? AND '+guard.sql,message.id,...guard.args));
    else{need(REACTIONS.includes(body.emoji)&&typeof body.active==='boolean',400,'invalid_reaction','Choose an available reaction and its state.');writes.push(body.active?q(db,'INSERT OR IGNORE INTO native_reactions(message_id,account_id,emoji,created_at) SELECT id,?,?,? FROM native_messages WHERE id=? AND deleted_at IS NULL AND '+guard.sql,user.id,body.emoji,now,message.id,...guard.args):q(db,'DELETE FROM native_reactions WHERE message_id=? AND account_id=? AND emoji=? AND '+guard.sql,message.id,user.id,body.emoji,...guard.args));}
    writes.push(q(db,'INSERT INTO native_changes(conversation_id,message_id,actor_id,kind,created_at) SELECT conversation_id,id,?,?,? FROM native_messages WHERE id=? AND '+guard.sql,user.id,action,now,message.id,...guard.args));

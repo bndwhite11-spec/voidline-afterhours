@@ -1,28 +1,24 @@
-VOIDLINE / MEASURED VALIDATION SCOPE
+VOIDLINE / VALIDATION AND PERFORMANCE SCOPE
 
-Environment: Node 24 on the task's managed Linux workspace, in-memory Storage
-adapter. These are journal-only CPU timings, not browser paint/layout/input
-latency, localStorage hardware I/O, frames per second, or mobile measurements.
+Current source extracts ordered native outbox, realtime, measured Standard
+history window, media validation/cropping and collectible art into coherent
+modules. Matrix/Rust cryptography remains locally hosted and lazy-loaded.
 
-Repeatable command: node tests/performance.cjs
-Workload: 1,200 retained message records, including roots/replies; 30 independent
-profile-status field mutations. No image bytes in this workload.
+Measured-window controlled tests use 10,000 variable-height rows, bounded mounted
+nodes, cached detached rows and anchored scroll updates. Focus/selection pins
+and stable media nodes are checked with controlled DOM interfaces. These are
+structural/behavior tests, not browser frame rate, layout, typing latency or
+physical-phone measurements.
 
-Before incremental operation replay caching:
-Initial load35.09ms; mean commit51.88ms; maximum118.55ms.
-After incremental replay caching, separate run on same workspace:
-Initial load50.99ms; mean commit44.23ms; maximum103.38ms.
-All1,200 messages retained. Single-run timings vary and are not a frame-rate
-promise. Large local archives can still block while JSON/diff work is done;
-quota and synchronous localStorage remain limitations of this local edition.
+The deployable Worker check compares every allowed asset's original bytes,
+HEAD and ETag semantics, direct entry routes, API guards, strict CSP and excluded
+private paths. Source bytes, compressed Worker size and hosted transfer checks
+are recorded in the release report. The Sites proxy owns HTTP compression.
 
-Rendering changes verified by DOM harness:
-Same thread textarea node, unsent content, caret selection and focus survive
-background updates. Message rows are keyed and unchanged media nodes are kept
-in place. History renders pages of100; older replies remain addressable.
+Real browser parsing/painting, input latency, scrolling memory, audio continuity,
+software keyboard, real crop decoding,200% zoom and device/network benchmarks
+remain unverified. Do not translate Node/VM timings or a local workerd request
+into a mobile performance or product-wide security claim.
 
-Not verified here:
-Browser visual hierarchy, audio playback continuity on a real browser, image
-crop decoding, touch gestures, physical mobile keyboard, 200% zoom, screenshots,
-actual D1 deployment, or two independent authenticated browser accounts.
-Backend checks use real SQLite with synthetic platform identity headers.
+Historical archive-only microbenchmarks live in prior Git history. Their local
+journal timings do not describe the current shared messenger's performance.

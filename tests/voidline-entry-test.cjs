@@ -28,7 +28,7 @@ function client(options={}) {
   const body=element('body'),root=element(),main=element('main');root.id='home-root';main.id='home-main';root.appendChild(main);body.appendChild(root);root.inert=!!options.originalInert;root.setAttribute('aria-busy','true');
   const document={readyState:'loading',body,documentElement:{dataset:options.offline?{offline:'true'}:{}},activeElement:body,hidden:false,
     getElementById:id=>nodes.get(id)||null,createElement:element,addEventListener:(name,fn)=>listeners(docListeners,name,fn),removeEventListener:(name,fn)=>unlisten(docListeners,name,fn)};
-  const window={addEventListener:(name,fn)=>listeners(winListeners,name,fn),removeEventListener:(name,fn)=>unlisten(winListeners,name,fn),matchMedia:()=>({matches:!!options.reduced}),...(options.phase?{VoidHome:{state:{phase:options.phase,error:''}}}:{})};
+  const window={VoidTheme:{state:()=>({effectiveReducedMotion:!!options.appReduced})},addEventListener:(name,fn)=>listeners(winListeners,name,fn),removeEventListener:(name,fn)=>unlisten(winListeners,name,fn),matchMedia:()=>({matches:!!options.reduced}),...(options.phase?{VoidHome:{state:{phase:options.phase,error:''}}}:{})};
   const emit=(map,name,event={})=>{for(const fn of [...map.get(name)||[]])fn(event);};
   const context={window,document,location:{protocol:options.file?'file:':'https:',pathname:options.pathname||'/',search:options.search||'',hash:options.hash||''},
     sessionStorage:{getItem(){if(options.storageThrows)throw Error('Storage unavailable');return storageValue;},setItem(_key,value){if(options.storageThrows)throw Error('Storage unavailable');storageValue=value;writeCount++;}},
@@ -38,7 +38,7 @@ function client(options={}) {
   const tick=duration=>{const end=now+duration;for(;;){const due=[...timers].filter(([,timer])=>timer.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];if(!due)break;timers.delete(due[0]);now=due[1].at;due[1].fn();}now=end;};
   return {root,main,document,window,timers,observers,winListeners,docListeners,get writes(){return writeCount;},get overlay(){return nodes.get('voidline-entry');},get now(){return now;},start(){emit(docListeners,'DOMContentLoaded');},tick,
     ready(phase='welcome',error=''){window.VoidHome={state:{phase,error}};root.setAttribute('aria-busy',String(phase==='loading'));for(const observer of observers)if(observer.connected)observer.fn();},
-    emitHome(){emit(winListeners,'voidline:home-ready');},hide(){emit(winListeners,'pagehide');},focus(node){document.activeElement=node;emit(docListeners,'focusin',{target:node});},key(key){let prevented=false;emit(docListeners,'keydown',{key,preventDefault(){prevented=true;}});return prevented;}
+    emitHome(){emit(winListeners,'voidline:home-ready');},theme(reduced){emit(winListeners,'voidline:theme',{detail:{effectiveReducedMotion:reduced}});},hide(){emit(winListeners,'pagehide');},focus(node){document.activeElement=node;emit(docListeners,'focusin',{target:node});},key(key){let prevented=false;emit(docListeners,'keydown',{key,preventDefault(){prevented=true;}});return prevented;}
   };
 }
 
@@ -64,16 +64,19 @@ test('Escape is available and focus may leave the intro without a trap or unwant
   const other=client();other.start();other.focus(other.main);assert.equal(other.overlay,undefined);assert.equal(other.document.activeElement,other.main);
 });
 test('returning sessions and reduced-motion users reach the ordinary app without an overlay',()=>{
-  for(const options of [{seen:true},{reduced:true},{phase:'ready'}]){const app=client(options);app.start();assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.timers.size,0);assert.equal(app.writes,0);}
+  for(const options of [{seen:true},{reduced:true},{appReduced:true},{phase:'ready'}]){const app=client(options);app.start();assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.timers.size,0);assert.equal(app.writes,0);}
 });
 test('offline copies and authentication/recovery redirects skip the reveal entirely',()=>{
   for(const options of [{offline:true},{file:true},{pathname:'/api/auth/google/callback'},{hash:'#reset-password=private-token'},{hash:'#verify-email=private-token'},{search:'?code=provider-code'}]){const app=client(options);app.start();assert.equal(app.overlay,undefined);assert.equal(app.timers.size,0);}
+});
+test('a reduced-motion preference restored after account resolution removes an active intro immediately',()=>{
+  const app=client();app.start();app.tick(100);app.theme(false);assert(app.overlay);app.theme(true);assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.timers.size,0);assert.equal(app.winListeners.get('voidline:theme')?.size,0);
 });
 test('unavailable storage and MutationObserver still leave the deadline intact',()=>{
   const app=client({storageThrows:true,noObserver:true});app.start();assert(app.overlay);app.tick(1190);assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.timers.size,0);
 });
 test('page navigation cleans up observers, listeners and timers without changing focus or pre-existing inert state',()=>{
-  const app=client({originalInert:true});app.start();app.hide();assert.equal(app.overlay,undefined);assert.equal(app.root.inert,true);assert.equal(app.timers.size,0);assert(app.observers.every(observer=>!observer.connected));for(const name of ['keydown','focusin','visibilitychange'])assert.equal(app.docListeners.get(name)?.size,0);for(const name of ['pagehide','voidline:home-ready'])assert.equal(app.winListeners.get(name)?.size,0);assert.equal(app.document.activeElement,app.document.body);
+  const app=client({originalInert:true});app.start();app.hide();assert.equal(app.overlay,undefined);assert.equal(app.root.inert,true);assert.equal(app.timers.size,0);assert(app.observers.every(observer=>!observer.connected));for(const name of ['keydown','focusin','visibilitychange'])assert.equal(app.docListeners.get(name)?.size,0);for(const name of ['pagehide','voidline:home-ready','voidline:theme'])assert.equal(app.winListeners.get(name)?.size,0);assert.equal(app.document.activeElement,app.document.body);
 });
 
 let failed=0;for(const[name,run]of tests){try{run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error);}}

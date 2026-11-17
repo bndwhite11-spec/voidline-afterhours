@@ -7,7 +7,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "node scripts/build-security.mjs && node scripts/build-crypto.mjs && node scripts/build-worker.mjs",
+    "build": "node scripts/build-security.mjs && node scripts/build-crypto.mjs && node scripts/build-media.mjs && node scripts/build-worker.mjs",
     "dev": "node scripts/dev-worker.mjs",
     "db:generate": "drizzle-kit generate",
     "test:foundation": "node backend/auth-test.mjs && node backend/foundation-review-test.mjs",

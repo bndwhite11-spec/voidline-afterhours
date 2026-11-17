@@ -1,3 +1,9 @@
+# Current brief
+
+The latest complete 24-section request is preserved in `VOIDLINE-MEGA-IMPROVEMENT-7.txt`. Current delivery/evidence is recorded in `UPGRADE-STATUS.md` and `REVIEW-COVERAGE.md`.
+
+## Earlier account-upgrade brief
+
 # VOIDLINE account and product upgrade
 
 The immediate problem is that visitors cannot create accounts because Google

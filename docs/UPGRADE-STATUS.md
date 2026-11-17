@@ -1,144 +1,38 @@
-# Review-guided upgrade: actual delivery boundaries
+# Current upgrade delivery boundaries
 
-The supplied review was checked against published version 14, commit cd59329.
-The existing Site, audience, D1 binding, accounts, histories, memberships and
-legitimate cosmetic ownership are preserved. The complete requirement brief is
-VOIDLINE-MEGA-IMPROVEMENT-6.txt; it includes all 19 sections. A requirement in that
-brief is not a claim of completed delivery.
+This upgrade starts at live v16, commit a2882d48cc6fd90dd50b0f51e972b4e0cd34cbce. The complete new 24-section brief is preserved in `VOIDLINE-MEGA-IMPROVEMENT-7.txt` and the downloadable improvement prompt. A requested requirement is not a claim of complete delivery. The existing Site/public audience, account IDs, histories, memberships, ownership and applied migrations are preserved.
 
-## Implemented correctness
+## Implemented product changes
 
-- Community ownership uses an authoritative account ID, commit-time ownership
-  revision/CAS, consistent role transitions, database constraints and atomic
-  audit records. Stale simultaneous transfers fail. Existing inconsistent
-  communities are normalized only from a legitimate active authoritative
-  member; missing/inactive authority is quarantined, not guessed or joined.
-  Authorized history remains readable while repairs need trusted operators.
-- Standard native/community message representations carry monotonic server
-  revisions, including reactions and deletion tombstones. Client merging rejects
-  stale polling/history responses. Private bookmark state has its own revision.
-- Personal blocks still prevent unwanted DMs and requests, but do not freeze
-  unrelated eligible members in a shared Standard group. Suspended authors
-  cannot post. Shared membership is not cryptographic isolation from a peer.
-- Native group controls include name, membership, management transfer and leave.
-  Existing eligible group members receive audited legacy management repair where
-  needed. Group authority never grants community or platform administration.
-- Explicit viewed-read behavior checks actual viewport eligibility and document
-  visibility/focus. Loaded history and Inbox opening do not silently mark read.
-- Message/change backlog processing drains bounded pages promptly with context
-  cancellation and truthful catch-up/error states. Account-wide server filters
-  use expiring account-bound snapshot cursors, current authorization and stable
-  page cohorts. First-page liveness is separate from stable paged browsing.
-- Community mention targets use immutable account IDs, unique-handle lookup and
-  authoritative stored references. Renames or matching display names cannot
-  redirect mentions. Edits/deletions reconcile targets atomically.
+- A shared charcoal/violet semantic theme replaces scattered interface colors. Preferences apply to both document roots, so portalled dialogs, profiles, gifts, menus, viewers and toasts inherit text size, contrast and reduced motion. OS preferences remain respected, including runtime changes and account resets. The brief intro remains skippable and bypasses on reduced motion.
+- Desktop list width is adjustable within 260–320px by pointer and keyboard. Conversation previews respect privacy. Empty accounts still contain no fabricated membership, messages, friends, unread state or ownership.
+- Standard messaging has a durable ordered multi-item IndexedDB outbox, stable client IDs, leases, explicit failure/retry/cancel behavior and per-account isolation. A failed head pauses later items. This Standard queue contains readable text on the device; it is not the encrypted Matrix outbox. Tab-local draft storage remains separate. Cancellation cannot retract server acceptance.
+- Authenticated content-free SSE revision hints trigger authoritative cursor catch-up. Sessions, account status and membership are rechecked, streams have bounded leases, reconnect resumes with jitter, and a watchdog retains truthful polling fallback. D1 revision checks remain periodic on the server; this is not a claim of native database push.
+- Standard native/community history uses measured variable-height windowing with anchors and bounded detached row caching, focus/selection pins, author grouping, reply context and controlled new-message navigation. The encrypted SDK renderer is separate; no universal history-windowing claim is made.
+- Private R2 storage supports validated profile images and Standard attachments/voice recordings, staged digest-bound retries, atomic claims, byte/range reads, visibility/block/access checks and durable removal/expiry work. Avatar/banner cropping, preview, save, reset and upload-failure states use actual Canvas/file APIs. Standard media has the same server-readable boundary as Standard text.
+- The original 21 cosmetic badge and12 gift IDs/ownership rules remain. Dedicated small and inspection artwork uses distinct silhouettes/materials, with separate earned-award art. Collection sizing follows its container. Gift receipt/replay requires an acknowledged server-owned instance; animation is optional and respects app/OS reduced motion.
+- Seven scoped plaintext exports cover the caller's profile, memberships, gifts, earned badges, organization and accessible Standard native/community history. Each page verifies current access and recent authentication. Downloads require explicit plaintext acknowledgment and have conservative bounds. Authentication secrets, Matrix content/keys, device-only Saved notes and uploaded file bytes are excluded.
 
-## Implemented everyday experience
+## Implemented encrypted foundations, not a completed operated service
 
-Full-history Standard DM/group search is permission-aware and accepts familiar
-people/date/link filters. Results open exact sources. Unified Saved labels synced
-Standard bookmarks, encrypted references and device-only notes distinctly.
-Lost access/deleted sources become unavailable rather than reveal old content.
+The maintained Matrix SDK45.1/Rust 18.9.2 adapter and verified-device/no-fallback boundary remain. Native password changes stage and commit a v2 encrypted credential-envelope rewrap while preserving the stable Rust/local-store password. Legacy envelopes migrate without resetting encryption keys. Ambiguous network outcomes retain a recoverable staged envelope. Google-only accounts need a supported native credential before this password-unlock flow; provider login is not falsely described as a local encryption key.
 
-Content-free account activity updates native/community unread, friend and gift
-counts without rebuilding focused message content. Quiet hours use a validated
-IANA time zone. Conversation previews respect private-preview settings and drafts.
-Native timeline updates preserve unaffected DOM nodes, focus and selection;
-composer input grows to a cap and Enter respects IME composition. Profile
-artwork and profile-card components are reused instead of arbitrary initials.
+Explicit multi-tab writer handoff uses Web Locks, metadata-only coordination, flush/stop and deliberate approval; the writer lock is not bypassed. Paginated earlier-history indexing runs locally after decryption and stays encrypted at rest. Its coverage is bounded and labeled; thread-only history and remote changes outside downloaded/synced history remain limitations.
 
-Browser push uses a real opt-in service-worker/subscription flow and maintained
-WebCrypto Web Push encryption. Payloads are fixed generic activity text, not
-message previews. Durable content-free events, delivery leases, source/session
-rechecks, mute/read/block/quiet-hour suppression and bounded retries are tested.
-Runtime keys and physical browser delivery status are recorded in the release
-report; a key alone does not establish successful device display. Retries are
-currently driven by authenticated app traffic, not an independent scheduler.
+Verified native lifecycle decisions now queue supported Synapse suspension/reinstatement/deactivation and session/device revocation. Queue retries/leases and audit results do not claim community-membership or unwanted-contact policy reconciliation. Confirmed current-device mappings survive a verified password change; revoked old-session in-flight enrollments still receive a reconciliation path.
 
-Public help explains Standard/encrypted/local-vault boundaries, recovery,
-account deletion, cosmetics, support and basic product terms before signup.
-The 21 free cosmetic badges, 12 gift designs, earned awards, ownership and transfer
-rules are retained. No cosmetic grants identity verification or administrative
-powers. The brief covers further profile personalization without claiming it is
-already implemented.
+**No homeserver exists yet.** No Matrix admin/JWT service is configured, authoritative encrypted community/block-room reconciliation is incomplete, and real multi-device enrollment, UIA, encrypted attachment/recovery and cross-device trust acceptance remain unverified. `encryptedDefaultReady` and `accountRestrictionsSynced` remain false. Native Standard text stays explicitly service-readable. Encrypted sends never fall back to it.
 
-## Implemented encrypted integration, awaiting a real service
+## Operational implementation versus configuration
 
-The normal enrollment path uses an authenticated immutable VOIDLINE account,
-recent native authentication, server-consumed short-lived Synapse JWT login,
-a reserved provider namespace and a freshly allocated verified Matrix device.
-The ordinary account password unlocks an encrypted local credential envelope;
-users do not enter raw Matrix tokens or a second storage password in this path.
-No raw token/JWT is stored server-side or in ordinary browser storage. The
-advanced manual Matrix connection remains clearly separate.
+Additive migration0009 introduces account revision/stream leases, private media/cleanup records, nullable profile media references and Matrix policy operations. Applied migrations0000–0008 remain unchanged.
 
-The adapter/UI now include pending invitations, accept/decline, ignore/block,
-member invitation/cancellation, leave, role-authorized removal, device comparison
-and verification, and truthful remote-revocation results. Local locking occurs
-immediately; a failed/unknown remote logout is not presented as confirmed.
+The Site MCP writer offers bounded queue processing and protected AES-GCM hosted D1 logical snapshots, with content-free health/receipts and an isolated restore tool. Its operator is bound through trusted Site-scoped identity configuration, separately from native platform ownership. A connected, verified unattended schedule, independent backup-key retention, R2 media-byte backup and an actual hosted restoration drill remain distinct gates. See OPERATIONS.md and BACKUP-RESTORE.md; the release report records what is actually configured and executed.
 
-Recovery has an encrypted resumable local journal, explicit progress, supported
-public signing upload retry and authentication challenge handling. Existing keys
-and backups are preserved; automatic backup-version deletion is blocked.
-Recovery setup readiness is separate from actual restored-history verification.
-Password recovery and independent local Saved recovery remain distinct.
+Google credentials, verified-email delivery and the native platform-owner binding are still absent. `@xrp` is the intended owner handle, not proof or an automatic privilege grant. Owner setup requires the documented authenticated native account/passkey claim and trusted immutable-ID binding. No owner dashboard has a universal encrypted-conversation key.
 
-**The owner confirmed there is no Matrix homeserver yet.** No real encrypted
-exchange, multi-device key recovery, operated-service UIA or encrypted attachment
-lifecycle has passed acceptance. The pinned Matrix 45.1 / Rust 18.9.2 foundation is
-maintained; controlled SDK tests are not a substitute for a real deployment.
+## Evidence boundaries
 
-A compatible operated Synapse service must support the documented JWT login,
-reserve its application account namespace, provide HTTPS/browser access and
-support the required interactive authentication and device-revocation flows.
-JWT login alone does not provide every Matrix UIA stage. Native suspension,
-blocks and roles do not yet revoke independently issued Matrix tokens or room
-membership. The API therefore keeps encryptedDefaultReady:false and
-accountRestrictionsSynced:false. Standard conversations stay an explicit,
-service-readable mode; encrypted sends never silently fall back to it.
+Current suites exercise migrated SQLite, actual local workerd/D1/R2, WebCrypto, maintained attachment encryption, controlled provider transports and controlled client/DOM interfaces. Hosted HTTP byte, temporary-account, media and stream checks are recorded separately in the release report. Native publication screenshots establish only their captured logged-out desktop state.
 
-See ENCRYPTED-SETUP.md for exact operator settings and acceptance steps.
-
-## Data, operations and identity
-
-Additive 0008_correctness_and_enrollment.sql extends immutable migrations 0000–0007
-to 56 application tables. It adds revision/ownership safeguards, immutable mentions,
-private bookmarks and snapshots, enrollment metadata and notification records.
-Migration tests cover existing histories, duplicate owners, quarantine without
-invented membership, audited native-group succession and no notification backfill.
-Fresh local workerd D1 and foreign-key checks are part of verification.
-
-Argon2id passwords, secure revocable native sessions, CSRF, server permissions,
-passkeys and verified-owner bootstrap are retained. @xrp remains an identity hint,
-not proof; no owner is bound by matching that handle. Google/email integrations
-still need real provider credentials. Native login works independently.
-
-Account deletion clears newly private bookmarks, snapshots and push subscriptions,
-removes native membership and anonymizes retained authors under the existing
-credential guard. Legitimate recipient history can remain. Matrix account/token
-lifecycle is separate; it is not falsely described as deleted remotely.
-
-Encrypted SQLite backup/restore verification covers the current schema and native/
-community history. Hosted D1 export, backup scheduling and isolated provider
-restoration still require infrastructure access. A blind rollback to an older
-Worker is unsafe after credential/schema changes; prefer a compatible roll-forward.
-
-## Intentionally unfinished or unverified
-
-- Real Matrix provisioning, policy reconciliation, UIA compatibility and complete
-  two-user/multi-device encrypted acceptance; encrypted-by-default remains off.
-- Real Google/email provider acceptance and verified owner binding.
-- Physical browser push permission/background delivery and an independent retry
-  scheduler; generic native push does not provide Matrix push integration.
-- Full-history encrypted local indexing, native media/voice uploads, avatar/banner
-  file upload/cropping, complete windowed long-history rendering and account-wide
-  data export beyond current explicit recovery/export tools.
-- Calls, video and screen sharing with actual signaling/TURN/media architecture.
-- Real phone keyboard, 320/375/390/768/1024/1440-pixel viewports, zoom, touch and screen
-  reader acceptance. Supported interactive browser controls are unavailable.
-  Authenticated/mobile/admin screenshots are not fabricated.
-- Production backup retention/restore proof and qualified integration review.
-
-The release report lists exact executed tests and live checks. Local SQLite,
-cryptographic primitive tests, controlled SDK/DOM tests, hosted screenshots,
-HTTP smoke checks and physical-device acceptance remain distinct evidence.
+No interactive browser tool was available during this upgrade. Physical phone keyboards, real font zoom/screen readers, real microphone/crop controls, authenticated mobile screenshots, real push receipt while closed, Matrix two-device acceptance and an external independent security audit are not claimed. Calls/video/screen sharing remain unavailable until real signaling, STUN/TURN and cross-network acceptance exist.

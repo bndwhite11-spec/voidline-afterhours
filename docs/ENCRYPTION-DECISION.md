@@ -75,8 +75,10 @@ that gap as a completed encrypted exchange or a security audit.
   source membership, encryption and authenticity. Deleted/revoked sources are
   unavailable. Encrypted Matrix Saved validates a self-only private room and
   does not create one merely because an empty Saved screen was opened.
-- Search filters only loaded, decrypted history on this device. It does not
-  upload plaintext or claim to cover unloaded history. The dedicated local Saved
+- Search starts with loaded decrypted history and can explicitly build a
+  bounded, encrypted local index through SDK history pagination. It reports
+  partial coverage/missing keys and does not upload plaintext. Thread-only
+  history is excluded; reconnect invalidates a complete-coverage claim. The dedicated local Saved
   tool works without Matrix and states explicitly that its encrypted notes do
   not sync to other devices.
 - Encrypted invitations have explicit list/preview/accept/decline/block APIs.
@@ -186,8 +188,10 @@ The following are **not implemented merely by supplying credentials**:
 - Private-community/channel permissions and native friend/block controls mapped
   to independent Matrix identities/spaces/rooms, and the existing D1 community
   service migrated to the encrypted transport.
-- A protected full-history search index. Current search honestly covers loaded
-  decrypted messages only; drafts/outbox are already encrypted and persistent.
+- Complete private-search parity: the bounded encrypted local index does not
+  include thread-only history. Old remote edits/redactions outside downloaded
+  or synchronized history may remain cached until source refresh. Full-history
+  device/performance acceptance is outstanding.
 - Homeserver media retention and deletion administration. Redacting a message
   does not promise deletion of an uploaded object. Interrupted uploads can leave
   unreferenced ciphertext, and automatic cleanup requires homeserver controls.
@@ -274,3 +278,21 @@ affects versions through 45.0.0 and identifies 45.1.0 as patched. The current
 pinned SDK source and [Matrix UIA fallback specification](https://spec.matrix.org/latest/client-server-api/#fallback)
 were consulted for these changes. This check is not a claim that every
 dependency or the completed integration has received an independent audit.
+
+
+## v17 lifecycle additions
+
+Native-password changes now stage an encrypted v2 credential envelope before
+the server mutation and commit/abort/retain it according to the actual outcome.
+A stable crypto-store password inside that envelope preserves existing Rust
+keys; v1 devices migrate without changing their derived crypto-store key.
+Explicit approved tab handoff flushes drafts and stops/releases the sole writer
+before another tab can acquire it. No credentials cross BroadcastChannel.
+
+A durable, leased Synapse admin operation queue covers verified account
+suspension/deactivation and session-linked device revocation, with bounded
+retries, safe errors and audit receipts. Native-community room mapping and
+native blocks remain separate; no service is configured and readiness remains
+false. These additions have controlled SDK/API and real WebCrypto/SQLite tests,
+not physical-device or production E2EE acceptance. See ENCRYPTED-SETUP.md for
+current official endpoints, review date, configuration and operating limits.

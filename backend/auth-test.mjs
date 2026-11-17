@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
+import {createHash} from 'node:crypto';
+import {createMatrixPolicyService} from '../worker/matrix-policy.mjs';
 import {createAuthService,authHash,normalizeUsername} from '../worker/auth.mjs';
 
 const origin='https://voidline.example',PASSWORD='A private midnight password 7';
@@ -80,6 +82,34 @@ test('account deletion refuses owned servers and clears social and gift metadata
 
 test('expired sessions cannot access account data',async()=>{
  const f=fixture();try{const a=await f.register();f.advance(8*24*60*60000);assert.equal((await f.call('/api/auth/session',{browser:a.browser})).status,401);}finally{f.sqlite.close();}
+});
+
+function linkMatrix(f,a){const subject='v_'+createHash('sha256').update(a.session.account.id).digest('hex');f.sqlite.prepare('INSERT INTO matrix_account_links(account_id,matrix_user_id,matrix_subject,homeserver_origin,verified_at,created_at) VALUES(?,?,?,?,?,?)').run(a.session.account.id,'@'+subject+':matrix.example',subject,'https://matrix.example',f.time,f.time);}
+test('password change preserves the confirmed current crypto device while durably queueing all revoked old sessions',async()=>{
+ const f=fixture();try{const a=await f.register(),other=await f.login();linkMatrix(f,a);const currentIssue=crypto.randomUUID(),otherIssue=crypto.randomUUID(),pendingIssue=crypto.randomUUID();for(const [id,session,state,device]of [[currentIssue,a.session.session.id,'confirmed','CURRENT_DEVICE'],[otherIssue,other.session.session.id,'confirmed','OTHER_DEVICE'],[pendingIssue,a.session.session.id,'pending',null]])f.sqlite.prepare('INSERT INTO matrix_enrollment_issues(jti,account_id,session_id,state,matrix_device_id,created_at,expires_at) VALUES(?,?,?,?,?,?,?)').run(id,a.session.account.id,session,state,device,f.time,f.time+60000);
+  assert.equal((await f.mutation(a,'/api/auth/password/change',{currentPassword:'wrong password value',newPassword:'Another changed private password 9'})).status,401);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,0);
+  f.advance(1);const response=await f.mutation(a,'/api/auth/password/change',{currentPassword:PASSWORD,newPassword:'Another changed private password 9'});assert.equal(response.status,200);const changed=await response.json();assert.equal(f.sqlite.prepare('SELECT session_id FROM matrix_enrollment_issues WHERE jti=?').get(currentIssue).session_id,changed.session.id);assert.equal(f.sqlite.prepare('SELECT session_id FROM matrix_enrollment_issues WHERE jti=?').get(pendingIssue).session_id,a.session.session.id);const ops=f.sqlite.prepare('SELECT * FROM matrix_policy_operations').all();assert.equal(ops.length,2);assert.ok(ops.every(op=>op.kind==='logout_session'&&op.status==='pending'));assert.deepEqual(new Set(ops.map(op=>op.subject_id)),new Set([a.session.session.id,other.session.session.id]));assert.ok(!ops.some(op=>op.subject_id===changed.session.id));
+ }finally{f.sqlite.close();}
+});
+test('a lost password-change credential CAS cannot move a crypto mapping, revoke a session or enqueue policy',async()=>{
+ const f=fixture();try{const a=await f.register(),other=await f.login();linkMatrix(f,a);const issue=crypto.randomUUID();f.sqlite.prepare("INSERT INTO matrix_enrollment_issues(jti,account_id,session_id,state,matrix_device_id,created_at,expires_at) VALUES(?,?,?,'confirmed','CURRENT_DEVICE',?,?)").run(issue,a.session.account.id,a.session.session.id,f.time,f.time+60000);
+  const originalBatch=f.env.DB.batch.bind(f.env.DB);let intercepted=false;f.env.DB.batch=statements=>{if(!intercepted){intercepted=true;f.sqlite.prepare('UPDATE auth_credentials SET change_marker=? WHERE account_id=?').run('concurrent-credential-change',a.session.account.id);}return originalBatch(statements);};
+  const result=await f.mutation(a,'/api/auth/password/change',{currentPassword:PASSWORD,newPassword:'Losing password change private value 9'});assert.equal(result.status,409);assert.equal(result.headers.getSetCookie().length,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,0);assert.equal(f.sqlite.prepare('SELECT session_id FROM matrix_enrollment_issues WHERE jti=?').get(issue).session_id,a.session.session.id);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_sessions WHERE revoked_at IS NOT NULL').get().n,0);assert.equal((await f.call('/api/auth/session',{browser:other.browser})).status,200);
+ }finally{f.sqlite.close();}
+});
+test('password-change policy retries a late old-session enrollment without deleting the preserved confirmed current device',async()=>{
+ const f=fixture();try{const a=await f.register(),other=await f.login();linkMatrix(f,a);const subject='v_'+createHash('sha256').update(a.session.account.id).digest('hex'),user='@'+subject+':matrix.example',currentIssue=crypto.randomUUID(),lateIssue=crypto.randomUUID(),otherIssue=crypto.randomUUID();
+  for(const [id,session,state,device]of [[currentIssue,a.session.session.id,'confirmed','CURRENT_DEVICE'],[otherIssue,other.session.session.id,'confirmed','OTHER_DEVICE'],[lateIssue,a.session.session.id,'pending',null]])f.sqlite.prepare('INSERT INTO matrix_enrollment_issues(jti,account_id,session_id,state,matrix_device_id,created_at,expires_at) VALUES(?,?,?,?,?,?,?)').run(id,a.session.account.id,session,state,device,f.time,f.time+60000);
+  const devices=new Set(['CURRENT_DEVICE','OTHER_DEVICE','LATE_DEVICE']),deleted=[];Object.assign(f.env,{MATRIX_HOMESERVER:'https://matrix.example',MATRIX_SERVER_NAME:'matrix.example',MATRIX_ADMIN_TOKEN:'fixture-admin-token-only'});
+  const policy=createMatrixPolicyService({now:()=>f.time,fetcher:async(url,options)=>{const path=decodeURIComponent(new URL(url).pathname);if(path.endsWith('/delete_devices')){const ids=JSON.parse(options.body).devices;deleted.push(...ids);for(const id of ids)devices.delete(id);return Response.json({});}if(path.endsWith('/devices'))return Response.json({devices:[...devices].map(device_id=>({device_id})),total:devices.size});return Response.json({name:user,admin:false,deactivated:false});}});
+  f.advance(1);assert.equal((await f.mutation(a,'/api/auth/password/change',{currentPassword:PASSWORD,newPassword:'Durably preserve my current device 9'})).status,200);const first=await policy.drainMatrixPolicy(f.env);assert.equal(first.completed,1);assert.equal(first.retrying,1);assert.ok(devices.has('CURRENT_DEVICE'));assert.ok(devices.has('LATE_DEVICE'));assert.ok(!devices.has('OTHER_DEVICE'));
+  f.sqlite.prepare("UPDATE matrix_enrollment_issues SET state='revocation_unknown',matrix_device_id='LATE_DEVICE' WHERE jti=?").run(lateIssue);f.advance(30001);assert.equal((await policy.drainMatrixPolicy(f.env)).completed,1);assert.deepEqual([...devices],['CURRENT_DEVICE']);assert.deepEqual(new Set(deleted),new Set(['OTHER_DEVICE','LATE_DEVICE']));
+ }finally{f.sqlite.close();}
+});
+test('recovery replay cannot enqueue a second remote logout and account deletion durably queues remote deactivation',async()=>{
+ const f=fixture();try{const a=await f.register();linkMatrix(f,a);const recovery={username:'night_one',recoveryCode:a.session.recoveryCode,password:'Recovered remote private password 9'},browser=jar(),response=await f.call('/api/auth/recover',{browser,body:recovery});assert.equal(response.status,200);const recovered={browser,session:await response.json()};assert.equal((await f.call('/api/auth/recover',{body:recovery})).status,401);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM matrix_policy_operations WHERE kind='logout_all'").get().n,1);
+  assert.equal((await f.mutation(recovered,'/api/auth/account/delete',{password:recovery.password})).status,200);const op=f.sqlite.prepare("SELECT kind,status FROM matrix_policy_operations WHERE kind='delete'").get();assert.deepEqual({...op},{kind:'delete',status:'pending'});assert.equal(f.sqlite.prepare('SELECT account_status FROM live_accounts WHERE id=?').get(a.session.account.id).account_status,'deleted');
+ }finally{f.sqlite.close();}
 });
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${tests.length-failed}/${tests.length} native account/session checks passed against migrated SQLite, real Argon2id and legacy WebCrypto verification.`);process.exitCode=failed?1:0;

@@ -1,33 +1,32 @@
-# Coverage of the supplied nineteen-section review
+# Coverage of the current 24-section brief
 
-The full source brief is VOIDLINE-MEGA-IMPROVEMENT-6.txt. This table records
-implementation boundaries, not inferred successful infrastructure tests.
+The exact brief is `VOIDLINE-MEGA-IMPROVEMENT-7.txt`. Implementation and controlled tests are separate from installed services, hosted checks, browser/device acceptance and external security review. See the release report for observed production results.
 
-| Review area | Current result | Remaining work or proof |
+| Area | Implemented result | Remaining evidence/dependency |
 | --- | --- | --- |
-| 1. Preserve foundation | Existing native identity, Argon2id, sessions, permissions, histories and legitimate cosmetics retained. Authored dist source and applied migrations preserved. | Qualified production security review. |
-| 2. Specific correctness | Owner CAS/invariants/quarantine; monotonic message/bookmark revisions; group blocking semantics; viewport/focus read action; bounded catch-up; stable account-wide filter snapshots; immutable mentions. | Real-browser timing and long-history acceptance. |
-| 3. Ordinary encrypted journey | Native-account gateway, reserved immutable subject mapping, dedicated device, ordinary-password encrypted local enrollment, accepted-friend lookup. | No homeserver exists. Operator setup, real-service acceptance and server-side policy reconciliation; encrypted-by-default remains disabled. |
-| 4. Invitations/devices | Preview/accept/decline/ignore, invite/cancel/leave/remove, named device verification and revocation UI, separate account/device lifecycle. | Real Matrix permission/device/key-delivery tests. Native restrictions do not automatically revoke independent Matrix access. |
-| 5. Resumable recovery | Encrypted local journal, explicit stages, pending public-signing retry, supported UIA callback, backup/key preservation, verified restore state distinct from setup. | Actual provider UIA and second-device recovery. JWT login alone does not supply every UIA stage. |
-| 6. Crypto boundary | Maintained SDK/Rust and attachment format preserved; no plaintext fallback; backup DELETE guard; explicit metadata and browser endpoint trust. | Independent cryptographic integration review and real service/device evidence. |
-| 7. Search/notifications/moderation | Full-history authorized Standard search, loaded encrypted search, generic opt-in Web Push implementation and selected-evidence reports. | Full encrypted local index; real opted-in browser delivery; Matrix push/moderation integration and independent queue scheduling. |
-| 8. Everyday interface | Compact familiar navigation, privacy-aware rows with previews/time/draft/security state, reusable avatars/profile cards, content-free activity refresh. | Resizable panels and measured wide-screen/device refinement. |
-| 9. Timeline/composer | Keyed native updates, preserved unaffected focus/selection, IME/autogrow, pending/server acceptance, replies/edit/delete/reactions/save/report and catch-up. | Windowed virtualization; ordered multi-item native outbox. Current native flow permits one unconfirmed send per conversation. |
-| 10. Groups/communities/activity | Native management/transfer/leave, scoped community owner/moderator operations and audit, accurate counts with stable paged cohorts and first-page liveness. | Additional role/category/private-channel policies, authenticated streaming, complete Matrix membership reconciliation. |
-| 11. Profiles/collectibles | Existing 21 decorations, 12 gifts, earned awards, genuine ownership/privacy and accepted transfers preserved; consistent profile art reused. | Avatar/banner file upload/cropping and optional frames/nameplates/effects after infrastructure/UX acceptance. |
-| 12. Sign-in/recovery copy | Useful native login, provider-gated Google, public help/privacy/recovery/product rules, empty onboarding, brief skippable intro. | Google/email provider credentials and actual provider-flow acceptance. |
-| 13. Mobile/accessibility | Existing responsive/contrast/focus/reduced-motion rules retained; keyed UI and controlled DOM tests improve focus stability. | Real widths, phone keyboard, touch, zoom and screen-reader tests; no fabricated acceptance. |
-| 14. Saved/export/deletion | Unified labeled scopes, private synced native bookmarks and permission-aware source loss, cleanup of new private records on account deletion. | Full account-data export and chosen encrypted export format beyond current recovery tools; hosted backups and restore proof. |
-| 15. Administration | Immutable owner/passkey proof, independent API checks, audit, suspension and credential secrecy preserved; configuration health expanded. | Actual intended-owner binding, service-level Matrix revocation and complete operational acceptance. |
-| 16. Media/calls | Existing maintained encrypted attachment/voice adapter preserved, integrity/cancellation tests retained. | Operated encrypted media tests, native uploads, calls/video/screen share with real signaling/TURN/media infrastructure. |
-| 17. Maintainability/performance | Dedicated enrollment and notification modules, bounded snapshots/catch-up/queues, locked dependencies and additive migrations. | Further home-module extraction, cache/windowing measurements and representative-device profiling. |
-| 18. Proof | Actual migrated SQLite, workerd D1, crypto, controlled transport/DOM, restore and isolated live HTTP checks are reported separately. | Two real browser profiles plus another device, live Matrix, push receipt, physical accessibility and authenticated screenshots. |
-| 19. Delivery | Existing public Site and GitHub source updated through exact-commit packaging and versioned publication. | Provider setup and the explicitly listed follow-on milestones. |
+| 1. Actual project | v16 source/deployment audit; existing identity/history/ownership and immutable migrations retained. | External production security review. |
+| 2. Visual language | Shared charcoal/violet semantic tokens, scaled type, explicit states. | Actual rendered multi-size/zoom acceptance. |
+| 3. Entry/sign-in | Refined restrained chrome intro, immediate native forms; maintained auth protections. | Real Google client/callback and verified-email service configuration/delivery. |
+| 4. Navigation | Bounded pointer/keyboard resizer, consistent previews, existing filters/folders/direct links retained. | Physical touch/keyboard and broad encrypted navigation acceptance. |
+| 5. Empty account | Zero fabricated memberships/messages/friends/unreads/ownership preserved. | Ongoing hosted registration regression checks. |
+| 6. Reliability | Authenticated revision SSE hints, resume/watchdog fallback, durable ordered Standard outbox. | Real browser/tab/network acceptance; hosted transport recorded separately. |
+| 7. Timeline/composer | Standard measured history window, anchors, grouping, replies, stable actions and rapid queueing. | Real large-history scrolling/selection/IME and software-keyboard testing; encrypted windowing parity. |
+| 8. Management | Existing server-enforced creation/invites/roles/owner CAS/groups/moderation retained; actual media permissions integrated. | New category/private-channel ACL expansion is not implemented. |
+| 9. Profiles | Real private avatar/banner storage, local crop/preview/reset/save, reusable profile rendering and earned art. | Browser file-picker/Canvas/touch and rich profile optical review. |
+| 10. Badges | Preserved21 IDs; dedicated mini/large material art, earned art and real role distinction. | Browser optical judgment at all sizes. |
+| 11. Gifts | Preserved12 objects; distinct material art, container grid, server-confirmed receipts, existing transfer/grant rules. | Physical mobile unwrap/inspection acceptance. |
+| 12. Motion | Object-specific optional replay, static default, app/OS reduced motion, offscreen stop. | Actual animation performance and screenshot proof. |
+| 13. Accessibility | Document-wide preference scope, semantic contrast checks, scaled external panels, keyboard resizer. | Real zoom/screen-reader/modal/browser acceptance. |
+| 14. E2EE architecture | Maintained Matrix/Rust foundation, strict no-fallback, honest state and supported lifecycle queue. | No homeserver; operated enrollment/namespace/service policy and two-device acceptance. |
+| 15. Keys/recovery | Stable-key password-envelope migration, staged crash recovery, deliberate writer handoff and key-preserving existing recovery. | Real provider UIA, device trust/revocation and encrypted-history recovery. |
+| 16. Secondary content | Existing maintained encrypted attachments kept separate; new Standard media explicitly service-readable. | Actual encrypted media/device tests; unsupported thread-only index coverage remains excluded. |
+| 17. Auth/admin | Native Argon2id/session/CSRF/revocation and immutable owner guard retained; Matrix queue/audit health. | Verified native owner binding/passkey; Google/email settings; external review. |
+| 18. Search/notifications/reports | Authorized Standard search retained; bounded local encrypted index with coverage; operator queue writer; existing reviewed disclosures. | Connected independent scheduler/closed-browser receipt, Matrix push and complete private history coverage. |
+| 19. Mobile/performance | Responsive source/container rules; native timeline window; encryption remains lazy; coherent modules extracted. | Actual 320/375/390/768/1024/1440px browser/device, transfer/latency/memory measurements. |
+| 20. Calling | No fabricated call state exposed. | Real signaling, devices, STUN/TURN/media service and cross-network acceptance. |
+| 21. Data lifecycle | Seven scoped plaintext exports, media expiry/delete queue, protected hosted snapshot writer and isolated restore tool, queued remote lifecycle. | Verified unattended backup execution/key retention, R2 object backup and real provider restoration drill. |
+| 22. Phases | Independent foundations/product/security/operations changes implemented in the existing architecture. | External service/device gates remain explicitly open. |
+| 23. Observable tests | Migrated DB, actual local runtime/storage, cryptography, controlled transport/client suites; separate hosted release checks. | Physical multi-device/security audit acceptance. |
+| 24. Handoff | Matching source/downloads, architecture and setup docs, preserved full brief, evidence/limitations report. | Never infer provider or device success from source or publication alone. |
 
-The service distinguishes Standard server-readable text, Matrix message E2EE,
-local encrypted storage, account authentication and encrypted operator backups.
-None is a substitute for the others. The user confirmed no homeserver exists;
-a configured service and policy integration are prerequisites to private E2EE
-becoming the default. Starting an encrypted room will not retroactively erase
-old plaintext from recipients, exports or backups.
+Standard message text and its durable device queue are readable by their respective service/device boundaries. HTTPS, server authorization, password hashing, encrypted local storage, end-to-end message encryption and encrypted operator backups are different protections. Later E2EE does not retroactively remove plaintext from recipients, exports or backups.

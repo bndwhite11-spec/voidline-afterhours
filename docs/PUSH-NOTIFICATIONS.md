@@ -65,9 +65,12 @@ before submitting encrypted bytes. HTTP201/202 records provider acceptance;
 Five unsuccessful attempts become terminal rather than pretending to retry
 forever. Processed event/delivery metadata is pruned after seven days.
 
-This release has no independent scheduled queue runner. Pending retries resume
-on later authenticated app traffic; a fully idle service can delay them. A
-provider accepting a request before the Worker loses its acknowledgment can
+An independently callable, operator-restricted Site MCP runner now exposes
+`process_queues`; see OPERATIONS.md for its authenticated boundary and linked
+scheduler setup. Its source alone does not establish a connected scheduler or
+a successful unattended run. Until a verified schedule is installed, pending
+retries resume on later authenticated app traffic and a fully idle service can
+delay them. A provider accepting a request before the Worker loses its acknowledgment can
 still result in another transport attempt. Stable notification tags allow the
 browser to replace repeated presentation, but exactly-once device display is
 not promised. Operational scheduling is a separate deployment capability.

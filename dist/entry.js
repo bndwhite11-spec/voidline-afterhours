@@ -14,6 +14,7 @@
 
   function bypass() {
     if (document.documentElement.dataset.offline === 'true' || location.protocol === 'file:') return true;
+    if (window.VoidTheme?.state?.().effectiveReducedMotion || document.documentElement.classList?.contains('vh-reduced-motion')) return true;
     const route = location.pathname + location.search + location.hash;
     if (/\/(?:api\/auth|auth\/callback|oauth\/callback)(?:\/|\?|$)/i.test(route) || /(?:[?#&])(?:verify-email|reset-password|code|oauth_state|auth_error)=/i.test(route)) return true;
     try { if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true; } catch (_) { /* A bounded static fallback still works. */ }
@@ -39,6 +40,7 @@
     clearTimers(); observer?.disconnect(); observer = null;
     window.removeEventListener('voidline:home-ready', inspect);
     window.removeEventListener('pagehide', pagehide);
+    window.removeEventListener('voidline:theme', themechange);
     document.removeEventListener('keydown', keydown);
     document.removeEventListener('focusin', focusin);
     document.removeEventListener('visibilitychange', visibility);
@@ -82,6 +84,7 @@
     // Keyboard navigation may leave the introduction; it must never be trapped.
     if (active && !overlay?.contains(event.target) && event.target !== document.body && event.target !== document.documentElement) dismiss({immediate:true});
   }
+  function themechange(event) { if (event.detail?.effectiveReducedMotion) dismiss({immediate:true}); }
   function pagehide() { restoreRequested = false; cleanup(); }
   function visibility() { if (document.hidden) { restoreRequested = false; cleanup(); } }
 
@@ -106,6 +109,7 @@
     root.inert = true;
     window.addEventListener('voidline:home-ready', inspect);
     window.addEventListener('pagehide', pagehide);
+    window.addEventListener('voidline:theme', themechange);
     document.addEventListener('keydown', keydown);
     document.addEventListener('focusin', focusin);
     document.addEventListener('visibilitychange', visibility);

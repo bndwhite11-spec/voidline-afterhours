@@ -15,7 +15,11 @@ The original Chrome Rose, Midnight Tape, Pocket Star, Afterhours Cup, Paper
 Ghost and Small Surprise remain. The collection adds Chrome Seraph, Obsidian
 Key, Broken Halo, Midnight Orchid, Sealed Signal and Afterhours Ticket. Each has
 an original SVG silhouette, controlled material palette and larger inspection
-view. These are digital cosmetics, not financial assets or physical goods.
+view. The v17 artwork is authored in `dist/collectible-art.js`: brushed metal,
+translucent glass, enamel, ceramic and folded paper have different shading and
+internal structure. The 20px icons have their own simplified paths rather than
+scaled-down inspection illustrations. Medium profile and large detail art share
+object proportions and contact-shadow placement. These are digital cosmetics, not financial assets or physical goods.
 
 ## Crypto culture and internet meme collections
 
@@ -91,8 +95,16 @@ Private gift notes are unavailable. The UI says so, and the server refuses a
 nonempty note with `private_note_unavailable`; plaintext notes never enter D1.
 No message-content E2EE claim applies to gift metadata. An encrypted note can
 be added later through an actual protected conversation, without weakening this
-boundary. Gift opening is static by default, with an explicitly requested brief
-effect, a reduced-motion equivalent and no sound.
+boundary. Gift opening is static by default. A collected receipt is shown only when the
+acceptance response confirms `handled: true` and the exact owned instance;
+transfer receipts also require the accepted transfer state. Optional replay
+lasts at most 1.25 seconds, has no sound, and stops when offscreen, hidden,
+replaced, locked or reduced motion is enabled. App and OS reduced-motion
+preferences independently suppress the effect. Named internal groups provide
+cassette reel/tape movement, a rose highlight, cup steam, paper folds/expression,
+key glint, orchid opening, signal pulse and package lid/reveal. The remaining
+four objects have crystal light, seraph wings, a halo glint and a ticket clip.
+There is no shared whole-object wobble or animation alongside every message.
 
 ## Storage and preservation
 
@@ -146,7 +158,11 @@ The initial earned rules are:
 - **Community Contribution**: the verified platform owner reviews an actual
   contribution and records a reason. Ordinary accounts cannot mint it.
 
-The badge directory shows requirements, issue date, issuer and validity.
+The badge directory and its inspection view show requirements, issue date,
+issuer and validity from server records. Profile Authored uses a framed document
+and pencil; Community Contribution uses a review medallion and ribbon. They no
+longer reuse the Angel or Voidwalker decorations. Role and security indicators
+remain separate from both achievements and collectibles.
 Changing local storage, equipping free artwork or submitting a profile role
 field cannot create an award. The platform owner indicator reads only the
 trusted `platform_owner` account-ID binding. A matching username or display
@@ -169,9 +185,11 @@ Focused checks:
 - `node backend/profiles-test.mjs`: 8 real SQLite/session checks for profile
   privacy, authoritative rule awards, revocations, display slots, failed writes,
   trusted owner indicators and sender disclosure.
-- `node tests/voidline-cosmetics-test.cjs`: 12 controlled client checks for
+- `node tests/voidline-cosmetics-test.cjs`: 21 controlled client checks for
   review/confirmation, truthful receipts, retries, transfers, showcase requests,
-  account isolation and distinct vector silhouettes.
+  account isolation, optical variants, accepted-instance receipts, named object
+  layers, app/OS reduced motion, offscreen/background cancellation, restored
+  filter/scroll state and well-formed XML for all 70 SVG variants.
 - `node tests/voidline-profile-panel-test.cjs`: 7 controlled client checks for
   escaped rendering, failed/delayed saves, retained drafts, badge visibility
   and account switching.
@@ -194,3 +212,29 @@ suspension, showcase and privacy checks remain.
 collected counts, no mutation from browsing, category isolation after account
 switch, inspect meaning, and all 21 distinct badge silhouette paths. These are
 VM/transport tests, not browser rasterization or production account screenshots.
+
+
+## v17 collection layout and verification boundary
+
+Collections use a purpose-built shared modal up to 1040 CSS pixels wide. A named
+inline-size container and an auto-fill grid select columns from the panel’s
+available width, including when the surrounding viewport is much wider. Narrow
+panels switch to one-column horizontal cards. Cards keep the name, material,
+ownership and action; full meaning, acquisition and ownership provenance live
+in inspection. Back from inspection preserves the current series filter and
+scroll position within this account. Lock/account changes clear those positions.
+
+Every UI text/surface uses the shared semantic theme tokens and relative font
+scale, including this external dialog. Controls have visible focus and at least
+44px height. The theme’s measured text-token contrast applies to these shared
+roles. Artwork keeps its deliberately controlled material palette and textual
+meaning beside it; art colors alone do not communicate ownership or validity.
+
+The focused client suite uses VM DOM/transport and XML parsing. It establishes
+state changes, guards, structure and cancellation paths, not actual responsive
+rendering, SVG rasterization, modal focus trapping or assistive-technology
+behavior. The available ImageMagick installation lacked its `rsvg-convert`
+delegate, so an attempted standalone art contact-sheet rasterization did not
+complete. No browser or mobile screenshot is claimed from that attempt. Real
+browser layout, optical sharpness, 200% zoom and physical-device motion checks
+remain release acceptance work.
