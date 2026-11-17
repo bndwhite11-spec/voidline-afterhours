@@ -8,16 +8,16 @@ const {harness}=require('./voidline-v2-test.cjs');
 const source=fs.readFileSync(path.join(__dirname,'../dist/badges.js'),'utf8');
 function fixture(initial={}){
   let card=null,html='',result=true,saves=0,modalOpen=false,timerId=0;
-  const nodes=[],listeners={},events=[],toasts=[],revealed=[],timers=new Map();
+  const nodes=[],listeners={},events=[],toasts=[],revealed=[],openedContributions=[],timers=new Map();
   const state={profile:{badge:'larp'},settings:{motion:false},artifacts:{larp:{earnedAt:null,legacy:true}},artifactInspected:['larp'],...initial};
   let metrics={};
   function node(){return {id:'',className:'',innerHTML:'',listeners:{},classList:{add(){}},setAttribute(){},addEventListener(type,fn){this.listeners[type]=fn;},contains(){return false;},remove(){if(card===this)card=null;}};}
   const document={body:{appendChild(n){if(n.id==='va-mini-sprite')nodes.push(n);else{card=n;revealed.push(n.innerHTML);}}},createElement:node,createElementNS:node,getElementById:id=>nodes.find(n=>n.id===id)||null,querySelector:q=>q==='dialog[open]'?(modalOpen?{}:null):q==='.va-acquisition'?card:null,addEventListener(type,fn){listeners[type]=fn;},activeElement:null};
   const window={matchMedia:()=>({matches:false}),dispatchEvent:e=>events.push(e)};
   vm.runInNewContext(source,{window,document,Intl,Date,Object,Array,String,Number,Math,Set,Map,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout(fn,delay){timers.set(++timerId,{fn,delay});return timerId;},clearTimeout:id=>timers.delete(id)},{filename:'badges.js'});
-  const api={state,getStats:()=>metrics,persist(){saves++;return result;},modal(v){html=v;},refresh(){},toast(v){toasts.push(v);}};
+  const api={state,getStats:()=>metrics,persist(){saves++;return result;},modal(v){html=v;},refresh(){},toast(v){toasts.push(v);},openContribution(id){openedContributions.push(id);}};
   window.VoidBadges.init(api);
-  return {badges:window.VoidBadges,state,nodes,events,toasts,revealed,timers,listeners,get html(){return html;},get saves(){return saves;},get card(){return card;},set metrics(v){metrics=v;},set saveResult(v){result=v;},set modalOpen(v){modalOpen=v;},click(dataset,attrs=[],sample=false){const button={dataset,hasAttribute:k=>attrs.includes(k),closest:q=>sample&&q==='.va-sample-context'?{}:null};listeners.click({target:{closest:()=>button},preventDefault(){}});},run(delay){const t=[...timers].find(([,v])=>v.delay===delay);assert.ok(t,'Expected timer '+delay);timers.delete(t[0]);t[1].fn();}};
+  return {badges:window.VoidBadges,state,nodes,events,toasts,revealed,openedContributions,timers,listeners,get html(){return html;},get saves(){return saves;},get card(){return card;},set metrics(v){metrics=v;},set saveResult(v){result=v;},set modalOpen(v){modalOpen=v;},click(dataset,attrs=[],sample=false){const button={dataset,hasAttribute:k=>attrs.includes(k),closest:q=>sample&&q==='.va-sample-context'?{}:null};listeners.click({target:{closest:()=>button},preventDefault(){}});},run(delay){const t=[...timers].find(([,v])=>v.delay===delay);assert.ok(t,'Expected timer '+delay);timers.delete(t[0]);t[1].fn();}};
 }
 const full={ownMessages:40,channelsUsed:6,attachments:3,replies:10,pins:3,customServers:1,customChannels:3,profileComplete:true};
 const tests=[];
@@ -63,6 +63,23 @@ test('recovery reveal accepts only committed ownership and performs no write or 
   f.badges.revealCommitted(['angel','invalid']);assert.equal(f.card,null);
   f.state.artifacts.angel={earnedAt:Date.now()};f.badges.revealCommitted(['angel','angel','voidwalker']);
   assert.match(f.card.innerHTML,/404 ANGEL/);assert.equal(f.saves,beforeSaves);assert.equal(f.events.length,beforeEvents);assert.equal(f.toasts.length,0);assert.equal(f.badges.has('voidwalker'),false);
+});
+test('catalog purpose classification explains existing records without adding awards or changing onboarding rules',()=>{
+  const f=fixture(),catalog=f.badges.catalog;
+  assert.equal(catalog.length,9);
+  assert.deepEqual([...new Set(catalog.map(b=>b.purpose))].sort(),['community-contribution','edition','onboarding','personal-showcase','starter-identity']);
+  assert.equal(catalog.find(b=>b.id==='night').condition,'Write at least one original message in each of two different channels.');
+  f.badges.open('larp');assert.match(f.html,/WHY THIS RECORD IS HERE/);assert.match(f.html,/Starter identity/);assert.match(f.html,/Every local profile/);
+  f.badges.open('founder');assert.match(f.html,/Edition record/);assert.match(f.html,/available to every profile/);
+  f.badges.open('night');assert.match(f.html,/Onboarding/);assert.match(f.html,/does not measure time of day or attendance at a live event/);assert.doesNotMatch(f.html,/EXAMPLE COMMUNITY STORY/);
+});
+test('sample Night Bus story links a fictional creative object without creating participation or ownership',()=>{
+  const f=fixture(),before=JSON.stringify(f.state),saves=f.saves;
+  f.badges.openFor('pixel',['night'],'pixel','night');
+  assert.match(f.html,/EXAMPLE COMMUNITY STORY \/ SAMPLE RECORD/);assert.match(f.html,/Night Bus/);assert.match(f.html,/Cassette-cover zine \/ listening note/);assert.match(f.html,/Fictional sample/);assert.match(f.html,/not a participation record for your profile/);
+  assert.match(f.html,/Explore the work behind this sample/);assert.doesNotMatch(f.html,/data-vbadge-equip/);
+  f.click({vbadgeContribution:'night-bus'},[],true);assert.deepEqual(f.openedContributions,['night-bus']);
+  assert.equal(f.saves,saves);assert.equal(JSON.stringify(f.state),before);assert.equal(f.badges.has('night'),false);
 });
 let failed=0;for(const [name,run]of tests){try{run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`\n${tests.length-failed}/${tests.length} badge audit checks passed. Browser rasterization and native pointer rendering are not modeled.`);process.exitCode=failed?1:0;

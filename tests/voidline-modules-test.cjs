@@ -28,7 +28,7 @@ test('artifact button event handling persists inspection, equipped badge, schema
   const app=boot({profile:{name:'Ari',avatar:'A',badge:'night'},messages:{'afterhours/general':[sampleMessage('kept','Keep this original message')]}});
   await app.click({vbadge:'night'});assert.match(app.get('modal-content').innerHTML,/3:33 AM/);assert.ok(app.api.state.artifactInspected.includes('night'));assert.equal(app.saved().artifactSchema,1);
   await app.click({vbadgeEquip:'founder'});assert.equal(app.api.state.profile.badge,'founder');
-  app.api.persist();const reloaded=boot(null,app.storage);assert.equal(reloaded.api.state.profile.badge,'founder');assert.ok(reloaded.api.state.artifactInspected.includes('night'));assert.ok(reloaded.api.state.artifactInspected.includes('founder'));assert.equal(reloaded.api.state.artifactSchema,1);assert.equal(messages(reloaded,'afterhours/general')[0].id,'kept');
+  app.api.persist();const reloaded=boot(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(reloaded.api.state.profile.badge,'founder');assert.ok(reloaded.api.state.artifactInspected.includes('night'));assert.ok(reloaded.api.state.artifactInspected.includes('founder'));assert.equal(reloaded.api.state.artifactSchema,1);assert.equal(messages(reloaded,'afterhours/general')[0].id,'kept');
   assert.equal(reloaded.saved().artifactSchema,1);
 });
 
@@ -37,7 +37,7 @@ test('saved appearance applies and real settings events persist toggles',async()
   assert.equal(app.document.documentElement.dataset.theme,'obsidian');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#a9c5bd');assert.equal(app.document.body.dataset.density,'compact');assert.ok(app.document.body.classList.contains('reduce-motion'));assert.ok(app.document.body.classList.contains('members-hidden'));
   app.window.VoidProfiles.settings();await app.submit('vp-settings-form',{theme:'velvet',clientAccent:'iris',motion:'on',memberSidebar:'on'});
   assert.equal(app.api.state.profile.theme,'obsidian');assert.equal(app.api.state.profile.accent,'#112233');assert.equal(app.api.state.settings.theme,'velvet');assert.equal(app.document.documentElement.style.getPropertyValue('--accent'),'#b8add1');assert.equal(app.api.state.settings.compact,false);assert.equal(app.api.state.settings.motion,true);assert.equal(app.api.state.settings.memberSidebar,true);assert.equal(app.document.body.classList.contains('reduce-motion'),false);assert.equal(app.document.body.classList.contains('members-hidden'),false);
-  const reloaded=boot(null,app.storage);assert.equal(reloaded.document.documentElement.dataset.theme,'velvet');assert.equal(reloaded.api.state.settings.memberSidebar,true);
+  const reloaded=boot(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(reloaded.document.documentElement.dataset.theme,'velvet');assert.equal(reloaded.api.state.settings.memberSidebar,true);
 });
 
 test('real profile submit marks customization and unlocks 404 Angel through actual module contract',async()=>{

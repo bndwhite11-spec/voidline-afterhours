@@ -93,3 +93,29 @@ VALIDATION LIMITS
 Client tests use a DOM harness, not a browser renderer. Pointer appearance,
 mobile keyboard, 200% zoom, native microphone/image decoding, and screenshots
 remain unverified in this execution environment. No frame-rate claim is made.
+
+TRUST EDITION
+Navigation is independent in each tab. Conversation and thread drafts, reply
+targets, and pending image/voice attachments survive refresh in the same tab
+when session storage is available. Closing a tab ends that session unless the
+browser restores it. This draft storage does not synchronize to another tab or
+device. A persistent warning, Retry, recovery export and leave-page protection
+appear if a tab cannot store its latest drafts. Draft attachment bytes are
+stored separately so typing does not repeatedly rewrite them.
+
+Read checks run when visible messages enter an active channel, including short
+conversations that cannot scroll. Primary search groups people, channels,
+messages and commands. Fresh general is seeded before creating an empty bucket;
+previously empty archives remain empty. Conversation introductions now update
+with their destination.
+
+The Night Bus sample project gives residents original avatars and inspectable
+contributions: a cassette-cover zine, title rough, map, print variation and an
+optional locally synthesized eight-second audio sketch. All personas and works
+are clearly fictional sample content; opening them grants no achievements.
+Previously stored messages are preserved. The catalogue remains nine artifacts.
+
+See backend/DEPLOYMENT-CHECK.txt for the latest evidence: Worker hosting itself
+is supported, but no D1 binding exists and the required declaration/migration
+pipeline is unavailable here. The private Site and local voice-note scope are
+unchanged. No real shared-message connection is represented as complete.

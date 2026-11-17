@@ -586,3 +586,7 @@ dialog { max-height: min(88dvh,960px); padding: 28px; }
 .avatar-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}.avatar-initials{position:relative}.search-filter-hint{font-size:12px;color:var(--muted);line-height:1.7}.load-history{display:block;padding:12px 18px;font-size:14px;color:var(--accent);margin:8px auto;border:1px solid var(--line);border-radius:8px}.search-highlight{outline:2px solid var(--accent);outline-offset:-2px}.avatar .status-dot{z-index:2}
 
 .motion-suspended *,.motion-suspended *:before,.motion-suspended *:after{animation-play-state:paused!important}.voice-equalizer i{animation:none!important}
+
+.command-group-label{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:12px 10px 6px;text-transform:uppercase}.command-item>span{min-width:0;overflow-wrap:anywhere}.command-item small{font-size:12px;line-height:1.5}.command-item mark{color:var(--text);background:#7d8ca544;border-radius:2px}
+
+.recovery-draft-option{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.6}.recovery-draft-option input{width:20px;height:20px;flex:none}

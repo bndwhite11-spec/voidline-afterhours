@@ -17,7 +17,7 @@ test('failed save preserves composer and does not claim a message was saved',asy
   assert.deepEqual(app.saved(),before,'Last durable archive should stay intact');
   app.context.localStorage.setItem=workingWrite;await app.click({action:'retry-save'});input(app,draft);
   assert.equal(messages(app,'afterhours/general').length,1,'Retry plus resending the preserved draft must not duplicate its message');
-  const reloaded=harness(null,app.storage);assert.equal(messages(reloaded,'afterhours/general').length,1);assert.equal(messages(reloaded,'afterhours/general')[0].text,draft);
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(messages(reloaded,'afterhours/general').length,1);assert.equal(messages(reloaded,'afterhours/general')[0].text,draft);
 });
 
 test('retention preserves root and all 499 children when another message is sent',()=>{
@@ -26,7 +26,7 @@ test('retention preserves root and all 499 children when another message is sent
   const app=harness({messages:{'afterhours/general':[root,...children]}});
   input(app,'A new transmission after the five-hundredth message');
   const list=messages(app,'afterhours/general');assert.ok(list.some(m=>m.id===root.id),'Retention must not strand thread replies by silently discarding their root');assert.equal(list.length,501);
-  const reloaded=harness(null,app.storage);assert.equal(messages(reloaded,'afterhours/general').length,501);assert.ok(messages(reloaded,'afterhours/general').some(m=>m.id===root.id));
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(messages(reloaded,'afterhours/general').length,501);assert.ok(messages(reloaded,'afterhours/general').some(m=>m.id===root.id));
 });
 
 test('a stale tab message does not erase a community and channel created in another tab',()=>{
@@ -45,7 +45,7 @@ test('twenty-fifth imported community is retained or clearly rejected without pa
   const imported={version:2,profile:plain(app.api.state.profile),customServers:[{id:'custom-import-25',name:'Imported twenty-fifth',owner:true,channels:[['general','Imported room'],['announcements','Imported notices']]}],messages:{'custom-import-25/general':[sampleMessage('import-25-message','A message which must stay accessible')]}};
   const before=app.saved();await importArchive(app,imported);
   if(!app.api.state.customServers.some(s=>s.id==='custom-import-25')){assert.match(app.get('toast').textContent,/capacity|24|limit/i,'Capacity rejection must explain the issue');assert.match(app.get('toast').textContent,/unchanged|nothing changed/i);assert.deepEqual(app.saved(),before,'Rejected import must leave all durable data unchanged');assert.ok(!app.api.state.messages['custom-import-25/general'],'Rejected import must not leave orphaned messages');return;}
-  const reloaded=harness(null,app.storage);assert.ok(reloaded.api.state.customServers.some(s=>s.id==='custom-import-25'),'Reload must not silently truncate an accepted imported community');
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.ok(reloaded.api.state.customServers.some(s=>s.id==='custom-import-25'),'Reload must not silently truncate an accepted imported community');
   reloaded.api.changeContext('custom-import-25','general');assert.equal(reloaded.api.state.server,'custom-import-25');assert.equal(messages(reloaded,'custom-import-25/general')[0].id,'import-25-message');
 });
 

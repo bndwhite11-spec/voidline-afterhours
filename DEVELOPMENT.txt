@@ -75,3 +75,63 @@ python3 build_offline.py
 No preview/screenshot or browser performance claim may be inferred from Node
 checks. Use the supported Sites preview when its browser-control tool exists.
 The two-account networked milestone is not complete; see backend/README.txt.
+
+TRUST EDITION / SIX CONFIRMED INTERACTION DEFECTS
+
+9. A tab owns its active destination.
+Cause: shared archive snapshots contained server/channel/reading position and
+replaceState adopted another tab's selection under the current unsent text.
+Fix: ignore those fields in new shared-journal operations. Preserve current
+location while adopting shared data; use drafts.js sessionStorage for tab UI.
+Legacy location fields remain read-only migration hints, not broadcasts.
+Regression: voidline-trust-test, foreign-tab navigation with an unsent draft.
+
+10. Draft text, reply target and attachments survive same-tab refresh.
+Cause: main/thread maps existed only in memory.
+Fix: per-tab session storage holds drafts by conversation and thread root,
+plus active location/reading positions. Attachment bytes are immutable session
+records; typing rewrites small text metadata, not every image/audio byte.
+Only garbage-collect unreferenced media after metadata commits. Failed session
+writes keep memory, show persistent recovery actions and warn on leaving.
+Recovery JSON restores drafts through preview; conflicting current drafts win
+unless the user explicitly chooses replacement. Browser tab close ends this
+session unless the browser itself restores it; this is not cross-device sync.
+Regressions: trust refresh/reply/thread/image/audio/session-quota cases.
+
+11. Read state follows visibility, not a required scroll gesture.
+Cause: scroll/jump handlers were the only triggers; short channels cannot scroll.
+Fix: schedule viewport read checks after opening/restoring a channel, foreign
+content updates, resize/visibility changes, dialog close and entrance finish.
+Skip obscured/hidden views and preserve keyboard focus when unread counts
+refresh navigation. Update community indicators with channel indicators.
+Regression: fully visible short-channel trust case, no synthetic scroll.
+
+12. The primary search fulfills its invitation.
+Cause: command palette searched commands/channels but promised people too.
+Fix: grouped People, Channels, Messages and Commands results with meaningful
+actions and listbox semantics. The advanced message search retains filters.
+Regression: nova is a usable person result in the primary command interface.
+
+13. Absence and intentional emptiness are different states.
+Cause: ensureContext created an empty active bucket before seed tested absence.
+Fix: seed before materializing the active empty bucket. Existing empty arrays
+and all previous user records remain untouched. New sample work rooms can be
+introduced without replacing older conversations.
+Regression: pristine general is populated; intentionally emptied general stays
+empty; prior work/messages survive new community content.
+
+14. Keyed static nodes also need an update path.
+Cause: reconciliation reused 'intro' while only patching message sub-elements.
+Fix: reconcile static-node children as complete static content, retaining the
+specialized stable message/media path for actual messages.
+Regression: trust-reconcile-fixture exercises the real template branch; a keyed
+introduction changes its contents without duplication. This does not pretend
+to be a browser visual test.
+
+CULTURE / SCOPE
+The Night Bus zine, map, type sheet, print variation and opt-in tone study are
+original fictional sample works. They demonstrate distinct residents and a
+conversation about making something. Existing messages are not rewritten.
+Sample profile and artifact story links are read-only and grant no ownership.
+The nine-object catalogue has not grown. Shared-service deployment evidence
+and precise missing dependencies are in backend/DEPLOYMENT-CHECK.txt.

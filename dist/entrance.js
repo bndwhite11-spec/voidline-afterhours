@@ -92,6 +92,7 @@
     if (restoreFocus && wasFocused && active.previousFocus?.isConnected && active.previousFocus !== document.body && !active.previousFocus.inert) active.previousFocus.focus({preventScroll:true});
     if (seen) markSeen();
     if (welcome) announceWelcome();
+    window.dispatchEvent(new CustomEvent('voidline:entered'));
   }
   function phase(label,index) {
     if (!sequence) return;

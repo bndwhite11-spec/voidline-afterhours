@@ -65,8 +65,10 @@
         const target=flatten(encode(candidate)),changes=[];
         for(const [key,value]of target){if(!baseline.has(key)||JSON.stringify(baseline.get(key))!==JSON.stringify(value))changes.push({path:JSON.parse(key),value});}
         for(const key of baseline.keys())if(!target.has(key))changes.push({path:JSON.parse(key),remove:true});
+        // Location/read-position paths from older archives are migration hints only.
+        // They never become new shared operations; active navigation belongs to sessionStorage.
         // Empty container markers must never erase an entity added by another tab.
-        const actual=changes.filter(p=>!(p.remove && baseline.get(JSON.stringify(p.path)) && typeof baseline.get(JSON.stringify(p.path))==='object' && !Array.isArray(baseline.get(JSON.stringify(p.path))) && !Object.keys(baseline.get(JSON.stringify(p.path))).length)).filter(p=>!(p.value && typeof p.value==='object' && !Array.isArray(p.value) && !Object.keys(p.value).length));
+        const actual=changes.filter(p=>!['server','channel','readingPositions'].includes(p.path[0])).filter(p=>!(p.remove && baseline.get(JSON.stringify(p.path)) && typeof baseline.get(JSON.stringify(p.path))==='object' && !Array.isArray(baseline.get(JSON.stringify(p.path))) && !Object.keys(baseline.get(JSON.stringify(p.path))).length)).filter(p=>!(p.value && typeof p.value==='object' && !Array.isArray(p.value) && !Object.keys(p.value).length));
         changesForRetry=actual;const current=read();
         if(!storage.getItem(baseKey))storage.setItem(baseKey,JSON.stringify(current));
         if(actual.length){const id=writer+'-'+(++sequence);const op={schema:3,id,clock:Math.max(Date.now(),clock+1),changes:actual};storage.setItem(opPrefix+id,JSON.stringify(op));clock=op.clock;}

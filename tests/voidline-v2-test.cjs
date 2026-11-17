@@ -10,7 +10,7 @@ const plain = (value) => JSON.parse(JSON.stringify(value));
 const prevent = () => ({preventDefault(){}});
 function harness(initial = {}, storage = new Map(), options = {}) {
   if (initial !== null) storage.set(STORE, typeof initial === 'string' ? initial : JSON.stringify(initial));
-  const nodes = new Map(), docListeners = new Map(), winListeners = new Map();
+  const nodes = new Map(), docListeners = new Map(), winListeners = new Map(), sessionData=options.sessionStorage||new Map(), scheduled=new Map();let timerSerial=0,timerClock=0;
   let document;
   function classes() {
     const set = new Set();
@@ -29,6 +29,7 @@ function harness(initial = {}, storage = new Map(), options = {}) {
     let html='';Object.defineProperty(n,'innerHTML',{get:()=>html,set(value){html=String(value);for(const match of html.matchAll(/<([a-z][a-z0-9-]*)[^>]*\bid="([^"]+)"[^>]*>/gi)){const child=node(match[2],match[1]);child.parentElement=n;if(match[1].toLowerCase()==='textarea'){const tail=html.slice(match.index+match[0].length),body=tail.slice(0,tail.indexOf('</textarea>'));child.value=body.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'\"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');}nodes.set(child.id,child);}n._parseMessages?.();}});
     Object.defineProperty(n,'_parseMessages',{value:()=>{n.messageNodes=[];for(const match of html.matchAll(/<article\b([^>]*)>([\s\S]*?)<\/article>/g)){const row=node('','article');for(const attr of match[1].matchAll(/([\w-]+)="([^"]*)"/g))row.setAttribute(attr[1],attr[2]);row.innerHTML=match[2];row.parentElement=n;n.messageNodes.push(row);}}});
     Object.defineProperty(n,'className',{get:()=>n.classList.toString(),set:value=>n.classList.set(value)});
+    if(options.nodeMetrics?.[id])Object.assign(n,options.nodeMetrics[id]);
     return n;
   }
   const get=(id)=>{if(!nodes.has(id))nodes.set(id,node(id));return nodes.get(id);};
@@ -37,15 +38,17 @@ function harness(initial = {}, storage = new Map(), options = {}) {
   if(options.realModules){const html=fs.readFileSync(SOURCE.replace(/app\.js$/,'index.html'),'utf8');for(const match of html.matchAll(/\bid="([^"]+)"/g))get(match[1]);}
   function dispatchDoc(type,event){return Promise.all((docListeners.get(type)||[]).map(fn=>fn(event)));}
   const moduleCalls={badges:0,appearance:0};
-  const window={crypto:webcrypto,innerWidth:1440,innerHeight:900,matchMedia:query=>({matches:query.includes('min-width')?true:!!options.reducedMotion,addEventListener(){},removeEventListener(){}}),addEventListener(type,fn){addListener(winListeners,type,fn);},dispatchEvent(event){(winListeners.get(event.type)||[]).forEach(fn=>fn(event));return true;},VoidBadges:{catalog:[],init(api){this.api=api;},art:id=>`<span class="test-art">${id||''}</span>`,mini:id=>id?`<span class="test-mini">${id}</span>`:'',checkUnlocks(){moduleCalls.badges++;},open(){}},VoidProfiles:{init(api){this.api=api;},applyAppearance(){moduleCalls.appearance++;},open(){},edit(){},settings(){}},VoidEntrance:{replay(){}}};
-  const context={window,document,localStorage:{get length(){return storage.size;},key:index=>[...storage.keys()][index]??null,getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k),clear:()=>storage.clear()},location:{href:'https://voidline.example/',origin:'https://voidline.example',pathname:'/',protocol:'https:'},navigator:{clipboard:{writeText:async()=>{}}},requestAnimationFrame:fn=>{fn();return 1;},cancelAnimationFrame(){},setTimeout:()=>1,clearTimeout(){},Event,CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},atob:globalThis.atob,btoa:globalThis.btoa,FormData:class {constructor(form){this.values=form.values||{};}get(k){return this.values[k]??null;}getAll(k){return Array.isArray(this.values[k])?this.values[k]:this.values[k]?[this.values[k]]:[];}},Blob,URL,console};
+  const window={crypto:webcrypto,innerWidth:1440,innerHeight:900,matchMedia:query=>({matches:query.includes('min-width')?true:!!options.reducedMotion,addEventListener(){},removeEventListener(){}}),addEventListener(type,fn){addListener(winListeners,type,fn);},dispatchEvent(event){(winListeners.get(event.type)||[]).forEach(fn=>fn(event));return true;},VoidBadges:{catalog:[],init(api){this.api=api;},art:id=>`<span class="test-art">${id||''}</span>`,mini:id=>id?`<span class="test-mini">${id}</span>`:'',checkUnlocks(){moduleCalls.badges++;},open(){}},VoidProfiles:{init(api){this.api=api;},applyAppearance(){moduleCalls.appearance++;},open(){},edit(){},settings(){}},VoidEntrance:{replay(){},skip(){},isPlaying:()=>false}};
+  const sessionAdapter={get length(){return sessionData.size;},key:index=>[...sessionData.keys()][index]??null,getItem:k=>sessionData.get(k)??null,setItem:(k,v)=>sessionData.set(k,String(v)),removeItem:k=>sessionData.delete(k),clear:()=>sessionData.clear()};window.sessionStorage=sessionAdapter;
+  const context={window,document,sessionStorage:sessionAdapter,localStorage:{get length(){return storage.size;},key:index=>[...storage.keys()][index]??null,getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k),clear:()=>storage.clear()},location:{href:'https://voidline.example/',origin:'https://voidline.example',pathname:'/',protocol:'https:'},navigator:{clipboard:{writeText:async()=>{}}},requestAnimationFrame:fn=>{if(!options.controlledTimers){fn();return ++timerSerial;}const id=++timerSerial;scheduled.set(id,{fn,due:timerClock,type:'raf'});return id;},cancelAnimationFrame:id=>scheduled.delete(id),setTimeout:(fn,delay=0)=>{const id=++timerSerial;if(options.controlledTimers)scheduled.set(id,{fn,due:timerClock+delay,type:'timer'});return id;},clearTimeout:id=>scheduled.delete(id),Event,CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},atob:globalThis.atob,btoa:globalThis.btoa,FormData:class {constructor(form){this.values=form.values||{};}get(k){return this.values[k]??null;}getAll(k){return Array.isArray(this.values[k])?this.values[k]:this.values[k]?[this.values[k]]:[];}},Blob,URL,console};
   vm.createContext(context);
-  const storeFile=require('node:path').join(require('node:path').dirname(SOURCE),'store.js');
-  if(fs.existsSync(storeFile))vm.runInContext(fs.readFileSync(storeFile,'utf8'),context,{filename:storeFile});
+  for(const name of ['store.js','drafts.js',...(options.runtimeModules||[])]){const runtimeFile=require('node:path').join(require('node:path').dirname(SOURCE),name);if(fs.existsSync(runtimeFile))vm.runInContext(fs.readFileSync(runtimeFile,'utf8'),context,{filename:runtimeFile});}
   if(options.realModules)for(const name of ['badges.js','profiles.js']){const filename=SOURCE.replace(/app\.js$/,name);vm.runInContext(fs.readFileSync(filename,'utf8'),context,{filename});}
   vm.runInContext(fs.readFileSync(SOURCE,'utf8'),context,{filename:SOURCE});
   assert.ok(window.VoidApp,'Client should expose window.VoidApp after boot');
-  return {api:window.VoidApp,window,document,nodes,storage,moduleCalls,get,context,
+  return {api:window.VoidApp,window,document,nodes,storage,sessionStorage:sessionData,moduleCalls,get,context,dispatchDocument:dispatchDoc,
+    async flushTimers(milliseconds=1000){const end=timerClock+milliseconds;let count=0;while(true){const next=[...scheduled].filter(([,item])=>item.due<=end).sort((a,b)=>a[1].due-b[1].due||a[0]-b[0])[0];if(!next)break;if(++count>1000)throw Error('Timer queue did not settle');scheduled.delete(next[0]);timerClock=next[1].due;await next[1].fn();}timerClock=end;},
+    async flushFrames(){let count=0;while(true){const next=[...scheduled].find(([,item])=>item.type==='raf');if(!next)break;if(++count>1000)throw Error('Frame queue did not settle');scheduled.delete(next[0]);await next[1].fn();}},
     async click(dataset,attrs={}){const b=node('test-button','button');b.dataset=dataset;Object.entries(attrs).forEach(([k,v])=>b.setAttribute(k,v));await dispatchDoc('click',{target:b,preventDefault(){}});return b;},
     async submit(id,values,dataset={}){const f=node(id);f.values=values;f.dataset=dataset;await dispatchDoc('submit',{target:f,preventDefault(){}});},
     async storageEvent(raw){
@@ -141,7 +144,7 @@ test('deletion includes a thread and tombstones survive stale persisted copies',
   const child=messages(app,'afterhours/general').find(m=>m.threadRoot===root.id),stale=app.saved();
   api.removeMessage(root.id);assert.equal(messages(app,'afterhours/general').length,0);assert.ok(api.state.deleted.includes(root.id));assert.ok(api.state.deleted.includes(child.id));
   app.storage.set(STORE,JSON.stringify(stale));api.persist();assert.equal(messages(app,'afterhours/general').length,0,'Stale saved messages must not revive deleted IDs');
-  const reloaded=harness(null,app.storage);assert.equal(messages(reloaded,'afterhours/general').length,0);assert.ok(reloaded.api.state.deleted.includes(root.id));
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(messages(reloaded,'afterhours/general').length,0);assert.ok(reloaded.api.state.deleted.includes(root.id));
 });
 
 test('storage events merge message additions and later edits while applying deletion tombstones',async()=>{
@@ -160,7 +163,7 @@ test('DM sample contacts are local, deduplicate, retain notes and survive reload
   api.dm('nova');assert.equal(api.state.conversations.length,1);
   api.changeContext('direct','notes');assert.equal(api.state.channel,'notes','Saved signals should remain accessible after opening a DM');
   input(app,'Private saved signal');assert.equal(messages(app,'direct/notes').length,1);api.persist();
-  const reloaded=harness(null,app.storage);assert.equal(reloaded.api.state.server,'direct');assert.equal(reloaded.api.state.channel,'notes');assert.equal(messages(reloaded,'direct/dm-nova').length,1);assert.equal(messages(reloaded,'direct/notes').length,1);
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(reloaded.api.state.server,'direct');assert.equal(reloaded.api.state.channel,'notes');assert.equal(messages(reloaded,'direct/dm-nova').length,1);assert.equal(messages(reloaded,'direct/notes').length,1);
 });
 
 test('desktop member visibility uses the same persisted setting as renderAll',async()=>{

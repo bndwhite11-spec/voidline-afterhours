@@ -8,8 +8,8 @@ dist = root / 'dist'
 downloads = dist / 'downloads'
 downloads.mkdir(exist_ok=True)
 html = (dist / 'index.html').read_text()
-styles = ['styles.css','entrance.css','badges.css','profiles.css','readability.css']
-scripts = ['store.js','motion.js','entrance.js','badges.js','profiles.js','app.js']
+styles = ['styles.css','entrance.css','badges.css','profiles.css','readability.css','community.css']
+scripts = ['store.js','motion.js','entrance.js','community.js','badges.js','profiles.js','drafts.js','app.js']
 icon = base64.b64encode((dist / 'icon.svg').read_bytes()).decode()
 html = html.replace('<html lang="en">', '<html lang="en" data-offline="true">')
 html = html.replace('href="icon.svg"', 'href="data:image/svg+xml;base64,' + icon + '"')

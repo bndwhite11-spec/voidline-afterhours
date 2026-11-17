@@ -53,14 +53,14 @@ test('legacy orphan replies keep original IDs/timestamps and gain one explicit s
   const app=harness({messages:{'afterhours/general':replies}}),list=app.api.state.messages['afterhours/general'],roots=list.filter(m=>m.id==='lost-parent');assert.equal(roots.length,1);assert.equal(roots[0].author,'system');assert.equal(roots[0].threadRoot,'');assert.match(roots[0].text,/unavailable|recover|preserv/i);
   for(const original of replies){const retained=list.find(m=>m.id===original.id);assert.equal(retained.text,original.text);assert.equal(retained.time,original.time);assert.equal(retained.threadRoot,'lost-parent');}
   assert.equal(app.api.getStats().ownMessages,2,'The system recovery message must not count as a user transmission');
-  const reloaded=harness(null,app.storage);assert.equal(reloaded.api.state.messages['afterhours/general'].filter(m=>m.id==='lost-parent').length,1);assert.equal(reloaded.api.state.messages['afterhours/general'].find(m=>m.id==='orphan-child-one').time,1700000000123);
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(reloaded.api.state.messages['afterhours/general'].filter(m=>m.id==='lost-parent').length,1);assert.equal(reloaded.api.state.messages['afterhours/general'].find(m=>m.id==='orphan-child-one').time,1700000000123);
 });
 
 test('orphaned custom-community history regains reachable metadata without changing messages',()=>{
   const original=sampleMessage('orphan-community-message','A retained community transmission',{time:1700000000789}),app=harness({server:'custom-recovered',channel:'sketches',customServers:[],messages:{'custom-recovered/sketches':[original],'custom-recovered/music':[sampleMessage('orphan-music','A retained song',{time:1700000000888})]}});
   const recovered=app.api.state.customServers.find(s=>s.id==='custom-recovered');assert.ok(recovered);assert.match(recovered.name,/recover/i);assert.ok(recovered.channels.some(c=>c[0]==='sketches'));assert.ok(recovered.channels.some(c=>c[0]==='music'));assert.equal(app.api.state.server,'custom-recovered');assert.equal(app.api.state.channel,'sketches');
   const retained=app.api.state.messages['custom-recovered/sketches'][0];assert.equal(retained.id,original.id);assert.equal(retained.text,original.text);assert.equal(retained.time,original.time);
-  const reloaded=harness(null,app.storage);reloaded.api.changeContext('custom-recovered','music');assert.equal(reloaded.api.state.channel,'music');assert.equal(reloaded.api.state.messages['custom-recovered/music'][0].id,'orphan-music');
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});reloaded.api.changeContext('custom-recovered','music');assert.equal(reloaded.api.state.channel,'music');assert.equal(reloaded.api.state.messages['custom-recovered/music'][0].id,'orphan-music');
 });
 
 (async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`\n${tests.length-failures}/${tests.length} journal/recovery checks passed. No browser, network, or media hardware is used.`);process.exitCode=failures?1:0;})();

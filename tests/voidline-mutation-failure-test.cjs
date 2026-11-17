@@ -14,7 +14,7 @@ test('quota-denied thread send retains input and does not commit a reply',()=>{
   const app=boot({messages:{'afterhours/general':[root()]}});app.api.messageAction('thread','owned-root');
   const composer=app.get('thread-input');composer.value='Keep this reply until it can be saved';const {before}=denyWrites(app);
   assert.equal(app.api.sendThread(prevent()),false);assert.equal(app.get('thread-input'),composer);assert.equal(composer.value,'Keep this reply until it can be saved');assert.equal(messages(app,'afterhours/general').length,1);durableUnchanged(app,before);
-  const reloaded=harness(null,app.storage);assert.equal(messages(reloaded,'afterhours/general').length,1);noSuccess(app,/Message saved|reply saved/i);
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(messages(reloaded,'afterhours/general').length,1);noSuccess(app,/Message saved|reply saved/i);
 });
 
 test('quota-denied edit retains its dialog and draft while restoring saved text',async()=>{
@@ -51,7 +51,7 @@ test('quota-denied real artifact equip retains the previously equipped artifact'
   const app=boot({profile:{name:'Ari',avatar:'A',badge:'larp'},messages:{'afterhours/general':[]}},true);
   app.window.VoidBadges.open('founder');assert.equal(app.window.VoidBadges.has('founder'),true);const {before}=denyWrites(app);
   await app.click({vbadgeEquip:'founder'});assert.equal(app.api.state.profile.badge,'larp');durableUnchanged(app,before);noSuccess(app,/now on your profile|equipped/i);
-  const reloaded=harness(null,app.storage,{realModules:true});assert.equal(reloaded.api.state.profile.badge,'larp');
+  const reloaded=harness(null,app.storage,{realModules:true,sessionStorage:app.sessionStorage});assert.equal(reloaded.api.state.profile.badge,'larp');
 });
 
 (async()=>{let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`\n${tests.length-failures}/${tests.length} mutation-failure acceptance checks passed. Storage errors are simulated; no app files were changed.`);process.exitCode=failures?1:0;})();

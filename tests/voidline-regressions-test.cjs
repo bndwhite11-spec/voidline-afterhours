@@ -45,7 +45,7 @@ test('import updates existing community metadata/channels/settings while retaini
   assert.equal(messages(app,'custom-import/general')[0].id,'local-message');assert.equal(messages(app,'custom-import/local-only')[0].id,'local-room-message');
   app.api.changeContext('custom-import','new-ideas');assert.equal(app.api.state.channel,'new-ideas');assert.equal(messages(app,'custom-import/new-ideas')[0].id,'imported-message');
   assert.equal(app.api.state.settings.compact,true);assert.equal(app.api.state.settings.motion,false);assert.equal(app.api.state.settings.memberSidebar,false);assert.ok(app.document.body.classList.contains('members-hidden'));
-  const reloaded=harness(null,app.storage);assert.equal(reloaded.api.state.customServers.find(s=>s.id==='custom-import').name,'Updated studio');assert.equal(reloaded.api.state.settings.memberSidebar,false);
+  const reloaded=harness(null,app.storage,{sessionStorage:app.sessionStorage});assert.equal(reloaded.api.state.customServers.find(s=>s.id==='custom-import').name,'Updated studio');assert.equal(reloaded.api.state.settings.memberSidebar,false);
 });
 
 test('duplicate microphone starts share one pending request and cancellation stops stale stream',async()=>{
