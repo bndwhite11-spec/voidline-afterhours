@@ -86,11 +86,14 @@ async function serveVoidline(request, env, ctx) {
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self' https://accounts.google.com; upgrade-insecure-requests",
   };
-  if(asset.gzip) headers['content-encoding']='gzip';
   if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
   const bytes = Uint8Array.from(atob(asset.body), c => c.charCodeAt(0));
-  return new Response(bytes, {headers});
+  // The Sites proxy owns HTTP content encoding. Keep compressed bytes only
+  // inside the Worker bundle, then restore the original stream before handing
+  // it to the proxy; otherwise an outer gzip layer hides an inner gzip file.
+  const body = asset.gzip ? new Response(bytes).body.pipeThrough(new DecompressionStream('gzip')) : bytes;
+  return new Response(body, {headers});
 }
 
 export default {fetch: serveVoidline};

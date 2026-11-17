@@ -11,7 +11,7 @@ const worker = (await import(pathToFileURL(path.join(dist, 'server/index.js'))))
 const origin = 'https://voidline-build.example';
 const fetchAsset = (name, options) => worker.fetch(new Request(origin + name, options), {}, {});
 const productionRoots=new Set(['index.html','home.js','home.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
-async function bytes(response){return Buffer.from(await (response.headers.get('content-encoding')==='gzip'?new Response(response.body.pipeThrough(new DecompressionStream('gzip'))):response).arrayBuffer());}
+async function bytes(response){assert.equal(response.headers.get('content-encoding'),null,'The Sites proxy owns HTTP compression; Worker responses must contain original bytes.');return Buffer.from(await response.arrayBuffer());}
 let count = 0;
 async function verify(directory, prefix = '') {
   for (const item of await readdir(directory, {withFileTypes:true})) {
