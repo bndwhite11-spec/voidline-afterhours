@@ -126,3 +126,9 @@ INVARIANTS
 - Cursor ordering uses durable monotonic message sequences, not bucket order.
 - Community creation and invite admission/usage use atomic batches.
 - Missing provisioning produces an explicit 503, not fabricated live behavior.
+
+FINAL HOSTING ACCESS NOTE
+The final Site check reports public access; earlier owner-private observations
+are historical. Deployment must preserve the current policy. The API still
+requires authenticated platform identity and server-side membership even when
+the static page is public. Real two-account service verification is outstanding.

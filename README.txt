@@ -85,8 +85,8 @@ identity, server-enforced membership, invites, durable acknowledgments,
 idempotency and paginated history/catch-up. SQLite contract tests use synthetic
 identities. It is not wired into the static client or deployed. See
 backend/README.txt for the missing supported D1 binding/migration/build steps.
-The hosted Site remains owner-private. An authorized sharing change and two
-independent browser accounts are needed for real two-user verification.
+The hosted Site uses its current platform access policy. Two independent
+signed-in browser accounts are still needed for real multiuser verification.
 The current client still does not send local messages to another person.
 
 VALIDATION LIMITS
@@ -117,5 +117,11 @@ Previously stored messages are preserved. The catalogue remains nine artifacts.
 
 See backend/DEPLOYMENT-CHECK.txt for the latest evidence: Worker hosting itself
 is supported, but no D1 binding exists and the required declaration/migration
-pipeline is unavailable here. The private Site and local voice-note scope are
-unchanged. No real shared-message connection is represented as complete.
+pipeline is unavailable here. The Site access policy is preserved; the local voice-note scope is unchanged. No real shared-message connection is represented as complete.
+
+ACCESS CHECK
+The final publication check reported public access, differing from the initial
+owner-private policy. This build does not change Site access. Local messages
+and tab drafts are not uploaded or shared by making the static client public.
+A future public Worker API must require platform identity and enforce membership
+for every request, as worker/index.mjs does; public hosting is not membership.

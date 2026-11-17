@@ -1,6 +1,8 @@
 SHARED SERVICE RECHECK / TRUST EDITION
 
-The live Site remains a static, owner-private client. Its native database
+The live Site remains a static client. Initial access was owner-private; the
+final access check reported public access. No access changes were made by this
+build. Its native database
 overview reports bindings:[] and tables:[] with no omissions. There is no
 existing D1 binding or populated hosted schema to connect this UI to.
 
@@ -27,6 +29,6 @@ and migration declaration; they are not a verified workaround here.
 Once that supported deployment setup is supplied, use the existing SQL-backed
 API contract and tests, preserve platform identity, enforce membership on the
 server, connect the client transport, and test separate authorized accounts.
-Current SQLite tests use synthetic platform identity headers. A second person
-also needs explicitly authorized Site access; no audience or invitations were
+Current SQLite tests use synthetic platform identity headers. Two independent signed-in accounts remain necessary to verify the shared
+service; no audience or invitations were
 changed during this work. No live two-account milestone is claimed.
