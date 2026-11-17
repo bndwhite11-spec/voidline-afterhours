@@ -1,48 +1,10 @@
 import assert from 'node:assert/strict';
-import {EventEmitter} from 'node:events';
-import {create} from '../src/secure-messenger.js';
+import {fixture} from './secure-fixture.mjs';
 import {initAsync} from '@matrix-org/matrix-sdk-crypto-wasm';
 await initAsync();
 
 const cases=[];const test=(name,fn)=>cases.push([name,fn]);
 const wait=()=>{let resolve;return {promise:new Promise(r=>{resolve=r;}),resolve:v=>resolve(v)};};
-function fixture(){
- const calls=[],states=[],events=[],records=[];let plain=false,verified=true,changed=false,identity={user_id:'@owner:matrix.example',device_id:'DEV'};
- const room={roomId:'!room:matrix.example',name:'Private room',getMyMembership:()=> 'join',getEncryptionTargetMembers:async()=>[{userId:'@owner:matrix.example'},{userId:'@member:matrix.example'}],getJoinedMemberCount:()=>2,getUnreadNotificationCount:()=>0,getLiveTimeline:()=>({getEvents:()=>records}),getPendingEvents:()=>[],findEventById:id=>records.find(r=>r.getId()===id)};
- const crypto={globalBlacklistUnverifiedDevices:false,setDeviceIsolationMode(mode){calls.push(['isolation',mode]);},isEncryptionEnabledInRoom:async()=>!plain,
- getUserDeviceInfo:async users=>new Map(users.map(id=>[id,new Map([['DEV',{userId:id,deviceId:'DEV',getFingerprint:()=>id==='@owner:matrix.example'?'OWNERKEY':'MEMBERKEY'}]])])),
- getUserVerificationStatus:async()=>({needsUserApproval:changed,wasCrossSigningVerified:false,isVerified:()=>!changed}),getDeviceVerificationStatus:async()=>({isVerified:()=>verified}),
- getEncryptionInfoForEvent:async()=>({shieldColour:0}),getOwnDeviceKeys:async()=>({ed25519:'OWNERKEY',curve25519:'CURVEKEY'}),setDeviceVerified:async(...args)=>calls.push(['verify',...args]),
- getKeyBackupInfo:async()=>null,userHasCrossSigningKeys:async()=>false,createRecoveryKeyFromPassphrase:async()=>({privateKey:new Uint8Array(32).fill(1),encodedPrivateKey:'USER-RECOVERY-SECRET'}),bootstrapSecretStorage:async opts=>{calls.push(['backup',opts]);},bootstrapCrossSigning:async opts=>{calls.push(['crossSigning']);await opts.authUploadDeviceSigningKeys(async()=>{});},checkKeyBackupAndEnable:async()=>{},isSecretStorageReady:async()=>true,isCrossSigningReady:async()=>true};
- class Client extends EventEmitter{
-  constructor(opts){super();this.opts=opts;this.http=opts;}
-  async whoami(){return identity;}
-  async downloadKeysForUsers(){return {device_keys:{}};}
-  stopClient(){calls.push(['stop']);}
-  async initRustCrypto(opts){calls.push(['initCrypto',opts]);}
-  getCrypto(){return crypto;}
-  async startClient(){this.emit('sync','PREPARED');}
-  getRooms(){return [room];}
-  getRoom(){return room;}
-  async getStateEvent(){return {algorithm:'m.megolm.v1.aes-sha2'};}
-  async getAccountDataFromServer(){return null;}
-  async setAccountData(...args){calls.push(['accountData',...args]);}
-  async getJoinedRoomMembers(){return {joined:{'@owner:matrix.example':{},'@member:matrix.example':{}}};}
-  async sendEvent(...args){calls.push(['send',...args]);return {event_id:'$durable'};}
-  makeTxnId(){return 'stable-id';}
-  async createRoom(opts){calls.push(['create',opts]);return {room_id:room.roomId};}
-  async getDevices(){return {devices:[]};}
-  async decryptEventIfNeeded(){calls.push(['decrypt']);}
-  async logout(){calls.push(['logout']);}
- }
- const sdk={MemoryStore:class{},ClientEvent:{Sync:'sync'},RoomEvent:{Timeline:'timeline'},CryptoEvent:{VerificationRequestReceived:'verification',UserTrustStatusChanged:'trust',DevicesUpdated:'devices'},createClient(opts){const c=new Client(opts);calls.push(['client',opts]);clients.push(c);return c;}};
- const clients=[];const storeLocks=new Set(),vaultStores=new Map();let denied=false,fetcher=async()=>({ok:true});
- const vaultFactory=async({namespace})=>{if(!vaultStores.has(namespace))vaultStores.set(namespace,new Map());const rows=vaultStores.get(namespace);let closed=false;const check=()=>{if(closed)throw Object.assign(Error('Locked'),{code:'VOID_VAULT_LOCKED'});};return {isUnlocked:()=>!closed,close:()=>{closed=true;},async get(key){check();return structuredClone(rows.get(key));},async put(key,value){check();if(denied)throw Object.assign(Error('Quota denied'),{code:'VOID_VAULT_WRITE'});rows.set(key,structuredClone(value));},async remove(key){check();rows.delete(key);},async list(prefix){check();return [...rows.keys()].filter(key=>key.startsWith(prefix));}};};
- const deps={sdk,vaultFactory,loadWasm:async()=>calls.push(['wasm']),indexedDB:{},AllDevicesIsolationMode:class{constructor(strict){this.strict=strict;}},locks:{request:async(name,_opts,fn)=>{if(storeLocks.has(name))return fn(null);storeLocks.add(name);try{return await fn({});}finally{storeLocks.delete(name);}}},fetch:(...args)=>fetcher(...args),decodeRecoveryKey:()=>new Uint8Array(32).fill(2)};
- const app=create({onState:s=>states.push(s),onEvent:e=>events.push(e)},deps);
- const connect=()=>app.connect({homeserver:'https://matrix.example',accountId:'app-account',accessToken:'MEMORY_TOKEN',storagePassword:'private vault passphrase'});
- return {app,connect,calls,states,events,records,room,crypto,clients,deps,vaultStores,get latest(){return clients.at(-1);},setVaultDenied:value=>denied=value,setFetch:fn=>fetcher=fn,setPlain:v=>plain=v,setVerified:v=>verified=v,setChanged:v=>changed=v,setIdentity:v=>identity=v};
-}
 function event(id,content,{sender='@member:matrix.example',time=100,type='m.room.message',redacted=false}={}){return {getId:()=>id,getSender:()=>sender,getTs:()=>time,isRedacted:()=>redacted,isEncrypted:()=>true,getContent:()=>content,getType:()=>type};}
 
 test('explicit connection validates server identity, encrypts the account/device scoped store, and serializes writers',async()=>{
@@ -69,7 +31,7 @@ test('fingerprint mismatch cannot mark a device verified and disconnect locks al
  const f=fixture();await f.connect();await assert.rejects(()=>f.app.verifyFingerprint('@member:matrix.example','DEV','WRONG'),e=>e.code==='VOID_FINGERPRINT');assert.equal(f.calls.filter(c=>c[0]==='verify').length,0);await f.app.verifyFingerprint('@member:matrix.example','DEV','MEMBERKEY');assert.equal(f.calls.filter(c=>c[0]==='verify').length,1);await f.app.disconnect({revokeSession:true});assert.equal(f.app.status().phase,'locked');assert.ok(f.calls.some(c=>c[0]==='logout'));await assert.rejects(()=>f.app.listRooms(),e=>e.code==='VOID_LOCKED');
 });
 test('recovery requires the user acknowledgement before SDK backup writes and never silently resets keys',async()=>{
- const f=fixture();try{await f.connect();await assert.rejects(()=>f.app.setupRecovery({onRecoveryKey:async()=>false}),e=>e.code==='VOID_RECOVERY_CANCELLED');assert.equal(f.calls.filter(c=>c[0]==='backup').length,0);let displayed='';await f.app.setupRecovery({onRecoveryKey:async key=>{displayed=key;return true;}});assert.equal(displayed,'USER-RECOVERY-SECRET');assert.equal(f.calls.filter(c=>c[0]==='backup').length,1);f.crypto.userHasCrossSigningKeys=async()=>true;await assert.rejects(()=>f.app.setupRecovery({onRecoveryKey:async()=>true}),e=>e.code==='VOID_RECOVERY_EXISTS');}finally{await f.app.disconnect();}
+ const f=fixture();try{await f.connect();await assert.rejects(()=>f.app.setupRecovery({onRecoveryKey:async()=>false}),e=>e.code==='VOID_RECOVERY_CANCELLED');assert.equal(f.calls.filter(c=>c[0]==='backup').length,0);let displayed='';await f.app.setupRecovery({onRecoveryKey:async key=>{displayed=key;return true;}});assert.equal(displayed,'USER-RECOVERY-SECRET');assert.equal(f.calls.filter(c=>c[0]==='backup'&&c[1].setupNewKeyBackup).length,1);const repeat=await f.app.setupRecovery();assert.equal(repeat.ready,true);assert.equal(repeat.recoveryVerified,false);assert.equal(f.calls.filter(c=>c[0]==='backup'&&c[1].setupNewKeyBackup).length,1);}finally{await f.app.disconnect();}
 });
 test('an already published Matrix device cannot be silently reinitialized with different keys',async()=>{
  const f=fixture(),original=f.deps.sdk.createClient;f.deps.sdk.createClient=opts=>{const c=original(opts);c.downloadKeysForUsers=async()=>({device_keys:{'@owner:matrix.example':{DEV:{keys:{'ed25519:DEV':'OTHERKEY','curve25519:DEV':'OTHERIDENTITY'}}}}});return c;};await assert.rejects(()=>f.connect(),e=>e.code==='VOID_DEVICE_CONFLICT');assert.equal(f.app.status().phase,'error');assert.equal(f.states.some(s=>s.phase==='ready'),false);

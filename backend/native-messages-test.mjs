@@ -236,6 +236,98 @@ test('private groups admit only reviewed friend participants and remain distinct
   const rejected=await f.call('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob','user_stranger'],name:'No silent strangers',clientId:random(),acknowledgeStandard:true});denied(rejected);
  }finally{f.sqlite.close();}
 });
+test('group blocks and suspended peers do not freeze unrelated active participants',async()=>{
+ const f=await fixture();try{
+  const group=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob','user_carol'],name:'Group policy',clientId:random(),acknowledgeStandard:true})).conversation;
+  f.sqlite.prepare('INSERT INTO social_blocks(blocker_id,blocked_id,created_at) VALUES(?,?,?)').run('bob','carol',Date.now());
+  await f.send('alice',group.id,'Unrelated member can post');await f.send('carol',group.id,'Shared group remains shared');
+  f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id='bob'").run();
+  await f.send('carol',group.id,'An inactive peer cannot freeze everyone');assert.equal((await f.call('bob',conversationURL(group.id)+'/messages')).status,401);
+  const detail=(await f.ok('alice',conversationURL(group.id))).conversation;assert.match(detail.blockingPolicy,/Shared group members/);assert.equal(detail.capabilities.canSend,true);
+ }finally{f.sqlite.close();}
+});
+test('message and reaction revisions are monotonic and deletion remains a revised tombstone',async()=>{
+ const f=await fixture();try{
+  const c=await f.dm(),sent=await f.send('alice',c.id,'revision one');assert(sent.revision>0);
+  const edited=(await f.ok('alice',messageURL(sent.id)+'/edit',{text:'revision two',acknowledgeStandard:true})).message;assert(edited.revision>sent.revision);
+  const reacted=(await f.ok('bob',messageURL(sent.id)+'/react',{emoji:'👍',active:true})).message;assert(reacted.revision>edited.revision);
+  const deleted=(await f.ok('alice',messageURL(sent.id)+'/delete',{})).message;assert(deleted.revision>reacted.revision);assert(deleted.deleted_at);assert.equal(deleted.text,'');
+  const history=await f.ok('bob',conversationURL(c.id)+'/messages?changesAfter='+sent.revision);assert.equal(history.changes[0].revision,deleted.revision);
+  assert.equal((await f.ok('bob','/api/messages/conversations')).conversations[0].lastMessage.revision,deleted.revision);
+ }finally{f.sqlite.close();}
+});
+test('bookmarks synchronize independent revisions without copying text or bypassing membership',async()=>{
+ const f=await fixture();try{
+  const c=await f.dm(),m=await f.send('alice',c.id,'Bookmark source');const route=messageURL(m.id)+'/bookmark';
+  const first=await f.ok('bob',route,{saved:true});assert.equal(first.bookmarkRevision,1);assert.equal((await f.ok('bob',messageURL(m.id))).message.saved,true);
+  const removed=await f.ok('bob',route,{saved:false});assert(removed.bookmarkRevision>first.bookmarkRevision);assert.equal((await f.ok('bob','/api/messages/saved')).total,0);
+  const again=await f.ok('bob',route,{saved:true});assert(again.bookmarkRevision>removed.bookmarkRevision);const saved=await f.ok('bob','/api/messages/saved');assert.equal(saved.total,1);assert.equal(saved.messages[0].bookmarkRevision,again.bookmarkRevision);assert.equal(saved.messages[0].text,'Bookmark source');
+  assert.equal((await f.ok('alice','/api/messages/saved')).total,0);denied(await f.call('stranger',route,{saved:true}));
+  f.sqlite.prepare('DELETE FROM native_members WHERE conversation_id=? AND account_id=?').run(c.id,'bob');assert.equal((await f.ok('bob','/api/messages/saved')).total,0);denied(await f.call('bob',route,{saved:true}));
+  const cleared=await f.ok('bob',route,{saved:false});assert.equal(cleared.saved,false);assert.equal(f.sqlite.prepare('SELECT saved FROM native_bookmarks WHERE account_id=?').get('bob').saved,0);
+ }finally{f.sqlite.close();}
+});
+test('a session revoked at unsave commit cannot return a false bookmark acknowledgement',async()=>{
+ const f=await fixture();try{const c=await f.dm(),m=await f.send('alice',c.id,'Saved');await f.ok('bob',messageURL(m.id)+'/bookmark',{saved:true});f.beforeCommit(()=>f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').run(Date.now(),f.identities.get('bob').sessionId));denied(await f.call('bob',messageURL(m.id)+'/bookmark',{saved:false}));assert.equal(f.sqlite.prepare('SELECT saved FROM native_bookmarks WHERE account_id=?').get('bob').saved,1);}finally{f.sqlite.close();}
+});
+test('standard search counts and sources cover authorized history with literal terms and UTC dates',async()=>{
+ const f=await fixture();try{
+  const ab=await f.dm(),ac=await f.dm('alice','carol');await f.send('alice',ac.id,'needle private other conversation');
+  const one=await f.send('alice',ab.id,'needle 100% https://example.test'),two=await f.send('bob',ab.id,'needle second');await f.send('alice',ab.id,'unrelated');
+  let result=await f.ok('bob','/api/messages/search?q=needle&limit=1');assert.equal(result.total,2);assert.equal(result.page.hasMore,true);assert.equal(result.messages[0].id,two.id);
+  result=await f.ok('bob','/api/messages/search?q=needle&author=user_alice&has=links');assert.equal(result.total,1);assert.equal(result.messages[0].id,one.id);
+  assert.equal((await f.ok('bob','/api/messages/search?q=%25')).total,1);assert.equal((await f.ok('stranger','/api/messages/search?q=needle')).total,0);
+  assert.equal((await f.call('bob','/api/messages/search?after=2026-02-30')).status,400);assert.equal((await f.call('bob','/api/messages/search?after=2026-12-01&before=2026-01-01')).status,400);
+  await f.ok('alice',messageURL(one.id)+'/delete',{});assert.equal((await f.ok('bob','/api/messages/search?q=needle')).total,1);
+  f.sqlite.prepare('DELETE FROM native_members WHERE conversation_id=? AND account_id=?').run(ab.id,'bob');assert.equal((await f.ok('bob','/api/messages/search?q=needle')).total,0);
+ }finally{f.sqlite.close();}
+});
+test('complete-account filters find favorites and foldered chats beyond the first loaded page',async()=>{
+ const f=await fixture();try{
+  const now=Date.now(),ids=[];for(let i=0;i<65;i++){const id=random();ids.push(id);f.sqlite.prepare("INSERT INTO native_conversations(id,kind,name,security_mode,created_by,owner_id,client_id,request_hash,created_at,updated_at) VALUES(?,'group',?,'standard','alice','alice',?,?,?,?)").run(id,'Filtered '+i,random(),'hash-'+i,now+i,now+i);for(const user of ['alice','bob'])f.sqlite.prepare('INSERT INTO native_members(conversation_id,account_id,joined_at) VALUES(?,?,?)').run(id,user,now+i);}
+  const folder=random();f.sqlite.prepare('INSERT INTO organization_folders(id,account_id,name,position,created_at) VALUES(?,?,?,?,?)').run(folder,'alice','People',0,now);
+  f.sqlite.prepare('INSERT INTO native_conversation_preferences(account_id,conversation_id,favorite,folder_id,updated_at) VALUES(?,?,?,?,?)').run('alice',ids[0],1,folder,now);
+  const favorite=await f.ok('alice','/api/messages/conversations?filter=favorites&limit=10');assert.equal(favorite.total,1);assert.equal(favorite.conversations[0].id,ids[0]);assert.equal(favorite.conversations[0].favorite,true);
+  const grouped=await f.ok('alice','/api/messages/conversations?filter='+encodeURIComponent('folder:'+folder));assert.equal(grouped.conversations[0].id,ids[0]);assert.equal((await f.call('bob','/api/messages/conversations?filter='+encodeURIComponent('folder:'+folder))).status,404);
+  const message=await f.send('bob',ids[0],'Unread beyond first page');const unread=await f.ok('alice','/api/messages/conversations?filter=unread');assert.equal(unread.total,1);assert.equal(unread.conversations[0].id,ids[0]);
+  await f.ok('alice',conversationURL(ids[0])+'/read',{seq:message.seq});assert.equal((await f.ok('alice','/api/messages/conversations?filter=unread')).total,0);
+ }finally{f.sqlite.close();}
+});
+test('snapshot cursors remain stable during activity and reject foreign, expired or mismatched lists',async()=>{
+ const f=await fixture();try{
+  const ids=[];for(let i=0;i<5;i++){const c=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob'],name:'Snapshot '+i,clientId:random(),acknowledgeStandard:true})).conversation;ids.push(c.id);f.sqlite.prepare('UPDATE native_conversations SET updated_at=? WHERE id=?').run(100+i,c.id);}
+  const first=await f.ok('alice','/api/messages/conversations?limit=2');assert(first.page.currentCursor);assert(first.page.nextCursor);const original=[...first.conversations.map(c=>c.id)];
+  await f.send('bob',ids[0],'Move oldest to latest');await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob'],name:'Not in earlier snapshot',clientId:random(),acknowledgeStandard:true});
+  let token=first.page.nextCursor;while(token){const page=await f.ok('alice','/api/messages/conversations?limit=2&cursor='+encodeURIComponent(token));original.push(...page.conversations.map(c=>c.id));token=page.page.nextCursor;}
+  assert.equal(original.length,5);assert.equal(new Set(original).size,5);assert.deepEqual(new Set(original),new Set(ids));
+  const previous=await f.ok('alice','/api/messages/conversations?limit=2&cursor='+encodeURIComponent(first.page.currentCursor));assert.deepEqual(previous.conversations.map(c=>c.id),first.conversations.map(c=>c.id));
+  assert.equal((await f.call('stranger','/api/messages/conversations?cursor='+encodeURIComponent(first.page.currentCursor))).status,409);
+  assert.equal((await f.call('alice','/api/messages/conversations?filter=favorites&cursor='+encodeURIComponent(first.page.currentCursor))).status,409);
+  f.sqlite.prepare('UPDATE native_list_snapshots SET expires_at=0 WHERE account_id=?').run('alice');assert.equal((await f.call('alice','/api/messages/conversations?cursor='+encodeURIComponent(first.page.currentCursor))).status,409);
+ }finally{f.sqlite.close();}
+});
+test('snapshot pages recheck membership without exposing formerly accessible conversations',async()=>{
+ const f=await fixture();try{const ab=await f.dm(),ac=await f.dm('alice','carol');const page=await f.ok('alice','/api/messages/conversations?limit=1');const hidden=page.conversations[0].id===ab.id?ac.id:ab.id;f.sqlite.prepare('DELETE FROM native_members WHERE conversation_id=? AND account_id=?').run(hidden,'alice');const later=await f.ok('alice','/api/messages/conversations?limit=10&cursor='+encodeURIComponent(page.page.currentCursor));assert.equal(later.total,1);assert(later.conversations.every(c=>c.id!==hidden));}finally{f.sqlite.close();}
+});
+test('group management is scoped to the current owner with explicit transfer and leave rules',async()=>{
+ const f=await fixture();try{
+  const c=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob'],name:'Managed',clientId:random(),acknowledgeStandard:true})).conversation;assert.equal(c.ownerId,'alice');assert.equal(c.capabilities.canManage,true);
+  denied(await f.call('bob',conversationURL(c.id)+'/settings',{name:'Hijacked'}));await f.ok('alice',conversationURL(c.id)+'/settings',{name:'Updated group'});
+  const added=await f.ok('alice',conversationURL(c.id)+'/members',{usernames:['user_carol'],acknowledgeStandard:true});assert.equal(added.conversation.participants.length,3);
+  denied(await f.call('alice',conversationURL(c.id)+'/leave',{}));await f.ok('alice',conversationURL(c.id)+'/transfer',{accountId:'bob'});
+  denied(await f.call('alice',conversationURL(c.id)+'/members/carol/remove',{}));await f.ok('bob',conversationURL(c.id)+'/members/carol/remove',{});denied(await f.call('carol',conversationURL(c.id)));
+  await f.ok('alice',conversationURL(c.id)+'/leave',{});assert.equal((await f.ok('bob',conversationURL(c.id))).conversation.ownerId,'bob');
+ }finally{f.sqlite.close();}
+});
+test('stale native group owner mutations cannot bypass commit authorization or create audit fiction',async()=>{
+ const f=await fixture();try{const c=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob','user_carol'],name:'Race',clientId:random(),acknowledgeStandard:true})).conversation;f.beforeCommit(()=>f.sqlite.prepare('UPDATE native_conversations SET owner_id=? WHERE id=?').run('bob',c.id));denied(await f.call('alice',conversationURL(c.id)+'/members/carol/remove',{}));assert(f.sqlite.prepare('SELECT 1 FROM native_members WHERE conversation_id=? AND account_id=?').get(c.id,'carol'));assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM admin_audit WHERE action='native.group.members.remove'").get().n,0);}finally{f.sqlite.close();}
+});
+
+test('group owner departure preserves management for an existing suspended member after reinstatement',async()=>{const f=await fixture();try{
+ const c=(await f.ok('alice','/api/messages/conversations',{kind:'group',usernames:['user_bob'],name:'Successor',clientId:random(),acknowledgeStandard:true})).conversation;
+ f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id='bob'").run();f.sqlite.prepare('DELETE FROM native_members WHERE conversation_id=? AND account_id=?').run(c.id,'alice');assert.equal(f.sqlite.prepare('SELECT owner_id FROM native_conversations WHERE id=?').get(c.id).owner_id,'bob');
+ assert.equal((await f.call('bob',conversationURL(c.id))).status,401);f.sqlite.prepare("UPDATE live_accounts SET account_status='active' WHERE id='bob'").run();assert.equal((await f.ok('bob',conversationURL(c.id))).conversation.capabilities.canManage,true);await f.ok('bob',conversationURL(c.id)+'/settings',{name:'Recovered management'});
+}finally{f.sqlite.close();}});
 let failures=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${cases.length-failures}/${cases.length} native standard messaging checks passed. Actual migrated SQLite/session handlers; no browser, Matrix or end-to-end encryption claim.`);
 process.exitCode=failures?1:0;

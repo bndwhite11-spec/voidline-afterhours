@@ -2,6 +2,7 @@
 import {authenticate,validateSessionMutation,authHash,authRateLimit,requestVerifiedResetForAccount,AuthError} from './auth.mjs';
 import {requireRecentPasskey} from './passkeys.mjs';
 import {COSMETICS} from './cosmetics.mjs';
+import {notificationAvailability} from './notifications.mjs';
 
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(condition,status,code,message)=>{if(!condition)throw new AuthError(status,code,message);};
@@ -89,7 +90,7 @@ export async function handleAdminRequest(request,env){
   if(method==='POST')await authRateLimit(request,db,'admin-mutation',30,now,user.id);
   if(path.length===1&&path[0]==='health'&&method==='GET'){
    const counts={};for(const table of ['live_accounts','live_communities','live_channels','live_memberships','cosmetic_gifts','badge_awards','abuse_reports'])counts[table]=(await q(db,'SELECT COUNT(*) AS n FROM '+table).first()).n;
-   return json({database:'available',accountCounts:{active:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='active'").first()).n,suspended:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='suspended'").first()).n},counts,encryptionServiceConfigured:!!env.MATRIX_HOMESERVER,e2eeDecryptionAvailable:false,ownerMessageContentAccess:false,legacyTextMode:'explicit-consent-server-stored',backup:{managedProvider:'Sites-managed D1',manualExportAvailable:false,restoreCheck:'npm run check:restore'}});
+   return json({database:'available',accountCounts:{active:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='active'").first()).n,suspended:(await q(db,"SELECT COUNT(*) AS n FROM live_accounts WHERE account_status='suspended'").first()).n},counts,encryptionServiceConfigured:!!env.MATRIX_HOMESERVER,encryptedDefaultReady:false,accountRestrictionsSynced:false,notificationDelivery:notificationAvailability(env),communityOwnershipRepairRequired:(await q(db,'SELECT COUNT(*) AS n FROM live_communities WHERE ownership_repair_required=1').first()).n,e2eeDecryptionAvailable:false,ownerMessageContentAccess:false,legacyTextMode:'explicit-consent-server-stored',backup:{managedProvider:'Sites-managed D1',manualExportAvailable:false,restoreCheck:'npm run check:restore'}});
   }
   if(path.length===1&&path[0]==='users'&&method==='GET'){
    const p=page(url),term=text(url.searchParams.get('q')||'',100,'Search'),needle=like(term);

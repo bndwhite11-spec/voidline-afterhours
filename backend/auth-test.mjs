@@ -70,7 +70,9 @@ test('account deletion refuses owned servers and clears social and gift metadata
  const f=fixture();try{const a=await f.register(),b=await f.register('night_two'),id=a.session.account.id,other=b.session.account.id,time=f.time;
  f.sqlite.prepare('INSERT INTO live_communities(id,name,created_by,created_at) VALUES(?,?,?,?)').run('owned-room','Owned room',id,time);f.sqlite.prepare('INSERT INTO live_memberships VALUES(?,?,?,?)').run('owned-room',id,'owner',time);
  assert.equal((await f.mutation(a,'/api/auth/account/delete',{password:PASSWORD})).status,409);assert.ok(f.sqlite.prepare('SELECT account_id FROM auth_credentials WHERE account_id=?').get(id));
- f.sqlite.prepare('UPDATE live_memberships SET role=? WHERE account_id=?').run('member',id);
+ assert.throws(()=>f.sqlite.prepare('UPDATE live_memberships SET role=? WHERE account_id=?').run('member',id),/ownership_transfer_required/);
+ f.sqlite.prepare('INSERT INTO live_memberships VALUES(?,?,?,?)').run('owned-room',other,'member',time);
+ f.sqlite.prepare('UPDATE live_communities SET created_by=? WHERE id=?').run(other,'owned-room');
  f.sqlite.prepare('INSERT INTO social_requests VALUES(?,?,?,?,?,?)').run('request',id,other,'pending',time,time);f.sqlite.prepare('INSERT INTO social_blocks VALUES(?,?,?)').run(id,other,time);f.sqlite.prepare('INSERT INTO cosmetic_profiles VALUES(?,?,?)').run(id,null,1);f.sqlite.prepare('INSERT INTO cosmetic_ownership VALUES(?,?,?)').run(id,'larp',time);f.sqlite.prepare('INSERT INTO cosmetic_gifts VALUES(?,?,?,?,?,?,?,?)').run('gift',other,id,'larp','client-gift','pending',time,null);
  assert.equal((await f.mutation(a,'/api/auth/account/delete',{password:PASSWORD})).status,200);for(const table of ['social_requests','social_blocks','cosmetic_profiles','cosmetic_ownership','cosmetic_gifts'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);assert.equal((await f.call('/api/auth/session',{browser:b.browser})).status,200);
  }finally{f.sqlite.close();}

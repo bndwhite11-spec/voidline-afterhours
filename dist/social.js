@@ -58,6 +58,7 @@
  }
  function init(bridge){
   if(home)return;home=bridge;sync();
+  window.addEventListener('voidline:activity',event=>{sync();const update=event.detail;if(!identity||update?.accountId!==identity||!Number.isSafeInteger(update.friendRequests)||update.friendRequests<0)return;snapshot={...(snapshot||{}),counts:{...(snapshot?.counts||{}),incoming:update.friendRequests}};});
   document.addEventListener('click',event=>{const button=event.target.closest('[data-social-action]');if(!button||!currentAccount())return;event.preventDefault();Promise.resolve(act(button)).catch(reason=>error(reason.message));});
   document.addEventListener('submit',event=>{const form=event.target;if(form.dataset.socialForm!=='request'||!currentAccount())return;event.preventDefault();if(form.dataset.busy)return;form.dataset.busy='1';const button=form.querySelector('[type="submit"]'),username=String(new FormData(form).get('username')||'').trim().replace(/^@/,'');
    mutate('/api/social/request',{username},button,data=>{offset=0;if(data.request?.state==='accepted'){view='friends';return 'You are already friends.';}if(data.request?.direction==='incoming'){view='incoming';return 'This person already sent you a request. Review Incoming to accept it.';}view='outgoing';return data.alreadyExists?'Your request is already pending.':'Friend request sent.';}).finally(()=>{delete form.dataset.busy;});

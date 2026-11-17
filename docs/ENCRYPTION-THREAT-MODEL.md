@@ -69,19 +69,28 @@ restore procedures; this document makes no blanket claim about their disks.
 
 ## Implemented storage and session controls
 
-Matrix access tokens and recovery material are held in memory. The Matrix SDK's
-Rust crypto uses encrypted IndexedDB through `storagePassword`, scoped by the
-Voidline account, configured homeserver, Matrix account and Matrix device. The
-client also checks published own-device keys before allowing key upload,
-preventing a newly created local store from overwriting the identity of an
-already initialized Element/other client device. A fresh dedicated Matrix
-device token is required for initial connection. The local vault passphrase is distinct from account credentials and never saved.
+Native enrollment maps the immutable native account to a reserved Matrix ID
+through the configured server-side supported login flow. This is authentication,
+not message-key recovery or cryptographic verification. Operator namespace and
+provider requirements are in ENCRYPTED-SETUP.md; absent configuration stays
+unavailable. No email/display-name match grants another Matrix identity.
+
+While unlocked, Matrix access tokens and usable recovery material exist in
+memory. Native enrollment can retain a token only in its authenticated-encrypted
+local vault, unlocked through the client-derived native-password/device-seed
+secret. The seed is public salt material, not an encryption key. A password
+change/reset does not make an older encrypted token/key store decryptable; it
+requires deliberate recovery/fresh-device handling. Advanced manual-token
+connection keeps its token in memory only. The Matrix SDK's Rust crypto uses
+encrypted IndexedDB through `storagePassword`, scoped by native account,
+homeserver, Matrix account and device. Published own-device keys are checked
+before upload, blocking reuse of another initialized client's device identity.
 Web Locks prevent concurrent writes to the same device store; unsupported
 browsers fail closed. Timeline content uses memory storage, not localStorage.
 
 Drafts, intended outbox payloads, upload descriptors and local Saved notes use
-the account-scoped IndexedDB vault in `src/secure-vault.js`. A separate user-held
-passphrase derives a nonextractable AES-256-GCM key using PBKDF2-HMAC-SHA256,
+the account-scoped IndexedDB vault in `src/secure-vault.js`. A user-held or client-derived
+unlock secret derives a nonextractable AES-256-GCM key using PBKDF2-HMAC-SHA256,
 600,000 iterations and a random 256-bit salt. Every write uses a fresh 96-bit IV
 and authenticates its namespace and record ID. Stored salt/parameters and record
 identifiers reveal local metadata; contents remain ciphertext. An attacker with
@@ -109,19 +118,47 @@ Disconnect stops sync and clears listeners/in-memory identity before another
 account is shown. When the shell detects account session revocation during pre-send, focus or
 periodic checks, it disconnects the local client. Detection is not instantaneous
 and does not remotely revoke an independently issued Matrix access token. The
-explicit Matrix logout action invalidates that Matrix session through the
-homeserver. Revoking another Matrix device can require homeserver
+explicit Matrix logout action requests revocation from the homeserver and
+returns confirmed, failed or unknown. Local locking happens immediately; a
+failed request is never reported as successful remote revocation. A stopped
+client cannot issue logout through its now-invalid device guard, so a dedicated
+origin/action-restricted SDK client revokes only the previous token. No token
+is placed in an ordinary-storage retry queue. Revoking another Matrix device can require homeserver
 reauthentication. Retained local crypto stores stay encrypted and require the
 vault passphrase; deleting their only key copy is not automatic.
 
 ## Recovery and protocol conditions
 
 The SDK creates a high-entropy recovery key. The user must acknowledge saving
-it before initial backup setup. Its raw bytes are temporarily supplied to the
-SDK's secret-storage callbacks and zeroed afterward; the service receives SDK
-encrypted backup records. Existing signing identities or backups are not
-silently replaced. The current UI/adapter uses the SDK's supported restore and
-SAS/fingerprint APIs, but a real backup/restore run is still required.
+it before publishing initial secret storage. Until setup completes, the current
+device retains a resumable journal inside its authenticated-encrypted local
+vault, including that key and its actual key-ID/stage. It is not sent to D1 or
+another application server. The journal is removed when setup or a verified
+restore completes; transient byte arrays are cleared afterward. This is
+intentional local persistence rather than a claim that all recovery material
+is always memory-only. A compromised unlocked client can read it.
+
+Setup inspects existing secret storage, signing state and backup state. It
+fills missing authorized steps and does not replace an existing identity or
+backup to remove an error. Pending public signing-key requests retain only
+public key payloads, never UIA credentials. A fresh server key query rejects
+an intervening different signing identity before replay. The public Matrix
+API does not provide an application-wide cross-device compare-and-swap; real
+concurrent-device setup still requires service-level acceptance testing.
+
+The final HTTP boundary blocks backup-version DELETE requests even if the
+SDK internally attempts them during new-backup setup. Existing/default key
+changes require the current matching recovery key; unsupported or mismatched
+states fail without a reset. Setup and restore cannot overlap on the device.
+SSO UIA fallback URLs stay on the configured homeserver; unsupported sign-in
+challenges preserve resumable state and report an error.
+
+Backup-enabled is distinct from recovery-verified. A successful SDK restore
+sets a local verification marker bound to its current secret-storage key ID
+and backup version; a later change invalidates that marker. This records only
+that operation on this device, not proof of a second physical-device exercise.
+Real secret-storage, signing-upload, interruption and backup-restore tests
+against the selected homeserver remain required.
 
 Losing all trusted devices and the recovery material may make old history
 unrecoverable. Resetting Voidline login does not recover Matrix message keys.
@@ -166,3 +203,19 @@ refresh/unlock, cross-account isolation, device removal during sync and
 reauthentication. The deployment may report an unavailable state until the
 required Matrix configuration exists; it must never fabricate a
 successful sign-in, encrypted exchange, device approval or recovery.
+
+`backend/secure-lifecycle-test.mjs` adds controlled SDK-boundary regression
+coverage for the new invitation, membership, revocation and resumable-recovery
+paths, including the failed public-key upload scenario and forbidden backup
+deletion. It does not establish actual Synapse/JWT UIA interoperability or a
+successful multi-device encrypted journey.
+
+Encrypted invitation previews do not join or establish verified identity.
+Acceptance checks both advertised and joined room encryption; unsupported
+rooms are not opened as protected. Existing-room invitations require the actual
+and cached joined-only history policy before the SDK invitation helper runs.
+Matrix ignored-user preferences suppress those invitations but do not silently
+revoke group membership. Participant removal/cancellation checks current room
+power; server authorization remains authoritative. The VOIDLINE adapter limits
+accepted/sending groups to 16 participants; unrelated Matrix clients can still
+operate according to the homeserver's own policies.

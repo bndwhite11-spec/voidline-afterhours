@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, primaryKey, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, sqliteTable, text, unique, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // This schema preserves backend/schema.sql. Schema changes are generated with
 // npm run db:generate and applied by Sites before the Worker is published.
@@ -23,6 +23,8 @@ export const liveCommunities = sqliteTable("live_communities", {
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
   icon: text("icon").notNull().default("WL"),
+  ownershipRepairRequired: integer("ownership_repair_required").notNull().default(0),
+  ownershipRevision: integer("ownership_revision").notNull().default(0),
   createdBy: text("created_by").notNull().references(() => liveAccounts.id),
   createdAt: integer("created_at").notNull(),
 });
@@ -36,6 +38,7 @@ export const liveMemberships = sqliteTable("live_memberships", {
   primaryKey({ columns: [table.communityId, table.accountId] }),
   check("live_memberships_role_check", sql`${table.role} IN ('owner', 'moderator', 'member')`),
   index("live_memberships_account").on(table.accountId, table.communityId),
+  uniqueIndex("live_memberships_single_owner").on(table.communityId).where(sql`${table.role}='owner'`),
 ]);
 
 export const liveChannels = sqliteTable("live_channels", {
@@ -65,6 +68,7 @@ export const liveInvites = sqliteTable("live_invites", {
 
 export const liveMessages = sqliteTable("live_messages", {
   seq: integer("seq").primaryKey({ autoIncrement: true }),
+  revision: integer("revision").notNull().default(0),
   id: text("id").notNull().unique("live_messages_id_unique"),
   channelId: text("channel_id").notNull().references(() => liveChannels.id),
   authorId: text("author_id").notNull().references(() => liveAccounts.id),
@@ -280,12 +284,13 @@ export const giftCatalog = sqliteTable("gift_catalog", {
 // records; they are never advertised as end-to-end encrypted Matrix rooms.
 export const nativeConversations = sqliteTable("native_conversations", {
  id:text("id").primaryKey(),kind:text("kind").notNull(),name:text("name").notNull().default(""),securityMode:text("security_mode").notNull().default("standard"),
- createdBy:text("created_by").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),requestHash:text("request_hash").notNull(),pairKey:text("pair_key").unique("native_conversations_pair_unique"),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull(),
+ ownerId:text("owner_id").references(()=>liveAccounts.id),createdBy:text("created_by").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),requestHash:text("request_hash").notNull(),pairKey:text("pair_key").unique("native_conversations_pair_unique"),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull(),
 },t=>[unique("native_conversations_creator_client_unique").on(t.createdBy,t.clientId),check("native_conversations_kind",sql`${t.kind} IN ('dm','group')`),check("native_conversations_security",sql`${t.securityMode}='standard'`)]);
 export const nativeMembers = sqliteTable("native_members", {
  conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),accountId:text("account_id").notNull().references(()=>liveAccounts.id),joinedAt:integer("joined_at").notNull(),readSeq:integer("read_seq").notNull().default(0),readChangeSeq:integer("read_change_seq").notNull().default(0),
 },t=>[primaryKey({columns:[t.conversationId,t.accountId]}),index("native_members_account").on(t.accountId,t.conversationId)]);
 export const nativeMessages = sqliteTable("native_messages", {
+ revision:integer("revision").notNull().default(0),
  seq:integer("seq").primaryKey({autoIncrement:true}),id:text("id").notNull().unique("native_messages_id_unique"),conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),authorId:text("author_id").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),text:text("text").notNull(),replyToId:text("reply_to_id"),originalHash:text("original_hash").notNull(),editedAt:integer("edited_at"),deletedAt:integer("deleted_at"),createdAt:integer("created_at").notNull(),
 },t=>[unique("native_messages_retry_unique").on(t.conversationId,t.authorId,t.clientId),index("native_messages_conversation_seq").on(t.conversationId,t.seq),index("native_messages_reply").on(t.replyToId)]);
 export const nativeReactions = sqliteTable("native_reactions", {
@@ -297,3 +302,34 @@ export const nativeChanges = sqliteTable("native_changes", {
 export const nativeConversationPreferences = sqliteTable("native_conversation_preferences", {
  accountId:text("account_id").notNull().references(()=>liveAccounts.id),conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id),favorite:integer("favorite").notNull().default(0),pinned:integer("pinned").notNull().default(0),archived:integer("archived").notNull().default(0),muted:integer("muted").notNull().default(0),folderId:text("folder_id").references(()=>organizationFolders.id,{onDelete:"set null"}),readSeq:integer("read_seq").notNull().default(0),updatedAt:integer("updated_at").notNull(),
 },t=>[primaryKey({columns:[t.accountId,t.conversationId]})]);
+
+
+// Stable account-bound list snapshots contain routing IDs only, never message text.
+export const nativeListSnapshots = sqliteTable("native_list_snapshots", {
+ id:text("id").primaryKey(),accountId:text("account_id").notNull().references(()=>liveAccounts.id,{onDelete:"cascade"}),filter:text("filter").notNull(),createdAt:integer("created_at").notNull(),expiresAt:integer("expires_at").notNull(),
+},t=>[index("native_list_snapshots_expiry").on(t.expiresAt),index("native_list_snapshots_account").on(t.accountId,t.createdAt)]);
+export const nativeListItems = sqliteTable("native_list_items", {
+ snapshotId:text("snapshot_id").notNull().references(()=>nativeListSnapshots.id,{onDelete:"cascade"}),conversationId:text("conversation_id").notNull().references(()=>nativeConversations.id,{onDelete:"cascade"}),position:integer("position").notNull(),
+},t=>[primaryKey({columns:[t.snapshotId,t.position]}),unique("native_list_items_snapshot_conversation").on(t.snapshotId,t.conversationId)]);
+export const nativeBookmarks = sqliteTable("native_bookmarks", {
+ accountId:text("account_id").notNull().references(()=>liveAccounts.id,{onDelete:"cascade"}),messageId:text("message_id").notNull().references(()=>nativeMessages.id,{onDelete:"cascade"}),saved:integer("saved").notNull().default(1),revision:integer("revision").notNull().default(1),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull(),
+},t=>[primaryKey({columns:[t.accountId,t.messageId]}),index("native_bookmarks_account_time").on(t.accountId,t.createdAt)]);
+export const liveMessageMentions = sqliteTable("live_message_mentions", {
+ messageId:text("message_id").notNull().references(()=>liveMessages.id,{onDelete:"cascade"}),accountId:text("account_id").notNull().references(()=>liveAccounts.id),createdAt:integer("created_at").notNull(),
+},t=>[primaryKey({columns:[t.messageId,t.accountId]}),index("live_message_mentions_account").on(t.accountId,t.messageId)]);
+export const matrixAccountLinks = sqliteTable("matrix_account_links", {
+ accountId:text("account_id").primaryKey().references(()=>liveAccounts.id),matrixUserId:text("matrix_user_id").notNull().unique("matrix_account_links_user_unique"),matrixSubject:text("matrix_subject").notNull().unique("matrix_account_links_subject_unique"),homeserverOrigin:text("homeserver_origin").notNull(),verifiedAt:integer("verified_at"),createdAt:integer("created_at").notNull(),
+});
+export const matrixEnrollmentIssues = sqliteTable("matrix_enrollment_issues", {
+ jti:text("jti").primaryKey(),accountId:text("account_id").notNull().references(()=>liveAccounts.id),sessionId:text("session_id").notNull().references(()=>authSessions.id,{onDelete:"cascade"}),state:text("state").notNull().default("pending"),matrixDeviceId:text("matrix_device_id"),completedAt:integer("completed_at"),expiresAt:integer("expires_at").notNull(),createdAt:integer("created_at").notNull(),
+},t=>[index("matrix_enrollment_issues_account").on(t.accountId,t.createdAt),index("matrix_enrollment_issues_expiry").on(t.expiresAt)]);
+
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+ id:text("id").primaryKey(),accountId:text("account_id").notNull().references(()=>liveAccounts.id),sessionId:text("session_id").notNull().references(()=>authSessions.id),endpoint:text("endpoint").notNull().unique("push_subscriptions_endpoint_unique"),keysJson:text("keys_json").notNull(),createdAt:integer("created_at").notNull(),lastUsedAt:integer("last_used_at").notNull(),
+},t=>[index("push_subscriptions_account").on(t.accountId,t.sessionId)]);
+export const notificationEvents = sqliteTable("notification_events", {
+ seq:integer("seq").primaryKey({autoIncrement:true}),kind:text("kind").notNull(),sourceId:text("source_id").notNull(),actorId:text("actor_id").notNull().references(()=>liveAccounts.id),communityId:text("community_id").references(()=>liveCommunities.id),conversationId:text("conversation_id").references(()=>nativeConversations.id),createdAt:integer("created_at").notNull(),processedAt:integer("processed_at").notNull().default(0),
+},t=>[unique("notification_events_source_unique").on(t.kind,t.sourceId),index("notification_events_created").on(t.createdAt,t.seq)]);
+export const pushDeliveries = sqliteTable("push_deliveries", {
+ eventSeq:integer("event_seq").notNull().references(()=>notificationEvents.seq,{onDelete:"cascade"}),subscriptionId:text("subscription_id").notNull().references(()=>pushSubscriptions.id,{onDelete:"cascade"}),state:text("state").notNull(),attempts:integer("attempts").notNull().default(0),nextAttemptAt:integer("next_attempt_at").notNull().default(0),claimedAt:integer("claimed_at").notNull().default(0),updatedAt:integer("updated_at").notNull(),
+},t=>[primaryKey({columns:[t.eventSeq,t.subscriptionId]}),check("push_deliveries_state",sql`${t.state} IN ('pending','sending','sent','retry','failed')`),index("push_deliveries_due").on(t.state,t.nextAttemptAt)]);

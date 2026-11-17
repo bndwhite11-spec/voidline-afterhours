@@ -1,0 +1,483 @@
+VOIDLINE: AFTERHOURS — REVIEW-GUIDED MASTER IMPROVEMENT BRIEF
+
+This brief preserves the complete review requirements. Audit the latest source before assigning status: some correctness, search, Saved, enrollment and notification work may already be implemented. The implementation report is the authority for executed tests and remaining infrastructure; this brief is not proof that every milestone is complete.
+
+Act as a senior product designer, frontend engineer, backend engineer and messaging-security engineer. Improve the existing Voidline application into a polished messaging product that combines Telegram’s conversational clarity with Discord’s community organization and expressive profiles.
+
+**Target:** https://voidline-afterhours.pipedcactus1.chatgpt.site/#chats
+
+Keep Voidline’s own identity: dark graphite, restrained ice-blue accents, original collectible art and the AFTERHOURS atmosphere.
+
+Work inside the existing project. Begin by checking the current source against reviewed version 14. Preserve legitimate accounts, histories, memberships, invitations, ownership records, gifts and migrations. Deliver real improvements in dependency order, with evidence for each completed feature. If a service needs external setup, prepare its integration and give the exact remaining operator steps without presenting it as active.
+
+### 1. Understand and preserve the existing foundation
+
+This is already a server-backed application. Native accounts use a Worker and D1, password hashing uses Argon2id, and the code includes secure sessions, CSRF protections, passkey-based owner proof, real friendships, message persistence and payload-bound retry IDs. Existing badges and gifts have ownership and transfer rules. Retain these protections and avoid recreating them as frontend-only state.
+
+Ordinary native DMs, groups and community text are explicitly called **Standard messaging**. The service stores their readable text; they are not end-to-end encrypted. The current implementation discloses this and asks for consent. Preserve truthful labeling throughout the upgrade.
+
+The project already contains a separate Matrix integration using `matrix-js-sdk` 45.1.0 and Rust cryptography. It includes encrypted rooms, device checks, encrypted attachments, an encrypted local outbox and recovery code. **Complete and verify this integration rather than inventing another encryption protocol.** Check the pinned dependencies against current supported releases and security advisories before changing versions. The official SDK documents its browser cryptography initialization and persistent storage requirements.
+
+The local Saved vault is another distinct feature: encryption on this device does not automatically mean cloud synchronization, account recovery or encrypted message delivery.
+
+The reviewed source treats `dist/` as authored application source. Confirm its build contract before reorganizing files; do not delete it as disposable generated output. Read the project’s README, delivery status, encryption decision and threat-model documents first.
+
+### 2. Fix the specific reliability and authorization defects first
+
+**A. Community ownership transfers**
+
+The community transfer handler checks ownership before its write batch, then demotes the requester and promotes the target unconditionally. An isolated reproduction using the repository migrations showed that two requests authorized while A was owner, followed by A-to-B and A-to-C transfers, leave both B and C as owners.
+
+Establish one authoritative owner invariant. Validate the acting owner and target membership at commit time using a supported transactional or conditional design. A stale transfer must fail with a conflict; it must not create another owner or leave the community ownerless.
+
+Keep role records and the authoritative owner field consistent. Apply the same stale-authorization review to membership removal and role changes. Test simultaneous transfers, target departure and authorization changes between check and commit.
+
+**B. Message updates arriving out of order**
+
+The native message merge replaces messages without comparing revisions. A delayed polling response can arrive after an edit, deletion or reaction acknowledgment and overwrite the newer UI state.
+
+Add a server-generated monotonic revision or change number to every message representation. Merge only newer revisions, retain deletion tombstones, and reject stale responses. Use deterministic delayed-response tests for edits, deletions, reactions and initial history loading.
+
+**C. Group-wide blocking**
+
+The current native write guard refuses new content whenever any member is suspended or any pair of members has a block relationship. This can freeze an entire group for unrelated members.
+
+Define blocking semantics explicitly: stop unwanted DMs and requests, explain visibility in shared groups, and provide legitimate leave/removal tools. A personal block should not silently disable everyone else’s conversation. Enforce suspended users’ restrictions without unnecessarily silencing eligible members.
+
+Do not imply that blocking cryptographically hides messages from someone who remains an authorized group member.
+
+**D. Incorrect read-state wording and behavior**
+
+The “Mark viewed read” action uses the largest sequence among loaded messages.
+
+Track the last eligible message actually visible in the active conversation, with a focused or visible document and a reasonable visibility threshold. Alternatively, label an explicit bulk action accurately. Keep “Mark all read” separate.
+
+Opening Inbox, a profile or a background tab must not silently acknowledge unread content.
+
+**E. Slow backlog recovery**
+
+The native client polls every five seconds and does not immediately drain additional message/change pages.
+
+Fetch remaining pages promptly with bounded work, backoff and cancellation on account or conversation changes. Commit a cursor only after its page is processed. Show “Catching up” when appropriate. Test hundreds of changes accumulated offline.
+
+**F. Incomplete filters and moving pagination**
+
+Conversation filters currently operate on the loaded page, while the backend orders offset pages by changing activity time.
+
+Implement complete-account filtering with authorized, stable cursor pagination and deduplication. A favorite, unread or foldered chat beyond the first 50 must appear. Incoming activity must not cause skipped or duplicated conversations while loading more.
+
+**G. Unstable mention identities**
+
+Community mentions are matched against mutable display names.
+
+Store mention targets using immutable account IDs, use unique handles for lookup and autocomplete, and render display names separately. Handle edits, renamed or deleted users and permission checks. Two users with the same display name must not receive each other’s mentions.
+
+### 3. Make encrypted messaging a normal user journey
+
+The current encrypted connection asks users for a raw Matrix access token and a separate local-storage passphrase. New encrypted conversations also require technical Matrix identifiers.
+
+Replace this normal-user setup with supported account provisioning and sign-in tied to the immutable Voidline account ID. Use a supported Matrix authentication flow; investigate the chosen homeserver’s OIDC/SSO capabilities and current SDK support. Keep manual token connection only in an advanced area if there is a real need. Synapse supports integration with OpenID Connect providers, but the client and account-linking flow still need implementation and testing.
+
+Do not link identities merely because two accounts share an email address or editable username. Establish and verify the account-to-Matrix mapping, handle duplicate linking safely, and allocate a fresh dedicated cryptographic device. Never reuse another client’s initialized device identity.
+
+Build the ordinary journey as:
+
+1. Sign in.
+2. Choose a person.
+3. Enroll or unlock encrypted messaging.
+4. Verify the relevant identity/device.
+5. Accept the invitation.
+6. Exchange a message.
+
+Explain unfamiliar steps using plain language. The user should not need a terminal, API token or second chat application.
+
+Operate a compatible homeserver on infrastructure that supports it. The existing D1 database is not a Matrix homeserver, and the Sites Worker does not run the long-lived Synapse service.
+
+Define the external service, TLS, browser origins, database/media storage, limits, monitoring, backups and maintenance responsibilities. Keep provisioning and admin secrets server-side. Document both one-time setup and ongoing operating requirements.
+
+Once the complete journey passes real-service tests, make new private DMs and private groups encrypted by default.
+
+If encrypted messaging is unavailable, show a recoverable setup/service state and retain drafts. Standard messaging must remain a separately chosen mode, never a silent fallback from encrypted sends.
+
+Keep existing Standard history accurately labeled. Starting a new encrypted conversation protects future content; it does not retroactively erase plaintext held in old databases, exports or backups. Offer an explicit transition with clear history boundaries. Do not silently copy old plaintext history into the encrypted service.
+
+### 4. Complete encrypted invitations, membership and device controls
+
+The adapter can create rooms and send invitations, but its exported interface lacks a complete pending-invitation and join/accept/decline lifecycle. Its room list only shows joined rooms.
+
+Add an invitation inbox with inviter identity, room name, security state and **Accept, Decline and Block** actions. Opening an invitation should show a preview; joining requires deliberate acceptance.
+
+Implement membership synchronization, pending-state feedback, invitation cancellation where supported, leave, participant removal and permission-aware group management.
+
+Two fresh users must complete their first encrypted exchange entirely inside Voidline. Centralize group-size limits so the UI, adapter and policy agree.
+
+Map native friends, blocks, account suspension and community permissions to the actual encrypted-service identity and room membership. Define which system is authoritative for each operation. A D1 role change alone does not remove a Matrix participant or stop key delivery. Handle partial cross-service failure visibly and reconcile safely.
+
+Finish a **Devices and encryption** screen showing:
+
+- Device names and the current device.
+- Verification state and last activity.
+- Recovery readiness and backup status.
+- Initiate verification.
+- Revoke a lost device.
+- Clear explanations of what each action affects.
+
+Expose the existing verification-initiation and revocation capabilities. Support the selected SDK’s comparison/verification flow without endless manual fingerprint entry.
+
+The current policy can block sending because one participating device is unverified. Identify the exact unresolved device, explain the consequence and offer a supported verification or revocation path. Preserve a reviewed trust policy; avoid silently weakening it to remove friction.
+
+Separate account sessions from messaging devices. Locking this browser, ending a Voidline session and revoking a Matrix token are distinct operations.
+
+The current logout path swallows remote logout failures. Return confirmed, failed or unknown revocation results, lock locally immediately, and provide a safe retry or another trusted-device route. Do not persist raw tokens in an insecure retry queue.
+
+### 5. Fix recovery as a resumable process
+
+The current recovery setup refuses any existing backup or cross-signing identity, creates secret storage/backup, and then attempts cross-signing.
+
+If the last step needs reauthentication and fails, a retry encounters the already-created backup and stops. Treat this as a concrete control-flow risk requiring a real homeserver regression test.
+
+Implement explicit states:
+
+- Not started.
+- Recovery key acknowledged.
+- Secret storage ready.
+- Signing identity ready.
+- Backup enabled.
+- Recovery verified.
+
+Detect partial completion and resume only missing authorized steps. Complete the selected homeserver’s authentication challenge. Preserve existing keys and backups; do not reset them to clear an error.
+
+Test interruption, cancellation and network loss after every persisted step. Provide useful progress and error messages. Let the user save recovery material through a deliberate flow, then demonstrate recovery on another controlled device.
+
+Clearly distinguish account recovery, encrypted-message recovery and the independent local Saved vault.
+
+A successful password reset or Google login must not silently grant old message keys. Explain what becomes unrecoverable if every trusted device and recovery secret is lost.
+
+Keep plaintext or otherwise usable recovery secrets off the server and out of logs, analytics and URLs. Store only the SDK’s supported encrypted backup and secret-storage material, protected by secrets the service cannot recover.
+
+### 6. Keep the cryptographic boundary correct
+
+Retain SDK-managed encryption, encrypted local storage, dedicated device namespaces, Web Locks, authenticated media retrieval and the final plaintext-send guard.
+
+Preserve encrypted durable outbox writes before network transmission. Tokens and usable private keys must not be placed in ordinary localStorage. New credential persistence must use a reviewed design compatible with the SDK. OWASP specifically advises against storing session identifiers in localStorage.
+
+Use the selected Matrix attachment implementation, including its integrity requirements. Encrypt file contents before upload and carry sensitive descriptors and keys in the encrypted message.
+
+Encrypt newly added thumbnails; avoid uploading plaintext originals, filenames or transcripts. Revoke decrypted Blob URLs when their view closes or the account changes. Add cancellation, quota and orphaned-ciphertext cleanup policies. Follow the protocol’s attachment format rather than substituting an improvised cipher format.
+
+Show separate states for encrypted content and verified identity. HTTPS, server-disk encryption, password hashing and local vault encryption each protect different things; none alone establishes end-to-end message encryption.
+
+Document the actual Olm/Megolm properties. Megolm has partial forward secrecy and does not inherently recover security within an already-compromised session; rotation limits exposure but is not an unconditional healing guarantee. Follow SDK-supported membership/session rotation and test it.
+
+Removed recipients can retain earlier plaintext and keys. Deletion cannot erase their screenshots or exports.
+
+Keep a specific metadata inventory: account/device identifiers, membership, room state, timing, traffic size and some relations can remain visible to service operators.
+
+Encrypted custom reactions already differ from standard Matrix reactions; document compatibility rather than silently switching to plaintext reaction events.
+
+Browser-delivered code is a trusted endpoint. Preserve the existing strict CSP and local dependency bundling, minimize third-party scripts, and keep user-generated text and links safely rendered.
+
+A malicious script running in an unlocked client can access plaintext; IndexedDB and nonextractable keys do not remove that threat. Use a qualified integration review before making broad security assurances.
+
+### 7. Resolve search, notification and moderation tradeoffs
+
+Provide a simple search panel with scope, person picker, date range and attachment filters. Replace exact internal author-ID fields with people users recognize.
+
+Return highlighted snippets and open the result with surrounding context. Make coverage explicit: loaded messages, indexed history, still indexing or unavailable on this device.
+
+For encrypted chats, search authorized decrypted data on the client and protect any persistent local index. Never quietly create a plaintext server search index.
+
+For Standard chats, implement full-history server search with current authorization on every result and count. Recheck access when opening saved results.
+
+Implement real opt-in push rather than only storing preferences. Default encrypted-chat pushes to generic notifications. Keep message text out of push-provider payloads, telemetry and crash reports.
+
+Apply per-chat mute, mention preferences, quiet hours, device revocation and reliable notification deduplication. Explain notifications before requesting browser permission.
+
+Keep private links away from automatic third-party preview fetches. Make GIF search, bots, translation, transcription and AI disclosure explicit. A bot that can read a private message is another recipient or disclosure path.
+
+For E2EE moderation, provide blocking, invitations, rate limits and voluntary reports. The reporter must see which messages and context they are submitting. Moderators must not have a hidden universal decryption route.
+
+Public or Standard channel moderation can use a different clearly stated model. Describe disappearing messages as retention behavior, with recipient-copy limitations.
+
+### 8. Make the interface feel like a finished messenger
+
+Keep the existing graphite and ice-blue foundation. Establish shared tokens for backgrounds, surfaces, borders, text, muted text, accent, success/error states, spacing, radius and typography.
+
+Consolidate repeated purple/blue overrides into a deliberate theme system. Aim for calm, legible everyday use with personality concentrated in original artwork and restrained accents.
+
+For desktop, use:
+
+- A compact server/navigation rail.
+- A conversation/channel sidebar.
+- A dominant message pane.
+- An optional details panel.
+
+Suggested starting dimensions are a **64–72 px rail**, **260–300 px sidebar** and **280–340 px details pane**; adapt them to content and available width. Let users resize useful panels and retain their preference. Chat content should remain readable on ultrawide displays.
+
+Make Chats, Servers, Inbox and the user’s profile/settings easy to distinguish. Keep active state, unread count, draft state and mute state visually different. Avoid repeated marketing copy or oversized empty panels in the working client.
+
+The current conversation data already contains the last message and activity time, but list rows discard much of it.
+
+Show a compact preview, timestamp, sender prefix for groups, draft precedence and a truthful security indicator. Respect private-preview preferences. A useful row should be understandable at a glance.
+
+Use one icon family and consistent stroke/size. Every icon-only control needs a name and tooltip. Use original Voidline branding instead of copying Discord/Telegram logos or proprietary artwork.
+
+### 9. Improve the message timeline and composer
+
+Replace native feed-wide HTML replacement with keyed updates. Preserve message nodes, focused buttons, selected text, scroll anchors and playing media when unrelated events arrive.
+
+Introduce windowed rendering for large histories while maintaining keyboard and screen-reader access.
+
+Group consecutive messages by the same author, add clear day separators and an unread divider, and expose exact timestamps on demand.
+
+Use saved profile avatars consistently instead of falling back to initials everywhere. Author names and avatars should open an accessible profile card.
+
+Move secondary actions into a compact hover/focus toolbar and a touch-friendly menu. Support reply, edit, delete, copy, link, save and report where authorized. Keep essential actions available without hover.
+
+Preserve reply context if the source is deleted or temporarily unavailable.
+
+Upgrade the composer with:
+
+- A capped auto-growing input.
+- A clear reply/edit bar.
+- Searchable emoji and recent reactions.
+- Paste/drag attachment review.
+- Deliberate voice-note recording.
+- Configurable Enter-to-send behavior.
+
+Handle composition events: pressing Enter during Armenian, Japanese or other IME composition must not accidentally send.
+
+Add pending message bubbles and an ordered outbox so one unconfirmed send does not stop all further composition. Keep stable IDs and payload-bound retries.
+
+Distinguish pending, server accepted, recipient delivered and read. Only show states established by actual evidence.
+
+Preserve unsent work during reconnects and explain local retention across logout or tab closure.
+
+Provide a reliable jump-to-latest control and new-message count. Incoming messages must not pull users away from older history. Loading earlier messages must preserve the visible anchor.
+
+Long URLs, code, emoji-only content, mixed scripts and deleted/replied-to messages must remain readable.
+
+### 10. Complete groups, servers and global activity
+
+Expose the existing native group-leave endpoint in the UI.
+
+Add appropriately authorized group name/avatar editing, member addition/removal, invitation status and ownership/admin rules. Explain who can see previous history and what changes after a member leaves.
+
+For servers, add a clear channel/category hierarchy, channel descriptions, useful invite previews and explicit permissions.
+
+Existing community access is primarily membership-based. If private channels are added, enforce their policy across history, send, search, saved items, media and notifications. Hiding a channel in the sidebar is insufficient.
+
+Map encrypted private channels to actual Matrix membership and key delivery.
+
+Define owner, admin, moderator and member capabilities explicitly, including announcement posting, pinning, timeout, kick, ban, invite management and role changes.
+
+Add permission previews and useful audit history. Verify privileged changes at commit time.
+
+Keep unread, incoming-friend-request and gift badges accurate while users are on other screens. The current friend-request snapshot updates when the Friends panel is opened.
+
+Introduce a lightweight account activity feed or subscription and deduplicate events across tabs/devices. Refresh badges without rebuilding focused content.
+
+Use a supported authenticated streaming/WebSocket architecture where it improves message latency and operating cost. Keep cursor replay and polling fallback.
+
+Measure the current load first: adding sockets alone does not solve persistence, ordering or authorization.
+
+### 11. Develop profiles, badges and gifts without clutter
+
+Preserve the existing **21 cosmetic badges, 12 gift designs**, earned-award rules, ownership records and accepted-transfer flow. Improve presentation and consistency before adding more catalog items.
+
+Provide a profile editor with live preview, safe avatar/banner upload and cropping, display name, unique handle, bio, status, accent and collection visibility.
+
+Use the same profile components in messages, Friends, member lists and profile cards. Keep unsaved-change handling predictable.
+
+Build a coherent original art direction: chrome, enamel, orbital motifs, subtle holographic textures and occasional playful internet references.
+
+Give each collectible a recognizable silhouette at small size. Avoid treating arbitrary gradients or emoji as finished badge artwork. Provide static variants and reduced-motion settings for effects.
+
+Separate cosmetic decorations, earned awards, identity verification and administrative roles both visually and in data.
+
+Purchasing or equipping an item must never grant permissions or imply a verified identity. Avoid fabricated scarcity, fake owner histories or misleading financial value.
+
+Add useful collection filters, item detail views, recipient previews, clear transfer eligibility, confirm/accept/decline states and a consistent showcase editor.
+
+Preserve idempotency and reject double transfers.
+
+Use Telegram’s collection organization and Discord’s profile/nameplate personalization as interaction references while creating original Voidline artwork.
+
+Offer tasteful profile frames/nameplates after the conversation interface is reliable. Keep gifts as optional personalization; they should not dominate navigation or the message pane.
+
+### 12. Finish sign-in, onboarding and recovery copy
+
+The inspected public login screen says Google sign-in is not configured.
+
+Complete the existing OIDC integration using real provider configuration, exact redirect URIs, server-side validation and safe account-linking rules. Request only needed scopes.
+
+Keep secrets out of client bundles and code repositories. If the provider remains unavailable, keep native login useful and display clear user-facing availability wording; place operator setup instructions in administration. Use the provider’s maintained authentication guidance and libraries where compatible.
+
+Preserve password-manager support, strong password hashing and passkey protections.
+
+Keep the existing empty-account behavior: no fabricated people, servers, gifts or messages. Offer **Add a friend**, **Join with an invite** and **Create a server** as clear first actions.
+
+Improve public recovery guidance. Explain what the account recovery code restores, how to store it, and what choices remain if it is lost. Present optional verified-email recovery accurately when configured.
+
+Account recovery, message-key recovery and local-vault recovery need separate explanations.
+
+Keep the short, skippable entry reveal and its return-visit/reduced-motion bypass. Do not add fake loading percentages or repeated cinematic delays.
+
+Place privacy, terms, support and security-model links where users can find them before signing up. Keep recovery codes and security details out of analytics.
+
+### 13. Make mobile and accessibility first-class acceptance criteria
+
+The source already contains responsive layouts, focus styling, reduced-motion handling, safe-area rules and mobile input sizing. Preserve them and validate actual behavior.
+
+Test **320, 375, 390, 768, 1024 and 1440 px widths**, portrait/landscape, touch input and 200% zoom.
+
+On phones, show one primary pane at a time with a clear Back action. Use dynamic viewport and safe-area handling so the keyboard does not cover the composer or selected message.
+
+Avoid horizontal page scrolling and nested scroll traps.
+
+Target WCAG 2.2 AA. Verify text contrast, visible focus, meaningful labels, predictable tab order, modal focus containment/return and status announcements.
+
+Aim for comfortable **44 px touch targets** where practical; distinguish that product target from the standard’s particular minimum-target criterion and exceptions.
+
+Expose incoming messages as restrained log updates. Do not reannounce an entire conversation on every poll.
+
+Ensure unread/security states are understandable without color alone. Keep actions operable with keyboard and touch, and provide alternatives to drag-only interactions.
+
+Test with a real screen reader, not just attribute inspection.
+
+### 14. Unify Saved content and data controls
+
+The current Saved experience splits on-device notes, encrypted Saved and older bookmarks; ordinary native message actions do not offer the same save workflow.
+
+Create one understandable entry point with visible storage/security scope. Add authorized native bookmarks and clear handling for deleted messages, lost membership and unavailable devices.
+
+Explain which content syncs, which is encrypted and which exists only on this browser. Do not imply that Matrix recovery restores the independent local vault.
+
+Provide a deliberate export flow with format, scope and sensitive-content explanations appropriate to the actual export. Encrypt exports when chosen, and explain that plaintext exports leave the messaging protection boundary.
+
+Implement account-data export and deletion around documented retention rules. Preserve other participants’ legitimate history where policy requires it, anonymize authors appropriately, and distinguish profile removal from erasing copies held by recipients.
+
+Test backup restoration in an isolated environment. Local backup scripts alone do not establish production backup scheduling or recovery.
+
+### 15. Keep administration powerful and limited
+
+Preserve immutable account-ID ownership and passkey-backed verification. The intended `@xrp` handle is a label, not proof of administration.
+
+Retain the trusted owner-bootstrap process and server-side authorization for every privileged action.
+
+The owner panel should manage accounts, reports, roles, suspensions, configuration health and audit events.
+
+It must not display users’ raw passwords, usable recovery secrets or private message keys. Preserve Argon2id hashing rather than adding reversible password encryption; password storage should use strong salted hashing.
+
+Show operational failures with safe diagnostics that exclude content and credentials.
+
+Apply sensible rate limits to login, recovery, discovery, invitations, messages, uploads and gift transfers.
+
+Review object-level authorization and CSRF protections after every new route. Add explicit reauthentication for sensitive changes. Keep public profile information separate from private account information.
+
+### 16. Treat calls and advanced media as their own milestone
+
+Add image/file sharing and voice notes to the intended primary encrypted messaging path first, using the existing attachment foundation.
+
+Provide preview, progress, cancellation, retry and precise size/type limits. Preserve originals only according to a documented retention policy.
+
+Live voice, video and screensharing need real signaling, device selection, permissions, reconnect behavior, STUN/TURN and an appropriate media service.
+
+Choose and validate that architecture separately. Text encryption and WebRTC transport encryption do not by themselves justify an end-to-end encryption claim against every media-server arrangement.
+
+Until a capability works, show an honest unavailable state with a useful explanation.
+
+Do not simulate connected calls, invented online users, delivery receipts or successful uploads. Avoid leaving attractive buttons that do nothing.
+
+### 17. Improve performance and maintainability
+
+Split the large home module by real responsibilities: account access, navigation, conversation state, rendering, native transport, encrypted transport, composer, device management and recovery.
+
+Reuse a shared conversation UI while keeping protocol/security boundaries explicit. Avoid a framework migration unless it solves a demonstrated maintenance problem.
+
+Centralize repeated limits, permissions, labels and design tokens. Use typed interfaces or schema validation at transport boundaries.
+
+Preserve deterministic builds, dependency locking and migration history. Add new migrations rather than rewriting applied migrations.
+
+Lazy-load heavy crypto, media and collection modules when needed.
+
+Bound caches, timelines and outbox retention, and define encrypted-store compaction without discarding pending messages.
+
+Measure loading, interaction latency, bundle cost and database request volume on representative devices. Use targets supported by measurements rather than claiming performance from appearance.
+
+### 18. Required tests and proof of completion
+
+Keep the useful existing unit, SQLite, cryptographic-primitive and controlled-transport tests. They establish specific properties; they do not substitute for real browser and homeserver integration.
+
+Add a controlled acceptance environment with two fresh users, two independent browser profiles and an additional device. Use disposable test accounts and content.
+
+Cover:
+
+- Registration, native login, configured Google login, password recovery and session revocation.
+- An empty new account, friend request acceptance and permission-checked conversation creation.
+- First encrypted device enrollment, in-app invite acceptance and bidirectional encrypted messages.
+- Encrypted attachments, integrity failure, cancellation and refresh/unlock.
+- Distinctive test plaintext absent from server-bound encrypted message bodies, uploaded file bytes and application logs; inspect relevant metadata separately.
+- New/unverified devices, identity change, partial recovery failure and successful resume.
+- A second device recovering authorized history through the intended trust/recovery process.
+- Member removal/device revocation stopping future key access after synchronization, without promises about already retained history.
+- No plaintext fallback when crypto initialization, verification or key delivery fails.
+- Multiple tabs, offline send, lost acknowledgments, stable retries and ordered outbox behavior.
+- Delayed polls arriving after edit/delete/reaction acknowledgments.
+- Large offline backlogs, filtered conversations beyond the first page and pagination during new activity.
+- Viewed versus merely loaded messages, notification mute and global activity badge updates.
+- Concurrent ownership transfers, membership/role races and unrelated-account access rejection.
+- Gift transfer retries, revoked permissions and double-transfer attempts.
+- Mobile keyboard, screen reader, reduced motion, zoom and long-history focus/scroll behavior.
+
+Record which checks actually ran, the environment, the result and unresolved limitations.
+
+Include before/after screenshots of the relevant authenticated flows using test data. Have a qualified reviewer examine the completed authentication, authorization and E2EE integration before broad production security claims.
+
+### 19. Delivery order and expected output
+
+**Phase 1 — Correctness**
+
+Fix owner/role races, message revisions, read-state accuracy, backlog draining, complete filters and group-blocking semantics.
+
+**Phase 2 — Private messaging**
+
+Complete operated Matrix infrastructure, supported account/device enrollment, invitations, device controls, resumable recovery, membership integration and real-device acceptance.
+
+**Phase 3 — Everyday experience**
+
+Improve conversation previews, stable timelines, outbox, useful search, attachments/voice notes, Saved, live badges and notifications.
+
+**Phase 4 — Finish and expand**
+
+Validate mobile/accessibility, improve profiles/collections, add optional effects, prove operational recovery and tackle the separately scoped calling milestone.
+
+For each phase, provide the actual changes, concise architectural decisions, migrations/configuration, executed tests and open dependencies.
+
+Distinguish:
+
+- Implemented and tested.
+- Implemented but awaiting infrastructure.
+- Intentionally deferred.
+
+Use exact setup instructions for missing services, without embedding secrets in the deliverable.
+
+**The finished result should let an ordinary person join, find someone, understand the conversation’s privacy state, send reliably and recover safely. It should also look unmistakably like Voidline: compact, legible, distinctive and enjoyable to use.**
+
+Official implementation references
+
+Matrix JS SDK: https://matrix-org.github.io/matrix-js-sdk/
+Synapse installation: https://element-hq.github.io/synapse/latest/setup/installation.html
+Synapse JWT login: https://element-hq.github.io/synapse/latest/jwt.html
+Matrix client-server specification: https://spec.matrix.org/latest/client-server-api/
+OWASP HTML5 security: https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html
+OWASP password storage: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+Google OpenID Connect: https://developers.google.com/identity/openid-connect/openid-connect
+WCAG 2.2: https://www.w3.org/TR/WCAG22/
+Discord custom profiles: https://support.discord.com/hc/en-us/articles/4403147417623-Custom-Profiles
+Telegram collectible gifts: https://telegram.org/blog/collectible-gifts-and-more
+Telegram collections: https://telegram.org/blog/post-search-story-albums-and-more
+
+Hosting note for this project
+
+The owner confirmed no Matrix homeserver exists yet. A managed Synapse service must support the documented authentication method, reserve the application's account namespace, provide valid HTTPS and appropriate browser access, and support the required interactive authentication and device revocation operations. JWT login alone does not guarantee a complete Matrix UIA flow. Native account suspension/blocking does not revoke independently issued Matrix tokens or room membership without a real server-side integration. Keep encrypted-by-default disabled until the entire operated-service journey and policy integration pass real acceptance tests. Never request signing secrets or access tokens in public issue reports.

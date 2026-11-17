@@ -1,53 +1,153 @@
-# Account organization, Saved, search and community tools
+# Organization, Saved, search and account activity
 
-`worker/organize.mjs` stores account-owned organization metadata in D1. Its routes require an active native account session. Mutations require the session's CSRF token, an allowed Origin, the expected immutable account ID, bounded JSON, and rate limits. Native channel references require current community membership. Matrix references are opaque room identifiers; they confer no Matrix access and cannot retrieve encrypted content.
+The organization API stores private account preferences and source references.
+It is not a decryption service. Every route requires an active native session;
+mutations check origin, CSRF, immutable expected account ID, bounded JSON and
+rate limits. A referenced native conversation/channel requires current
+membership. A Matrix room identifier is only routing metadata and cannot grant
+Matrix membership or retrieve protected history.
 
-The versioned `0006_hard_tombstone.sql` migration adds `account_organization`, `organization_folders`, `organization_targets`, and `community_timeouts`, alongside the shared administrative audit/report records. Foreign keys preserve account, folder and native channel relationships. Existing memberships and message history are retained. Defaults are read without creating sample conversations or notification records.
+## Complete-account organization
 
-## Organization and notifications
+Personal favorites, pin-to-top, archive, mute, folders and read preferences live
+in D1. Native preferences use `native_conversation_preferences`; community and
+opaque Matrix preferences use `organization_targets`. Existing applied schema
+is retained. Folder removal clears referencing records and a selected folder
+filter; it does not delete or leave a conversation.
 
-All, Unread, Favorites, DMs, Communities, Archived and custom folder filters share an account's metadata. Favorite, pin, archive, mute and folder changes affect only that account. They do not change membership, delete history or alter another account's list. Folder creation accepts a stable retry ID, has a 20-folder limit and atomically avoids duplicate creates. Deleting a selected folder clears its references and resets that account's list filter to All. Target reads are monotonic and native positions are clamped to the actual channel history.
+Native conversation filtering and pagination are performed by the native API
+across the current authorized account, rather than only filtering the first
+loaded page. Account-bound snapshot cursors retain captured order/filter while
+activity changes. The client passes opaque `page.currentCursor`/`nextCursor`
+values back unchanged and rechecks authorization on each page. Expired snapshots
+have a deliberate fresh-view action. Snapshot counts are not public discovery.
 
-Notification preferences cover DMs, mentions, replies, community activity, gifts, quiet hours and generic/content previews. Preferences persist; native push delivery is not configured. The UI does not request notification permission or claim successful push delivery. Opening Inbox does not mark conversations read. Per-conversation and bulk legacy read actions are explicit. Friend and gift request counts come from their actual account APIs. Native Inbox does not imply a complete encrypted-service activity feed.
+The organization metadata endpoint remains bounded to 1,000 records. Native
+conversation results also carry their own favorite/pinned/archive/mute/folder
+flags; controls use those when a record is outside the metadata window. Matrix
+organization covers loaded device-authorized rooms, not a server-side plaintext
+index of encrypted conversations.
 
-## Saved has three explicit storage scopes
+## One Saved entry, explicit storage scopes
 
-1. **This device** is an independently encrypted private-notes vault, available without a Matrix homeserver. A separate passphrase unlocks the secure-messaging module's IndexedDB vault. Notes, titles, links and tags are encrypted with authenticated encryption; plaintext is never sent to the organization API. A note may contain up to 16,000 characters. Search runs inside the unlocked client. Stable note IDs preserve retry behavior. The UI keeps unsaved drafts only in memory, clears them on account lock and warns before leaving the page with a draft. The vault does not sync. Losing the passphrase or clearing browser storage can make its contents unrecoverable. Account password recovery cannot recover this vault.
-2. **Encrypted Saved** uses a verified Matrix client and an encrypted self-only room when the service is configured. Private notes are encrypted events; bookmarks store encrypted source references rather than plaintext copies. Resolving a reference still requires current room access and available device keys. A missing or revoked source appears unavailable. This scope is not usable merely because the native account is signed in.
-3. **Legacy bookmarks** are existing native message references, retrieved through the permission-aware native Saved endpoint. They are not newly encrypted by this upgrade. Deleted or inaccessible sources are shown as unavailable and never restored from a plaintext copy.
+Saved now defaults to **Account bookmarks**. The entry also contains **This
+device**, **Encrypted Saved** and **Community bookmarks** tabs. These are related
+personal tools with different persistence and security properties:
 
-Community-visible pins are separate from all three Saved scopes. Saved does not provide a pretend file-upload path.
+- Account bookmarks sync through authenticated native APIs. They store a
+  private source reference and a per-user bookmark revision, not another copy
+  of the message. Lists/search/opening sources recheck current membership.
+  Deleted or inaccessible sources are hidden. Unsave is deliberate and never
+  deletes the original conversation message.
+- This-device notes use `src/local-saved.js` and the encrypted local vault. They
+  require a separate vault passphrase, do not upload or sync, and cannot be
+  restored by changing an account password. Unsaved note text survives a failed
+  save and is never included in a server request. Lock/account changes clear
+  in-memory note drafts and vault access. The existing wrong-passphrase and
+  ciphertext protections remain in place.
+- Encrypted Saved uses the current unlocked Matrix client and a self-only
+  private encrypted room. Source references are resolved under Matrix membership
+  and authenticity checks. Opening the empty tool does not create a room.
+- Community bookmarks retain authorized native channel references. They are
+  private bookmarks, distinct from community-visible pins.
 
-## Search
+None of these choices claims that local vault encryption creates cloud E2EE.
+A password reset, local-vault recovery and Matrix recovery are separate flows.
+The UI states each tab's scope before presenting its contents.
 
-Legacy search uses the existing authorized native search API, with full result counts, pagination, author/channel filters and strictly validated UTC date boundaries. Every result opens its exact source message and thread through the home navigation bridge. The server rechecks access when loading the source.
+## Search and exact sources
 
-Encrypted search filters only the currently loaded decrypted timeline on the client, with text, author, date and link filters. It sends no message plaintext or query to a server index. Its result label states both the match count and loaded-history boundary. Unloaded or locked history is not silently included. Local Saved notes have a separate unlocked-vault search. Full encrypted-history indexing and encrypted file search remain future work.
+Account search uses `/api/messages/search` across full permitted Standard
+history. It supports text, a recognizable `@username`, optional conversation,
+UTC date range and links. Counts and results are permission-aware. Results show
+escaped, highlighted snippets and exact source links. The source jump uses the
+normal authorized conversation/message path rather than treating a bookmark or
+search result as an access capability.
 
-## Community administration and reporting
+Community search uses the corresponding permitted server history, accepts an
+exact username or compatible account-ID API parameter, and keeps channel scope
+explicit. Visible controls ask for a person, not an internal identifier.
 
-Owners can update community details, manage invitations, promote/demote moderators and transfer community ownership. Staff can inspect paginated member and audit lists. Moderators can remove or restrict ordinary members; they cannot target owners or peers. The server checks these permissions independently of the UI. Member-directory responses expose public identity and scoped role, not private rich-profile fields. Profile reads delegate to the shared privacy-aware profile API.
+Encrypted search remains on this device over loaded decrypted history. Its
+person picker labels known senders while retaining immutable Matrix IDs only as
+internal values. Unloaded history is not claimed as searched. Scope changes
+preserve typed text but do not automatically submit it to another server scope;
+a user must press Search. An encrypted query is never quietly reused as a
+server plaintext query to make the UI convenient.
 
-Invitations have expiry, usage limits, explicit previews and revocation. The full invitation token is displayed when created; management lists expose status and usage without recovering secret link tokens. Opening a link never automatically joins a community.
+Malformed/contradictory dates fail before transport. Late results cannot replace
+a newer query, dialog or account. HTML/link-like message text is escaped; there
+are no automatic third-party preview requests.
 
-Native restrictions are recorded in `community_timeouts`. Explicitly acknowledged standard channel sends enforce these restrictions; they do not revoke access to a separately managed Matrix room. Matrix room moderation requires the corresponding encrypted service integration.
+## Inbox and global badges
 
-Community permission changes and their audit entries are committed in the same D1 batch. Audit entries identify the authenticated actor and necessary action metadata without copying message content. Community owners and moderators receive no platform-owner privileges.
+Inbox opening is read-only. Account conversations use the server's filtered
+snapshot pages so unread conversations beyond the first page can appear. The
+account and community page controls are separate. Per-conversation bulk read is
+labeled **Mark this conversation read**. A separate action explicitly marks all
+community conversations read. Neither claims that merely loaded messages were
+actually viewed. The conversation interface owns its visible-message read
+tracker independently.
 
-Reports require access to the source and explicit disclosure acknowledgement. The user may voluntarily provide selected text; the application never automatically copies encrypted messages or full histories. Reports are delivered to the platform owner's authorized review queue. Administrative access does not provide encryption keys.
+`GET /api/organize/activity` returns only current-account counts:
+`nativeUnread`, `communityUnread`, `unreadTotal`, `friendRequests` and
+`giftRequests` (including pending transfers). Native/community unread counts
+require current membership, exclude self-authored/deleted messages, and respect
+per-conversation mute. It returns no message text, source IDs, account emails or
+credentials. An opaque revision covers counts and authorized native cohort activity (conversation update time, change sequence and membership count), so net-neutral unread activity still reaches the first-page refresh policy. It exposes no message content or cohort identifiers.
 
-## Focused verification
+While the account is visible, the client checks activity every 25 seconds.
+Background/locked pages do not continue checking. Counters update directly when counts change. Revision changes also
+emit `voidline:activity` with the current account ID and opaque revision for Social/Cosmetics badges.
+The existing composer/timeline or an unsaved editing dialog is not rebuilt.
+These are polled counts, not simulated online state or delivery/read receipts.
 
-- `node backend/organize-test.mjs`: real Worker handlers, active native sessions and isolated migrated SQLite. Covers empty defaults, partial writes, access revocation, scoped folders, concurrent retry IDs, atomic deletion, monotonic reads, no protected text storage, explicit report disclosure, request protections, scoped moderation and rollback if audit writing fails.
-- `node tests/voidline-organize-test.cjs`: controlled DOM/transport checks for read-only Inbox opening, truthful request counts, validated dates, stale search responses, escaped results, client-only encrypted search, local Saved unlock/no server note upload, failed-save retention, independent note IDs, account isolation and vault lock.
+## Notifications and privacy
 
-These are not browser-layout or live Matrix interoperability tests. Cryptographic vault and Matrix adapter tests live with the secure-messaging module. A configured external encrypted service is required before claiming cross-device encrypted messaging or Saved synchronization.
+Preferences persist for DMs, mentions, replies, communities and gifts. Rich
+previews on an unlocked client have **generic**, **sender** and **full** choices;
+the older `content` value maps to `full`. These do not place protected text in
+push infrastructure. Native Inbox previews respect the choice.
 
-## Native account conversations
+Quiet hours store an explicit validated IANA time zone plus start/end times.
+Older missing zones use UTC, shown in settings. The UI can select the saved zone
+or this device's zone; the server and client use the same saved policy.
 
-Migration 0007 adds native_conversation_preferences rather than rewriting the
-applied organization_targets kind constraint. Native references require actual
-conversation membership and disappear after membership loss. Folder deletion
-clears references. Inbox includes real native summaries and deliberate read
-actions. Loaded native search stays in the selected conversation and opens an
-exact source; it does not claim full-history DM search. See NATIVE-MESSAGING.md.
+Notification availability is supplied by `notificationAvailability(env)`, not a
+hard-coded success or an automatic browser permission request. The separate
+**Browser notifications** screen performs deliberate opt-in and shows actual
+subscription/configuration state. Push payloads remain generic even when a user
+chooses full local previews. Provider acceptance is not proof of browser delivery.
+Missing VAPID/service configuration remains an unavailable state. See the
+notification implementation and operator setup documentation for deployment
+and actual-provider/browser verification boundaries.
+
+## Reports and community tools
+
+Reports require an accessible community, channel message, native conversation,
+native message or relevant account. Native account relevance can come from an
+existing group. The user deliberately chooses any evidence to submit and
+acknowledges disclosure to the verified platform owner. The API never fetches
+and silently attaches message text. This voluntary report text is an explicit
+exception to metadata-only storage, not a universal decryption route.
+
+Community settings, members, roles, invitations, ownership transfer, timeouts
+and audits call the actual scoped server APIs. Native moderation does not
+implicitly revoke a separately managed Matrix room or its keys. Invitations
+have preview, expiry, usage and revocation behavior; previewing one never joins.
+Public directory responses expose only permitted profile/role information.
+
+## Verification
+
+`node backend/organize-test.mjs` runs actual HTTP handlers, opaque sessions and
+the current migrated SQLite schema. Its 17 checks cover preferences/time zones,
+private metadata/folders, global activity privacy/mute/read behavior, deliberate
+report evidence, community moderation/audit rollback and an integrated native
+search/bookmark/favorite membership-loss scenario.
+
+`node tests/voidline-organize-test.cjs` runs 27 controlled DOM/transport checks.
+It covers stale responses, source references, highlights/escaping, encrypted
+query isolation, scope changes, snapshot navigation, private previews, activity
+without destructive rendering and local-vault draft handling. These tests do
+not establish real browser, screen-reader, mobile-keyboard, Web Push delivery or
+live Matrix behavior. Release verification must report those separately.

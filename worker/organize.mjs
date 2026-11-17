@@ -1,9 +1,10 @@
-/** Account-owned organization metadata. Protected message content is never stored here. */
-import {authenticate,validateSessionMutation,authRateLimit,AuthError} from './auth.mjs';
+/** Account-owned metadata and explicit voluntary report evidence. No hidden history export. */
+import {authenticate,validateSessionMutation,authRateLimit,authHash,AuthError} from './auth.mjs';
+import {notificationAvailability} from './notifications.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
-const DEFAULTS={listFilter:'all',notifications:{dm:true,mentions:true,replies:true,community:false,gifts:true,quietHours:{enabled:false,start:'22:00',end:'08:00'},preview:'generic'}};
+const DEFAULTS={listFilter:'all',notifications:{dm:true,mentions:true,replies:true,community:false,gifts:true,quietHours:{enabled:false,start:'22:00',end:'08:00',timeZone:'UTC'},preview:'generic'}};
 const FILTERS=['all','unread','favorites','dms','communities','archived'];
 async function readBody(request){
  need(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');
@@ -13,14 +14,14 @@ async function readBody(request){
  let body;try{body=JSON.parse(new TextDecoder().decode(bytes));}catch{throw new AuthError(400,'invalid_body','The request could not be read.');}
  need(body&&typeof body==='object'&&!Array.isArray(body),400,'invalid_body','Use a JSON object.');return body;
 }
-function preferences(stored){let value={};try{value=JSON.parse(stored||'{}');}catch{}return {...DEFAULTS,...value,notifications:{...DEFAULTS.notifications,...value.notifications,quietHours:{...DEFAULTS.notifications.quietHours,...value.notifications?.quietHours}}};}
+function preferences(stored){let value={};try{value=JSON.parse(stored||'{}');}catch{}return {...DEFAULTS,...value,notifications:{...DEFAULTS.notifications,...value.notifications,preview:value.notifications?.preview==='content'?'full':value.notifications?.preview||DEFAULTS.notifications.preview,quietHours:{...DEFAULTS.notifications.quietHours,...value.notifications?.quietHours}}};}
 function preferencePatch(body){
  const changes=[];
  if(body.listFilter!==undefined){need(FILTERS.includes(body.listFilter)||(typeof body.listFilter==='string'&&/^folder:[a-f0-9-]{36}$/.test(body.listFilter)),400,'invalid_filter','Choose All, Unread, Favorites, DMs, Communities or Archived.');changes.push(['$.listFilter',body.listFilter]);}
  if(body.notifications!==undefined){const n=body.notifications;need(n&&typeof n==='object'&&!Array.isArray(n),400,'invalid_preferences','Choose notification preferences.');
   for(const key of ['dm','mentions','replies','community','gifts'])if(n[key]!==undefined){need(typeof n[key]==='boolean',400,'invalid_preferences','Notification choices must be on or off.');changes.push(['$.notifications.'+key,n[key]]);}
-  if(n.preview!==undefined){need(['generic','content'].includes(n.preview),400,'invalid_preview','Choose generic or content previews.');changes.push(['$.notifications.preview',n.preview]);}
-  if(n.quietHours!==undefined){const value=n.quietHours;need(value&&typeof value==='object',400,'invalid_quiet_hours','Choose quiet hours.');if(value.enabled!==undefined){need(typeof value.enabled==='boolean',400,'invalid_quiet_hours','Quiet hours must be on or off.');changes.push(['$.notifications.quietHours.enabled',value.enabled]);}for(const key of ['start','end'])if(value[key]!==undefined){need(typeof value[key]==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value[key]),400,'invalid_quiet_hours','Use a valid 24-hour time.');changes.push(['$.notifications.quietHours.'+key,value[key]]);}}
+  if(n.preview!==undefined){need(['generic','sender','full','content'].includes(n.preview),400,'invalid_preview','Choose hidden content, sender-only or full previews.');changes.push(['$.notifications.preview',n.preview==='content'?'full':n.preview]);}
+  if(n.quietHours!==undefined){const value=n.quietHours;need(value&&typeof value==='object',400,'invalid_quiet_hours','Choose quiet hours.');if(value.enabled!==undefined){need(typeof value.enabled==='boolean',400,'invalid_quiet_hours','Quiet hours must be on or off.');changes.push(['$.notifications.quietHours.enabled',value.enabled]);}if(value.timeZone!==undefined){need(typeof value.timeZone==='string'&&value.timeZone.length<=64,400,'invalid_time_zone','Choose a valid IANA time zone.');try{new Intl.DateTimeFormat('en',{timeZone:value.timeZone}).format();}catch{throw new AuthError(400,'invalid_time_zone','Choose a valid IANA time zone.');}changes.push(['$.notifications.quietHours.timeZone',value.timeZone]);}for(const key of ['start','end'])if(value[key]!==undefined){need(typeof value[key]==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value[key]),400,'invalid_quiet_hours','Use a valid 24-hour time.');changes.push(['$.notifications.quietHours.'+key,value[key]]);}}
  }
  need(changes.length,400,'empty_preferences','Choose at least one preference to update.');return changes;
 }
@@ -39,9 +40,11 @@ async function targets(db,userId){
 async function folderList(db,userId){return (await q(db,'SELECT id,name,position,created_at AS createdAt FROM organization_folders WHERE account_id=? ORDER BY position,created_at,id',userId).all()).results;}
 async function reportAccess(db,userId,type,id){
  if(type==='community'){need(await q(db,'SELECT 1 AS ok FROM live_memberships WHERE community_id=? AND account_id=?',id,userId).first(),404,'source_unavailable','This report source is unavailable.');return;}
+ if(type==='native-message'){need(await q(db,'SELECT 1 AS ok FROM native_messages m JOIN native_members n ON n.conversation_id=m.conversation_id WHERE m.id=? AND n.account_id=?',id,userId).first(),403,'source_unavailable','This report source is unavailable.');return;}
+ if(type==='native-conversation'){await nativeAccess(db,id,userId);return;}
  if(type==='message'){const m=await q(db,'SELECT channel_id FROM live_messages WHERE id=?',id).first();need(m,404,'source_unavailable','This report source is unavailable.');await channelAccess(db,m.channel_id,userId);return;}
- need(type==='account'&&id!==userId,400,'invalid_report','Choose a community, message or another account.');
- const known=await q(db,`SELECT a.id FROM live_accounts a WHERE a.id=? AND a.username IS NOT NULL AND (EXISTS(SELECT 1 FROM social_requests r WHERE ((r.sender_id=? AND r.recipient_id=a.id) OR (r.recipient_id=? AND r.sender_id=a.id)) AND r.state IN ('pending','accepted')) OR EXISTS(SELECT 1 FROM social_blocks b WHERE b.blocker_id=? AND b.blocked_id=a.id) OR EXISTS(SELECT 1 FROM live_memberships mine JOIN live_memberships theirs ON theirs.community_id=mine.community_id WHERE mine.account_id=? AND theirs.account_id=a.id))`,id,userId,userId,userId,userId).first();
+ need(type==='account'&&id!==userId,400,'invalid_report','Choose a permitted conversation, message or another account.');
+ const known=await q(db,`SELECT a.id FROM live_accounts a WHERE a.id=? AND a.username IS NOT NULL AND (EXISTS(SELECT 1 FROM social_requests r WHERE ((r.sender_id=? AND r.recipient_id=a.id) OR (r.recipient_id=? AND r.sender_id=a.id)) AND r.state IN ('pending','accepted')) OR EXISTS(SELECT 1 FROM social_blocks b WHERE b.blocker_id=? AND b.blocked_id=a.id) OR EXISTS(SELECT 1 FROM live_memberships mine JOIN live_memberships theirs ON theirs.community_id=mine.community_id WHERE mine.account_id=? AND theirs.account_id=a.id) OR EXISTS(SELECT 1 FROM native_members mine JOIN native_members theirs ON theirs.conversation_id=mine.conversation_id WHERE mine.account_id=? AND theirs.account_id=a.id))`,id,userId,userId,userId,userId,userId).first();
  need(known,404,'source_unavailable','This report source is unavailable.');
 }
 export async function handleOrganizeRequest(request,env){
@@ -50,13 +53,27 @@ export async function handleOrganizeRequest(request,env){
   need(url.pathname==='/api/organize'||url.pathname.startsWith('/api/organize/'),404,'not_found','No organization action matches this request.');need(['GET','POST'].includes(method),405,'method_not_allowed','This method is unavailable.');
   const user=await authenticate(request,env),db=env.DB,now=Date.now();let body;
   if(method==='POST'){body=await readBody(request);await validateSessionMutation(request,user,body);await authRateLimit(request,db,'organize',90,now,user.id);}
+  if(path.length===1&&path[0]==='activity'&&method==='GET'){
+   const row=await q(db,`SELECT
+    (SELECT COUNT(*) FROM native_messages m JOIN native_members n ON n.conversation_id=m.conversation_id LEFT JOIN native_conversation_preferences p ON p.conversation_id=n.conversation_id AND p.account_id=n.account_id WHERE n.account_id=? AND m.seq>n.read_seq AND m.author_id<>n.account_id AND m.deleted_at IS NULL AND COALESCE(p.muted,0)=0) AS native_unread,
+    (SELECT COUNT(*) FROM live_messages m JOIN live_channels c ON c.id=m.channel_id JOIN live_memberships n ON n.community_id=c.community_id LEFT JOIN live_read_states r ON r.channel_id=c.id AND r.account_id=n.account_id LEFT JOIN organization_targets p ON p.account_id=n.account_id AND p.target_key='channel:'||c.id WHERE n.account_id=? AND m.seq>COALESCE(r.seq,0) AND m.author_id<>n.account_id AND m.deleted_at IS NULL AND COALESCE(p.muted,0)=0) AS community_unread,
+    (SELECT COUNT(*) FROM social_requests WHERE recipient_id=? AND state='pending') AS friend_requests,
+    (SELECT COUNT(*) FROM cosmetic_gifts WHERE recipient_id=? AND state='pending') AS gift_requests,
+    (SELECT COUNT(*) FROM gift_transfers WHERE recipient_id=? AND state='pending') AS gift_transfers,
+    (SELECT COALESCE(MAX(c.updated_at),0) FROM native_conversations c JOIN native_members n ON n.conversation_id=c.id WHERE n.account_id=?) AS native_updated_at,
+    (SELECT COALESCE(MAX(ch.seq),0) FROM native_changes ch JOIN native_members n ON n.conversation_id=ch.conversation_id WHERE n.account_id=?) AS native_change_seq,
+    (SELECT COUNT(*) FROM native_members WHERE account_id=?) AS native_memberships`,user.id,user.id,user.id,user.id,user.id,user.id,user.id,user.id).first();
+   const counts={nativeUnread:row.native_unread||0,communityUnread:row.community_unread||0,friendRequests:row.friend_requests||0,giftRequests:(row.gift_requests||0)+(row.gift_transfers||0)};
+   counts.unreadTotal=counts.nativeUnread+counts.communityUnread;
+   const revision=await authHash(JSON.stringify([...Object.values(counts),row.native_updated_at||0,row.native_change_seq||0,row.native_memberships||0]));return json({counts,revision,changed:url.searchParams.get('revision')!==revision,pollAfterMs:25000,notificationDelivery:notificationAvailability(env),scope:'current-account-authorized-activity'});
+  }
   if(path.length===1&&path[0]==='preferences'){
    if(method==='POST'){
     if(typeof body.listFilter==='string'&&body.listFilter.startsWith('folder:'))need(await q(db,'SELECT id FROM organization_folders WHERE id=? AND account_id=?',body.listFilter.slice(7),user.id).first(),404,'folder_unavailable','This folder is unavailable.');
     const patch=preferencePatch(body),sqlArgs=patch.map(()=>',?,json(?)').join(''),values=patch.flatMap(([key,value])=>[key,JSON.stringify(value)]);
     await q(db,`INSERT INTO account_organization(account_id,preferences,updated_at) VALUES(?,json_set('{}'${sqlArgs}),?) ON CONFLICT(account_id) DO UPDATE SET preferences=json_set(account_organization.preferences${sqlArgs}),updated_at=excluded.updated_at`,user.id,...values,now,...values).run();
    }
-   const row=await q(db,'SELECT preferences FROM account_organization WHERE account_id=?',user.id).first();return json({preferences:preferences(row?.preferences),notificationDelivery:{push:false,reason:'Preferences are saved. Push delivery is not configured; browser permission is never requested automatically.'}});
+   const row=await q(db,'SELECT preferences FROM account_organization WHERE account_id=?',user.id).first();return json({preferences:preferences(row?.preferences),notificationDelivery:notificationAvailability(env)});
   }
   if(path.length===1&&path[0]==='targets'){
    if(method==='POST'){

@@ -7,7 +7,8 @@ import {AllDevicesIsolationMode} from 'matrix-js-sdk/lib/crypto-api/index.js';
 import loglevel from 'loglevel';
 import {openVault} from './secure-vault.js';
 import {createLocalSaved} from './local-saved.js';
-export {createLocalSaved};
+import {enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment} from './encrypted-enrollment.js';
+export {createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment};
 
 // SDK debugging is unsuitable for private chat content. No telemetry sink.
 loglevel.disableAll(false);
@@ -15,6 +16,8 @@ const quiet = {trace(){},debug(){},info(){},warn(){},error(){},getChild(){return
 const fail = (code,message) => Object.assign(new Error(message),{code});
 const cleanString = (value,max=4000) => typeof value === 'string' ? value.slice(0,max) : '';
 const MAX_FILE=8*1024*1024;
+const MAX_PARTICIPANTS=16;
+const RECOVERY_RECORD='recovery:setup.v1',PUBLIC_UPLOAD_RECORD='recovery:public-upload.v1';
 const safeMime=value=>['image/png','image/jpeg','image/webp','image/gif','audio/ogg','audio/webm','audio/mp4','audio/mpeg','application/pdf','text/plain'].includes(String(value||'').split(';')[0])?String(value).split(';')[0]:'application/octet-stream';
 const plainName=value=>String(value||'attachment').replace(/[\u0000-\u001f\u007f\\/]/g,'_').slice(0,255)||'attachment';
 function validImage(bytes,mime){if(!mime.startsWith('image/'))return true;if(mime==='image/png')return bytes.length>8&&[137,80,78,71,13,10,26,10].every((v,i)=>bytes[i]===v);if(mime==='image/jpeg')return bytes.length>3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;if(mime==='image/gif')return new TextDecoder().decode(bytes.slice(0,6)).match(/^GIF8[79]a$/)!==null;if(mime==='image/webp')return new TextDecoder().decode(bytes.slice(0,4))==='RIFF'&&new TextDecoder().decode(bytes.slice(8,12))==='WEBP';return false;}
@@ -22,9 +25,19 @@ const defaultDeps = {sdk:matrix,loadWasm,decodeRecoveryKey,AllDevicesIsolationMo
  locks:globalThis.navigator?.locks,indexedDB:globalThis.indexedDB,
  fetch:(...args)=>globalThis.fetch(...args)};
 
+function publicSigningPayload(raw,userId){
+ if(!raw||!userId)return null;const payload={};
+ for(const name of ['master_key','self_signing_key','user_signing_key']){
+  const value=raw[name];if(!value)continue;
+  if(value.user_id!==userId||!Array.isArray(value.usage)||!value.keys||typeof value.keys!=='object')throw fail('VOID_IDENTITY','Identity key publication does not match this messaging account.');
+  payload[name]={user_id:value.user_id,usage:[...value.usage],keys:{...value.keys},...(value.signatures?{signatures:structuredClone(value.signatures)}:{})};
+ }
+ return Object.keys(payload).length?payload:null;
+}
+
 export function create(options={},injected={}) {
  const deps={...defaultDeps,...injected};
- let intent=0,client=null,epoch=0,releaseLock=null,lockPromise=null,secret=null,secretEpoch=-1,initializing=null,vault=null,tokenBinding='',savedRoomId=null,savedRoomOpening=null,mediaRequest=null;
+ let intent=0,client=null,epoch=0,releaseLock=null,lockPromise=null,secret=null,secretEpoch=-1,initializing=null,vault=null,tokenBinding='',savedRoomId=null,savedRoomOpening=null,mediaRequest=null,remoteSession=null,secretKeyId=null,recoveryJob=null;
  let state={phase:'locked',userId:null,deviceId:null,error:''};
  const requests=new Map(),outbox=new Map(),attachmentJobs=new Map(),historyLimits=new Map(),draftVersions=new Map(),draftCache=new Map(),listeners=[];
  const emitState=patch=>{state={...state,...patch};options.onState?.({...state});};
@@ -32,8 +45,8 @@ export function create(options={},injected={}) {
  const current=()=>{if(!client||state.phase!=='ready')throw fail('VOID_LOCKED','Connect and unlock this device before using encrypted messaging.');return {client,epoch};};
  const unchanged=ticket=>{if(ticket.epoch!==epoch||ticket.client!==client)throw fail('VOID_ACCOUNT_CHANGED','The account changed. The previous operation was stopped.');};
  function subscribe(target,event,fn){target.on(event,fn);listeners.push(()=>target.off?.(event,fn));}
- function eraseSecret(owner){if(owner!==undefined&&owner!==secretEpoch)return;secret?.fill(0);secret=null;secretEpoch=-1;}
- function setSecret(key,owner){eraseSecret();secret=Uint8Array.from(key);secretEpoch=owner;}
+ function eraseSecret(owner){if(owner!==undefined&&owner!==secretEpoch)return;secret?.fill(0);secret=null;secretEpoch=-1;secretKeyId=null;}
+ function setSecret(key,owner,keyId=null){eraseSecret();secret=Uint8Array.from(key);secretEpoch=owner;secretKeyId=keyId;}
  async function lockStore(name,owns){
   if(!deps.locks?.request)throw fail('VOID_LOCKS_UNAVAILABLE','This browser cannot safely coordinate its encrypted device store. Use a browser with Web Locks support.');
   let acquired,failed;const ready=new Promise((resolve,reject)=>{acquired=resolve;failed=reject;});
@@ -45,18 +58,40 @@ export function create(options={},injected={}) {
   await ready;
  }
  async function clearConnection({revokeSession=false}={}){
-  const cleanupEpoch=++epoch;const old=client,pendingInit=initializing,oldRelease=releaseLock,oldLock=lockPromise,oldVault=vault;client=null;releaseLock=null;lockPromise=null;vault=null;tokenBinding='';savedRoomId=null;savedRoomOpening=null;mediaRequest=null;oldVault?.close();
+  const cleanupEpoch=++epoch,old=client,pendingInit=initializing,oldRelease=releaseLock,oldLock=lockPromise,oldVault=vault,session=remoteSession;
+  client=null;releaseLock=null;lockPromise=null;vault=null;tokenBinding='';savedRoomId=null;savedRoomOpening=null;mediaRequest=null;remoteSession=null;recoveryJob=null;oldVault?.close();
   for(const remove of listeners.splice(0))remove();
   old?.stopClient();
   for(const item of requests.values()){try{Promise.resolve(item.request.cancel()).catch(()=>{});}catch{}}
   requests.clear();outbox.clear();attachmentJobs.clear();historyLimits.clear();draftVersions.clear();draftCache.clear();eraseSecret();
+  // Lock the local endpoint before awaiting any remote response.
+  emitState({phase:'locked',userId:null,deviceId:null,error:'',revocation:revokeSession?'pending':'not-requested'});
   if(pendingInit){try{await pendingInit;}catch{}}
-  if(old){try{old.stopClient();if(revokeSession)await old.logout();}catch{}old.removeAllListeners?.();}
-  oldRelease?.();await oldLock;
-  if(cleanupEpoch===epoch)emitState({phase:'locked',userId:null,deviceId:null,error:''});
+  old?.removeAllListeners?.();oldRelease?.();await oldLock;
+  let revocation='not-requested';
+  if(revokeSession){
+   if(!session)revocation='unknown';
+   else{
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);let revoker;
+    try{
+     // A dedicated SDK client revokes only the old token. The stopped device's
+     // guarded transport deliberately rejects actions after its epoch changes.
+     revoker=deps.sdk.createClient({baseUrl:session.homeserver,accessToken:session.accessToken,logger:quiet,disableVoip:true,fetchFn:(input,init={})=>{
+      const target=new URL(typeof input==='string'?input:input.url||String(input));
+      if(target.origin!==session.homeserver||!/^\/_matrix\/client\/[^/]+\/logout$/.test(target.pathname))throw fail('VOID_ORIGIN','Session revocation cannot leave its homeserver or call another action.');
+      return deps.fetch(input,{...init,signal:controller.signal,redirect:'error'});
+     }});
+     await revoker.logout();revocation='confirmed';
+    }catch(error){revocation=error?.errcode==='M_UNKNOWN_TOKEN'?'confirmed':error?.name==='AbortError'?'unknown':'failed';}
+    finally{clearTimeout(timer);revoker?.stopClient?.();revoker?.removeAllListeners?.();session.accessToken='';}
+   }
+  }
+  const result={locked:true,revocation,...(revocation==='failed'||revocation==='unknown'?{retry:'Reconnect only to retry sign-out, or revoke this messaging device from another trusted device.'}:{})};
+  if(cleanupEpoch===epoch)emitState({phase:'locked',userId:null,deviceId:null,error:revocation==='failed'||revocation==='unknown'?'Locked here. The service has not confirmed that its session was revoked.':'',revocation});
+  return result;
  }
  async function disconnect(options={}){intent++;return clearConnection(options);}
- async function connect({homeserver,accountId,accessToken,storagePassword}){
+ async function connect({homeserver,accountId,accessToken,storagePassword,expectedUserId,expectedDeviceId}){
   const myIntent=++intent;await clearConnection();
   if(myIntent!==intent)throw fail('VOID_ACCOUNT_CHANGED','A newer connection replaced this request.');
   const ticket=epoch,owns=()=>myIntent===intent&&ticket===epoch;
@@ -67,7 +102,7 @@ export function create(options={},injected={}) {
    if(!deps.indexedDB)throw fail('VOID_STORE_UNAVAILABLE','Encrypted device storage is unavailable in this browser.');
    emitState({phase:'connecting',error:''});
    let deviceKeysApproved=false;
-   const guardedFetch=(input,init)=>{
+   const guardedFetch=async(input,init)=>{
     const target=new URL(typeof input==='string'?input:input.url||String(input),url);
     if(!owns())throw fail('VOID_ACCOUNT_CHANGED','The encrypted connection was replaced.');
     if(target.origin!==url.origin)throw fail('VOID_ORIGIN','The encrypted connection tried to leave the configured homeserver.');
@@ -77,7 +112,16 @@ export function create(options={},injected={}) {
     if(/\/keys\/upload$/.test(target.pathname)&&!deviceKeysApproved)throw fail('VOID_DEVICE_CONFLICT','Device identity must be checked before publishing keys.');
     const sending=target.pathname.match(/\/_matrix\/client\/[^/]+\/rooms\/[^/]+\/send\/([^/]+)\//);
     if(sending&&decodeURIComponent(sending[1])!=='m.room.encrypted')throw fail('VOID_PLAINTEXT','This action would send an unencrypted event and was blocked.');
-    return deps.fetch(input,init);
+    if(String(init?.method||'GET').toUpperCase()==='DELETE'&&/\/room_keys\/version(?:\/|$)/.test(target.pathname))throw fail('VOID_RECOVERY_RESET','Automatic backup replacement was blocked. Resume or restore the existing recovery backup instead.');
+    const signing=/\/keys\/device_signing\/upload$/.test(target.pathname),requestVault=vault;
+    if(signing&&requestVault){
+     const raw=typeof init?.body==='string'?JSON.parse(init.body):null,payload=publicSigningPayload(raw,state.userId);
+     if(payload)await requestVault.put(PUBLIC_UPLOAD_RECORD,{version:1,payload});
+     if(!owns())throw fail('VOID_ACCOUNT_CHANGED','The encrypted connection was replaced.');
+    }
+    const response=await deps.fetch(input,init);
+    if(signing&&requestVault&&response.ok&&owns())await requestVault.remove(PUBLIC_UPLOAD_RECORD);
+    return response;
    };
    mediaRequest=(path,signal)=>guardedFetch(url.origin+path,{method:'GET',signal,cache:'no-store',credentials:'omit',redirect:'error',headers:{Authorization:'Bearer '+accessToken}});
    const probe=deps.sdk.createClient({baseUrl:url.origin,accessToken,fetchFn:guardedFetch,logger:quiet,disableVoip:true});
@@ -87,6 +131,8 @@ export function create(options={},injected={}) {
    const publishedKeys=published.device_keys?.[identity.user_id]?.[identity.device_id]?.keys||null;
    if(!owns())throw fail('VOID_ACCOUNT_CHANGED','Connection was cancelled.');
    if(!/^@[^:\s]+:[^\s]+$/.test(identity.user_id||'')||!identity.device_id)throw fail('VOID_IDENTITY','The token does not identify a Matrix account and device.');
+   if(expectedUserId&&identity.user_id!==expectedUserId||expectedDeviceId&&identity.device_id!==expectedDeviceId)throw fail('VOID_IDENTITY','The messaging service returned a different account or device than the verified enrollment.');
+   remoteSession={homeserver:url.origin,accessToken,userId:identity.user_id,deviceId:identity.device_id};
    const prefix='voidline.crypto.v1.'+encodeURIComponent([accountId,url.origin,identity.user_id,identity.device_id].join('|'));
    await lockStore(prefix,owns);
    if(!owns())throw fail('VOID_ACCOUNT_CHANGED','Connection was cancelled.');
@@ -99,8 +145,15 @@ export function create(options={},injected={}) {
     fetchFn:guardedFetch,logger:quiet,disableVoip:true,timelineSupport:true,
     store:new deps.sdk.MemoryStore(),verificationMethods:['m.sas.v1'],
     cryptoCallbacks:{
-     getSecretStorageKey:async({keys})=>owns()&&secretEpoch===ticket&&secret?[Object.keys(keys)[0],secret]:null,
-     cacheSecretStorageKey:(_id,_info,key)=>{if(owns())setSecret(key,ticket);}
+     getSecretStorageKey:async({keys})=>{
+      if(!owns()||secretEpoch!==ticket||!secret)return null;
+      for(const [id,info]of Object.entries(keys))if(!secretKeyId||secretKeyId===id){
+       if(activeClient.secretStorage?.checkKey&&!await activeClient.secretStorage.checkKey(secret,info))continue;
+       if(!owns())return null;return [id,secret];
+      }
+      return null;
+     },
+     cacheSecretStorageKey:(id,_info,key)=>{if(owns())setSecret(key,ticket,id);}
     }});
    await deps.loadWasm(new URL('./pkg/matrix_sdk_crypto_wasm_bg.wasm',import.meta.url));
    if(!owns())throw fail('VOID_ACCOUNT_CHANGED','Connection was cancelled.');
@@ -120,6 +173,8 @@ export function create(options={},injected={}) {
     emitState({phase:['PREPARED','SYNCING'].includes(sync)?'ready':'syncing',userId:identity.user_id,deviceId:identity.device_id,error:sync==='ERROR'?'Connection interrupted. Encrypted sends are paused.':''});
    });
    subscribe(client,deps.sdk.RoomEvent.Timeline,(event,room)=>{if(owns()&&client===activeClient)options.onEvent?.({roomId:room?.roomId,eventId:event.getId?.()});});
+   if(deps.sdk.ClientEvent.Room)subscribe(activeClient,deps.sdk.ClientEvent.Room,room=>{if(owns()&&client===activeClient)options.onEvent?.({type:'rooms-changed',roomId:room?.roomId});});
+   if(deps.sdk.RoomEvent.MyMembership)subscribe(activeClient,deps.sdk.RoomEvent.MyMembership,(room,membership)=>{if(owns()&&client===activeClient)options.onEvent?.({type:'membership-changed',roomId:room?.roomId,membership});});
    subscribe(client,deps.sdk.CryptoEvent.VerificationRequestReceived,request=>trackVerification(request));
    subscribe(client,deps.sdk.CryptoEvent.UserTrustStatusChanged,()=>{if(owns())options.onEvent?.({type:'trust-changed'});});
    subscribe(client,deps.sdk.CryptoEvent.DevicesUpdated,()=>{if(owns())options.onEvent?.({type:'devices-changed'});});
@@ -139,18 +194,19 @@ export function create(options={},injected={}) {
    if(setting.algorithm!=='m.megolm.v1.aes-sha2')throw fail('VOID_CRYPTO','The conversation has no supported encryption setting.');
    const members=await ticket.client.getJoinedRoomMembers(roomId);unchanged(ticket);
    const users=Object.keys(members.joined||{});
+   if(users.length>MAX_PARTICIPANTS)throw fail('VOID_LIMIT','This conversation exceeds the supported participant limit. Remove excess participants before sending.');
    if(!users.includes(state.userId))throw fail('VOID_MEMBERSHIP','Your membership is no longer active.');
    const targets=room.getEncryptionTargetMembers?await room.getEncryptionTargetMembers():room.getJoinedMembers?.();unchanged(ticket);
    const cached=targets?.map(member=>member.userId).sort();
    if(cached&&JSON.stringify(cached)!==JSON.stringify([...users].sort())){await crypto.forceDiscardSession(roomId);unchanged(ticket);throw fail('VOID_MEMBERSHIP_SYNC','Membership changed. Wait for synchronization before sending.');}
    const info=await crypto.getUserDeviceInfo(users,true);unchanged(ticket);
    for(const userId of users){
-    const devices=info.get(userId);if(!devices?.size)throw fail('VOID_UNVERIFIED','A participant has no available encryption device. Ask them to connect and verify first.');
+    const devices=info.get(userId);if(!devices?.size)throw Object.assign(fail('VOID_UNVERIFIED','No encryption device is available for '+userId+'. Ask them to enroll their device.'),{details:{userId,deviceId:null,reason:'missing-device'}});
     const trust=await crypto.getUserVerificationStatus(userId);unchanged(ticket);
     if(trust.needsUserApproval||trust.wasCrossSigningVerified&&!trust.isVerified())throw fail('VOID_IDENTITY_CHANGED','A participant identity changed. Compare fingerprints again before sending.');
     for(const device of devices.values()){
      const verified=await crypto.getDeviceVerificationStatus(userId,device.deviceId);unchanged(ticket);
-     if(!verified?.isVerified())throw fail('VOID_UNVERIFIED','Verify every participating device in Devices and Security before sending.');
+     if(!verified?.isVerified())throw Object.assign(fail('VOID_UNVERIFIED','Verify '+userId+' device '+device.deviceId+' in Devices and encryption before sending.'),{details:{userId,deviceId:device.deviceId,reason:'unverified-device'}});
     }
    }
   }
@@ -163,7 +219,8 @@ export function create(options={},injected={}) {
  }
  async function createRoom({name='',invites=[],isDirect=false}={}){
   const ticket=current();
-  if(!Array.isArray(invites)||invites.length>15||invites.some(id=>!/^@[^:\s]+:[^\s]+$/.test(id)))throw fail('VOID_RECIPIENT','Use exact Matrix usernames, with at most 15 recipients.');
+  if(!Array.isArray(invites)||invites.length>MAX_PARTICIPANTS-1||invites.some(id=>!/^@[^:\s]+:[^\s]+$/.test(id)))throw fail('VOID_RECIPIENT','Use exact Matrix usernames, with at most 15 recipients.');
+  if(new Set(invites).size!==invites.length||invites.some(id=>(ticket.client.getIgnoredUsers?.()||[]).includes(id)))throw fail('VOID_RECIPIENT','Choose distinct recipients who are not blocked in encrypted messaging.');
   if(isDirect&&(invites.length!==1||invites[0]===state.userId))throw fail('VOID_RECIPIENT','A direct conversation requires exactly one other Matrix user.');
   const result=await ticket.client.createRoom({name:cleanString(name,100)||undefined,invite:invites,is_direct:!!isDirect,visibility:'private',preset:'private_chat',initial_state:[
    {type:'m.room.encryption',state_key:'',content:{algorithm:'m.megolm.v1.aes-sha2',rotation_period_msgs:100,rotation_period_ms:86400000}},
@@ -173,8 +230,71 @@ export function create(options={},injected={}) {
   if(isDirect){try{const mapping=await ticket.client.getAccountDataFromServer('m.direct')||{};unchanged(ticket);const previous=Array.isArray(mapping[invites[0]])?mapping[invites[0]].filter(id=>typeof id==='string'):[];await ticket.client.setAccountData('m.direct',{...mapping,[invites[0]]:[...new Set([...previous,result.room_id])]});unchanged(ticket);}catch(error){unchanged(ticket);return {roomId:result.room_id,warning:'The conversation was created, but its direct-message organization could not be saved. It remains available in All.'};}}
   return {roomId:result.room_id};
  }
+ function invitationState(room){
+  const event=room?.currentState?.getStateEvents?.('m.room.encryption',''),content=event?.getContent?.()||{},membership=room?.currentState?.getStateEvents?.('m.room.member',state.userId),member=room?.getMember?.(state.userId);
+  return {roomId:room?.roomId,name:cleanString(room?.name,200)||'Encrypted invitation',inviter:cleanString(membership?.getSender?.()||member?.events?.member?.getSender?.()||room?.getDMInviter?.(),300)||null,membership:room?.getMyMembership?.()||'unknown',isDirect:!!room?.getDMInviter?.(),algorithm:content.algorithm||null,security:content.algorithm==='m.megolm.v1.aes-sha2'?'encrypted-invitation':'unconfirmed',encrypted:content.algorithm==='m.megolm.v1.aes-sha2',history:'Earlier history is controlled by the conversation history policy. Accepting does not verify another device.'};
+ }
+ async function listInvitations(){
+  const ticket=current(),ignored=new Set(ticket.client.getIgnoredUsers?.()||[]),rows=[];
+  for(const room of ticket.client.getRooms())if(room.getMyMembership()==='invite'){const row=invitationState(room);if(!ignored.has(row.inviter))rows.push(row);}
+  unchanged(ticket);return rows;
+ }
+ async function invitation(roomId){const ticket=current(),room=ticket.client.getRoom(roomId);if(!room||room.getMyMembership()!=='invite')throw fail('VOID_INVITATION','This invitation is no longer pending.');const row=invitationState(room);unchanged(ticket);return row;}
+ async function acceptInvitation(roomId){
+  const ticket=current(),preview=await invitation(roomId);unchanged(ticket);
+  if(!preview.encrypted)throw fail('VOID_INVITATION_SECURITY','This invitation does not advertise supported encryption. It was not accepted. Ask the inviter to create an encrypted conversation.');
+  if((ticket.client.getIgnoredUsers?.()||[]).includes(preview.inviter))throw fail('VOID_BLOCKED','Unblock this inviter deliberately before accepting their invitation.');
+  await ticket.client.joinRoom(roomId);unchanged(ticket);
+  try{
+   const setting=await ticket.client.getStateEvent(roomId,'m.room.encryption','');unchanged(ticket);
+   const members=await ticket.client.getJoinedRoomMembers(roomId);unchanged(ticket);
+   if(setting?.algorithm!=='m.megolm.v1.aes-sha2'||!members.joined?.[state.userId]||Object.keys(members.joined||{}).length>MAX_PARTICIPANTS)throw fail('VOID_INVITATION_SECURITY','The service did not confirm supported encryption and membership.');
+   if(!await ticket.client.getCrypto().isEncryptionEnabledInRoom(roomId))throw fail('VOID_INVITATION_SYNC','Membership was accepted, but encryption state has not synchronized. Wait for synchronization before opening messages.');
+   unchanged(ticket);let warning;
+   if(preview.isDirect&&preview.inviter){try{const mapping=await ticket.client.getAccountDataFromServer('m.direct')||{};unchanged(ticket);const previous=Array.isArray(mapping[preview.inviter])?mapping[preview.inviter].filter(id=>typeof id==='string'):[];await ticket.client.setAccountData('m.direct',{...mapping,[preview.inviter]:[...new Set([...previous,roomId])]});unchanged(ticket);}catch{unchanged(ticket);warning='Joined securely, but direct-message organization could not be saved. The conversation remains in All.';}}
+   return {roomId,joined:true,encrypted:true,pendingSync:ticket.client.getRoom(roomId)?.getMyMembership()!=='join',verificationRequired:true,...(warning?{warning}:{})};
+  }catch(error){
+   unchanged(ticket);if(error?.code==='VOID_INVITATION_SYNC')throw error;
+   let left=false;try{await ticket.client.leave(roomId);unchanged(ticket);left=true;}catch{unchanged(ticket);}
+   throw fail('VOID_INVITATION_SECURITY',left?'The room did not confirm supported encryption. It was left without opening protected content.':'The room did not confirm supported encryption and was not opened. The service has not confirmed leaving it; review membership before retrying.');
+  }
+ }
+ async function declineInvitation(roomId){const ticket=current();await invitation(roomId);unchanged(ticket);await ticket.client.leave(roomId);unchanged(ticket);return {roomId,declined:true};}
+ async function blockUser(userId,{blocked=true}={}){const ticket=current();if(!/^@[^:\s]+:[^\s]+$/.test(userId)||userId===state.userId)throw fail('VOID_RECIPIENT','Choose another messaging identity to block.');const existing=ticket.client.getIgnoredUsers?.()||[],next=blocked?[...new Set([...existing,userId])]:existing.filter(id=>id!==userId);await ticket.client.setIgnoredUsers(next);unchanged(ticket);return {userId,blocked,scope:'This Matrix account. Shared group participants may still receive messages; blocking does not revoke their membership or keys.'};}
+ async function leaveRoom(roomId){const ticket=current(),room=ticket.client.getRoom(roomId);if(!room||!['join','invite'].includes(room.getMyMembership()))throw fail('VOID_MEMBERSHIP','This account has no active membership to leave.');await ticket.client.leave(roomId);unchanged(ticket);const crypto=ticket.client.getCrypto();if(await crypto.isEncryptionEnabledInRoom(roomId)){unchanged(ticket);await crypto.forceDiscardSession(roomId);unchanged(ticket);}return {roomId,left:true,retainedHistory:'Other participants may retain earlier plaintext and keys.'};}
+ async function roomMembers(roomId){
+  const {ticket,room}=await requireEncrypted(roomId),[members,powers,pending]=await Promise.all([ticket.client.getJoinedRoomMembers(roomId),ticket.client.getStateEvent(roomId,'m.room.power_levels','').catch(error=>{if(error?.errcode==='M_NOT_FOUND')return {};throw error;}),ticket.client.members(roomId,'invite')]);unchanged(ticket);
+  if(!Array.isArray(pending.chunk))throw fail('VOID_MEMBERSHIP_SYNC','The service did not confirm pending invitations.');
+  const own=powers.users?.[state.userId]??powers.users_default??0,kick=powers.kick??50,invitePower=powers.invite??0,joined=Object.entries(members.joined||{}),invites=[...new Map(pending.chunk.filter(event=>event.content?.membership==='invite'&&/^@[^:\s]+:[^\s]+$/.test(event.state_key||'')).map(event=>[event.state_key,event])).values()];
+  const canRemove=userId=>userId!==state.userId&&own>=kick&&own>(powers.users?.[userId]??powers.users_default??0);
+  return {roomId,members:joined.slice(0,MAX_PARTICIPANTS).map(([userId,profile])=>({userId,name:cleanString(profile.display_name||room.getMember?.(userId)?.name||userId,200),power:powers.users?.[userId]??powers.users_default??0,current:userId===state.userId,canRemove:canRemove(userId)})),invitations:invites.slice(0,MAX_PARTICIPANTS).map(event=>({userId:event.state_key,name:cleanString(event.content.displayname||event.state_key,200),inviter:cleanString(event.sender,300)||null,canCancel:canRemove(event.state_key)})),memberCount:joined.length,invitationCount:invites.length,truncated:joined.length>MAX_PARTICIPANTS||invites.length>MAX_PARTICIPANTS,canInvite:own>=invitePower&&joined.length+invites.length<MAX_PARTICIPANTS,canLeave:true,maxParticipants:MAX_PARTICIPANTS};
+ }
+ async function inviteParticipant(roomId,userId){
+  const {ticket,room}=await requireEncrypted(roomId);if(!/^@[^:\s]+:[^\s]+$/.test(userId)||userId===state.userId||(ticket.client.getIgnoredUsers?.()||[]).includes(userId))throw fail('VOID_RECIPIENT','Choose a different, unblocked messaging identity.');
+  const summary=await roomMembers(roomId);unchanged(ticket);if(!summary.canInvite)throw fail('VOID_PERMISSION','Your current room role cannot invite participants.');
+  const history=await ticket.client.getStateEvent(roomId,'m.room.history_visibility','');unchanged(ticket);
+  if(history?.history_visibility!=='joined'||room.getHistoryVisibility?.()!=='joined')throw fail('VOID_HISTORY_SYNC','Inviting is paused until the joined-only history policy is confirmed and synchronized. Earlier protected history was not shared.');
+  const data=await ticket.client.members(roomId);unchanged(ticket);if(!Array.isArray(data.chunk))throw fail('VOID_MEMBERSHIP_SYNC','The service did not confirm current participants.');
+  const active=data.chunk.filter(event=>['join','invite'].includes(event.content?.membership));if(active.some(event=>event.state_key===userId))throw fail('VOID_RECIPIENT','This person is already joined or invited.');
+  if(active.length>=MAX_PARTICIPANTS)throw fail('VOID_LIMIT','This conversation has reached its supported participant limit.');
+  await ticket.client.invite(roomId,userId);unchanged(ticket);return {roomId,userId,invited:true,historyVisibility:'joined'};
+ }
+ async function cancelInvitation(roomId,userId){
+  const {ticket}=await requireEncrypted(roomId);if(userId===state.userId)throw fail('VOID_PERMISSION','Use Leave for your own membership.');
+  const [member,powers]=await Promise.all([ticket.client.getStateEvent(roomId,'m.room.member',userId),ticket.client.getStateEvent(roomId,'m.room.power_levels','')]);unchanged(ticket);
+  const own=powers.users?.[state.userId]??powers.users_default??0,target=powers.users?.[userId]??powers.users_default??0;
+  if(member?.membership!=='invite')throw fail('VOID_INVITATION','That invitation is no longer pending.');
+  if(own<(powers.kick??50)||own<=target)throw fail('VOID_PERMISSION','Your current role cannot cancel this participant invitation.');
+  await ticket.client.kick(roomId,userId,'Invitation cancelled');unchanged(ticket);return {roomId,userId,cancelled:true};
+ }
+ async function removeParticipant(roomId,userId,{reason=''}={}){
+  const {ticket,crypto}=await requireEncrypted(roomId);if(userId===state.userId)throw fail('VOID_PERMISSION','Use Leave to remove your own membership.');
+  const summary=await roomMembers(roomId);unchanged(ticket);const target=summary.members.find(member=>member.userId===userId);
+  if(!target?.canRemove)throw fail('VOID_PERMISSION','Your current room role cannot remove this participant.');
+  await ticket.client.kick(roomId,userId,cleanString(reason,200)||undefined);unchanged(ticket);await crypto.forceDiscardSession(roomId);unchanged(ticket);return {roomId,userId,removed:true,synchronizationRequired:true};
+ }
  async function normalizeEvent(event,ticket){
-  const id=event.getId(),base={id,sender:cleanString(event.getSender(),300),time:event.getTs()};
+  const id=event.getId(),base={id,sender:cleanString(event.getSender(),300),senderName:cleanString(event.sender?.name||ticket.client.getUser?.(event.getSender())?.displayName||event.getSender(),200),time:event.getTs()};
   if(event.isRedacted())return {...base,type:'deleted',text:'Message deleted.'};
   // Unencrypted content in an encrypted room is never displayed as private.
   if(!event.isEncrypted())return null;
@@ -352,29 +472,152 @@ export function create(options={},injected={}) {
  function verificationSnapshot(record){const request=record.request,callbacks=record.verifier?.getShowSasCallbacks();return {id:record.id,userId:request.otherUserId,deviceId:request.otherDeviceId,phase:request.phase,emoji:callbacks?.sas.emoji,decimal:callbacks?.sas.decimal,canAccept:request.pending&&!request.initiatedByMe&&!request.accepting,canStart:request.methods?.includes('m.sas.v1')&&!record.verifier,error:record.error||''};}
  function trackVerification(request){const id=request.transactionId||crypto.randomUUID();if(requests.has(id))return id;const record={id,request,verifier:null,epoch};requests.set(id,record);subscribe(request,'change',()=>{if(request.verifier&&!record.verifier)attachVerifier(record,request.verifier);emitVerification(record);});if(request.verifier)attachVerifier(record,request.verifier);emitVerification(record);return id;}
  function attachVerifier(record,verifier){if(record.verifier===verifier)return;record.verifier=verifier;subscribe(verifier,'show_sas',()=>emitVerification(record));verifier.verify().then(()=>emitVerification(record,{done:true})).catch(()=>{record.error='Verification was cancelled, timed out, or failed.';emitVerification(record);});}
- async function requestVerification(userId,deviceId){const ticket=current(),request=deviceId?await ticket.client.getCrypto().requestDeviceVerification(userId,deviceId):await ticket.client.getCrypto().requestOwnUserVerification();unchanged(ticket);return trackVerification(request);}
- async function acceptVerification(id){const record=requests.get(id);if(!record)throw fail('VOID_VERIFICATION','This verification request expired.');await record.request.accept();return verificationSnapshot(record);}
- async function startVerification(id){const record=requests.get(id);if(!record)throw fail('VOID_VERIFICATION','This verification request expired.');const verifier=await record.request.startVerification('m.sas.v1');attachVerifier(record,verifier);return verificationSnapshot(record);}
- async function confirmVerification(id,matches){const record=requests.get(id),callbacks=record?.verifier?.getShowSasCallbacks();if(!callbacks)throw fail('VOID_VERIFICATION','No comparison is ready.');if(matches===true)await callbacks.confirm();else callbacks.mismatch();}
- async function setupRecovery({onRecoveryKey,auth}={}){
-  const ticket=current(),crypto=ticket.client.getCrypto();
-  const existingBackup=await crypto.getKeyBackupInfo();unchanged(ticket);const existingIdentity=await crypto.userHasCrossSigningKeys();unchanged(ticket);
-  if(existingBackup||existingIdentity)throw fail('VOID_RECOVERY_EXISTS','This identity already has security keys. Verify with a trusted device or restore its recovery key; existing keys were not reset.');
-  const generated=await crypto.createRecoveryKeyFromPassphrase();
-  try{
-   unchanged(ticket);
-   if(typeof onRecoveryKey!=='function'||await onRecoveryKey(generated.encodedPrivateKey)!==true)throw fail('VOID_RECOVERY_CANCELLED','Recovery setup was cancelled before creating a backup.');
-   unchanged(ticket);setSecret(generated.privateKey,ticket.epoch);
-   await crypto.bootstrapSecretStorage({createSecretStorageKey:async()=>generated,setupNewKeyBackup:true});unchanged(ticket);
-   await crypto.bootstrapCrossSigning({authUploadDeviceSigningKeys:async makeRequest=>{unchanged(ticket);try{return await makeRequest(auth);}catch{throw fail('VOID_REAUTH','The homeserver requires reauthentication before it can publish identity keys.');}}});unchanged(ticket);
-   await crypto.checkKeyBackupAndEnable();unchanged(ticket);const ready=await crypto.isSecretStorageReady();unchanged(ticket);const crossSigningReady=await crypto.isCrossSigningReady();unchanged(ticket);return {ready,crossSigningReady};
-  }finally{generated.privateKey.fill(0);eraseSecret(ticket.epoch);}
+ async function requestVerification(userId=state.userId,deviceId){const ticket=current();if(!/^@[^:\s]+:[^\s]+$/.test(userId)||!deviceId&&userId!==state.userId)throw fail('VOID_RECIPIENT','Choose the exact other device to verify, or verify your own account.');const request=deviceId?await ticket.client.getCrypto().requestDeviceVerification(userId,deviceId):await ticket.client.getCrypto().requestOwnUserVerification();unchanged(ticket);return trackVerification(request);}
+ function verificationRecord(id,ticket){const record=requests.get(id);if(!record||record.epoch!==ticket.epoch)throw fail('VOID_VERIFICATION','This verification request expired.');return record;}
+ async function acceptVerification(id){const ticket=current(),record=verificationRecord(id,ticket);await record.request.accept();unchanged(ticket);return verificationSnapshot(verificationRecord(id,ticket));}
+ async function startVerification(id){const ticket=current(),record=verificationRecord(id,ticket),verifier=await record.request.startVerification('m.sas.v1');unchanged(ticket);verificationRecord(id,ticket);attachVerifier(record,verifier);return verificationSnapshot(record);}
+ async function confirmVerification(id,matches){const ticket=current(),record=verificationRecord(id,ticket),callbacks=record.verifier?.getShowSasCallbacks();if(!callbacks)throw fail('VOID_VERIFICATION','No comparison is ready.');if(matches===true)await callbacks.confirm();else await callbacks.mismatch();unchanged(ticket);}
+ function recoveryProgress(onProgress,stage,extra={}){const value={stage,...extra};onProgress?.(value);return value;}
+ function authChallenge(error){
+  const data=error?.data||error?.body;
+  if(!data||typeof data.session!=='string'||!Array.isArray(data.flows))return null;
+  return {session:data.session,flows:data.flows.filter(flow=>Array.isArray(flow?.stages)).map(flow=>({stages:flow.stages.filter(stage=>typeof stage==='string')})),completed:Array.isArray(data.completed)?data.completed.filter(stage=>typeof stage==='string'):[]};
  }
- async function restoreRecovery(encoded){const ticket=current(),crypto=ticket.client.getCrypto();try{setSecret(deps.decodeRecoveryKey(encoded),ticket.epoch);await crypto.bootstrapCrossSigning({authUploadDeviceSigningKeys:async()=>{throw fail('VOID_REAUTH','Existing signing keys could not be recovered; no keys were reset.');}});unchanged(ticket);await crypto.loadSessionBackupPrivateKeyFromSecretStorage();unchanged(ticket);const result=await crypto.restoreKeyBackup();unchanged(ticket);return result;}catch(error){throw safeError(error);}finally{eraseSecret(ticket.epoch);}}
- async function securityStatus(){const ticket=current(),crypto=ticket.client.getCrypto();const [storage,crossSigning,backup]=await Promise.all([crypto.getSecretStorageStatus(),crypto.getCrossSigningStatus(),crypto.getKeyBackupInfo()]);unchanged(ticket);return {storageReady:storage.ready,crossSigning,hasBackup:!!backup};}
- async function revokeDevice(deviceId,auth){const ticket=current();if(deviceId===state.deviceId)throw fail('VOID_CURRENT_DEVICE','Use Sign out of encrypted messaging to revoke this session. Local keys are retained.');await ticket.client.deleteDevice(deviceId,auth);unchanged(ticket);for(const room of ticket.client.getRooms()){const encrypted=await ticket.client.getCrypto().isEncryptionEnabledInRoom(room.roomId);unchanged(ticket);if(encrypted){await ticket.client.getCrypto().forceDiscardSession(room.roomId);unchanged(ticket);}}return true;}
- return Object.freeze({connect,disconnect,status:()=>({...state}),listRooms,createRoom,timeline,older,sendText,react,edit,deleteMessage,jumpToEvent,getRoomPermissions,getPins,setPinned,sendAttachment,downloadAttachment,saveDraft,getDraft,listDrafts,clearDraft,pendingSends,retryPending,saveNote,saveMessage,savedMessages,listSaved:savedMessages,removeSaved,search,devices,fingerprint,verifyFingerprint,requestVerification,acceptVerification,startVerification,confirmVerification,setupRecovery,restoreRecovery,securityStatus,revokeDevice});
+ async function authenticatedRequest(ticket,makeRequest,{auth,authenticate,operation}={}){
+  let supplied=auth;
+  for(let attempt=0;attempt<3;attempt++){
+   unchanged(ticket);
+   try{const result=await makeRequest(supplied);unchanged(ticket);return result;}
+   catch(error){
+    unchanged(ticket);const challenge=authChallenge(error);
+    if(!challenge)throw safeError(error);
+    const dummy=challenge.flows.find(flow=>flow.stages.every(stage=>stage==='m.login.dummy'||challenge.completed.includes(stage)));
+    if(dummy){supplied={type:'m.login.dummy',session:challenge.session};continue;}
+    if(typeof authenticate!=='function')throw fail('VOID_REAUTH','The homeserver requires another sign-in step. Recovery is saved locally and can be resumed without resetting existing keys.');
+    const base=remoteSession?.homeserver;
+    const stages=[...new Set(challenge.flows.flatMap(flow=>flow.stages))],fallbacks=base?stages.filter(stage=>['m.login.sso','org.matrix.login.sso'].includes(stage)).map(stage=>({stage,url:base.replace(/\/$/,'')+'/_matrix/client/v3/auth/'+encodeURIComponent(stage)+'/fallback/web?session='+encodeURIComponent(challenge.session)})):[];
+    supplied=await authenticate({operation,challenge,fallbacks});unchanged(ticket);
+    if(!supplied||typeof supplied!=='object'||Array.isArray(supplied))throw fail('VOID_REAUTH_CANCELLED','Sign-in was cancelled. Recovery can be resumed without replacing keys.');
+    if(supplied.session!==undefined&&supplied.session!==challenge.session)throw fail('VOID_REAUTH','The sign-in session changed. Restart this recovery step.');
+    supplied={...supplied,session:challenge.session};
+   }
+  }
+  throw fail('VOID_REAUTH','The service has not completed its sign-in challenge. Recovery is retained and has not been reset.');
+ }
+ async function recoveryState(ticket){
+  const crypto=ticket.client.getCrypto(),[storage,crossSigning,backup,identity,activeBackup]=await Promise.all([crypto.getSecretStorageStatus(),crypto.getCrossSigningStatus(),crypto.getKeyBackupInfo(),crypto.userHasCrossSigningKeys(),crypto.getActiveSessionBackupVersion()]);unchanged(ticket);
+  const privateKeys=crossSigning.privateKeysCachedLocally||{},privateKeysCached=!!(privateKeys.masterKey&&privateKeys.selfSigningKey&&privateKeys.userSigningKey),crossSigningReady=await crypto.isCrossSigningReady();unchanged(ticket);
+  return {storage,crossSigning,backup,identity,activeBackup,privateKeysCached,crossSigningReady};
+ }
+ async function validateRecoveryKey(ticket,key,keyId){
+  const storage=ticket.client.secretStorage;
+  if(!keyId||!storage?.getKey||!storage?.checkKey)return;
+  const result=await storage.getKey(keyId);unchanged(ticket);
+  if(!result||!await storage.checkKey(key,result[1]))throw fail('VOID_RECOVERY_KEY','That recovery key does not unlock the current secret storage. Existing keys were not changed.');
+  unchanged(ticket);
+ }
+ async function performRecovery({onRecoveryKey,onProgress,encodedRecoveryKey,auth,authenticate}={}){
+  const ticket=current(),crypto=ticket.client.getCrypto(),store=privateStore(ticket);let generated=null,journal=await store.get(RECOVERY_RECORD);unchanged(ticket);
+  let inspection=await recoveryState(ticket);unchanged(ticket);
+  const summary=()=>({ready:!!inspection.storage.ready,crossSigningReady:inspection.crossSigningReady,hasBackup:!!inspection.backup,backupEnabled:!!inspection.activeBackup,recoveryVerified:false});
+  if(inspection.storage.ready&&inspection.crossSigningReady&&inspection.activeBackup&&!journal){return {...recoveryProgress(onProgress,'backup-enabled',summary()),verificationRequired:true};}
+  recoveryProgress(onProgress,journal?.stage||'not-started',summary());
+  if(journal&&journal.version!==1)throw fail('VOID_RECOVERY_STATE','This device has an unsupported recovery setup record. Existing keys were not replaced.');
+  if(journal?.keyId&&inspection.storage.defaultKeyId!==journal.keyId)throw fail('VOID_RECOVERY_CHANGED','The account recovery key changed on another device. Use its current recovery key or a trusted device before continuing.');
+  if(inspection.identity&&!inspection.privateKeysCached&&!inspection.crossSigning.privateKeysInSecretStorage)throw fail('VOID_RECOVERY_KEY_REQUIRED','This account already has signing keys. Verify with a trusted device or restore the existing recovery key; its identity will not be reset.');
+  try{
+   if(encodedRecoveryKey){
+    const key=deps.decodeRecoveryKey(encodedRecoveryKey);try{await validateRecoveryKey(ticket,key,inspection.storage.defaultKeyId);journal={version:1,keyAcknowledged:true,key:Array.from(key),keyId:inspection.storage.defaultKeyId,stage:'key-acknowledged'};}finally{key.fill(0);}
+    await store.put(RECOVERY_RECORD,journal);unchanged(ticket);
+   }
+   if(!journal){
+    if(inspection.storage.defaultKeyId)throw fail('VOID_RECOVERY_KEY_REQUIRED','Enter the existing message recovery key to resume setup. No backup or identity was reset.');
+    generated=await crypto.createRecoveryKeyFromPassphrase();unchanged(ticket);
+    if(typeof onRecoveryKey!=='function'||await onRecoveryKey(generated.encodedPrivateKey)!==true)throw fail('VOID_RECOVERY_CANCELLED','Recovery setup was cancelled before publishing a recovery key.');
+    unchanged(ticket);journal={version:1,keyAcknowledged:true,key:Array.from(generated.privateKey),keyId:null,stage:'key-acknowledged'};
+    await store.put(RECOVERY_RECORD,journal);unchanged(ticket);
+   }
+   if(!journal.keyAcknowledged||!Array.isArray(journal.key)||journal.key.length!==32)throw fail('VOID_RECOVERY_STATE','This device cannot resume recovery safely. Restore the existing recovery key instead.');
+   setSecret(Uint8Array.from(journal.key),ticket.epoch,journal.keyId||inspection.storage.defaultKeyId);
+   await validateRecoveryKey(ticket,secret,inspection.storage.defaultKeyId);unchanged(ticket);
+   recoveryProgress(onProgress,'key-acknowledged',summary());
+   // Never reset an existing secret store or backup. Filling missing secrets is
+   // the SDK's idempotent bootstrap operation, with both reset flags omitted.
+   const keyMaterial=generated||{privateKey:secret,keyInfo:{}};
+   await crypto.bootstrapSecretStorage({createSecretStorageKey:async()=>keyMaterial});unchanged(ticket);
+   inspection=await recoveryState(ticket);unchanged(ticket);
+   if(!inspection.storage.defaultKeyId)throw fail('VOID_RECOVERY_INCOMPLETE','The service has not confirmed its recovery-key store. Retry this saved setup.');
+   journal.keyId=inspection.storage.defaultKeyId;journal.stage='secret-storage-ready';secretKeyId=journal.keyId;await store.put(RECOVERY_RECORD,journal);unchanged(ticket);
+   recoveryProgress(onProgress,'secret-storage-ready',summary());
+   // The pinned SDK may retain private signing keys after a failed upload and
+   // then skip that upload during another bootstrap. Replay only the original
+   // sanitized public signing payload through its maintained public API.
+   const pending=await store.get(PUBLIC_UPLOAD_RECORD);unchanged(ticket);
+   if(pending?.payload){
+    const payload=publicSigningPayload(pending.payload,state.userId);if(!payload)throw fail('VOID_RECOVERY_STATE','The pending identity publication is unavailable.');
+    const published=await ticket.client.downloadKeysForUsers([state.userId]);unchanged(ticket);
+    for(const [field,section]of [['master_key','master_keys'],['self_signing_key','self_signing_keys'],['user_signing_key','user_signing_keys']]){const existing=published[section]?.[state.userId];if(existing&&payload[field]&&JSON.stringify(Object.entries(existing.keys||{}).sort())!==JSON.stringify(Object.entries(payload[field].keys||{}).sort()))throw fail('VOID_IDENTITY_CHANGED','Another device published a different signing identity. Existing keys were not replaced; verify that device before resuming.');}
+    await authenticatedRequest(ticket,value=>ticket.client.uploadDeviceSigningKeys(value,payload),{auth,authenticate,operation:'publish-signing-identity'});unchanged(ticket);
+    await store.remove(PUBLIC_UPLOAD_RECORD);unchanged(ticket);await crypto.userHasCrossSigningKeys();unchanged(ticket);
+   }
+   await crypto.bootstrapCrossSigning({authUploadDeviceSigningKeys:makeRequest=>authenticatedRequest(ticket,makeRequest,{auth,authenticate,operation:'publish-signing-identity'})});unchanged(ticket);
+   if(typeof crypto.crossSignDevice==='function'){await crypto.crossSignDevice(state.deviceId);unchanged(ticket);}
+   await crypto.bootstrapSecretStorage({});unchanged(ticket);
+   inspection=await recoveryState(ticket);unchanged(ticket);
+   if(!inspection.crossSigningReady)throw fail('VOID_RECOVERY_INCOMPLETE','Signing identity is not ready yet. Resume after homeserver sign-in and synchronization; existing keys are retained.');
+   journal.stage='signing-identity-ready';await store.put(RECOVERY_RECORD,journal);unchanged(ticket);recoveryProgress(onProgress,'signing-identity-ready',summary());
+   const backup=await crypto.getKeyBackupInfo();unchanged(ticket);
+   if(!backup){await crypto.bootstrapSecretStorage({setupNewKeyBackup:true});unchanged(ticket);}
+   else{await crypto.bootstrapSecretStorage({});unchanged(ticket);}
+   await crypto.loadSessionBackupPrivateKeyFromSecretStorage();unchanged(ticket);
+   await crypto.checkKeyBackupAndEnable();unchanged(ticket);
+   inspection=await recoveryState(ticket);unchanged(ticket);
+   if(!inspection.activeBackup||!inspection.storage.ready)throw fail('VOID_RECOVERY_INCOMPLETE','Recovery material is retained, but the service has not enabled its backup. Retry or restore using the existing recovery key.');
+   journal.stage='backup-enabled';await store.put(RECOVERY_RECORD,journal);unchanged(ticket);recoveryProgress(onProgress,'backup-enabled',summary());
+   await store.remove(RECOVERY_RECORD);unchanged(ticket);
+   return {...summary(),stage:'backup-enabled',verificationRequired:true};
+  }catch(error){
+   // If the SDK generated signing keys but failed before dispatching its public
+   // upload, preserve only a public projection that it confirms matches the
+   // local private identity. Never derive or export private signing material.
+   try{
+    unchanged(ticket);
+    if(journal&&!await store.get(PUBLIC_UPLOAD_RECORD)&&typeof crypto.getUserCrossSigningKeys==='function'&&typeof crypto.getCrossSigningKeyId==='function'){
+     const id=await crypto.getCrossSigningKeyId();unchanged(ticket);const keys=id?await crypto.getUserCrossSigningKeys(state.userId):null;unchanged(ticket);
+     if(keys&&Object.values(keys.master_key?.keys||{}).includes(id)){const payload=publicSigningPayload(keys,state.userId);if(payload)await store.put(PUBLIC_UPLOAD_RECORD,{version:1,payload});unchanged(ticket);}
+    }
+   }catch{/* The original failure remains authoritative; no reset is attempted. */}
+   throw safeError(error);
+  }
+  finally{generated?.privateKey?.fill(0);journal?.key?.fill(0);eraseSecret(ticket.epoch);}
+ }
+ async function setupRecovery(options={}){if(recoveryJob){if(recoveryJob.type!=='setup')throw fail('VOID_RECOVERY_BUSY','Finish the current recovery action before starting another.');return recoveryJob.promise;}const promise=performRecovery(options),record={type:'setup',promise};recoveryJob=record;try{return await promise;}finally{if(recoveryJob===record)recoveryJob=null;}}
+ async function restoreRecovery(encoded){if(recoveryJob)throw fail('VOID_RECOVERY_BUSY','Finish the current recovery action before starting another.');const promise=performRestore(encoded),record={type:'restore',promise};recoveryJob=record;try{return await promise;}finally{if(recoveryJob===record)recoveryJob=null;}}
+ async function performRestore(encoded){
+  const ticket=current(),crypto=ticket.client.getCrypto();
+  try{
+   const storage=await crypto.getSecretStorageStatus();unchanged(ticket);setSecret(deps.decodeRecoveryKey(encoded),ticket.epoch,storage.defaultKeyId);await validateRecoveryKey(ticket,secret,storage.defaultKeyId);unchanged(ticket);
+   const cross=await crypto.getCrossSigningStatus();unchanged(ticket);
+   if(!cross.privateKeysInSecretStorage)throw fail('VOID_RECOVERY_KEY_REQUIRED','Existing signing keys are not available through this recovery store. Use another trusted device; no keys were reset.');
+   await crypto.bootstrapCrossSigning({authUploadDeviceSigningKeys:async()=>{throw fail('VOID_REAUTH','Existing signing keys could not be recovered; no keys were reset.');}});unchanged(ticket);
+   if(!await crypto.isCrossSigningReady())throw fail('VOID_RECOVERY_INCOMPLETE','The existing signing identity is not ready. Resume its pending setup without resetting keys.');unchanged(ticket);
+   await crypto.loadSessionBackupPrivateKeyFromSecretStorage();unchanged(ticket);const result=await crypto.restoreKeyBackup();unchanged(ticket);
+   const inspection=await recoveryState(ticket);unchanged(ticket);
+   await privateStore(ticket).put('recovery:verified.v1',{version:1,verifiedAt:Date.now(),keyId:inspection.storage.defaultKeyId,backupVersion:inspection.backup?.version||null});unchanged(ticket);
+   await privateStore(ticket).remove(RECOVERY_RECORD);unchanged(ticket);
+   return {...result,recoveryVerified:true};
+  }catch(error){throw safeError(error);}finally{eraseSecret(ticket.epoch);}
+ }
+ async function securityStatus(){const ticket=current(),inspection=await recoveryState(ticket),pending=await privateStore(ticket).get(RECOVERY_RECORD),verified=await privateStore(ticket).get('recovery:verified.v1');unchanged(ticket);const recoveryVerified=!!verified?.verifiedAt&&verified.keyId===inspection.storage.defaultKeyId&&verified.backupVersion===(inspection.backup?.version||null);return {storageReady:!!inspection.storage.ready,secretStorageReady:!!inspection.storage.defaultKeyId,crossSigning:inspection.crossSigning,crossSigningReady:inspection.crossSigningReady,hasBackup:!!inspection.backup,backupEnabled:!!inspection.activeBackup,recoveryVerified,recoveryStage:pending?.stage||(recoveryVerified?'recovery-verified':inspection.activeBackup&&inspection.storage.ready&&inspection.crossSigningReady?'backup-enabled':'not-started'),canResume:!!pending};}
+ async function revokeDevice(deviceId,authOrOptions){
+  const ticket=current(),settings=authOrOptions?.authenticate||authOrOptions?.auth?authOrOptions:{auth:authOrOptions};
+  if(deviceId===state.deviceId)throw fail('VOID_CURRENT_DEVICE','Use Sign out of encrypted messaging to revoke this session. Local keys are retained.');
+  await authenticatedRequest(ticket,auth=>ticket.client.deleteDevice(deviceId,auth),{...settings,operation:'revoke-device'});unchanged(ticket);
+  for(const room of ticket.client.getRooms()){const encrypted=await ticket.client.getCrypto().isEncryptionEnabledInRoom(room.roomId);unchanged(ticket);if(encrypted){await ticket.client.getCrypto().forceDiscardSession(room.roomId);unchanged(ticket);}}
+  return {deviceId,revoked:true,synchronizationRequired:true};
+ }
+ return Object.freeze({connect,disconnect,status:()=>({...state}),listRooms,listInvitations,invitation,acceptInvitation,declineInvitation,blockUser,leaveRoom,roomMembers,inviteParticipant,cancelInvitation,removeParticipant,createRoom,timeline,older,sendText,react,edit,deleteMessage,jumpToEvent,getRoomPermissions,getPins,setPinned,sendAttachment,downloadAttachment,saveDraft,getDraft,listDrafts,clearDraft,pendingSends,retryPending,saveNote,saveMessage,savedMessages,listSaved:savedMessages,removeSaved,search,devices,fingerprint,verifyFingerprint,requestVerification,acceptVerification,startVerification,confirmVerification,setupRecovery,restoreRecovery,securityStatus,revokeDevice});
 }
-const api=Object.freeze({create,createLocalSaved});
+const api=Object.freeze({create,createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,limits:Object.freeze({maxParticipants:MAX_PARTICIPANTS,maxInvites:MAX_PARTICIPANTS-1})});
 if(typeof window!=='undefined')window.VoidSecureMessenger=api;
 export default api;

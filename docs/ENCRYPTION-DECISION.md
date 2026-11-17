@@ -19,13 +19,23 @@ that gap as a completed encrypted exchange or a security audit.
 
 ## Implemented path
 
-- Explicit Matrix token connection validates `whoami`, including its Matrix
-  user ID and device ID. A Voidline account and Matrix identity are separate;
-  matching email addresses never link them or grant decryption access.
-- Tokens remain in memory. Rust crypto IndexedDB uses an account/homeserver/
-  Matrix-user/device namespace and SDK `storagePassword` encryption. A local
-  vault passphrase of at least 16 characters is required and is not saved.
-  Web Locks enforce one active writer for the encrypted device store.
+- Native-account enrollment is implemented separately in
+  `worker/encryption.mjs` and `src/encrypted-enrollment.js`. It uses a maintained
+  Synapse JWT login flow with an immutable account-ID mapping and a fresh
+  dedicated messaging device. Native password confirmation unlocks a locally
+  derived storage secret; ordinary users need not paste a Matrix token or
+  invent a second storage password. This path remains provider-configured and
+  has not been exercised against a real service. Advanced manual token
+  connection is retained separately.
+- Every connection validates Matrix `whoami`, including the expected mapped
+  Matrix user and device, before initializing its crypto store. Matching names
+  or email addresses do not link accounts. Published own-device keys must match
+  the unlocked local store; another client's device cannot be overwritten.
+- Rust crypto IndexedDB uses an account/homeserver/Matrix-user/device namespace
+  and SDK `storagePassword` encryption. Native enrollment stores its token only
+  inside the encrypted local enrollment vault for deliberate reopening; it is
+  in memory while unlocked. Advanced manual-token sessions remain memory-only.
+  Web Locks enforce one active writer per encrypted device store.
 - Private room creation installs `m.megolm.v1.aes-sha2`, joined-only history and
   forbidden guest access. Plaintext rooms are excluded from the encrypted list.
 - Sends require an encrypted room, fresh membership agreement with SDK state,
@@ -69,25 +79,57 @@ that gap as a completed encrypted exchange or a security audit.
   upload plaintext or claim to cover unloaded history. The dedicated local Saved
   tool works without Matrix and states explicitly that its encrypted notes do
   not sync to other devices.
-- Device fingerprints, exact fingerprint comparison, SDK SAS requests and
-  confirmation callbacks are exposed. Reauthentication may be required by the
-  homeserver for device deletion and signing-key upload.
-- New recovery setup uses the SDK's random recovery key, waits for the user's
-  saved-key acknowledgement, then invokes SDK secret storage, cross-signing and
-  key backup. Existing identities/backups are never silently reset. Recovery
-  uses the user-provided Matrix recovery key in memory and clears it afterward.
-- Disconnect stops sync, clears listeners, pending UI verification, in-memory
-  token/client references and secret handles. Explicit Matrix session logout is
-  separate from account logout. Encrypted local keys are retained for deliberate
-  reopening with the vault passphrase, not deleted automatically.
+- Encrypted invitations have explicit list/preview/accept/decline/block APIs.
+  A preview never joins. Acceptance requires advertised supported encryption,
+  joins deliberately and rechecks the actual room algorithm and membership.
+  Unconfirmed or plaintext rooms are not opened as protected. Leave and
+  power-checked participant removal/cancellation use real membership actions.
+  Existing-room invitations require confirmed joined-only history, so the SDK
+  cannot silently share prior history through a stale Shared default. The
+  application centralizes a 16-participant acceptance/send limit; another
+  Matrix client is not governed by that application limit. Protected sends stay
+  blocked while authoritative membership and encryption targets disagree.
+  Matrix ignored-user settings are not a native-D1 block synchronizer and do
+  not revoke an authorized group participant's keys.
+- Device fingerprints, SDK SAS initiation/acceptance and revocation are exposed.
+  Send failures identify the exact unresolved user/device without weakening
+  verification. Revocation uses the supported homeserver sign-in challenge;
+  an unsupported challenge remains an explicit resumable error.
+- Recovery is a resumable sequence rather than a blanket refusal whenever a
+  backup exists. Its encrypted local journal records acknowledged key material
+  and completed stages until setup succeeds; it never uploads the recovery
+  key to D1 or logs it. Existing secret stores, signing identities and backups
+  are preserved. A failed public-signing-key upload is replayed with the SDK's
+  public API using sanitized public keys, after checking for a changed server
+  identity. An SDK-confirmed matching public projection also preserves retries
+  interrupted before HTTP dispatch. Authentication/password fields never enter
+  that journal.
+- Automatic deletion of Matrix backup versions is blocked at the final HTTP
+  boundary. This matters because the SDK's new-backup helper can delete
+  existing versions internally; a concurrent existing backup must not be erased
+  to clear a setup error. The adapter never calls a key/identity reset operation.
+- `setupRecovery` reports not-started, key-acknowledged, secret-storage-ready,
+  signing-identity-ready and backup-enabled stages. Backup readiness does not
+  establish a successful restore. Only `restoreRecovery` records a verified
+  recovery operation on this device, tied to the current key ID and backup
+  version. That marker does not prove another physical device was tested.
+- Disconnect locks locally and stops synchronization before awaiting the
+  service. It returns confirmed, failed, unknown or not-requested remote
+  revocation. The UI must not equate local locking with confirmed logout.
+  Unknown/failed attempts can be retried after deliberately unlocking the
+  encrypted enrollment envelope or from another trusted device; no raw-token
+  retry queue is persisted. Local encrypted key stores are retained.
 
 ## Local storage boundary
 
 `src/secure-vault.js` protects drafts, outbox payloads, upload descriptors and
 the independent `src/local-saved.js` notes with browser WebCrypto. It is local
-encryption at rest, not an invented messaging protocol. A user enters a separate
-passphrase of at least 16 characters; it is never populated from account login,
-saved or sent to a server. PBKDF2-HMAC-SHA256 with 600,000 iterations and a random
+encryption at rest, not an invented messaging protocol. Independent local Saved
+and advanced manual connection use a separate user-held passphrase of at least
+16 characters. Native-account enrollment instead derives a client-only storage
+secret from confirmed native credentials and a persistent random browser seed;
+its exact design and password-change/recovery limits are in ENCRYPTED-SETUP.md.
+The derived secret is never sent to the server or saved unencrypted. PBKDF2-HMAC-SHA256 with 600,000 iterations and a random
 32-byte salt derives a nonextractable AES-256-GCM key. Each record gets a fresh
 96-bit IV; its account namespace and record ID are authenticated as additional
 data. An encrypted sentinel checks the passphrase before opening existing data.
@@ -119,42 +161,23 @@ provider. The managed Sites Worker cannot itself host the long-running Synapse
 process and its database/media storage. Run that service separately with TLS,
 its own persistent database, backups, limits and private media configuration.
 
-1. Choose a trusted HTTPS origin such as `https://matrix.your-domain.example`.
-   Verify `/_matrix/client/versions`, authenticated `whoami`, `/sync`, device/key,
-   secret-storage and key-backup APIs. Allow browser CORS requests from the
-   VOIDLINE origin. Keep administrative endpoints and provisioning secrets out
-   of the browser and source repository.
-2. Set the Site's `MATRIX_HOMESERVER` runtime value to that origin. It is public
-   configuration, not an access token. Never put a Matrix admin token there.
-3. Create two isolated Matrix users for verification. A token used in VOIDLINE
-   must come from a **fresh dedicated Matrix login/device**, not the active
-   token copied from Element or another already initialized client. For a
-   password-enabled homeserver, POST `/_matrix/client/v3/login` with the
-   `m.login.password` flow and a fresh device display name; omit `device_id` so
-   the homeserver allocates a new one. For SSO-only deployments, provisioning
-   requires the provider's supported login-token flow; automatic SSO token
-   exchange is not yet part of this UI. Never reuse another client's device.
-   The adapter compares published own-device keys against the unlocked local
-   device and blocks mismatches before key upload or synchronization.
-   Reopening the same encrypted store requires the same account/device identity
-   and local vault passphrase. Creating a fresh Matrix device must not reuse a
-   different device's crypto store.
-4. The present connection UI accepts a user-supplied Matrix access token in
-   memory. It does not implement automatic account-to-Matrix token issuance.
-   Synapse may be configured with Google OIDC as a separate provider operation;
-   that alone does not add a tested token exchange flow to this client.
-   [Synapse OIDC documentation](https://element-hq.github.io/synapse/latest/openid.html)
-5. Establish device trust and save the recovery key before testing sends.
-   Verify comparisons on the actual other device using a separate trusted
-   channel. Never compare two values supplied only by the same server page.
-6. Test both directions across independent browser/device contexts: initial
-   message and encrypted media, refresh/unlock, reply/edit, retry after lost response, fingerprint
-   change, untrusted new device, membership removal during an open connection,
-   session revocation and restore using the saved recovery material.
+The exact supported Synapse configuration, namespace reservation, server-secret
+keys, first-device checks, client unlock and operational responsibilities are
+in [ENCRYPTED-SETUP.md](ENCRYPTED-SETUP.md). Merely setting a hostname is
+insufficient: a compatible operated service, supported login flow, reserved
+immutable-ID namespace and private server signing configuration are required.
 
-Native username/password accounts require no OAuth configuration. The Matrix
-service and real device exchange must still be verified independently. No
-Matrix homeserver was configured when this upgrade was inspected.
+Use two isolated account/device contexts for acceptance. Establish actual
+verification trust, accept an in-app invitation and exchange messages in both
+directions. Exercise encrypted media, refresh/unlock, source permissions,
+interrupted setup after every persisted stage, signing-upload authentication,
+backup reuse, device identity changes, group removal and confirmed/unknown
+logout. Capture server-bound ciphertext and verify that distinctive test
+plaintext is absent; SDK-boundary doubles are not a substitute.
+
+Native sign-in continues without this provider. No Matrix homeserver was
+configured when the upgrade was implemented. Encrypted-by-default product
+readiness remains false until real-service device and policy acceptance passes.
 
 ## Remaining application engineering
 
@@ -193,6 +216,7 @@ independent review before making production assurance claims.
 | Check | What actually ran | What it does not establish |
 | --- | --- | --- |
 | `backend/secure-messenger-test.mjs` | Controlled SDK/HTTP boundary tests for connection races, verification, plaintext guards, source permissions, draft ordering, retry identity, reconciliation, room/Saved permissions and attachment routing. Its media case invokes the actual Rust WASM attachment library. | A real homeserver, live synchronization, two users/devices, browser layout, Matrix message encryption or key-backup interoperability. |
+| `backend/secure-lifecycle-test.mjs` | Controlled SDK lifecycle tests for invitation consent/security, membership powers, immediate local lock versus remote logout, interrupted recovery/backup reuse, sanitized signing-upload replay/UIA, identity change, key/version-bound restore status and final backup-delete protection. | Real homeserver behavior, UIA compatibility, physical-device trust, cross-device recovery or a protocol audit. |
 | `backend/secure-media-test.mjs` | Actual pinned Rust WASM v2 attachment roundtrip and tampered-ciphertext rejection. | A deployed upload service, device trust, full message E2EE or an independent library audit. |
 | `backend/secure-vault-test.mjs` | Real Node WebCrypto and `fake-indexeddb`: ciphertext persistence/reopen, wrong password, account/record AAD isolation, fresh IVs, tamper, failed write and lock. | A browser's quota/private-mode behavior, browser UI or device-level security. |
 | `backend/local-saved-test.mjs` | The same real WebCrypto/storage adapter, including persistence, independent accounts, tags/search/pagination and exclusive-lock behavior. | Cloud synchronization or message delivery. |
@@ -239,3 +263,14 @@ Primary references: [Signal](https://github.com/signalapp/libsignal),
 [maintained Rust WASM attachment API](https://matrix-org.github.io/matrix-sdk-crypto-wasm/classes/Attachment.html),
 [Matrix encrypted attachment format](https://spec.matrix.org/latest/client-server-api/#sending-encrypted-attachments),
 [Matrix client transactions](https://spec.matrix.org/latest/client-server-api/#transaction-identifiers).
+
+## Maintained dependency check
+
+The installed SDK remains pinned to 45.1.0. The maintainers' November 2026
+[GHSA-jx97-gwvc-pfxx advisory](https://github.com/matrix-org/matrix-js-sdk/security/advisories/GHSA-jx97-gwvc-pfxx)
+affects versions through 45.0.0 and identifies 45.1.0 as patched. The current
+[release page](https://github.com/matrix-org/matrix-js-sdk/releases/tag/v45.1.0),
+[CryptoApi reference](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto-api.CryptoApi.html),
+pinned SDK source and [Matrix UIA fallback specification](https://spec.matrix.org/latest/client-server-api/#fallback)
+were consulted for these changes. This check is not a claim that every
+dependency or the completed integration has received an independent audit.

@@ -3,3 +3,8 @@
 @media(prefers-reduced-motion:reduce){.vo-panel *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 @media(forced-colors:active){.vo-tabs,.vo-result,.vo-settings-link,.vo-panel input,.vo-panel select,.vo-panel textarea{border-color:ButtonText}.vo-tabs>button.active{outline:2px solid Highlight}}
 .vo-panel form{display:grid;gap:14px}.vo-member{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--vh-line,#303744);min-width:0}.vo-member>div:first-child{display:grid;gap:6px;min-width:0}.vo-member b{overflow-wrap:anywhere;font-size:14px}.vo-member small{color:var(--vh-muted,#a8b2c2);font-size:12px;line-height:1.6}.vo-member>.vo-actions{justify-content:flex-end}.vo-member .vh-secondary,.vo-member .vh-text-button{font-size:12px;padding:8px 10px}@media(max-width:600px){.vo-member{display:block}.vo-member>.vo-actions{justify-content:flex-start;margin-top:12px}.vo-member .vh-secondary,.vo-member .vh-text-button{min-height:44px}}
+
+.vo-scope-note { margin:12px 0 18px; padding:10px 12px; border-left:2px solid #8cabf7; color:#bec9db; background:#151922; font-size:12px; line-height:1.7; }
+.vo-result mark { background:#d4bc74; color:#12151c; padding:0 1px; border-radius:1px; }
+.vo-field-grid select,.vo-field-grid input { max-width:100%; min-width:0; }
+@media(forced-colors:active) { .vo-scope-note { border-color:Highlight; color:CanvasText; background:Canvas; } .vo-result mark { background:Highlight; color:HighlightText; } }

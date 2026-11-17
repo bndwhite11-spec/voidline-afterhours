@@ -1,206 +1,245 @@
 VOIDLINE / CURRENT DEVELOPMENT CONTRACT
 
-Production enters through dist/index.html and dist/home.js/home.css. It does not
-load the retained sample app.js. D1 binding DB owns shared account/application
-state; Matrix is a separate optional encrypted messaging service. The source
-was audited from release v10. docs/IMPLEMENTATION-PLAN.md records the priorities;
-the detailed auth, encryption, owner, organization and collection docs describe
-the implemented contracts and outstanding work. docs/UPGRADE-STATUS.md is the
-concise release-state reference; its checks are separate from this contract.
+Start with README.txt, docs/UPGRADE-STATUS.md and the review-based
+VOIDLINE-MEGA-IMPROVEMENT-6.txt. This upgrade starts from reviewed version 14;
+previous account, recovery, collection and migration protections remain.
+The production entry is dist/index.html with authored home/extension source.
+Historical sample app.js is not an executable production fallback.
 
-SOURCE OWNERSHIP
-  dist/home.js/.css             authored production account/navigation/message UI
-  dist/social.js/.css           friend requests, blocks and request preferences
-  dist/cosmetics.js/.css        free decorations, gift instances and transfers
-  dist/profiles-panel.js/.css   profile preview/edit/privacy/showcase surfaces
-  dist/organize.js/.css         account organization, Inbox, Saved and search
+SOURCE BOUNDARIES
+  dist/home.js/.css             navigation, native/Matrix views and composition
+  dist/entry.js/.css            short bounded optional first-entry reveal
+  dist/organize.js/.css         search, Saved, Inbox, folders and activity
+  dist/social.js/.css           friend consent, blocking and request preferences
+  dist/cosmetics.js/.css        server-owned free decorations/gifts/transfers
+  dist/profiles-panel.js/.css   profile preview, privacy and showcases
   dist/admin.js/.css            owner UI; server authorization is independent
-  src/passkey-client.js        @simplewebauthn/browser entry
-  src/secure-messenger.js       Matrix SDK/Rust crypto integration
-  src/secure-vault.js           passphrase-protected IndexedDB record storage
-  src/local-saved.js            Matrix-independent encrypted private notes
-  worker/auth.mjs               accounts, provider identities, sessions/recovery
-  worker/passwords.mjs          maintained Argon2id and legacy password upgrades
-  worker/passkeys.mjs           real WebAuthn challenge/signature verification
-  worker/admin.mjs              immutable owner binding, admin APIs and audit
-  worker/profiles.mjs           shared profile privacy and earned-badge rules
-  worker/organize.mjs           private metadata and scoped community tools
-  worker/cosmetics.mjs; social.mjs collectible and social authority
-  worker/index.mjs              API routing, retained history and platform guards
-  db/schema.ts; drizzle/        additive schema and immutable migration history
+  dist/notifications.js         deliberate Web Push device enrollment
+  dist/help.html/.css           public security/recovery/privacy/terms/support
+  src/secure-messenger.js       maintained Matrix/Rust transport and lifecycle
+  src/encrypted-enrollment.js   native-password device unlock and token envelope
+  src/secure-vault.js           authenticated-encrypted IndexedDB records
+  src/local-saved.js            independent device-only encrypted notes
+  src/passkey-client.js         maintained SimpleWebAuthn browser entry
+  worker/auth.mjs               native identity, providers, sessions/recovery
+  worker/passwords.mjs          Argon2id and credential-version upgrades
+  worker/passkeys.mjs           signed-in WebAuthn challenge/signature step-up
+  worker/messages.mjs           Standard DMs/groups/search/bookmarks/snapshots
+  worker/index.mjs              community text, ownership/roles/mentions/history
+  worker/organize.mjs           private preferences, folders and tools
+  worker/encryption.mjs         configured supported native-to-Matrix enrollment
+  worker/notifications.mjs      scoped generic native Web Push delivery
+  worker/profiles.mjs           profile privacy and earned-award rules
+  worker/cosmetics.mjs          legitimate collectible ownership and transfers
+  worker/social.mjs             relationships, discovery and block authority
+  worker/admin.mjs              immutable owner binding, controls and audit
+  db/schema.ts; drizzle/        versioned schema, snapshots and migrations
 
-Authored client files live in dist/. Generated bundles are passkey-client.js,
-secure-messenger.js, its legal notices/WASM, dist/server and the downloads.
-Do not edit generated outputs as source. The Worker asset allowlist excludes
-historical sample executable modules; their fixtures remain regression/recovery
-source. Deep-link HTML entries need root-absolute asset paths.
+Do not remove dist/ as build output: most of it is authored application source.
+Generated outputs include passkey-client.js, secure-messenger.js/legal/WASM,
+dist/server, packaged migration metadata and downloads. Build those from src/
+and scripts/, never hand-edit them. The production allowlist excludes sample
+executables and private runtime paths. Deep-page asset URLs are root-absolute.
 
 IDENTITY AND AUTHORIZATION
-- Immutable account IDs are the permission keys. Usernames normalize to unique
-  NFKC/lowercase ASCII handles; display names, emails, provider subjects and
-  community nicknames are separate fields. Matching @xrp never grants authority.
-- A new account has zero joined communities, contacts, conversations, messages,
-  gifts, earned badges and unread activity. Empty/default reads must not seed
-  fixtures or resurrect samples after refresh. Preserve existing real records.
-- Passwords use pinned @noble/hashes Argon2id v19, 19 MiB/two passes/one lane,
-  random 32-byte salts and 32-byte output. Known legacy PBKDF2 records upgrade
-  only after successful verification through a credential-version CAS. Do not
-  weaken the algorithm to conceal runtime CPU constraints. Local workerd hash
-  compatibility was checked; hosted capacity and production load remain gates.
-- Secure HttpOnly __Host- cookies carry opaque server sessions. Signed-in writes
-  validate Origin, CSRF, active session/status and expected account ID. Recovery,
-  password changes, revocation and suspension invalidate prior access. Reject
-  stale credential/session races. Keep secrets out of responses and exports.
-- Google OIDC is real optional code/state/nonce/PKCE verification using jose;
-  absent GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/VOIDLINE_ORIGIN means unavailable.
-  Provider email matches never link other accounts or publish provider identity.
-- Verified-email recovery requires RESEND_API_KEY, EMAIL_FROM and trusted origin.
-  Hash 256-bit one-use tokens, expire at ten minutes and consume atomically.
-  Offline recovery codes are a separate explicit possession factor. A delivery
-  API acknowledgement is not a received email. Never reveal an old password.
-- SimpleWebAuthn verifies actual signed-in step-up; it is not standalone passkey
-  login. Owner actions need recent authentication plus user verification. Never
-  accept a client MFA flag. Challenge replay, expiry, origin/RPID and counters
-  are server checked. Removing keys clears MFA; protect the owner's final key.
-- No production owner was verified/bound by the upgrade. Follow
-  docs/OWNER-BOOTSTRAP.md: signed-in proof, fresh passkey, short-lived private
-  claim and trusted operator binding to an exact immutable ID. Then remove
-  bootstrap secrets. Community ownership never implies platform administration.
+- Immutable internal account IDs carry authority. Unique normalized handles,
+  display names, private verified emails, provider subjects and nicknames are
+  separate. @xrp is an owner hint only. First registration grants no privilege.
+- New accounts start genuinely empty. Reads must not restore fixtures, fabricate
+  unread/activity counts or upload an older device archive. Preserve real data.
+- Passwords use pinned maintained Argon2id v19, 19 MiB/two passes/one lane, random
+  salts and 32-byte output. Known legacy PBKDF2 records migrate only after a
+  successful credential-version CAS. Keep runtime compatibility/load claims
+  separate from isolated hash measurements; never downgrade to conceal limits.
+- Secure HttpOnly __Host- cookies hold opaque native sessions. Mutations check
+  current account/session state, allowed Origin, CSRF and expected account ID.
+  Sensitive credential/role/gift changes recheck authorization at commit and
+  invalidate access through the appropriate revocation path.
+- Google uses maintained server OIDC verification, state/PKCE/nonce and provider
+  subject mapping. Email matches do not link accounts or expose provider data.
+  Unconfigured Google/mail is unavailable, not a decorative successful button.
+- Verified-email reset tokens are hashed, unpredictable, ten-minute and one-use;
+  offline recovery codes are distinct possession factors. A provider receipt
+  does not establish inbox delivery. Recovery changes, never reveals, passwords.
+- Passkeys are maintained signed-in verification, not inferred client MFA flags.
+  Owner actions need recent authentication and UV. Protect the final owner key.
+  Follow OWNER-BOOTSTRAP.md for trusted one-time immutable-ID binding; community
+  ownership cannot become platform administration. No real owner is implied by
+  fixture tests or by this release alone.
 
-MESSAGE, VAULT AND MEDIA BOUNDARIES
-- Native D1 history is permission-checked Standard messaging, with explicit
-  server-stored-text consent. Never label it E2EE or use it as an encrypted
-  room fallback. Creating a native
-  community does not create a Matrix room. Native friend/block/moderation rules
-  are not yet mapped to independent Matrix identities and room permissions.
-- Matrix JS SDK 45.1.0 / Rust crypto WASM 18.9.2 implement the protected path.
-  Require configured homeserver, real whoami/device identity, encrypted room,
-  current membership and verified devices. Verify authenticity shields before
-  exposing decrypted content. Never invent a protocol or shared frontend key.
-- Stable transaction IDs and encrypted intended outbox records precede SDK send.
-  Acknowledgement means homeserver persistence, not delivery/read receipts.
-  Payload conflicts fail. An old unconfirmed transaction needs its original
-  Matrix token because deduplication is session scoped. Attachment retries use
-  retryPending descriptors rather than resending a filename as text.
-- Drafts and outbox are scoped to account/device/room/thread. Reserve revisions
-  before awaits and serialize encrypted writes. Wrong passphrases, failed writes
-  and old responses must preserve newer text and never claim a durable save.
-  Background updates preserve composer node/caret and keyed message rows.
-- Rust WASM Matrix-v2 attachments encrypt up to 8 MiB before upload. File keys,
-  original names and descriptors travel inside encrypted message content. Use
-  authenticated media requests; never put credentials/keys in URLs. Revoke local
-  decrypted Blob URLs on close, navigation and account lock. Microphone access
-  starts only on explicit action; late permission results stop all tracks after
-  cancellation/account changes. Voice recording is limited to 60 seconds.
-- This-device Saved works independently of Matrix. Its separate 16+ character
-  passphrase derives AES-256-GCM through WebCrypto PBKDF2-HMAC-SHA256/600,000;
-  fresh IVs and authenticated account/record namespaces protect stored content.
-  Web Locks prevent concurrent writers. Passphrases/keys remain in memory.
-  Metadata/counts remain observable in a browser profile. This is local at-rest
-  encryption, not E2EE, cloud sync or recoverable account storage.
-- Saved scopes are explicit: this-device notes, encrypted Matrix self-room and
-  legacy references. Recheck membership/source access for bookmarks, searches,
-  source jumps and downloads. A saved reference never bypasses permissions.
-  Encrypted search covers only loaded decrypted history; no plaintext upload.
-- There is no configured Matrix service/live two-device acceptance in this
-  upgrade. Full native-to-Matrix community integration, encrypted-history index,
-  complete encrypted-service moderation/retention, live voice/video/screen share
-  and push delivery remain engineering/infrastructure work. Follow
-  docs/ENCRYPTION-DECISION.md and docs/ENCRYPTION-THREAT-MODEL.md.
+CORRECTNESS INVARIANTS
+- Community created_by is the authoritative owner account. Role rows synchronize
+  through a commit-time transfer and database invariants. Ownership revision/CAS,
+  eligible target membership and active actor/session checks reject stale writes.
+  A unique owner-role index plus triggers prevent independently promoting a second
+  owner, deleting/demoting the current owner, or assigning an ineligible target.
+- Migration 0008 normalizes duplicate role rows against a valid authoritative
+  account and audits previous owner IDs. Broken/ineligible links are quarantined
+  for trusted infrastructure review; do not guess a replacement from names or
+  silently grant a privileged user. Applied migration SQL remains immutable.
+- Native and community messages expose monotonic revisions advanced by database
+  change triggers, including edits/deletions/reactions. Read message content and
+  related state consistently. Client merges reject older revisions and retain
+  tombstones. Do not let delayed initial history bypass the same merge rule.
+- Community mentions use immutable account IDs via mentionIds; server membership
+  checks and message edits keep mention rows consistent. Display names are only
+  presentation. Existing arbitrary @display-name text is not retroactively
+  invented into a mention award/notification.
+- Native DM sends still check eligible active participants/blocks. In existing
+  groups, an inactive or blocked pair does not silence unrelated eligible senders.
+  The blocked/suspended account's own permissions remain enforced. A block does
+  not cryptographically hide shared-group messages from an authorized member.
+- Native group metadata, member addition/removal and ownership transfer require
+  the current owner and commit-time eligibility, with atomic audits. A group
+  owner must transfer before leaving others; account deletion follows documented
+  anonymization/ownership protections. Matrix membership is a separate authority.
 
-APPLICATION DATA AND MIGRATIONS
-The complete 0000–0007 migration chain creates 47 application tables. Additive
-0006_hard_tombstone.sql adds account lifecycle, passkeys/email tokens, verified
-owner/audit/report records, organization/folders/targets/timeouts, profile privacy,
-earned badge definitions/awards and concrete gift instances/transfers/showcases.
-Older account IDs, memberships, histories and legitimate cosmetic ownership are
-retained. Local archive ownership claims remain untrusted and are never used to
-mint official items or privileges. Account deletion tombstones/anonymizes shared
-provenance while clearing private state; owner/community-owner safeguards apply.
+MESSAGE, QUERY AND UI CONTRACTS
+- Standard messaging is service-readable HTTPS/D1 text with explicit consent.
+  Its immutable security mode and identifiers cannot select Matrix rooms or serve
+  as encrypted-send fallback. Existing plaintext remains accurately labeled.
+- Stable retry IDs bind intended payloads. Pending, server-accepted, failed and
+  retrying are separate; delivery/read must not be invented from an HTTP receipt.
+  Account/conversation/thread drafts and queues cannot follow a user into a
+  different account or destination. Standard tab drafts are not the crypto vault.
+- Filter the full authorized account before capturing list snapshot positions.
+  Ten-minute account-bound snapshot cursors retain order/filter under new activity;
+  every page rechecks current membership. Expiry/filter changes request a fresh
+  snapshot rather than silently skipping records. Old offset compatibility is
+  not evidence of stable pagination unless a cursor/snapshot is carried through.
+- Standard search covers permitted server history with authorized counts/results.
+  Native bookmarks sync source references and their own revisions; deletion or
+  lost source access cannot be bypassed. Private previews remain respected.
+  Encrypted search remains client-side over loaded decrypted data.
+- Drain message/change backlogs in bounded cancellable batches with actual
+  cursor progress and backoff. Keep message and change cursors distinct and
+  commit them after processing. Report catching up without fake real-time status.
+- Track viewed messages only when the conversation/document is eligible and
+  visible; do not mark the greatest loaded row as viewed. Explicit bulk read is
+  separate. Inbox/profile/background opening must not silently acknowledge text.
+- Use keyed timeline updates to retain unrelated focus, selection, scroll anchors
+  and media. Preserve composition through polls/dialogs, handle IME composition
+  and cap input growth. Windowed large-history rendering and physical-device
+  screen-reader/keyboard acceptance remain further work.
 
-Keep SQL parameterized, page reads safely and enforce object access on every
-API. Commit related mutations and audit events atomically. Retried folder,
-message and gift operations need stable client IDs and conflict fingerprints.
-Gift transfer acceptance checks current ownership, reservation, eligibility,
-blocking and suspension again at commit time; clear the former owner's showcase.
-Nine free decorations, twelve gift designs, earned awards and actual role
-indicators have distinct semantics. Private gift notes remain unavailable.
+ENCRYPTED PATH
+Matrix SDK 45.1.0 / Rust crypto WASM 18.9.2 are the maintained protocol. Do not
+invent a cipher protocol, embed a shared content key, weaken verified-device
+checks or copy standard history into protected rooms silently. Normal configured
+Synapse enrollment maps immutable IDs to a reserved namespace and validates
+whoami/user/device before opening a dedicated encrypted store. A native password
+plus persistent client seed derives local unlock material. Raw credentials never
+enter ordinary localStorage; the token envelope is authenticated-encrypted.
+Advanced manual token entry remains separate. Read ENCRYPTED-SETUP.md before
+setting provider secrets or assuming a public Matrix account is compatible.
 
-Edit db/schema.ts intentionally, run npm run db:generate, review the new SQL,
-journal and snapshot, then retain them unchanged after application. Request
-handlers never create/alter migration-owned tables. Sites applies pending
-migrations to managed DB before Worker publication. Local D1 and hosted D1 are
-separate; use every migration in order for isolated test/preview databases.
+Keep encrypted intended outbox writes durable before SDK send. Payload conflicts
+fail. An unconfirmed retry needs its original Matrix token/session; do not create
+a new transaction under a rotated token and pretend deduplication is preserved.
+Rust v2 attachment encryption protects contents before upload; key/name/descriptors
+travel inside encrypted messages. Fetch media with Authorization, size/type
+limits and no URL credentials; revoke decrypted Blob URLs after their view ends.
+Microphone permission is deliberate, late tracks are stopped and cancellation
+must not attach a recording to a new conversation. Native media is still absent.
 
-BUILD, CHECK AND RELEASE
-Use Node >=22.13 (Node 24 used here), Python 3 and the lockfile:
-  npm ci --no-audit --no-fund --cache /tmp/voidline-npm-cache
-  npm run test:foundation
+Invitations preview without joining, validate encryption after deliberate accept
+and distinguish invitation state from verified identity. Leave/removal/cancel
+use actual Matrix membership and powers; SDK/history limits remain explicit.
+Recovery journals encrypt resumable client state, preserve existing keys/backups
+and retain only sanitized public signing payloads for UIA retry. Automatic backup
+version deletion is blocked at final dispatch. Backup-enabled is not proof of
+restore; verification markers bind the actual restored key ID/backup version.
+Logout locks locally first and reports confirmed/failed/unknown remote outcome.
+Never persist raw-token retry queues or native passwords as Matrix UIA passwords.
+
+No homeserver/live multi-device acceptance is configured. JWT-only Synapse UIA
+can be insufficient for device deletion/key reset; report unsupported service
+authentication and preserve state rather than manufacturing success. Native
+suspension/blocks/community changes are not atomic remote Matrix revocation.
+Encrypted-by-default readiness remains false until service, policy, invitations,
+keys, attachments and recovery pass actual multi-device acceptance. Calls, full
+crypto search indexes, cross-service media retention and complete moderation are
+separate engineering, not solved by a configuration field.
+
+SAVED AND NOTIFICATIONS
+Saved exposes distinct storage/security scopes: synced authorized Standard source
+bookmarks, encrypted self-only Matrix Saved and local encrypted notes. The local
+vault uses PBKDF2-HMAC-SHA256/600,000 and AES-256-GCM with fresh IVs and authenticated
+record/account namespaces. Its separate passphrase is not restored by account
+login or Matrix backup. Stored metadata/counts and offline guessing remain risks;
+unlocked browser/XSS/extension compromise can read available plaintext.
+
+Generic native Web Push uses maintained WebCrypto-compatible delivery code and
+provider-configured server VAPID keys. Browser enrollment is deliberate. Queueing
+or a push-provider receipt is not device-display evidence. Payloads exclude
+message text; preferences, mute/quiet hours, current access/session and deduplication
+are enforced. Matrix push and real browser delivery require separate verification.
+Do not create notification permissions, socket states or presence events as mocks
+in the production experience. See root delivery-status notes for current rollout.
+
+DATA AND MIGRATIONS
+The full 0000–0008 chain yields56application tables. New 0008 adds nine tables,
+message/ownership fields and 13 integrity/revision/activity triggers. Earlier
+migrations, account IDs, memberships, histories and genuine ownership remain.
+Keep queries parameterized and object-scoped. Related mutations/audits are atomic.
+Gift retries/transfers recheck ownership/reservation/eligibility at commit and
+clear invalid former-owner showcases. Preserve 21 free decorations, 12 gift designs,
+separate earned awards and actual roles. Local claims cannot mint official items.
+
+Edit db/schema.ts intentionally, generate/review only new SQL/snapshot/journal,
+and keep applied history unchanged. Request handlers must never invent schema.
+Sites applies pending migrations before Worker publication. Local/hosted D1 are
+separate; isolated tests apply the complete chain in order. Quarantined community
+ownership requires trusted review rather than a destructive repair guess.
+
+BUILD AND RELEASE
+Use Node >=22.13 (Node 24 here), Python 3 and locked dependencies:
+  npm ci --no-audit --no-fund
   npm run test:server
   npm run test:client
   python3 -m pip install -r requirements-backup.txt
   npm run check:restore
 
-The server runner discovers current backend/*-test.mjs suites. Historical v7
-backend fixtures remain separately runnable with node backend/test.mjs and
-node backend/review-test.mjs; they are not current auth/E2EE acceptance evidence.
-The client runner includes retained archive regressions and controlled production
-entry/extension cases. Focused checks can run directly, for example:
+Current server suites are backend/*-test.mjs. Historical v7 engine fixtures in
+backend/test.mjs/review-test.mjs are separately runnable and are not evidence of
+current authentication or E2EE. Client suites mix authored UI behavior and
+retained archive regressions. Useful focused commands include:
+  node backend/newcommunity-correctness-test.mjs
+  node backend/native-messages-test.mjs
+  node backend/secure-lifecycle-test.mjs
+  node backend/encryption-enrollment-test.mjs
   node tests/voidline-home-test.cjs
-  node backend/auth-hardening-test.mjs
-  node backend/passkeys-test.mjs
-  node backend/secure-messenger-test.mjs
-  node backend/secure-media-test.mjs
-  node backend/secure-vault-test.mjs
-  node backend/local-saved-test.mjs
+Run only existing suite names; the full runners discover the authoritative set.
 
-Build order matters because downloads include the current generated clients:
+Build and package in this order:
   npm run build
   python3 build_offline.py
   npm run build
   node scripts/check-build.mjs
 
-The first build bundles passkeys/Matrix/WASM and creates Worker runtime output.
-The offline/source packager then captures current authored/generated clients;
-the second build embeds the fresh downloads into the final Worker asset map.
-Exports exclude dependencies, caches, runtime DB/secrets and recursive build
-output. check-build imports the actual generated Worker and checks served bytes,
-HEAD/ETag, hidden paths, migration packaging and the preserved Site identity.
-It does not run an interactive browser or verify external providers.
+Downloads contain current clients/source/prompt; the second Worker build embeds
+fresh downloads. Exclude DBs, credentials, dependencies, caches and recursive
+output. The actual built Worker is checked for exact bytes, private-path rejection,
+HEAD/ETag, migrations, preserved Site identity and a static trusted ChatGPT frame
+allowlist. Do not add wildcard/reflected framing origins or undo that preview fix.
 
-Use the supported Sites preview daemon when managed browser controls exist:
-  sites-preview start /workspace/work/voidline
-The npm dev adapter is Wrangler/local D1 under that workflow, not mock auth.
-Publish through Sites source/package/deploy with the existing project ID,
-audience and DB binding. Preserve a protected pre-release snapshot when trusted
-provider export access is available. Never blindly roll code back to v10 after
-Argon2id credentials have been written: that Worker cannot verify the new hashes
-and does not enforce suspension. Prefer a forward-compatible fix that preserves
-additive schema and IDs. A coordinated snapshot/code restoration needs isolated
-compatibility checks and trusted provider controls; no destructive downmigration
-is supported. Runtime credentials belong only in the server secret/configuration
-store. docs/BACKUP-RESTORE.md and scripts/backup-db.py document sealed snapshots
-and isolated restoration. Local restoration is verified; provider export,
-production restore and backup scheduling require authorized infrastructure
-controls and have not been performed by this upgrade.
+Use supported Sites preview/browser tooling when offered; never install an
+improvised browser to bypass missing managed tooling. Preserve project ID,
+audience and DB binding when publishing. Store secrets only in the host's server
+configuration. Protect pre-release snapshots when infrastructure permits export.
+Never blindly roll back to old code lacking Argon2id, suspension, revisions or
+new ownership invariants. Prefer a compatible forward fix; coordinated restore
+needs trusted provider tools and isolated compatibility proof, not downmigration.
+Local sealed backup restoration is testable; production D1 backup scheduling and
+isolated hosted restoration are not established by the local scripts.
 
 VERIFICATION CLAIMS
-Real handler/migrated-SQLite checks, maintained Argon/JWT/WebAuthn verification,
-real WebCrypto with fake-indexeddb and actual Rust attachment roundtrips establish
-the stated code/storage boundaries. Controlled SDK/network/DOM tests remain
-controlled. Home currently has 43 production-entry behavior cases, including
-session/account races, passkey receipt checks, thread drafts/retry identity,
-media cancellation and fragment-token handling. Do not infer browser layout,
-physical passkey behavior, Google/email transport, hosted CPU/load, full Matrix
-message E2EE, multi-device recovery or a production owner from these checks.
-Report deployed HTTP checks and hosted screenshots separately; screenshot
-fixtures must not be described as real owner access or real conversations.
-
-LATEST NATIVE CHAT AND PRESENTATION UPGRADE
-See docs/NATIVE-MESSAGING.md for explicit standard-mode consent, data retention,
-API permissions, retry semantics and unresolved infrastructure. New 0007 adds
-six native messaging/organization tables without changing applied migrations.
-Preserve Matrix security namespaces; never route encrypted IDs to D1 text.
-Entry assets are local and included in offline output; they bypass offline and
-recovery sessions. Prompt download is generated from the authored plain text.
-The 21 badge / 12 gift catalog preserves all existing IDs and ownership.
+Actual migrated SQLite/handlers, maintained Argon/JWT/WebAuthn verification,
+WebCrypto/fake-indexeddb and Rust attachment roundtrips establish their specific
+boundaries. Controlled SDK/DOM/transport tests remain controlled. Report suite
+counts from executed logs, not documentation guesses. Real Google/email delivery,
+physical passkeys, browser/mobile keyboard/screen-reader behavior, Web Push display,
+full Matrix/JWT/UIA interoperability and multi-device recovery remain explicit
+acceptance gates. Hosted logged-out screenshots are not authenticated owner or
+conversation proof. No configured field or test fixture can establish a real
+platform owner or a production encrypted exchange.
