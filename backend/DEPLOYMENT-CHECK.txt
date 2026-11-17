@@ -1,34 +1,59 @@
-SHARED SERVICE RECHECK / TRUST EDITION
+SHARED SERVICE / SOURCE VERIFICATION
 
-The live Site remains a static client. Initial access was owner-private; the
-final access check reported public access. No access changes were made by this
-build. Its native database
-overview reports bindings:[] and tables:[] with no omissions. There is no
-existing D1 binding or populated hosted schema to connect this UI to.
+SUPPORTED SCAFFOLD NOW PRESENT
+The Sites 1.1.6 helpers are installed. The previous missing-binding/migration
+blocker is resolved in this source revision. Installed starter db/index.ts
+instructs setting d1 to DB, and vite.config.ts uses that string as the binding.
+The source hosting manifest now preserves the existing project_id, omits
+static, declares "d1": "DB", and leaves r2 null. No audience change is made
+by these source files.
 
-The supported Worker ESM output convention is known: a default fetch export at
-dist/server/index.js and the Site manifest without static.directory. A local
-review-only bundle serving static files plus worker/index.mjs was built and
-smoke-checked: static request200, missing identity401, identity with no DB503.
-This proves Worker hosting is possible, not that shared chat is available.
+Drizzle Kit 0.31.10 generated the schema-only six-table migration:
+  drizzle/0000_grey_zarda.sql
+  drizzle/meta/_journal.json
+  drizzle/meta/0000_snapshot.json
+The build copies metadata to dist/.openai, and the supported Sites packager
+copies root drizzle/ to dist/.openai/drizzle. No request-time DDL is used.
 
-The exact missing setup remains:
-1. The supported non-null D1 hosting-manifest binding declaration.
-2. Sites migration manifest/journal emission and schema deployment pipeline.
+The self-contained Worker routes /api/live/* to the API and serves the authored
+static client assets. The source ZIP and Worker asset collection both exclude
+generated dist/server and dist/.openai files, avoiding recursive embedding.
 
-Storage guidance describes automatic D1 provisioning from manifest/schema
-metadata, but available starter manifests show only d1:null/r2:null. The Sites
-setup/build/workflow helpers and Drizzle configuration are absent from this
-execution image; associated binding/plugin/migration-emitter resources cannot
-be read at their supplied paths. Native DB tools are read-only and expose no
-provisioning, SQL-write, or migration operation. We did not guess a declaration,
-create schema in request handlers, or publish a Worker that would only return
-backend_not_configured. Durable Objects would need another unsupported binding
-and migration declaration; they are not a verified workaround here.
+VERIFIED DURING SCAFFOLD PREPARATION
+- Dependency installation and the supported Sites build helper succeeded.
+- Generated SQL applies to an empty SQLite database.
+- All six expected table/column sets are present.
+- Foreign-key enforcement, membership-role and invite-use checks, and retry
+  uniqueness were exercised against generated SQL.
+- Built Worker module exports fetch and serves source-equivalent HTML, CSS,
+  SVG and ZIP asset bytes.
+- /server and /.openai are not served as public assets.
+- ETag conditional responses work.
+- /api/live/me reaches the authenticated API and rejects missing identity.
 
-Once that supported deployment setup is supplied, use the existing SQL-backed
-API contract and tests, preserve platform identity, enforce membership on the
-server, connect the client transport, and test separate authorized accounts.
-Current SQLite tests use synthetic platform identity headers. Two independent signed-in accounts remain necessary to verify the shared
-service; no audience or invitations were
-changed during this work. No live two-account milestone is claimed.
+BOUNDARIES OF THAT EVIDENCE
+Those checks are local source/build/SQLite checks. They do not independently
+prove that the latest native deployment has provisioned D1, applied migrations,
+or exchanged messages between two real signed-in browser accounts. Consult
+the latest Sites deployment result for the live publication state. Do not
+infer a two-account result from synthetic-header contract tests.
+
+PUBLICATION CHECKS FOR THIS REVISION
+Use the existing Site's latest audience and project identity. Run the offline
+generator after client files are stable, then the final Worker build, source
+workflow and supported Sites publication. Verify the deployment's terminal
+status and literal URL. Confirm the hosted health response, authenticated
+alias/profile flow, community creation and membership-gated history.
+
+For the end-to-end social check, use two independently authorized accounts:
+owner creates a community and invite; second account claims membership; each
+sends a message; both read committed history; a nonmember is denied. Verify
+lost-response retry deduplication and cursor catch-up. Do not send invitations
+to anyone or broaden hosting access without the user's authorization.
+
+CURRENT FEATURE BOUNDARY
+Shared text uses platform identity, public aliases, server membership, D1
+commit acknowledgments and cursor polling. Local archive conversations,
+images, voice notes, sample residents and collectibles remain local. Live
+voice transport, shared attachments, read receipts and presence are outside
+this implemented shared-text scope.

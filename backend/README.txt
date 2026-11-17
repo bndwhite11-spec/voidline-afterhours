@@ -1,134 +1,133 @@
-VOIDLINE SHARED TEXT MESSAGING — INTEGRATION SOURCE
+VOIDLINE SHARED TEXT MESSAGING
 
-STATUS
-This module is NOT enabled in the published device-local client. It is a
-tested server-side boundary for the next integration step. No UI control
-claims this service is connected, and the static client does not call it.
+ARCHITECTURE
+The hosted build combines a dependency-free Worker API with the existing plain
+JavaScript client. /api/live/* is dispatched to handleLiveRequest; other known
+asset paths are served from the generated Worker asset map. Shared text is
+stored in the Sites-managed D1 binding DB. The offline/local archive remains
+separate, and offline Shared rooms are explicitly unavailable.
 
-Files:
-  worker/index.mjs       dependency-free Worker handler/default fetch export
-  backend/schema.sql    schema-only SQL for the six live_* tables
-  backend/test.mjs      actual SQLite-backed handler/database contract checks
+SOURCE MAP
+  worker/index.mjs            authenticated API and authorization boundary
+  backend/schema.sql         audited SQL contract used by the SQLite tests
+  backend/test.mjs           real SQLite-backed API contract checks
+  db/schema.ts               equivalent six-table Drizzle schema
+  drizzle/                   generated schema SQL, journal and snapshots
+  drizzle.config.ts          SQLite generation config, output ./drizzle
+  scripts/build-worker.mjs    self-contained Worker and metadata build
+  scripts/dev-worker.mjs      package dev adapter for the Sites preview daemon
+  dist/live.js, live.css      shared-room client and interface
 
-The 12 checks use Node 24's built-in node:sqlite and synthetic identity
-headers. They validate SQL, transactional batches, server authorization,
-retry deduplication, history pagination, cursor catch-up and failure outcomes.
-They are not a deployed D1 test or a test of two signed-in people/devices.
+The hosting manifest preserves the existing project_id, omits static, and
+sets d1 to the string "DB". r2 is null. These values follow the installed Sites
+starter/build contract. The Worker entry is dist/server/index.js and default-
+exports fetch. Root drizzle/ is also packaged into dist/.openai/drizzle by the
+Sites packager. No schema is created or altered inside request handlers.
 
-Run from the source root:
-  node --check worker/index.mjs
-  node backend/test.mjs
+IDENTITY, ALIASES AND ACCESS
+Sites dispatch injects oai-authenticated-user-id. Membership is keyed by this
+stable per-Site identity. Visitors choose a public alias, initially shown as
+New resident until configured. Messages and member listings expose the chosen
+alias, not the sign-in email or account full name. Display aliases are not
+unique authentication credentials.
 
-KNOWN HOST CAPABILITIES AND EXACT MISSING BOUNDARY
-Sites documentation supports a Worker default fetch export, a logical D1
-binding, dispatch-owned ChatGPT identity headers, and generated Drizzle SQL
-migrations applied by the supported publish workflow. The current app is
-static: .openai/hosting.json declares static.directory=dist and has no D1
-binding, Drizzle migration journal/snapshots, or server build pipeline.
-The installed Sites source/build helpers are unavailable in this execution
-workspace. The available references expose null binding defaults but not a
-complete working D1 manifest and migration artifact configuration. No binding
-shape or deployment metadata has been guessed or written into that manifest.
+Every community/channel data action checks server-side membership. Owner-only
+operations check the stored role; announcement publishing is limited to staff.
+A Site's hosting audience and a community's membership are different checks.
+Public hosting does not make shared messages public or make a visitor a member.
+A community invite cannot bypass the Site's hosting policy.
 
-Before this source can be switched on:
-1. Restore the supported Sites/Vinext D1 starter/build helpers in a separate
-   preparation checkout. Preserve the current Site project ID and audience.
-2. Declare a supported logical D1 binding named DB using that starter's
-   documented manifest shape. Sites owns database provisioning; do not embed
-   a database ID, API key, or account credential in browser code.
-3. Express schema.sql's tables/indexes in that starter's db/schema.ts.
-   Run npm run db:generate to produce reviewed immutable SQL plus Drizzle
-   journal/snapshot metadata in drizzle/. This SQL file alone is not claimed
-   to be a deploy-ready Sites migration artifact. Keep migrations schema-only.
-4. Build the supported Worker artifact. For local migrations the documented
-   command is:
-   node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js
-     d1 execute DB --local --config dist/server/wrangler.json
-     --persist-to .wrangler/state --file drizzle/<generated-migration>.sql
-   Run this as one command per pending generated migration, in order.
-5. Route /api/live/* to handleLiveRequest and serve the existing client/assets
-   from the same supported Worker build. The server module is dependency-free;
-   it does not replace the app or serve static assets by itself. Sites expects
-   server output at dist/server/index.js when static.directory is omitted.
-   Follow the supported build rather than manually fabricating deployment JSON.
-6. Publish through the existing Sites source/package/deploy workflow so Sites
-   applies the reviewed generated migrations before starting the Worker.
-7. Add a separate connected mode to the client: durable account identity,
-   connection state, server communities/channels, acknowledged outbox records,
-   cursor polling, exact retry IDs and before-history pagination. Keep local
-   archives separate and explicitly offer any migration/sending of local text.
-8. Test platform-authenticated requests, server permission denials, reconnect,
-   concurrent invitation claims and D1 batch behavior on the actual host.
-
-The Site remains owner-private. A second person cannot access it merely
-because a community invite exists. The Site owner must explicitly authorize
-the intended hosting audience/collaborator access before a two-person test.
-No such hosting sharing change or invitation message has been performed.
-
-IDENTITY AND TRUST
-The handler reads oai-authenticated-user-id injected by Sites dispatch. Email
-and the optional percent-encoded full name are display metadata. Durable
-membership uses the stable per-Site user ID. Every community/channel action
-checks membership on the server, and owner operations check the stored role.
-Do not expose this handler on a raw public Worker URL that accepts caller-
-supplied identity headers. It must run behind the Sites identity boundary.
-The module does not implement its own OAuth/session flow, reserved sign-in
-routes, or a service token that impersonates visitors.
+The handler must stay behind the Sites identity boundary. It does not create
+its own OAuth/session flow or intercept the platform's reserved sign-in routes.
+The client starts ChatGPT sign-in with a top-level navigation. Authenticated
+responses and API errors use Cache-Control: no-store.
 
 API CONTRACT
-All responses are JSON with Cache-Control: no-store. Writes require JSON,
-a same-origin Origin when supplied, and an authenticated platform identity.
-Errors use {error:{code,message}} and an appropriate non-2xx status.
-No durable-write failure returns acknowledged:true.
+Writes require JSON and a same-origin Origin when supplied. Errors use
+{error:{code,message}} and a non-2xx status. Successful acknowledgment follows
+a durable write; a failed database write is never represented as delivered.
 
+GET /api/live/health
+  Public availability check; verifies the configured DB/schema without exposing
+  accounts or conversation content. Returns shared-text/cursor-polling mode.
 GET /api/live/me
-  Returns account {id,displayName} and transport="cursor-polling".
+  Returns the authenticated account's id, public displayName and needsProfile.
+POST /api/live/profile {displayName}
+  Sets a public alias of 2..32 characters. This does not change platform identity.
 GET /api/live/communities
-  Lists only the caller's communities with stored role.
+  Lists only the caller's memberships with stored role.
 POST /api/live/communities {name}
   Atomically creates a community, owner membership and general text channel.
 GET /api/live/communities/:id/channels
-  Lists channels only after membership is checked.
+  Lists channels after membership is checked.
 POST /api/live/communities/:id/channels {name,kind:"text"|"announcement"}
-  Owner only; announcement publishing is restricted to owner/moderator.
+  Owner only. Names use lowercase letters, digits and hyphens.
+GET /api/live/communities/:id/members
+  Membership-gated directory with public identity fields; no sign-in email.
 POST /api/live/communities/:id/invites {maxUses:1..100}
-  Owner only; returns an unpredictable token once. Only its SHA-256 hash is
-  stored. Invites expire after seven days. The server does not send invites.
+  Owner only. Returns an unpredictable token once and stores only its SHA-256
+  hash. Tokens expire after seven days. The server does not send invitations.
 POST /api/live/invites/claim {token}
-  Adds a member if the unexpired token still has capacity. A repeated claim
-  by an existing member does not consume another use. Admission and usage
-  update execute together in a D1 atomic batch.
+  Adds membership when an unexpired invite has capacity. Existing members do
+  not consume another use. Admission and usage update use an atomic batch.
 GET /api/live/channels/:id/messages?limit=50&before=<seq>
-  History page, chronological in the response. The default is the latest
-  page. Use page.before to load older content. Limit is capped at 100.
+  Chronological history page; default latest page. Limit is capped at 100.
+  Use page.before to load older content.
 GET /api/live/channels/:id/messages?limit=50&after=<seq>
-  Ascending cursor catch-up for new content. Use page.after for the next poll.
-  Drain while page.hasMore; do not advance past unprocessed messages.
+  Ascending cursor catch-up. Use page.after for the next poll and drain while
+  page.hasMore. Do not advance past unprocessed messages.
 POST /api/live/channels/:id/messages {clientId,text}
   Requires membership and posting permission. clientId is 8..100 ASCII letters,
-  digits, underscore or hyphen and must remain stable across retries. Text is
-  1..4000 characters. The author always comes from platform identity. A unique
-  (channel,author,clientId) constraint deduplicates retries. Different text with
-  the same retry ID returns 409. Success returns {message,acknowledged:true}.
+  digits, underscore or hyphen and remains stable across retries. Text is
+  1..4000 characters. The server determines the author from platform identity.
+  A unique (channel,author,clientId) constraint deduplicates retries; different
+  text with the same ID returns 409. Success: {message,acknowledged:true}.
 
 Messages contain seq,id,channel_id,author_id,author_name,client_id,text,created_at.
-Never render text as trusted HTML. The intended client uses escaped/rich-text
-rendering and keyed rows. Polling supplies a complete small-text vertical
-slice; it does not claim WebSockets, live presence, delivery/read receipts,
-shared media, voice transport, friend requests or server-verified artifacts.
-Editing/deletion event streams, moderation tools and rate/abuse policies need
-their own complete server flows before a wider audience is enabled.
+Render text safely. Cursor polling supplies shared text and paginated history;
+it does not establish WebSockets, live presence, read receipts, shared media,
+live voice, a networked friend-request system or server-verified collectibles.
+A durable saved acknowledgment does not imply another member read the message.
+Shared moderation/edit/delete/event flows are not inferred from local controls.
 
-INVARIANTS
-- Identity and membership are established by the server, never by a hidden UI.
-- A successful message acknowledgment follows a committed database write.
-- Stable client IDs make retries safe, including reconnect after lost responses.
-- Cursor ordering uses durable monotonic message sequences, not bucket order.
-- Community creation and invite admission/usage use atomic batches.
-- Missing provisioning produces an explicit 503, not fabricated live behavior.
+SCHEMA AND BUILD
+Install dependencies through the Sites install-dependencies.mjs helper.
+After a schema change run npm run db:generate, review the schema-only SQL and
+commit the generated journal/snapshots with source. Applied migrations and
+metadata are immutable; append later changes. Keep seeds/backfills separate.
+Use one SQL statement per D1 prepare(), and batch() for atomic multi-statement
+operations. backend/schema.sql remains a test contract and is not uploaded as
+an independently executable migration.
 
-FINAL HOSTING ACCESS NOTE
-The final Site check reports public access; earlier owner-private observations
-are historical. Deployment must preserve the current policy. The API still
-requires authenticated platform identity and server-side membership even when
-the static page is public. Real two-account service verification is outstanding.
+Run the offline/source generator before the final Worker build:
+  python3 build_offline.py
+  node /home/agent/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/scripts/build-site.mjs
+
+Build output contains the Worker, hosting metadata and generated migrations.
+The generated .sites-runtime/wrangler.json uses the starter's placeholder DB
+ID solely with --local. Wrangler's temporary files also stay outside dist,
+so production rebuilds preserve the running preview's loader. Sites provisions the actual hosted resource from the
+logical manifest binding. Do not substitute an account key or real DB ID.
+
+LOCAL PREVIEW
+For a fresh local DB, after building, run the initial migration once:
+  node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/0000_grey_zarda.sql
+Apply each later pending migration in order; do not replay applied migrations.
+Then use only the managed daemon:
+  sites-preview start /workspace/sites/voidline-afterhours/.sites-checkout
+Use its exact returned URL. scripts.dev invokes Wrangler with --local through
+that daemon. No authentication mock or separate preview server is provided.
+Local and hosted databases are separate.
+
+DEPLOYMENT AND VERIFICATION
+Follow the Sites source/package/deploy workflow with the current project ID
+and audience. Sites applies generated hosted migrations before Worker upload.
+A deployment can apply migrations even if a later stage fails; inspect actual
+state before changing migration history or retrying a schema repair.
+
+Run: node backend/test.mjs
+The tests exercise actual SQLite with synthetic identities. They verify API
+contracts and authorization, not independent real ChatGPT accounts or the
+hosted D1 dispatch path. Use the native deployment result and an authenticated
+hosted smoke test to verify deployment, then a separately authorized two-account
+check for end-to-end shared messaging. See DEPLOYMENT-CHECK.txt.

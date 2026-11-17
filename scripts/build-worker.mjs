@@ -1,0 +1,126 @@
+import { createHash } from 'node:crypto';
+import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const output = path.join(root, 'dist');
+const runtimeDirectory = path.join(root, '.sites-runtime');
+const manifest = JSON.parse(await readFile(path.join(root, '.openai/hosting.json'), 'utf8'));
+if (manifest.static != null) throw new Error('Worker builds must omit static from .openai/hosting.json.');
+if (manifest.d1 !== 'DB') throw new Error('The live messaging API requires the declared D1 binding DB.');
+if (!manifest.project_id) throw new Error('The existing Site project_id must be preserved.');
+
+const apiSource = await readFile(path.join(root, 'worker/index.mjs'), 'utf8');
+const apiDefault = /^\s*export\s+default\s+\{\s*fetch\s*:\s*handleLiveRequest\s*\}\s*;\s*$/m;
+if (!apiDefault.test(apiSource)) throw new Error('Expected worker/index.mjs to default-export fetch: handleLiveRequest.');
+if (/^\s*import(?:\s|\{|\*)/m.test(apiSource)) {
+  throw new Error('The self-contained API entrypoint must not import runtime dependencies.');
+}
+
+const contentTypes = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
+  '.gif': 'image/gif', '.ico': 'image/x-icon', '.woff': 'font/woff',
+  '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
+  '.zip': 'application/zip', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4',
+};
+const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
+const assets = {};
+let assetBytes = 0;
+async function collect(directory, prefix = '') {
+  const entries = await readdir(directory, { withFileTypes: true });
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of entries) {
+    if ((!prefix && excludedRoots.has(entry.name)) || entry.name.startsWith('.')) continue;
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const filename = path.join(directory, entry.name);
+    if (entry.isDirectory()) await collect(filename, relative);
+    else if (entry.isFile()) {
+      const bytes = await readFile(filename);
+      assetBytes += bytes.length;
+      assets[`/${relative}`] = {
+        body: bytes.toString('base64'),
+        type: contentTypes[path.extname(entry.name).toLowerCase()] || 'application/octet-stream',
+        etag: `"${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}"`,
+      };
+    } else throw new Error(`Unexpected symlink or special asset: ${relative}`);
+  }
+}
+await collect(output);
+if (!assets['/index.html']) throw new Error('Missing dist/index.html. Existing static client source must be retained.');
+
+const runtime = `
+const VOIDLINE_ASSETS = ${JSON.stringify(assets)};
+
+async function serveVoidline(request, env, ctx) {
+  const url = new URL(request.url);
+  if (url.pathname === '/api/live' || url.pathname.startsWith('/api/live/')) {
+    return handleLiveRequest(request, env, ctx);
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response('Method not allowed', {status: 405, headers: {Allow: 'GET, HEAD'}});
+  }
+  let pathname;
+  try { pathname = decodeURIComponent(url.pathname); }
+  catch { return new Response('Invalid path', {status: 400}); }
+  const asset = VOIDLINE_ASSETS[pathname === '/' ? '/index.html' : pathname];
+  if (!asset) return new Response('Not found', {status: 404});
+  const headers = {
+    'content-type': asset.type,
+    'cache-control': 'no-cache',
+    'etag': asset.etag,
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+  };
+  if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
+  if (request.method === 'HEAD') return new Response(null, {headers});
+  const bytes = Uint8Array.from(atob(asset.body), c => c.charCodeAt(0));
+  return new Response(bytes, {headers});
+}
+
+export default {fetch: serveVoidline};
+`;
+
+// Preview state lives outside dist. Keep the production entry's directory in
+// place and replace the file atomically so an active watcher never reads a
+// partial bundle or loses its directory. Remove only obsolete preview output.
+await rm(path.join(output, '.openai'), { recursive: true, force: true });
+await mkdir(path.join(output, 'server'), { recursive: true });
+await mkdir(path.join(output, '.openai'), { recursive: true });
+await mkdir(runtimeDirectory, { recursive: true });
+await rm(path.join(output, 'server/wrangler.json'), { force: true });
+await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
+const bundle = `// Generated by scripts/build-worker.mjs. Edit worker/index.mjs and the dist client assets.\n${apiSource.replace(apiDefault, '')}\n${runtime}`;
+const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
+await writeFile(nextBundle, bundle);
+await rename(nextBundle, path.join(output, 'server/index.js'));
+await writeFile(path.join(output, '.openai/hosting.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+await cp(path.join(root, 'drizzle'), path.join(output, '.openai/drizzle'), { recursive: true });
+
+// This configuration and Wrangler's adjacent .wrangler/tmp directory are
+// local-only. They must never enter dist or be removed by a production build.
+// Sites provisions the hosted binding from the source hosting manifest.
+const localConfigPath = path.join(runtimeDirectory, 'wrangler.json');
+const localConfig = `${JSON.stringify({
+  name: 'voidline-afterhours-local',
+  main: '../dist/server/index.js',
+  compatibility_date: '2026-05-15',
+  d1_databases: [{
+    binding: 'DB',
+    database_name: 'site-creator-d1',
+    database_id: '00000000-0000-4000-8000-000000000000',
+  }],
+}, null, 2)}\n`;
+let currentLocalConfig;
+try { currentLocalConfig = await readFile(localConfigPath, 'utf8'); }
+catch (error) { if (error.code !== 'ENOENT') throw error; }
+if (currentLocalConfig !== localConfig) {
+  const nextConfig = path.join(runtimeDirectory, 'wrangler-config.next');
+  await writeFile(nextConfig, localConfig);
+  await rename(nextConfig, localConfigPath);
+}
+console.log(`Built self-contained Worker with ${Object.keys(assets).length} assets (${assetBytes} source bytes; ${Buffer.byteLength(bundle)} Worker bytes).`);

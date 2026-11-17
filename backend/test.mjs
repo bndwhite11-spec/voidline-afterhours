@@ -72,6 +72,25 @@ test('identity and configured durable storage are required', async () => {
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
+test('health is public but account identity stays private until sign-in', async () => {
+  const health = await call(null, '/health');
+  assert.equal(health.status, 200);
+  assert.equal(health.data.available, true);
+  assert.equal(JSON.stringify(health.data).includes('@'), false);
+  assert.equal((await call(null, '/profile', {method: 'POST', body: {displayName: 'Pretender'}})).status, 401);
+});
+
+test('residents choose a public alias without exposing their sign-in name or email', async () => {
+  const initial = await call('owner', '/me');
+  assert.equal(initial.data.account.displayName, 'New resident');
+  assert.equal(initial.data.account.needsProfile, true);
+  const saved = await call('owner', '/profile', {method: 'POST', body: {displayName: 'night.window'}});
+  assert.equal(saved.data.account.displayName, 'night.window');
+  assert.equal((await call('owner', '/me')).data.account.displayName, 'night.window');
+  assert.equal((await call('owner', '/profile', {method: 'POST', body: {displayName: 'x'}})).status, 400);
+  assert.equal(JSON.stringify(saved.data).includes(users.owner.email), false);
+});
+
 test('owner creates one atomic community, membership, and channel', async () => {
   const response = await call('owner', '/communities', {method: 'POST', body: {name: 'The shared studio'}});
   assert.equal(response.status, 201);
@@ -89,6 +108,35 @@ test('nonmembers cannot read channels, histories, or send', async () => {
   assert.equal((await call('member', `/channels/${channel.id}/messages`)).status, 403);
   assert.equal((await call('member', `/channels/${channel.id}/messages`, {method: 'POST', body: {clientId: 'denied-0001', text: 'not allowed'}})).status, 403);
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM live_messages').get().n, 0);
+});
+
+test('account changes cannot publish a previous account’s draft or mutate its profile', async () => {
+  const text = 'This draft belongs to a different signed-in account.';
+  const before = sqlite.prepare('SELECT COUNT(*) AS n FROM live_messages').get().n;
+  const send = await call('owner', `/channels/${channel.id}/messages`, {method: 'POST', body: {
+    expectedAccountId: users.member.id, clientId: 'account-race-001', text,
+  }});
+  assert.equal(send.status, 409);
+  assert.equal(send.data.error.code, 'account_changed');
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM live_messages').get().n, before);
+  const profile = await call('owner', '/profile', {method: 'POST', body: {
+    expectedAccountId: users.member.id, displayName: 'Wrong account alias',
+  }});
+  assert.equal(profile.status, 409);
+  assert.equal((await call('owner', '/me')).data.account.displayName, 'night.window');
+  const created = await call('owner', '/communities', {method: 'POST', body: {
+    expectedAccountId: users.member.id, name: 'Wrong account community',
+  }});
+  assert.equal(created.status, 409);
+  assert.equal((await call('owner', '/communities')).data.communities.length, 1);
+});
+
+test('member directory requires membership and exposes only public profile fields', async () => {
+  assert.equal((await call('member', `/communities/${community.id}/members`)).status, 403);
+  const directory = await call('owner', `/communities/${community.id}/members`);
+  assert.equal(directory.status, 200);
+  assert.equal(directory.data.members[0].display_name, 'night.window');
+  assert.equal('email' in directory.data.members[0], false);
 });
 
 test('only owners issue hashed, expiring, bounded-use invites', async () => {

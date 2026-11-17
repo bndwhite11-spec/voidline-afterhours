@@ -74,7 +74,8 @@ python3 build_offline.py
 
 No preview/screenshot or browser performance claim may be inferred from Node
 checks. Use the supported Sites preview when its browser-control tool exists.
-The two-account networked milestone is not complete; see backend/README.txt.
+Synthetic-identity tests do not verify two real accounts; see backend/README.txt
+and backend/DEPLOYMENT-CHECK.txt for the shared-service verification boundary.
 
 TRUST EDITION / SIX CONFIRMED INTERACTION DEFECTS
 
@@ -133,5 +134,55 @@ The Night Bus zine, map, type sheet, print variation and opt-in tone study are
 original fictional sample works. They demonstrate distinct residents and a
 conversation about making something. Existing messages are not rewritten.
 Sample profile and artifact story links are read-only and grant no ownership.
-The nine-object catalogue has not grown. Shared-service deployment evidence
-and precise missing dependencies are in backend/DEPLOYMENT-CHECK.txt.
+The nine-object catalogue has not grown. Shared-service source/deployment verification boundaries are recorded in
+backend/DEPLOYMENT-CHECK.txt. The supported D1/Worker scaffold is now present.
+
+
+SHARED TEXT / BUILD INVARIANTS
+
+15. Local archive data and shared room records have separate ownership.
+Local messages, contacts, artifacts, sample personas and local attachments are
+not silently uploaded when a visitor enters Shared rooms. The shared API uses
+platform identity and membership for every community/channel data operation.
+Public aliases are display data; platform IDs are the authorization keys.
+Sign-in email and account names are not published as a member's social alias.
+
+16. Shared send success follows a durable acknowledgment.
+A stable clientId identifies one intended send across retries. The database
+uniqueness constraint prevents duplicates after a lost response. Reusing an ID
+for different text fails. History/catch-up uses the committed sequence cursor,
+not client wall-clock order. A saved state does not imply delivery/read receipts.
+
+17. Schema ownership belongs to generated migrations.
+db/schema.ts preserves backend/schema.sql's six-table contract. Run npm run
+db:generate after schema edits. Review and retain the generated SQL, journal
+and snapshot. Applied migration history is immutable. Request handlers perform
+bounded data operations and never create or alter migration-owned tables.
+Sites provisions the declared DB binding and applies hosted migrations.
+
+18. Generated output must not become source input.
+Authored client assets remain in dist/. build_offline.py inlines linked local
+styles/scripts, marks data-offline=true, and includes polish/live modules.
+The offline shared-room interface reports unavailable and does not call the
+shared API. The local archive remains usable with all its bundled assets.
+
+The source ZIP includes authored client/Worker source, tests, package inputs,
+build scripts, db/schema.ts and generated migration history. It excludes the
+ZIP itself, dist/server, dist/.openai, node_modules, runtime state and local
+secret files. scripts/build-worker.mjs separately excludes server/.openai from
+its asset map. Always regenerate downloads before the final Worker build.
+
+BUILD / PREVIEW ORDER
+  node tests/run.cjs
+  node backend/test.mjs
+  python3 build_offline.py
+  node /home/agent/.codex/plugins/cache/openai-curated-remote/sites/1.1.6/scripts/build-site.mjs
+
+For local D1 only, apply each pending migration once after the build:
+  node node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config .sites-runtime/wrangler.json --persist-to .wrangler/state --file drizzle/0000_grey_zarda.sql
+Local and hosted databases are separate. Use the managed preview daemon:
+  sites-preview start /workspace/sites/voidline-afterhours/.sites-checkout
+No standalone preview server is started. The package dev adapter runs Wrangler
+with local D1 through the daemon, without an authentication mock. Publish only
+through the Sites source/package/deploy workflow, preserving project identity
+and current hosting audience. See backend/README.txt for API contracts.

@@ -1,6 +1,6 @@
 /**
- * Authenticated text-chat vertical slice for Sites Workers + D1.
- * This is integration source, not the deployed static client's entrypoint.
+ * Authenticated shared-text API for Sites Workers + D1.
+ * The build embeds this handler alongside the authored browser client.
  * Identity headers are trusted only behind the Sites dispatch boundary.
  */
 
@@ -31,15 +31,10 @@ function requireThat(condition, status, code, message) {
 function identity(request) {
   const id = request.headers.get('oai-authenticated-user-id');
   requireThat(id && id.length <= 256, 401, 'sign_in_required', 'Sign in with ChatGPT to continue.');
-  const email = request.headers.get('oai-authenticated-user-email') || '';
-  let name = request.headers.get('oai-authenticated-user-full-name') || '';
-  if (request.headers.get('oai-authenticated-user-full-name-encoding') === 'percent-encoded-utf-8') {
-    try { name = decodeURIComponent(name); } catch { name = ''; }
-  }
-  return {id, email: email.slice(0, 320), name: (name || email.split('@')[0] || 'Resident').slice(0, 80)};
+  return {id};
 }
 
-async function bodyJSON(request) {
+async function bodyJSON(request, authenticatedAccountId) {
   requireThat(request.headers.get('content-type')?.split(';')[0].trim() === 'application/json',
     415, 'json_required', 'Send an application/json request.');
   const declared = Number(request.headers.get('content-length') || 0);
@@ -66,6 +61,8 @@ async function bodyJSON(request) {
     throw new ApiError(400, 'invalid_json', 'The JSON body could not be read.');
   }
   requireThat(data && typeof data === 'object' && !Array.isArray(data), 400, 'invalid_body', 'Use a JSON object.');
+  requireThat(data.expectedAccountId === undefined || data.expectedAccountId === authenticatedAccountId,
+    409, 'account_changed', 'Your signed-in account changed. Reconnect before submitting this change.');
   return data;
 }
 
@@ -123,18 +120,39 @@ export async function handleLiveRequest(request, env) {
       const origin = request.headers.get('origin');
       requireThat(!origin || origin === url.origin, 403, 'origin_denied', 'Use this Site to submit changes.');
     }
+    if (url.pathname === PREFIX + '/health' && request.method === 'GET') {
+      requireThat(env?.DB?.prepare && env.DB.batch, 503, 'backend_not_configured', 'Shared rooms are not available in this edition.');
+      await query(env.DB, 'SELECT id FROM live_accounts LIMIT 1').first();
+      return json({available: true, mode: 'shared-text', transport: 'cursor-polling'});
+    }
     const user = identity(request);
     requireThat(env?.DB?.prepare && env.DB.batch, 503, 'backend_not_configured', 'Durable messaging is not configured for this deployment.');
     const db = env.DB;
     const now = Date.now();
     await query(db,
       `INSERT INTO live_accounts (id, display_name, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, email = excluded.email, updated_at = excluded.updated_at`,
-      user.id, user.name, user.email, now, now).run();
+       ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
+      user.id, 'New resident', '', now, now).run();
     const path = url.pathname.slice(PREFIX.length).split('/').filter(Boolean).map(decodeURIComponent);
 
     if (path.length === 1 && path[0] === 'me' && request.method === 'GET') {
-      return json({account: {id: user.id, displayName: user.name}, transport: 'cursor-polling'});
+      const account = await query(db, 'SELECT display_name FROM live_accounts WHERE id = ?', user.id).first();
+      return json({account: {id: user.id, displayName: account.display_name, needsProfile: account.display_name === 'New resident'}, transport: 'cursor-polling'});
+    }
+
+    if (path.length === 1 && path[0] === 'profile' && request.method === 'POST') {
+      const body = await bodyJSON(request, user.id);
+      const displayName = nameValue(body.displayName, 32);
+      requireThat(displayName.length >= 2 && displayName !== 'New resident', 400, 'invalid_name', 'Choose a display name between 2 and 32 characters.');
+      await query(db, 'UPDATE live_accounts SET display_name = ?, updated_at = ? WHERE id = ?', displayName, now, user.id).run();
+      return json({account: {id: user.id, displayName, needsProfile: false}});
+    }
+
+    if (path.length === 3 && path[0] === 'communities' && path[2] === 'members' && request.method === 'GET') {
+      await membership(db, path[1], user.id);
+      const members = await query(db, `SELECT a.id, a.display_name, m.role, m.joined_at FROM live_memberships m
+        JOIN live_accounts a ON a.id = m.account_id WHERE m.community_id = ? ORDER BY m.joined_at, a.id`, path[1]).all();
+      return json({members: members.results});
     }
 
     if (path.length === 1 && path[0] === 'communities') {
@@ -145,7 +163,7 @@ export async function handleLiveRequest(request, env) {
            ORDER BY c.created_at, c.id`, user.id).all();
         return json({communities: result.results});
       }
-      const body = await bodyJSON(request);
+      const body = await bodyJSON(request, user.id);
       const name = nameValue(body.name);
       const communityId = uuid(), channelId = uuid();
       await db.batch([
@@ -164,7 +182,7 @@ export async function handleLiveRequest(request, env) {
         return json({channels: channels.results});
       }
       await requireOwner(db, communityId, user.id);
-      const body = await bodyJSON(request);
+      const body = await bodyJSON(request, user.id);
       const name = nameValue(body.name, 32).toLowerCase();
       requireThat(/^[a-z0-9][a-z0-9-]*$/.test(name), 400, 'invalid_channel', 'Use letters, digits, and hyphens for the channel name.');
       const kind = body.kind || 'text';
@@ -179,7 +197,7 @@ export async function handleLiveRequest(request, env) {
     if (path.length === 3 && path[0] === 'communities' && path[2] === 'invites' && request.method === 'POST') {
       const communityId = path[1];
       await requireOwner(db, communityId, user.id);
-      const body = await bodyJSON(request);
+      const body = await bodyJSON(request, user.id);
       const maxUses = body.maxUses ?? 1;
       requireThat(Number.isInteger(maxUses) && maxUses >= 1 && maxUses <= 100, 400, 'invalid_uses', 'Invite uses must be between 1 and 100.');
       const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -191,7 +209,7 @@ export async function handleLiveRequest(request, env) {
     }
 
     if (path.length === 2 && path[0] === 'invites' && path[1] === 'claim' && request.method === 'POST') {
-      const body = await bodyJSON(request);
+      const body = await bodyJSON(request, user.id);
       requireThat(typeof body.token === 'string' && /^[a-f0-9]{64}$/.test(body.token), 400, 'invalid_invite', 'Use a valid invitation token.');
       const hash = await tokenHash(body.token);
       const invite = await query(db, 'SELECT community_id, expires_at, max_uses, uses FROM live_invites WHERE token_hash = ?', hash).first();
@@ -233,7 +251,7 @@ export async function handleLiveRequest(request, env) {
       }
       requireThat(channel.kind !== 'announcement' || ['owner', 'moderator'].includes(channel.role),
         403, 'posting_denied', 'Only community staff can post announcements.');
-      const body = await bodyJSON(request);
+      const body = await bodyJSON(request, user.id);
       requireThat(typeof body.clientId === 'string' && /^[A-Za-z0-9_-]{8,100}$/.test(body.clientId), 400, 'invalid_client_id', 'Use a stable client-generated ID for retry deduplication.');
       requireThat(typeof body.text === 'string' && body.text.trim().length > 0 && body.text.length <= 4000,
         400, 'invalid_text', 'Write a message between 1 and 4000 characters.');
