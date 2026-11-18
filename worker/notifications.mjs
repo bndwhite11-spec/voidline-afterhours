@@ -1,6 +1,6 @@
 /** Generic Web Push only. No message text, provider credentials or endpoint URLs enter responses. */
 import {buildPushPayload} from '@block65/webcrypto-web-push';
-import {authenticate, validateSessionMutation, authRateLimit, AuthError} from './auth.mjs';
+import {authenticate, createAuthService, validateSessionMutation, authRateLimit, AuthError} from './auth.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(value,status,code,message)=>{if(!value)throw new AuthError(status,code,message);};
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -44,6 +44,7 @@ async function source(db,event,accountId,now){
  return null;
 }
 export function createNotificationService({fetcher=fetch,now=Date.now}={}){
+ const authenticateRequest=createAuthService({now}).authenticate;
  async function dispatch(env){
   if(!env.DB||!notificationAvailability(env).push)return {processed:0,accepted:0};const db=env.DB,time=now();let processed=0,accepted=0;
   // Subscriptions never receive activity predating their opt-in. Skip that backlog.
@@ -81,7 +82,7 @@ export function createNotificationService({fetcher=fetch,now=Date.now}={}){
  }
  async function handleNotificationsRequest(request,env){
   try{
-   const path=new URL(request.url).pathname.replace(/^\/api\/notifications\/?/,'').split('/').filter(Boolean);const user=await authenticate(request,env),db=env.DB,time=now();
+   const path=new URL(request.url).pathname.replace(/^\/api\/notifications\/?/,'').split('/').filter(Boolean);const user=await authenticateRequest(request,env),db=env.DB,time=now();
    if(path[0]==='config'&&path.length===1&&request.method==='GET')return json({...notificationAvailability(env),configured:notificationAvailability(env).push,publicKey:notificationAvailability(env).push?env.VAPID_PUBLIC_KEY:null,privacy:'Generic native-activity notifications only. No message text is sent.',subscriptions:(await q(db,'SELECT id,created_at FROM push_subscriptions WHERE account_id=? AND session_id=?',user.id,user.sessionId).all()).results});
    need(request.method==='POST',405,'method_not_allowed','Use a supported notification action.');const body=await bodyJSON(request);await validateSessionMutation(request,user,body);await authRateLimit(request,db,'push-settings',20,time,user.id);
    if(path.length===1&&path[0]==='subscribe'){

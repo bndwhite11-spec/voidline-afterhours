@@ -9,12 +9,17 @@ messages or invented activity. Existing legitimate records remain. Save the
 one-time account recovery code in a password manager.
 
 CURRENT UPGRADE
-A document-wide charcoal/violet theme, consistent preferences, adjustable list,
-ordered durable Standard outbox, authenticated SSE revision hints with fallback,
-measured Standard history window, private profile/media uploads and cropping,
-Standard voice recordings, original 21-badge/12-gift art and scoped exports.
-Source and configuration are separate: see docs/UPGRADE-STATUS.md and
-REVIEW-COVERAGE.md for the full24-section brief and exact remaining work.
+An edition3 art system with47 decorative badges,32 original gift designs and2
+separate earned-award drawings. Accurate XRP, Max Stirner and Chudjak identities,
+expanded meme family, authored optical miniatures, material illustration and
+part-based reveals. The8 Telegram-inspired bases become original VOIDLINE
+objects; no source NFT copies, ownership or market value are claimed.
+
+A graphite/lime shell, deliberate empty home, dedicated Collection destination,
+searchable/filterable catalog, full inspection, private profile shelf and clear
+preview/grant/transfer/receipt states. Existing accounts, data and owned IDs stay.
+Source and configuration are separate: see docs/UPGRADE-STATUS.md,
+docs/ART-DIRECTION.md and REVIEW-COVERAGE.md for evidence and remaining work.
 
 MESSAGING AND PRIVACY
 Standard messages and their private R2 attachments are service-readable. HTTPS,
@@ -64,8 +69,8 @@ account/passkey proof and trusted immutable-ID configuration. A community owner
 never becomes platform administrator. No dashboard decrypts all private messages.
 
 COLLECTIBLES AND LOCAL DATA
-Existing21 cosmetic badges,12 gifts, earned awards and legitimate ownership
-remain. Free cosmetic art is distinct from authoritative achievements and actual
+All existing cosmetic IDs, gifts, earned awards and legitimate ownership
+remain. The expanded catalog contains47 decorations and32 original gifts. Free cosmetic art is distinct from authoritative achievements and actual
 roles. Gift grants and accepted transfers use atomic server ownership; a replay
 is available only after an acknowledged receipt. No financial/token-balance or
 official-affiliation claim is made by crypto/meme artwork.
@@ -83,9 +88,10 @@ restore drill need separate verified setup. See docs/OPERATIONS.md and
 BACKUP-RESTORE.md. A local restore test does not establish production recovery.
 
 DOWNLOADS
- /downloads/voidline-improvement-prompt.txt  complete current 24-section brief
+ /downloads/voidline-improvement-prompt.txt  complete current artwork/product brief
  /downloads/voidline-source.zip             source without runtime credentials
  /downloads/voidline-offline.html           offline archive/recovery viewer
+/art-review.html                          public artwork and motion inspection
 The offline viewer cannot sign in or exchange network messages. These files are
 not a signed desktop installer. Deliberate recovery exports may contain plaintext.
 

@@ -1,0 +1,8 @@
+/* Drawings are static by default. Named-part Web Animations run only on request. */
+.va-asset{display:inline-grid;place-items:center;aspect-ratio:1;isolation:isolate;vertical-align:middle}
+.va-asset>img,.va-asset>.va-scene{display:block;width:100%;height:100%;object-fit:contain;overflow:visible}
+.va-scene [data-part]{transform-box:view-box;will-change:auto}
+.va-playing .va-scene [data-part]{will-change:transform,opacity}
+.vc-mini{width:20px;height:20px;flex:0 0 auto;vertical-align:-3px;overflow:visible}
+html.vh-reduced-motion .va-playing [data-part]{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){.va-playing [data-part]{animation:none!important;transition:none!important}}

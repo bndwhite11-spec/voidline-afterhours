@@ -1,7 +1,7 @@
 VOIDLINE / CURRENT DEVELOPMENT CONTRACT
 
 Start with README.txt, docs/UPGRADE-STATUS.md and the review-based
-VOIDLINE-MEGA-IMPROVEMENT-6.txt. This upgrade starts from reviewed version 14;
+VOIDLINE-MEGA-IMPROVEMENT-8.txt. This artwork upgrade starts from reviewed v17;
 previous account, recovery, collection and migration protections remain.
 The production entry is dist/index.html with authored home/extension source.
 Historical sample app.js is not an executable production fallback.
@@ -16,6 +16,9 @@ SOURCE BOUNDARIES
   dist/admin.js/.css            owner UI; server authorization is independent
   dist/notifications.js         deliberate Web Push device enrollment
   dist/help.html/.css           public security/recovery/privacy/terms/support
+  src/art/                     editable optical/detail/silhouette/motion masters
+  scripts/build-art.mjs         fingerprints, provenance and lazy asset compiler
+  dist/art-review.*             public asset gallery and deliberate previews
   src/secure-messenger.js       maintained Matrix/Rust transport and lifecycle
   src/encrypted-enrollment.js   native-password device unlock and token envelope
   src/secure-vault.js           authenticated-encrypted IndexedDB records
@@ -36,7 +39,8 @@ SOURCE BOUNDARIES
   db/schema.ts; drizzle/        versioned schema, snapshots and migrations
 
 Do not remove dist/ as build output: most of it is authored application source.
-Generated outputs include passkey-client.js, secure-messenger.js/legal/WASM,
+Generated outputs include collectible-art.js, art/v3/, passkey-client.js,
+secure-messenger.js/legal/WASM,
 dist/server, packaged migration metadata and downloads. Build those from src/
 and scripts/, never hand-edit them. The production allowlist excludes sample
 executables and private runtime paths. Deep-page asset URLs are root-absolute.

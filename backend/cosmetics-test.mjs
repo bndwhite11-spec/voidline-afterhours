@@ -39,24 +39,23 @@ async function fixture(){
 test('new accounts have zero owned items and every listed cosmetic is explicitly free',async()=>{
  const f=await fixture();try{
   const inventory=await f.ok('sender','/inventory');assert.deepEqual(inventory.owned,[]);assert.equal(inventory.equippedId,null);assert.equal(inventory.pendingGifts,0);
-  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,33);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
+  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,79);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
   assert.equal((await f.call(undefined,'/inventory')).status,401);
  }finally{f.sqlite.close();}
 });
 test('crypto and internet series stay free decorations with authoritative ownership and no privileges',async()=>{
  const f=await fixture();try{
   const items=(await f.ok('sender','/catalog')).items;
-  assert.equal(new Set(items.map(item=>item.id)).size,33);
-  assert.deepEqual(Object.fromEntries(['originals','crypto','memes','gifts'].map(category=>[category,items.filter(item=>item.category===category).length])),{originals:9,crypto:6,memes:6,gifts:12});
-  const added=items.filter(item=>['crypto','memes'].includes(item.category));
+  assert.equal(new Set(items.map(item=>item.id)).size,79);
+  assert.deepEqual(Object.fromEntries(['originals','crypto','memes','ego','guild','gifts'].map(category=>[category,items.filter(item=>item.category===category).length])),{originals:9,crypto:9,memes:22,ego:3,guild:4,gifts:32});
+  const added=items.filter(item=>['crypto','memes','ego','guild'].includes(item.category));
   for(const item of added){
    assert.equal(item.type,'badge');assert.equal(item.price,0);assert.ok(item.series.length>0);
    if(item.category==='crypto'){assert.match(item.acquisition,/No coins, wallet holdings or official affiliation/);assert.ok(item.inspiration.length>0);}
    assert.equal((await f.call('stranger','/equip',{cosmeticId:item.id})).status,403);
-   await f.ok('sender','/claim',{cosmeticId:item.id});await f.ok('sender','/claim',{cosmeticId:item.id});
-   assert.equal((await f.ok('sender','/equip',{cosmeticId:item.id,role:'owner',walletBalance:1000000})).equippedId,item.id);
+   if(['coin-crosssignal','meme-nothing-happens','ego-unique-one','guild-cardboard-paladin'].includes(item.id)){await f.ok('sender','/claim',{cosmeticId:item.id});await f.ok('sender','/claim',{cosmeticId:item.id});assert.equal((await f.ok('sender','/equip',{cosmeticId:item.id,role:'owner',walletBalance:1000000})).equippedId,item.id);}
   }
-  assert.equal((await f.ok('sender','/inventory')).owned.length,12);
+  assert.equal((await f.ok('sender','/inventory')).owned.length,4);
   assert.equal((await f.ok('stranger','/inventory')).owned.length,0);
   for(const table of ['badge_awards','live_memberships','platform_owner','gift_instances'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);
  }finally{f.sqlite.close();}
@@ -208,6 +207,49 @@ test('commit-time suspension prevents grants, transfer reservations and acceptan
    if(stage==='open')assert.equal(f.sqlite.prepare('SELECT state FROM cosmetic_gifts WHERE id=?').get(gift.id).state,'pending');
   }finally{f.sqlite.close();}
  }
+});
+test('expanded catalog preserves original identities and keeps all new designs separate from earned awards',async()=>{
+ const f=await fixture();try{const items=(await f.ok('sender','/catalog')).items;assert.equal(items.filter(i=>i.type==='badge').length,47);assert.equal(items.filter(i=>i.type==='gift').length,32);for(const id of ['larp','angel','ghost','velvet','night','unknown','dead','voidwalker','orbit','coin-bitforge','coin-etherglass','coin-crosssignal','coin-solarstack','coin-moonshibe','coin-diamondhands','meme-grass','meme-npc','meme-yapper','meme-copium','meme-cooked','meme-terminal','gift-rose','gift-cassette','gift-star','gift-cup','gift-ghost','gift-parcel','gift-seraph','gift-key','gift-halo','gift-orchid','gift-signal','gift-ticket'])assert(items.some(item=>item.id===id),id);for(const id of ['ego-unique-one','meme-nothing-happens','meme-six-seven','guild-guildless-knight','coin-cold-storage','gift-ego-volume','gift-curtain-call','gift-last-tab','meme-doomer','meme-bloomer','meme-absolute-cinema','guild-forum-wizard','gift-pocket-doomer','gift-orbit-mobile','gift-last-broadcast','gift-night-lantern'])assert(items.some(item=>item.id===id),id);assert(!items.some(i=>['profile-authored','reviewed-contribution'].includes(i.id)));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM badge_awards').get().n,0);}finally{f.sqlite.close();}
+});
+test('recipient review resolves only eligible public identity and does not reserve or send a gift',async()=>{
+ const f=await fixture();try{const reviewed=await f.ok('sender','/recipient?username=recipient');assert.deepEqual(Object.keys(reviewed.recipient).sort(),['avatar','displayName','id','username']);assert.equal(reviewed.recipient.id,'recipient');assert.equal(reviewed.recipient.username,'recipient');assert.equal((await f.call('sender','/recipient?username=unknown')).status,404);assert.equal((await f.call('sender','/recipient?username=sender')).status,404);f.sqlite.prepare("INSERT INTO social_blocks(blocker_id,blocked_id,created_at) VALUES('sender','recipient',1)").run();assert.equal((await f.call('sender','/recipient?username=recipient')).status,404);f.sqlite.prepare('DELETE FROM social_blocks').run();f.sqlite.prepare("INSERT INTO cosmetic_profiles(account_id,gifts_enabled) VALUES('recipient',0)").run();assert.equal((await f.call('sender','/recipient?username=recipient')).status,404);for(const table of ['cosmetic_gifts','gift_transfers','gift_instances','cosmetic_ownership'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);}finally{f.sqlite.close();}
+});
+test('immutable reviewed recipient prevents a renamed username from redirecting a new grant',async()=>{
+ const f=await fixture();try{const reviewed=await f.ok('sender','/recipient?username=recipient');f.sqlite.prepare("UPDATE live_accounts SET username='renamed_recipient' WHERE id='recipient'").run();f.sqlite.prepare("UPDATE live_accounts SET username='recipient' WHERE id='stranger'").run();const response=await f.call('sender','/gifts',{catalogId:'gift-rose',username:'recipient',recipientId:reviewed.recipient.id,clientId:'review-bind-grant'});assert.equal(response.status,409);assert.equal(response.data.error.code,'recipient_changed');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_gifts').get().n,0);}finally{f.sqlite.close();}
+});
+test('acknowledged gift retry stays bound to its original recipient after a public rename',async()=>{
+ const f=await fixture();try{const payload={catalogId:'gift-curtain-call',username:'recipient',recipientId:'recipient',clientId:'review-rename-retry'},first=await f.ok('sender','/gifts',payload);f.sqlite.prepare("UPDATE live_accounts SET username='renamed_recipient' WHERE id='recipient'").run();f.sqlite.prepare("UPDATE live_accounts SET username='recipient' WHERE id='stranger'").run();const retry=await f.ok('sender','/gifts',payload);assert.equal(retry.gift.id,first.gift.id);assert.equal(retry.gift.recipient_id,'recipient');assert.equal((await f.call('sender','/gifts',{...payload,recipientId:'stranger'})).status,409);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_gifts').get().n,1);}finally{f.sqlite.close();}
+});
+test('reviewed owned-instance transfer cannot reserve an item for a replacement username owner',async()=>{
+ const f=await fixture();try{await f.ok('sender','/claim',{cosmeticId:'gift-ego-volume'});const instance=(await f.ok('sender','/instances')).instances[0];const reviewed=await f.ok('sender','/recipient?username=recipient');f.sqlite.prepare("UPDATE live_accounts SET username='renamed_recipient' WHERE id='recipient'").run();f.sqlite.prepare("UPDATE live_accounts SET username='recipient' WHERE id='stranger'").run();const response=await f.call('sender','/transfers',{instanceId:instance.id,username:'recipient',recipientId:reviewed.recipient.id,clientId:'review-bind-transfer'});assert.equal(response.status,409);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_transfers').get().n,0);assert.equal(f.sqlite.prepare('SELECT pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id).pending_transfer_id,null);}finally{f.sqlite.close();}
+});
+
+test('recognizable badge names retain stable ownership IDs and former names as search aliases',async()=>{
+ const f=await fixture();try{
+  const renamed=[['coin-bitforge','Bitcoin','Bitforge'],['coin-etherglass','Ethereum','Ether Glass'],['coin-crosssignal','XRP','Cross Signal'],['coin-solarstack','Solana','Solar Stack'],['coin-moonshibe','Dogecoin','Moon Shibe'],['ego-unique-one','Max Stirner','The Unique One'],['meme-nothing-happens','Chudjak','Nothing Ever Happens'],['meme-final-reply','Reply Guy','Final Reply']];
+  // Existing durable rows continue to reference the same design after a public-name change.
+  f.sqlite.prepare('INSERT INTO cosmetic_ownership(account_id,cosmetic_id,claimed_at) VALUES(?,?,?)').run('sender','coin-crosssignal',1);
+  const items=(await f.ok('sender','/catalog')).items;
+  for(const [id,name,formerName]of renamed){const item=items.find(item=>item.id===id);assert(item,id);assert.equal(item.name,name);assert(item.aliases.includes(formerName),formerName);assert.equal(item.type,'badge');assert.equal(item.price,0);}
+  assert.equal((await f.ok('sender','/equip',{cosmeticId:'coin-crosssignal'})).equippedId,'coin-crosssignal');
+  assert.equal(f.sqlite.prepare("SELECT claimed_at FROM cosmetic_ownership WHERE account_id='sender' AND cosmetic_id='coin-crosssignal'").get().claimed_at,1);
+  for(const [id,name]of [['meme-chud','CHUD'],['meme-wojak','Wojak'],['meme-soyjak','Soyjak'],['meme-gigachad','Gigachad'],['meme-cope-seethe','Cope & Seethe'],['meme-pepe','Pepe']]){const item=items.find(item=>item.id===id);assert.equal(item?.name,name);assert.equal(item.category,'memes');assert.equal(item.type,'badge');assert.equal(item.price,0);await f.ok('sender','/claim',{cosmeticId:id});}
+  assert.equal((await f.ok('sender','/inventory')).owned.length,7);
+  for(const table of ['badge_awards','platform_owner','live_memberships','gift_instances'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);
+ }finally{f.sqlite.close();}
+});
+test('researched gift bases become original VOIDLINE gifts without source NFT identities or ownership claims',async()=>{
+ const f=await fixture();try{
+  const items=(await f.ok('sender','/catalog')).items,gifts=items.filter(item=>item.type==='gift');
+  const originals=[['gift-chudjak-plush','Chudjak Plush'],['gift-wojak-jelly','Wojak Jelly'],['gift-doomer-bloom','Doomer Bloom'],['gift-brainrot-pop','Brainrot Pop'],['gift-larp-cap','LARP Cap'],['gift-spook-crystal','Spook Crystal'],['gift-larp-helmet','LARP Helmet'],['gift-copium-cartridge','Copium Cartridge']];
+  const sourceNames=new Set(['Plush Pepe','Jelly Bunny','Durov’s Cap','Durov\'s Cap','Astral Shard','Heroic Helmet','Skull Flower','Vintage Cigar','Lol Pop']);
+  for(const gift of gifts){assert(!gift.id.startsWith('gift-telegram-'));assert(!sourceNames.has(gift.name));for(const key of ['reference','referenceKey','tokenId','marketValue','walletAddress','contractAddress'])assert.equal(gift[key],undefined,key);}
+  for(const [id,name]of originals){const item=gifts.find(item=>item.id===id);assert(item,id);assert.equal(item.name,name);assert.equal(item.price,0);assert.match(item.acquisition,/Free VOIDLINE cosmetic instance/);assert.match(item.acquisition,/Original artwork and choreography/);assert.match(item.acquisition,/no blockchain asset changes hands/);assert(!JSON.stringify(item).includes('https://t.me/nft/'));}
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_instances').get().n,0);
+  const invalid=await f.call('sender','/claim',{cosmeticId:'gift-telegram-plush-pepe'});assert.equal(invalid.status,400);assert.equal(invalid.data.error.code,'unknown_cosmetic');
+  await f.ok('sender','/claim',{cosmeticId:'gift-chudjak-plush'});await f.ok('sender','/claim',{cosmeticId:'gift-chudjak-plush'});
+  const inventory=await f.ok('sender','/inventory');assert.equal(inventory.instances.length,1);assert.equal(inventory.instances[0].catalog_id,'gift-chudjak-plush');assert.equal(f.sqlite.prepare('SELECT owner_id FROM gift_instances WHERE id=?').get(inventory.instances[0].id).owner_id,'sender');assert.equal(inventory.owned.length,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM badge_awards').get().n,0);
+ }finally{f.sqlite.close();}
 });
 let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}
 console.log(`${tests.length-failures}/${tests.length} free cosmetics checks passed against migrated SQLite and real session authorization. No real contacts or payments were used.`);process.exitCode=failures?1:0;

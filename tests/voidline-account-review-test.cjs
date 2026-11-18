@@ -35,9 +35,9 @@ test('failed claims retain the committed collection and do not render a phantom 
  assert.match(f.nodes.get('vc-error').textContent,/could not commit/);assert.match(f.extension.accountHTML(),/<span>0<\/span>/);assert.doesNotMatch(f.extension.accountHTML(),/vc-equipped-mark/);assert.equal(f.renders.length,0);
 });
 test('a failed gift retries its original request ID without clearing the form',async()=>{
- const f=fixture();await f.api.collection('gifts');f.api.inbox;const form=f.form();let attempts=0;
+ const f=fixture();await f.api.collection('gifts');f.api.inbox;const form=f.form(),beforeTitle=f.title;let attempts=0;
  f.requests.set('/api/cosmetics/gifts',()=>{attempts++;if(attempts===1)throw Error('Connection interrupted');return {acknowledged:true,gift:{id:'persisted-gift'}};});
- await f.api.send(form);assert.equal(form.values.username,'recipient_one');assert.equal(f.title,'Your collection');await f.api.send(form);
+ await f.api.send(form);assert.equal(form.values.username,'recipient_one');assert.equal(f.title,beforeTitle);await f.api.send(form);
  const writes=f.calls.filter(call=>call.route==='/api/cosmetics/gifts');assert.equal(writes.length,2);assert.equal(writes[0].body.clientId,writes[1].body.clientId);assert.equal(writes[0].body.username,writes[1].body.username);assert.equal(f.title,'Gift request sent');
 });
 test('an earlier account gift acknowledgment cannot announce success for the new account',async()=>{

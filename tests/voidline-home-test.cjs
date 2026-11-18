@@ -10,7 +10,7 @@ async function until(predicate){for(let i=0;i<100&&!predicate();i++)await new Pr
 const skippedMigration=async()=>({skipped:true,commit:async()=>{},abort:async()=>{},retain:async()=>{}});
 function client(options={}){
  const nodes=new Map(),calls=[],listeners=new Map(),windowListeners=new Map(),scripts=[];let storageReads=0;
- function node(tag='div'){let id='',html='';const n={tagName:tag.toUpperCase(),dataset:{},style:{setProperty(){}},isConnected:true,open:false,scrollTop:0,scrollHeight:1200,clientHeight:500,value:'',textContent:'',children:[],className:'',classList:{add(){},remove(){},toggle(){}},setAttribute(name,value){this[name]=value;},removeAttribute(name){delete this[name];},appendChild(child){this.children.push(child);if(child.tagName==='SCRIPT')scripts.push(child);},append(...children){children.forEach(c=>this.appendChild(c));},remove(){this.isConnected=false;},addEventListener(){},querySelector(selector){if(selector==='[data-form-error]')return nodes.get('test-error')||null;if(selector==='[type="submit"]')return null;return null;},focus(){document.activeElement=n;},showModal(){n.open=true;},close(){n.open=false;},reset(){},click(){},insertAdjacentHTML(_p,text){n.innerHTML+=text;}};
+ function node(tag='div'){let id='',html='';const n={tagName:tag.toUpperCase(),dataset:{},style:{setProperty(){}},isConnected:true,open:false,scrollTop:0,scrollLeft:0,scrollHeight:1200,clientHeight:500,value:'',textContent:'',children:[],className:'',classList:{add(){},remove(){},toggle(){}},setAttribute(name,value){this[name]=value;},removeAttribute(name){delete this[name];},appendChild(child){this.children.push(child);if(child.tagName==='SCRIPT')scripts.push(child);},append(...children){children.forEach(c=>this.appendChild(c));},remove(){this.isConnected=false;},addEventListener(){},querySelector(selector){if(selector==='[data-form-error]')return nodes.get('test-error')||null;if(selector==='[type="submit"]')return null;return null;},focus(){document.activeElement=n;},showModal(){n.open=true;},close(){n.open=false;},reset(){},click(){},insertAdjacentHTML(_p,text){n.innerHTML+=text;}};
  Object.defineProperty(n,'id',{get:()=>id,set:value=>{id=value;nodes.set(id,n);}});
  Object.defineProperty(n,'innerHTML',{configurable:true,get:()=>html,set:value=>{html=String(value);for(const [,newId]of html.matchAll(/\bid="([^"]+)"/g)){if(newId!==id){const child=node();child.id=newId;}}if(html.includes('data-form-error')){const error=node();error.id='test-error';}const input=nodes.get('home-secure-input');if(input){const match=html.match(/id="home-secure-input"[^>]*>([\s\S]*?)<\/textarea>/);if(match)input.value=match[1];}const native=nodes.get('home-native-input');if(native){const match=html.match(/id="home-native-input"[^>]*>([\s\S]*?)<\/textarea>/);if(match)native.value=match[1];}}});return n;}
  const document={readyState:'loading',documentElement:{dataset:options.offline?{offline:'true'}:{}},hidden:false,body:node('body'),head:node('head'),activeElement:null,getElementById:id=>nodes.get(id)||null,createElement:node,querySelector:()=>null,addEventListener(name,fn){listeners.set(name,fn);}};
@@ -38,7 +38,7 @@ test('authentication resolves before any account or sample interface appears',as
  held.resolve(app.response({error:{code:'sign_in_required',message:'Sign in'}},401));for(let i=0;i<20;i++)await Promise.resolve();assert.match(root.innerHTML,/Log in/);assert.match(root.innerHTML,/Create account/);assert.doesNotMatch(root.innerHTML,/Google sign-in is not configured/);assert.doesNotMatch(root.innerHTML,/Continue with Google|disabled aria-describedby/);assert.equal(app.reads,0);
 });
 test('a new account has null selections and no conversations, memberships or invented achievements',async()=>{
- const app=client();await app.start();const state=app.api.state;assert.equal(state.phase,'ready');assert.equal(state.communityId,null);assert.equal(state.channelId,null);assert.equal(state.secureRoomId,null);assert.equal(state.communities.length,0);assert.equal(state.messages.length,0);const html=app.nodes.get('home-root').innerHTML;assert.match(html,/Your corner of the internet starts here/);assert.match(html,/Open Saved/);assert.match(html,/Customize your profile/);assert.doesNotMatch(html,/Founder|Admin|nova|Unread [1-9]/);assert.ok(!app.calls.some(c=>c.request.method==='POST'));
+ const app=client();await app.start();const state=app.api.state;assert.equal(state.phase,'ready');assert.equal(state.communityId,null);assert.equal(state.channelId,null);assert.equal(state.secureRoomId,null);assert.equal(state.communities.length,0);assert.equal(state.messages.length,0);const html=app.nodes.get('home-root').innerHTML;assert.match(html,/No conversations yet/);assert.match(html,/Open Saved/);assert.match(html,/Customize your profile/);assert.doesNotMatch(html,/Founder|Admin|nova|Unread [1-9]/);assert.ok(!app.calls.some(c=>c.request.method==='POST'));
 });
 test('offline entry performs no authentication or shared-data request',async()=>{
  const app=client({offline:true});await app.start();assert.equal(app.calls.length,0);assert.equal(app.reads,0);assert.match(app.nodes.get('home-root').innerHTML,/Review previous local archive/);assert.equal(app.api.state.phase,'welcome');
@@ -405,4 +405,103 @@ test('native attachment rendering accepts only authenticated local asset routes 
  const app=client();await app.start();const id='a'.repeat(64),message={...nativeMessage('file-message',1,''),attachments:[{id,url:'/api/media/'+id,filename:'photo.webp',contentType:'image/webp',bytes:32,width:20,height:20},{id:'bad',url:'https://tracking.example/image',filename:'bad',contentType:'image/png'}]};await openConsentedNative(app,{messages:[message]});assert.match(app.nodes.get('home-native-feed').innerHTML,new RegExp('/api/media/'+id));assert.doesNotMatch(app.nodes.get('home-native-feed').innerHTML,/tracking\.example/);app.api.mergeNative([{...message,deleted_at:1,revision:50}]);app.api.render();assert.doesNotMatch(app.nodes.get('home-native-feed').innerHTML,new RegExp('/api/media/'+id));
 });
 
-(async()=>{let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failed}/${tests.length} production-entry behavior checks passed. VM DOM/transport; browser layouts and live account/Matrix networks are not exercised.`);process.exitCode=failed?1:0;})();
+(async()=>{test('registered collection page is a real routable destination and unregistered pages stay inaccessible',async()=>{
+ const app=client();await app.start();let entries=0;app.window.VoidHome.registerExtension({id:'collection-fixture',pageId:'collection',pageHTML:()=>'<section id="test-collection"><h1>Collection</h1></section>',onPage:()=>{entries++;}});
+ assert.equal(app.window.VoidHome.openPage('unregistered-private-page'),false);assert.equal(app.api.state.view,'chats');
+ assert.equal(app.window.VoidHome.openPage('collection'),true);await Promise.resolve();assert.equal(app.api.state.view,'collection');assert.equal(entries,1);assert.match(app.nodes.get('home-root').innerHTML,/is-extension-page/);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/<aside class="vh-sidebar"/);assert.match(app.nodes.get('home-main').innerHTML||app.nodes.get('home-root').innerHTML,/test-collection/);
+ app.context.location.hash='#collection';assert.equal(app.api.route().view,'collection');await app.api.resume();assert.equal(app.api.state.view,'collection');assert.equal(entries,2);
+ app.context.location.hash='#unregistered-private-page';assert.equal(app.api.route().view,'chats');
+});
+test('returning-account Collection stays eligible for the mobile main pane when conversation lists are populated',async()=>{
+ // The harness cannot lay out CSS. Combine the actual returning-account shell
+ // with the production hide-rule contract that previously blanked this view.
+ const css=fs.readFileSync(path.join(__dirname,'../dist/home.css'),'utf8');
+ const mainHideSelectors=[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([,selector,body])=>selector.includes('.vh-layout')&&selector.includes('>.vh-main')&&/display\s*:\s*none/.test(body)).map(([,selector])=>selector.trim());
+ assert(mainHideSelectors.length>0,'the mobile list-only main-hide rule is present');
+ for(const selector of mainHideSelectors)assert.match(selector,/:not\(\.is-extension-page\)/,'extension destinations must be excluded from list-only main hiding');
+ for(const populated of ['native','secure','both']){
+  const app=client();await app.start();
+  app.window.VoidHome.registerExtension({id:'returning-collection',pageId:'collection',pageHTML:()=>'<section id="returning-collection-content">Collection</section>'});
+  app.api.state.nativeConversations=populated==='secure'?[]:[{id:'existing-native',name:'Existing conversation'}];
+  app.api.state.secureRooms=populated==='native'?[]:[{id:'!existing:example',name:'Existing encrypted conversation'}];
+  app.window.VoidHome.openPage('collection');
+  const html=app.nodes.get('home-root').innerHTML;
+  assert.match(html,/class="vh-layout is-extension-page [^"]*" data-view="collection" data-has-locations="true"/);
+  assert.match(html,/returning-collection-content/);assert.doesNotMatch(html,/<aside class="vh-sidebar"/);
+  assert.equal(app.api.state.nativeConversations.length,populated==='secure'?0:1);
+  assert.equal(app.api.state.secureRooms.length,populated==='native'?0:1);
+ }
+});
+test('entering collection captures the Standard draft and invalidates conversation selection without joining or sending',async()=>{
+ const app=client();await app.start();app.window.VoidHome.registerExtension({id:'collection-fixture',pageId:'collection',pageHTML:()=>'<section>Collection</section>'});
+ const state=app.api.state;state.nativeId='draft-conversation';state.nativeMode='standard';state.nativePermissions={canSend:true};const draft=app.api.nativeDraft();draft.text='Unsent before collection';const generation=state.generation;
+ assert.equal(app.window.VoidHome.openPage('collection'),true);assert.equal(state.nativeId,null);assert.equal(state.channelId,null);assert.equal(state.secureRoomId,null);assert(state.generation>generation);state.nativeId='draft-conversation';state.nativeMode='standard';assert.equal(app.api.nativeDraft().text,'Unsent before collection');assert.equal(app.calls.filter(call=>call.request.method==='POST').length,0);
+});
+test('same collection page rerenders retain scroll and leaving invokes its lifecycle cleanup',async()=>{
+ const app=client();await app.start();let left=0;app.window.VoidHome.registerExtension({id:'collection-position-fixture',pageId:'collection',pageHTML:()=>'<section>Loaded collection</section>',onPageLeave:()=>{left++;}});app.window.VoidHome.openPage('collection');app.nodes.get('home-main').scrollTop=487;app.api.render();assert.equal(app.nodes.get('home-main').scrollTop,487);assert.equal(left,0);app.api.view('chats');assert.equal(left,1);app.window.VoidHome.openPage('collection');app.context.location.hash='#you';await app.api.resume();assert.equal(left,2);assert.equal(app.api.state.view,'you');
+});
+test('a delayed initial route refresh cannot replace newer navigation, a profile dialog or a locked account',async()=>{
+ for(const change of ['navigation','dialog','lock']){
+  const app=client();await app.start();app.window.VoidHome.registerExtension({id:'delayed-collection',pageId:'collection',pageHTML:()=>'<p>Collection</p>'});
+  app.api.state.nativeListLoaded=false;const held=deferred();app.server.replies.set('/api/messages/conversations',held.promise);app.context.location.hash='#collection';const pending=app.api.resume();
+  if(change==='navigation')app.api.view('you');
+  if(change==='dialog')app.api.showDialog('Profile editor','','<input id="unsaved-profile" value="Still editing">');
+  if(change==='lock'){app.api.lock();app.api.state.phase='welcome';}
+  held.resolve(app.response({conversations:[]}));await pending;
+  assert.notEqual(app.api.state.view,'collection',change);
+  if(change==='navigation')assert.equal(app.api.state.view,'you');
+  if(change==='dialog')assert.match(app.nodes.get('home-dialog').innerHTML,/unsaved-profile/);
+  if(change==='lock'){assert.equal(app.api.state.account,null);assert.equal(app.api.state.phase,'welcome');}
+ }
+});
+test('a newer browser restoration wins and user navigation writes its own route during an older restoration',async()=>{
+ const app=client();await app.start();app.api.state.nativeListLoaded=false;const first=deferred(),second=deferred();let reads=0;
+ app.server.replies.set('/api/messages/conversations',()=>++reads===1?first.promise:second.promise);
+ app.context.location.hash='#servers';const older=app.api.restoreBrowserRoute();app.context.location.hash='#you';const newer=app.api.restoreBrowserRoute();second.resolve(app.response({conversations:[]}));await newer;first.resolve(app.response({conversations:[]}));await older;assert.equal(app.api.state.view,'you');
+ app.api.state.nativeListLoaded=false;const held=deferred();app.server.replies.set('/api/messages/conversations',held.promise);app.context.location.hash='#servers';const pending=app.api.restoreBrowserRoute();app.api.view('chats');assert.equal(app.context.location.hash,'#chats');held.resolve(app.response({conversations:[]}));await pending;assert.equal(app.api.state.view,'chats');assert.equal(app.context.location.hash,'#chats');
+});
+test('community route follow-ups cannot open an old channel or source after newer navigation or a profile dialog',async()=>{
+ for(const method of ['resume','navigate'])for(const change of ['navigation','dialog','lock']){
+  const app=client();await app.start();app.api.state.communities=[{id:'community-a',name:'Community A'}];
+  const held=deferred();app.server.replies.set('/api/live/communities/community-a/channels',held.promise);
+  const target={communityId:'community-a',channelId:'channel-a',messageId:'old-source'};
+  app.context.location.hash='#servers/community-a/channels/channel-a/messages/old-source';const pending=method==='resume'?app.api.resume():app.api.navigate(target);
+  if(change==='navigation')app.api.view('you');
+  if(change==='dialog')app.api.showDialog('Profile editor','','<input id="keep-profile">');
+  if(change==='lock'){app.api.lock();app.api.state.phase='welcome';}
+  held.resolve(app.response({channels:[{id:'channel-a',name:'old-channel'}]}));await pending;
+  assert.ok(!app.calls.some(call=>call.url.includes('/api/live/channels/channel-a/messages')||call.url==='/api/live/messages/old-source'),method+': '+change);
+  assert.equal(app.api.state.channelId,null);
+  if(change==='navigation')assert.equal(app.api.state.view,'you');
+  if(change==='dialog')assert.match(app.nodes.get('home-dialog').innerHTML,/keep-profile/);
+  if(change==='lock')assert.equal(app.api.state.account,null);
+ }
+});
+test('delayed native route detail cannot fetch an old source after newer navigation',async()=>{
+ for(const method of ['resume','navigate']){
+  const app=client();await app.start();nativeFixture(app);const held=deferred();app.server.replies.set('/api/messages/conversations/'+nativeId,held.promise);
+  app.context.location.hash='#messages/'+nativeId+'/messages/old-source';const pending=method==='resume'?app.api.resume():app.api.navigate({nativeConversationId:nativeId,messageId:'old-source'});
+  app.api.view('you');held.resolve(app.response({conversation:{id:nativeId,securityMode:'standard'}}));await pending;
+  assert.equal(app.api.state.view,'you');assert.equal(app.api.state.nativeId,null);assert.ok(!app.calls.some(call=>call.url==='/api/messages/messages/old-source'));
+ }
+});
+test('direct community rail and conversation destinations leave collection exactly once after validation',async()=>{
+ const app=client();await app.start();let left=0,lastTop=0;
+ app.window.VoidHome.registerExtension({id:'direct-collection',pageId:'collection',pageHTML:()=>'<p>Collection</p>',onPageLeave(){left++;lastTop=app.nodes.get('home-main').scrollTop;}});
+ app.window.VoidHome.openPage('collection');await app.api.openCommunity('unjoined');assert.equal(left,0);
+ app.api.state.communities=[{id:'community-a',name:'Community A'}];app.server.replies.set('/api/live/communities/community-a/channels',app.response({channels:[{id:'channel-a',name:'general'}]}));app.server.replies.set('/api/live/channels/channel-a/messages?limit=50',app.response({messages:[],page:{hasMore:false},securityMode:'standard',permissions:{canSend:true}}));
+ app.nodes.get('home-main').scrollTop=391;
+ app.listeners.get('click')({target:{closest:()=>({dataset:{homeCommunity:'community-a'}})},preventDefault(){}});
+ assert.equal(app.api.state.view,'servers');assert.equal(left,1);assert.equal(lastTop,391);await until(()=>app.api.state.channels.length===1);await app.api.openChannel('channel-a');assert.equal(left,1);
+ app.window.VoidHome.openPage('collection');app.api.state.channels=[{id:'channel-a',name:'general'}];await app.api.openChannel('channel-a');assert.equal(left,2);
+ app.window.VoidHome.openPage('collection');nativeFixture(app);await app.api.openNativeConversation(nativeId);assert.equal(left,3);
+ app.window.VoidHome.openPage('collection');mockEncrypted(app);app.api.state.secureRooms=[{id:'!room:example',name:'Private',encrypted:true}];await app.api.openSecureRoom('!room:example');assert.equal(left,4);
+});
+test('collection rerender preserves only the same account main position and contained input selection',async()=>{
+ const app=client();await app.start();app.window.VoidHome.registerExtension({id:'focused-collection',pageId:'collection',pageHTML:()=>'<input id="collection-query" value="halo">'});app.window.VoidHome.openPage('collection');
+ const lookup=app.document.getElementById;app.document.getElementById=id=>{const value=lookup(id);if(id==='home-main')value.contains=child=>child?.id==='collection-query';if(id==='collection-query')value.setSelectionRange=(start,end)=>{value.selectionStart=start;value.selectionEnd=end;};return value;};
+ const main=app.document.getElementById('home-main'),input=app.document.getElementById('collection-query');main.scrollTop=412;main.scrollLeft=9;input.selectionStart=1;input.selectionEnd=3;input.focus();app.api.render();const restored=app.document.getElementById('collection-query');assert.notEqual(restored,input);assert.equal(app.document.activeElement,restored);assert.equal(restored.selectionStart,1);assert.equal(restored.selectionEnd,3);assert.equal(app.document.getElementById('home-main').scrollTop,412);assert.equal(app.document.getElementById('home-main').scrollLeft,9);
+ const outside=app.document.createElement('input');outside.id='profile-dialog-field';outside.focus();app.api.render();assert.equal(app.document.activeElement,outside);
+ app.api.state.account={...app.api.state.account,id:'account-b'};app.api.render();assert.equal(app.document.getElementById('home-main').scrollTop,0);assert.equal(app.document.getElementById('home-main').scrollLeft,0);
+});
+let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failed}/${tests.length} production-entry behavior checks passed. VM DOM/transport; browser layouts and live account/Matrix networks are not exercised.`);process.exitCode=failed?1:0;})();

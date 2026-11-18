@@ -1,3 +1,19 @@
+# Current edition3 artwork and product upgrade
+
+This release starts at published v17, commit77f55390c709e6d7fee447e94f7e7ad461f8e711. `VOIDLINE-MEGA-IMPROVEMENT-8.txt` preserves the latest uploaded brief. Subsequent user steering requires original Telegram-inspired gift bases, accurate XRP/Max Stirner/Chudjak names and a larger CHUD/Wojak meme family. Existing accounts, histories, memberships, IDs and legitimate ownership remain. No database migration is added.
+
+The catalog grows to47 decorative badges and32 gifts, plus2 separate earned awards. Edition3 includes editable vector masters, individually drawn optical marks, card/detail/silhouette assets, source credits and bounded named-part choreography. Eight original gifts use researched material/motion bases rather than the actual Telegram NFT collection identities. Cultural decoration never implies achievements, financial holdings, official affiliation or permission.
+
+The graphite/lime shell uses readable typography, flatter navigation and consistent global preferences. The empty home foregrounds starting a conversation, joining and creating a community. A dedicated Collection page supports browsing, collected items, gifts and earned awards with search/type/series filters, large inspection, explicit previews and clear grant-versus-transfer review. Eligible recipients are resolved before review and confirmation binds the immutable account ID. Accepted server receipts alone authorize collection changes and receipt reveals. Profile shelves and lifecycle handling preserve navigation, focus, scroll and account isolation.
+
+All four SVG variants are fingerprinted and loaded from the same origin. Large scenes mount only on demand, and motion stops for replacement, leaving, closing, account lock, hidden documents or reduced motion. Provenance is kept distinct from product identity. The public `/art-review.html` offers direct artwork inspection and manual playback without account APIs.
+
+Actual SVG rasterization and sampled motion filmstrips are illustration evidence. Controlled DOM/WAAPI tests are distinct from browser playback. The release report records final suite, asset and hosted-account results. Interactive browser/mobile rendering, physical keyboard/crop/microphone use, zoom/screen-reader behavior and real-device animation performance remain unverified when the supported browser infrastructure is absent.
+
+Authentication, persistent ownership, Standard messaging, private media and the maintained Matrix adapter retain the boundaries documented below. No homeserver, Google/email provider or verified native platform-owner binding is fabricated. The intended owner @xrp must still prove control through the documented trusted bootstrap. Standard messages remain explicitly service-readable; no encrypted send falls back to them.
+
+## Previous v17 implementation and infrastructure boundaries
+
 # Current upgrade delivery boundaries
 
 This upgrade starts at live v16, commit a2882d48cc6fd90dd50b0f51e972b4e0cd34cbce. The complete new 24-section brief is preserved in `VOIDLINE-MEGA-IMPROVEMENT-7.txt` and the downloadable improvement prompt. A requested requirement is not a claim of complete delivery. The existing Site/public audience, account IDs, histories, memberships, ownership and applied migrations are preserved.

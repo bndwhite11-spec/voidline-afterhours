@@ -1,3 +1,19 @@
+# Current upgrade plan — release v18
+
+Start from published v17, source77f55390c709e6d7fee447e94f7e7ad461f8e711. Preserve the existing public Site, accounts, histories, applied migrations and legitimate ownership. The uploaded artwork/product brief is preserved verbatim in `VOIDLINE-MEGA-IMPROVEMENT-8.txt`; later steering adds accurate meme/crypto names, six more genre badges and eight original gifts using researched Telegram collectible bases.
+
+1. Audit the current entry, collection, profile, renderer, ownership APIs and release configuration. Preserve security and data boundaries.
+2. Draw and inspect the six representative quality-gate objects before completing the catalog. Research actual meme anatomy, crypto marks and Telegram TGS motion frames.
+3. Finish47 decorative badge,32 gift and2 earned-award masters, each with optical miniatures, inspection construction, monochrome silhouette and named-part motion. Original gift identities replace temporary direct source studies before release.
+4. Compile fingerprinted lazy assets, bounded reversible motion, explicit previews and acknowledged receipt reveals. Keep all mutations server-authorized and independent of art playback.
+5. Refine graphite/lime navigation, empty home, Collection destination, filters, inspection, profile shelf, responsive rules and lifecycle/focus preservation.
+6. Run focused controlled runtime/UI tests, actual SVG raster review, full regression/build and hosted isolated-account/asset checks. State browser/device limitations explicitly.
+7. Commit/push exact reviewed source and matching downloads, publish the existing Site through its normal workflow, and retain v17 as the compatible rollback target.
+
+No schema migration is needed for this catalog/UI release. Existing applied0000–0009 migrations remain unchanged. Missing homeserver/provider/verified owner configuration is not invented or bypassed.
+
+## Previous release planning history
+
 # Current upgrade plan — release v17
 
 The latest audit starts at published v16, commit a2882d48cc6fd90dd50b0f51e972b4e0cd34cbce. The supplied 24-section brief is preserved verbatim in `VOIDLINE-MEGA-IMPROVEMENT-7.txt`. Native password accounts, empty onboarding, D1 permissions/history, free ownership, server revisions and the separate Matrix adapter already work; they are retained. Sites hosts the Worker with managed D1; new private media uses the native R2 binding, not browser authority. No Matrix homeserver, Google client, email provider or verified platform-owner binding is configured.

@@ -1,0 +1,548 @@
+You are upgrading the existing **VOIDLINE: AFTERHOURS** application:
+
+https://voidline-afterhours.pipedcactus1.chatgpt.site/
+
+Work as a product designer, illustrator, motion designer, and full-stack engineer. Produce a substantial, visibly authored improvement to the interface, badges, gifts, profiles, and interactions.
+
+The desired identity is a private afterhours chat client with niche internet culture: graphite surfaces, precise chrome, underground forum humor, philosopher references, LARP props, crypto culture, and carefully drawn meme characters. Combine Telegram’s conversational clarity with Discord’s community organization, while developing Voidline’s own identity.
+
+Allocate real effort to drawing, expression, composition, materials, and animation. The user is dissatisfied with the current visual quality. Descriptive names, extra gradients, and passing code checks do not establish that the artwork looks good.
+
+## 1. Deliver a larger, substantially better collection
+
+Target this iteration:
+
+- Redesign all **21 existing decorative badges**.
+- Redesign all **12 existing gifts**.
+- Add **16 new decorative badges**.
+- Add **eight new gifts**.
+- Deliver **37 decorative badge designs and 20 gift designs**, while keeping earned achievements separate.
+- Improve the existing earned-award artwork and its presentation.
+- Redesign the surrounding client, profiles, collection browsing, inspection, and gifting experience.
+
+Reconcile these counts with the actual current catalog before editing. Preserve any additional legitimate items introduced since the reviewed version.
+
+Keep existing account IDs, messages, memberships, privacy choices, catalog IDs, gift instances, awards, and ownership. Existing items receive improved artwork without losing their identity or provenance. New concepts receive new stable IDs.
+
+Preserve working infrastructure, including the current outbox, real-time revision updates, server authorization, session protections, responsive foundations, and cryptographic storage. Add migrations deliberately; do not alter migrations already executed against production.
+
+## 2. Give the app one coherent visual direction
+
+Use a quiet graphite shell with a restrained acid-lime interaction accent. Keep chrome, violet, oxblood, jade, brass, and ivory primarily within collectible artwork.
+
+Starting palette:
+
+| Role | Starting color |
+|---|---|
+| Canvas | `#0E1013` |
+| Navigation surface | `#15181D` |
+| Raised surface | `#1D2229` |
+| Decorative divider | `#2B313A` |
+| Primary text | `#F1F0EC` |
+| Secondary text | `#A5ABB4` |
+| Interaction accent | `#CBEF84` |
+| Text on accent | `#17200E` |
+
+Measure the actual contrast of rendered controls and text. A subtle divider color is not automatically sufficient as the only visible input boundary.
+
+Use one readable UI typeface. Start around 16px for messages, 14px for navigation and controls, 12–13px for secondary metadata, and 18–22px for panel titles. Reserve monospace for optional serials, technical information, and terminal artwork.
+
+Use consistent spacing and optical alignment. Remove unnecessary nested cards, permanent glows, repeated branding, ornamental status chips, and oversized dashboard headings. Functional icons should come from a consistent family; collectibles should have their own illustration system.
+
+Design all important states: default, hover, focus, selected, loading, disabled, offline, empty, and failed. Preserve drafts and layout during errors.
+
+## 3. Recompose the everyday chat interface
+
+### Desktop
+
+Use an approximately 64–68px destination rail, the existing adjustable 260–320px conversation list, a flexible conversation pane, and an optional details panel.
+
+Collapse secondary panels before squeezing messages into an unreadable column. Preserve sensible user width preferences.
+
+Make DMs, private groups, communities, and community channels distinguishable. Keep joining, creating, searching, and account settings easy to find without filling the rail with unrelated actions.
+
+Conversation rows need consistent avatar alignment, readable names, meaningful previews, timestamps, draft indicators, and accurate unread states. Selected, hovered, focused, muted, and unread rows should remain distinguishable.
+
+Search and filters must work across the authorized dataset, including conversations beyond the first loaded page.
+
+### Timeline and composer
+
+Improve author grouping, reply previews, timestamps, attachments, edited states, and message actions. Keep text selectable. Make actions accessible by keyboard and touch.
+
+Preserve the reader’s position when older messages are visible. Show a jump-to-latest control instead of pulling the conversation downward.
+
+Keep per-conversation drafts, IME support, multiline input, and rapid queued sends. Show queued, sending, accepted, and failed states accurately. Recipient delivery and reading require real evidence.
+
+Keep the Standard-message outbox separate from encrypted sending. Its queued text is readable on the device; failed encrypted messages must never enter that queue as plaintext.
+
+### Mobile
+
+Show one primary pane at a time with a clear back path. Keep the composer above the software keyboard, respect safe areas, and preserve state when returning from profiles or item inspection.
+
+Avoid several competing bottom navigation bars. Test long names, large text, attachment selection, touch menus, and conversations with substantial history.
+
+## 4. Improve entry, onboarding, and profiles
+
+Recompose the login screen with better proportions and a purposeful brand illustration or clearly labeled product preview. Reduce repeated branding and empty space. Keep the form immediately usable.
+
+Preserve password-manager support, paste, autocomplete, labels, validation, and entered values after errors.
+
+Retain a short, skippable entrance animation. A chrome mark can assemble, catch one narrow reflection, and resolve into the client. Respect reduced motion and session suppression. Do not replay it on every navigation or display fictional loading progress.
+
+A new account starts with:
+
+- Zero conversations.
+- Zero joined communities.
+- Zero unread messages.
+- Zero invented friends.
+- Zero collected items.
+
+Offer Start a conversation, Join with an invite, and Create a community. Profile setup remains skippable.
+
+Profiles should have clear avatar/name/handle hierarchy, a restrained banner, bio, status, selected decorations, earned awards, and an optional gift shelf. Keep compact popovers and full profiles visually related.
+
+Provide deliberate reorder, hide, and showcase controls. Preserve collection visibility and sender-disclosure settings. Keep compact identity rows calm while making detailed artwork available through inspection.
+
+## 5. Set a demanding collectible art standard
+
+Every item needs:
+
+1. A recognizable silhouette.
+2. One clear cultural or visual idea.
+3. A deliberate focal point.
+4. A convincing dominant material.
+5. Distinct internal construction.
+6. An individually designed animation.
+7. A complete resting pose.
+
+The joke should appear in an expression, prop, or action. The title should not have to explain an otherwise generic symbol.
+
+Create editable masters with named layers: portrait, visor, hinge, curtain, reel, glass, engraving, shadow, highlight, and similar object-specific components.
+
+Shared lighting and material primitives are useful. Applying one gradient and bevel to every silhouette is insufficient.
+
+Use actual material construction:
+
+- **Metal:** clear planes, edge thickness, restrained reflections.
+- **Paper:** folds, thickness, overlap, torn or cut edges.
+- **Glass:** internal depth, controlled transparency, edge highlights.
+- **Enamel:** inset fill, separate rim, deliberate surface curvature.
+- **Cloth:** seams, tension, directional texture, believable attachment points.
+
+Produce three presentations:
+
+| Use | Required treatment |
+|---|---|
+| Inline, approximately 20–24px | Simplified silhouette, clear negative space, essential expression |
+| Profile/catalog, approximately 64–96px | Complete recognizable object with controlled detail |
+| Inspection, approximately 192–320px | Construction, material depth, secondary detail, layered animation |
+
+Check existing 16px placements as well. Redraw or simplify the small version instead of shrinking the entire detailed illustration.
+
+Keep text as real text. Reject malformed anatomy, accidental symbols, fake lettering, dirty transparency, and unfinished generated artifacts.
+
+Maintain a research and asset manifest with source URLs, credits, permission/license information where relevant, newly drawn elements, alt text, variants, animation states, and art version.
+
+## 6. Redesign all existing badges
+
+Preserve their existing IDs and identities.
+
+### VOIDLINE Originals
+
+| Badge | New art and animation direction |
+|---|---|
+| **LARP PRO MAX** | Retain a shield identity, adding a dented visor, cardboard plume, orange tape repair, and foam-sword hilt. The visor closes on a hinge; the plume bends afterward. |
+| **404 Angel** | Separate asymmetric aluminum feathers around a dark center and interrupted halo. Feathers open in sequence while the halo almost aligns. |
+| **Ghost Frequency** | A translucent apparition with a distinct face and two embedded radio contours. One signal crosses its body and briefly reveals the expression. |
+| **Velvet Static** | A folded ribbon of satin violet alloy with convincing front/back surfaces. A highlight follows one crease as the loop flexes slightly. |
+| **Night Shift** | A midnight-blue timekeeper’s pin with a brass desk lamp and inset clock. The lamp clicks on and the clock hand advances. |
+| **Unknown Entity** | A clipped specimen frame surrounding an ambiguous smoked-glass object. The object turns slightly to reveal a second shape. |
+| **Dead Internet** | A cracked ceramic globe with interrupted meridians and one amber terminal light. A signal reaches the fracture and stops. |
+| **Voidwalker** | A dark hooded silhouette inside a chipped metal arch. The cloak edge moves as a narrow opening behind it changes subtly. |
+| **Low Orbit** | An off-center moon, genuinely small satellite, and angled orbital ring. Move the satellite along a short arc with correct occlusion. |
+
+### Chain Signals
+
+| Badge | New art and animation direction |
+|---|---|
+| **Bitforge / Bitcoin** | Hammered copper, a correctly proportioned Bitcoin mark, recessed cuts, and one orange inlay. A narrow signal travels around an interrupted perimeter. |
+| **Ether Glass / Ethereum** | Recognizable separated diamond forms in smoky violet glass, with clear facet planes. The lower form separates slightly as light crosses the upper structure. |
+| **Cross Signal / XRP** | Two opposing curved metal components with ceramic-white faces and correct negative space. Mirrored reflections travel through the curves. |
+| **Solar Stack / Solana** | Three precise offset alloy bars with distinct edges and jade/violet finish. The bars move a few pixels in sequence and settle into alignment. |
+| **Moon Shibe / Dogecoin** | An expressive brass Shiba cameo with rounded muzzle, asymmetric ears, side glance, and crescent moon. Animate one ear and eyebrow. |
+| **Diamond Hands** | Articulated steel fingers genuinely cupping a crystal. Fingers secure the crystal while a single reflection crosses its facets. |
+
+Use the correct XRP symbol; distinguish it from Ripple’s triskelion. Keep all crypto artwork cosmetic, with no implication of holdings, financial value, or official affiliation.
+
+### Internet Relics
+
+| Badge | New art and animation direction |
+|---|---|
+| **Touch Grass** | A small soil cross-section, three distinct blades, and a dew drop. A fingertip bends a blade in the larger version; it springs back. |
+| **NPC Energy** | An intentionally blank porcelain face and slightly off-center speech bubble. An ellipsis resolves while the mouth changes once. |
+| **Certified Yapper** | A microphone with proper mesh, bent stand, and curled speech strip. A short waveform plays and the strip advances one notch. |
+| **Copium Reserve** | Bottle-green pressure canister, metal valve, inset label, and readable gauge. The needle overshoots, wobbles once, and settles. |
+| **Absolutely Cooked** | A thick cast-iron pan, charred cube, and layered amber flame. The cube flips, lands, and produces one small smoke curl. |
+| **Chronically Online** | A CRT with recessed screen, thick bezel, worn corner, and power light. A cursor types a short original message and stops. |
+
+## 7. Add sixteen new badges in the same genre
+
+### 1. The Unique One — Max Stirner cameo
+
+Draw an ivory enamel profile using the recognizable Engels portrait as the visual reference: pronounced forehead, round spectacles, long nose, high collar, and lean neck.
+
+Use an irregular oxidized-silver setting with two deliberate nicks. Inspection reveals restrained ink hatching. The miniature keeps the profile and spectacles.
+
+**Animation:** one narrow reflection crosses the glasses, followed by a barely perceptible lifted chin.
+
+### 2. Ownness Seal — Ego Archive
+
+An asymmetrical oxblood wax seal crosses a torn cream bookplate. Press a small Stirner profile into the wax; show three believable folds, a chipped edge, and a broken ornamental frame.
+
+**Animation:** the surrounding frame separates slightly while the seal stays fixed.
+
+Keep philosophical context in the description and use original captions instead of invented quotations.
+
+### 3. Spook Breaker — Ego Archive
+
+An original paper specter emerges from an open book covered in restrained marginalia. Small spectacles rest across the cover. Use warm parchment, smoke-grey ink, and one oxblood tab.
+
+**Animation:** the specter’s surrounding frame resolves into two folded scraps while the book remains solid.
+
+At small size, preserve the book, spectacles, and one ghost shape.
+
+### 4. Nothing Ever Happens — Chudjak curtain scene
+
+Create a window-shaped enamel miniature containing an original awkward, bespectacled cartoon face, teal curtains, and warm interior light.
+
+**Animation:** the eyes glance outward, both curtains pull inward, a narrow gap remains, and one eye peeks through.
+
+Use clear facial construction and deliberate comic timing. The small edition keeps the window frame, curtain gap, and glasses. Keep the reference focused on internet deadpan.
+
+### 5. Final Reply — Reply Guy
+
+Build a broken speech-bubble pin around thick glasses, one raised eyebrow, and a tiny mouth. Use chalk enamel, black ink, and tarnished nickel.
+
+Three engraved lines in the larger edition suggest an unnecessarily long reply.
+
+**Animation:** an ellipsis appears, the eyebrow rises, and a paper reply strip advances once.
+
+### 6. Aura Receipt
+
+An off-white thermal receipt curls over a miniature black mechanical counter. Include a perforated tear, fold shadow, and one lime total.
+
+The inspection version may show a deliberately fictional `+1000`; the tiny version uses a clear plus.
+
+**Animation:** digits roll once and the receipt feeds a few millimeters.
+
+This is a decorative joke, not a real system for scoring users.
+
+### 7. Aura Farmer
+
+A green sprout grows through a brushed-metal ring inside an angular black ceramic pot. Draw uneven leaves, a gold seed, and a visible soil surface.
+
+**Animation:** the sprout leans toward a passing light; the ring catches a reflection; both settle.
+
+Distinguish it from Touch Grass through its pot, ring, materials, and composition.
+
+### 8. Locked-In Alien
+
+Draw a pale-celadon alien with an elongated skull, asymmetric eyelids, visible brow planes, narrow mouth, and focused eye direction. Place four small steel framing corners around its head.
+
+**Animation:** pupils move toward the viewer, eyelids tighten, and the corners align.
+
+Keep the sequence approximately one second. Use deliberate illustration with a recognizable expression.
+
+### 9. Six / Seven
+
+Two enamel hand-shaped charms hang from a curved connector, palms upward. Use warm ivory, black numeral engraving, and dull chrome.
+
+**Animation:** palms alternate up and down twice, then rest level.
+
+The gesture carries the joke. Simplify the anatomy and numeral masses at small sizes; no copied video or music is necessary.
+
+### 10. Dilly Dally
+
+Draw an original snail with a loose office lanyard resting on a punched timecard. Use a restrained lavender shell, cream body, and faded yellow strap.
+
+**Animation:** relaxed eyes drift sideways; a punch marks the card; the snail straightens into an absurdly serious pose.
+
+The small version keeps the shell and timecard corner. Optional caption: “Forced to lock in.”
+
+### 11. Cardboard Paladin
+
+An off-center corrugated-cardboard shield carries a dull-blue cloth star and visible cream stitches. Add a fabric strap and one tape repair.
+
+**Animation:** the shield tilts, the strap follows slightly late, and the star settles against the cardboard.
+
+Make the construction knowingly homemade and carefully observed.
+
+### 12. Guildless Knight
+
+A narrow steel helmet sits above an empty cloth name ribbon held together by an oversized safety pin. Use brushed dark metal, faded crimson cloth, and worn brass.
+
+**Animation:** the visor opens to reveal empty space; the ribbon flutters once.
+
+Its narrow helmet silhouette must remain distinct from LARP PRO MAX’s shield.
+
+### 13. Side Quest Only
+
+A folded map, blunt brass compass, and tiny foam-sword marker form a triangular pin. Include one winding route with an unexplained detour.
+
+**Animation:** the compass adjusts, and the marker moves to the detour before stopping.
+
+Keep miniature details limited to the map fold and marker.
+
+### 14. Cold Storage
+
+An original hardware-wallet-shaped relic sits inside a frosted glass sleeve. Use brushed steel, a recessed display, and one ice-blue edge.
+
+**Animation:** a cover slides into place and the display resolves to a simple closed mark.
+
+This is artwork only. It must never request a seed phrase, private key, wallet connection, or financial action.
+
+### 15. Genesis Block
+
+A transparent cuboid contains three engraved ledger plates over a graphite base. A copper corner provides the focal point.
+
+**Animation:** plates align sequentially and a thin circuit line completes around the object.
+
+Use correct occlusion and a shadow matching the object’s footprint. At 20px, retain two clear cube faces and the copper corner.
+
+### 16. Moon Pending
+
+A dented tin rocket is tethered to a crescent moon by a loose cable. Use ivory enamel, dark steel, and a muted orange fin.
+
+**Animation:** the rocket rises, the cable becomes gently taut, and the moon remains still. Finish with a quiet comic settle.
+
+Keep the description playful and free of price predictions.
+
+## 8. Rebuild all twelve existing gifts
+
+Each gift needs a complete still image, inspect preview, and optional receipt reveal. Preserve its existing ID and owned instances.
+
+| Gift | Detailed art and motion |
+|---|---|
+| **Chrome Rose** | Five or six individually folded metal petals, recessed center, bent stem, and oxidized leaf. A paper sleeve slides down; petals loosen sequentially; a narrow reflection follows their edges. |
+| **Midnight Tape** | Smoked transparent cassette, screws, visible hubs, real tape route, cream label, damaged corner. It slides from a case and engages. Reel directions must agree with the tape route. |
+| **Pocket Star** | A thick lilac crystal with asymmetric facet reflections and a fitted dark presentation sleeve. The sleeve opens; the star rises slightly and settles. |
+| **Afterhours Cup** | Dark glazed ceramic, ivory lip, asymmetric handle, separate coffee surface, and inspection-size saucer. Coffee settles, then two steam paths rise at different speeds. |
+| **Paper Ghost** | Pearlescent paper with visible thickness, crease planes, bent corner, and awkward expression. It unfolds from a flat sheet; the face reacts separately from the lower folds. |
+| **Small Surprise** | Midnight-blue box with believable lid overlap, fabric ribbon, folded corners, and worn tag. Ribbon loosens and the lid opens on a defined hinge. |
+| **Chrome Seraph** | Separate mechanical wing plates, dark body, icy core, hinges, and broken halo. Plates fan out sequentially; animate actual joints rather than scaling the whole wing group. |
+| **Obsidian Key** | Thick smoky dark glass, cut edges, internal depth, and one warm brass tooth. It turns into a display clasp as a glint travels along a cut edge. |
+| **Broken Halo** | Three fractured gilded-enamel segments connected by tiny physical bridges. Segments separate slightly, reveal the bridges, and return. |
+| **Midnight Orchid** | Violet petals with curved planes, dark undersides, fine veins, and gold center. Petals unfold with different timing around real attachment points. |
+| **Sealed Signal** | Folded silver envelope with crisp seams and jade wax seal. A short pulse crosses the seal; the flap lifts and settles. The animation does not imply a private note was sent. |
+| **Afterhours Ticket** | Thick cream stock, clipped corners, perforation, burgundy printing, and separate chrome clip. The clip releases, a punch makes one clean hole, and the ticket slides into place. |
+
+## 9. Add eight new gifts
+
+### Egoist’s Volume
+
+A black-cloth book with an ivory Stirner cameo, oxblood bookmark, and untrimmed paper edges.
+
+The cover opens slightly, the bookmark slips forward, and a loose annotation turns once. Use original marginalia unless an accurately sourced quotation is intentionally included.
+
+### Curtain Call
+
+A miniature graphite window diorama with teal fabric curtains, brass rail, and an original deadpan bespectacled figure.
+
+The scene becomes visible, then the figure closes the curtains with a delayed sideways glance. Draw folds, rail attachments, and curtain overlap carefully.
+
+### LARP Starter Kit
+
+A worn theatrical case holds a foam sword, taped cardboard helmet, and rolled campaign map.
+
+The case opens; each item lifts enough to identify it; the helmet plume sags afterward. The contents are fixed and visible before sending.
+
+### Aura Meter
+
+A small analog meter has a scratched dark housing, ivory dial, brass needle, green indicator, and one loose screw.
+
+The needle overshoots, settles, and the lamp becomes steady. Give it a weighty resting pose and a readable silhouette.
+
+### Copium Reserve Tank
+
+A squat bottle-green tank with a thick base, metal valve, short hose, and inset gauge.
+
+A valve turns, one bubble rises through the glass, and the gauge settles. Keep it an imaginary cosmetic prop with substantial material depth.
+
+### Cold Wallet Relic
+
+A folded steel case holds a generic hardware-device sculpture in dark felt.
+
+The clasp releases, the case opens, and a screen mark resolves. All inscriptions remain decorative; no real wallet setup is attached.
+
+### Block Zero
+
+A substantial transparent block contains interlocking dark ledger plates and a copper plaque.
+
+The plates align mechanically and the shell catches one reflection. Give it a different construction and scale from the Genesis Block badge.
+
+### Last Tab Open
+
+A small CRT terminal has a worn bezel, bent antenna, miniature keyboard, and amber power light.
+
+The screen warms gently, types a short original phrase such as “still here,” and holds a steady image. Confine any scan effect to the screen.
+
+## 10. Make animation visible, purposeful, and reliable
+
+Separate **art preview** from **account transactions**.
+
+A Preview animation button can play any available catalog design without claiming, equipping, receiving, or transferring it. A receipt reveal still requires a confirmed server-owned instance.
+
+Refactor reusable choreography from the existing receipt-specific logic while preserving ownership checks.
+
+Every item needs:
+
+- Resting state.
+- Hover/focus response.
+- Explicit preview.
+- Inspection presentation.
+- Receipt reveal where relevant.
+- Reduced-motion still.
+- Unavailable or retired treatment.
+
+Suggested timings:
+
+| Interaction | Starting range |
+|---|---|
+| Control feedback | 120–180ms |
+| Small panels | 180–260ms |
+| Object preview/reveal | Approximately 900–1600ms |
+
+Use anticipation, action, follow-through, and settle. Adjust timing to the object.
+
+A visor rotates around a hinge. Curtains move along a rail and fold. A cassette’s reels follow its tape path. Paper bends at creases. A facial expression changes through controlled eyes, brows, and mouth.
+
+Expose preview controls in catalog inspection and owned-item detail. Touch and keyboard users must have the same access. Hover previews should have a short dwell and should not restart continuously.
+
+Inline badges stay still during reading. Pause motion offscreen, in hidden tabs, after account lock, and when an item is replaced. Lazy-load detailed assets and reserve their layout space.
+
+Keep sound off by default. Respect both OS and app reduced-motion settings, including changes while dialogs are open. Ownership, meaning, and success must remain understandable without movement.
+
+## 11. Give collections a proper home
+
+Build a dedicated collection destination using the existing router and permissions, with lightweight pickers for composer/profile contexts.
+
+Separate:
+
+- Browse.
+- Collected.
+- Gifts received and sent.
+- Earned achievements.
+
+Organize designs into coherent series such as VOIDLINE Originals, Internet Relics, Ego Archive, Afterhours Guild, and Chain Signals.
+
+Let artwork occupy the largest part of a catalog card. Show a concise name, collection, factual ownership state, and clear action. Move detailed meaning, materials, acquisition rules, and provenance into inspection.
+
+On desktop, pair a generous art stage with concise item details. On mobile, use a single-column inspection view and reachable actions.
+
+Choose grid columns from the actual container width. Preserve filter, scroll, and keyboard focus when returning from inspection. Clear account-specific state on account switching or locking.
+
+Keep decorative badges, earned achievements, staff roles, and security verification visibly different. Preserve free acquisition. Do not invent rarity, scarcity, edition numbers, or market value.
+
+## 12. Preserve the real gifting model
+
+Keep these actions distinct:
+
+| Action | Meaning |
+|---|---|
+| Add to collection | Claim the available free design under its real rules |
+| Send new gift | Create a new gift request for the recipient |
+| Transfer this instance | Move the selected owned instance after acceptance |
+
+The review screen must show the exact recipient, item, operation, ownership consequence, and availability.
+
+Keep stable retry IDs and atomic ownership changes. Revalidate blocks, account status, eligibility, and reservations at commit time. Duplicate clicks, concurrent transfers, and timeouts after commit must not duplicate an item.
+
+Show pending, accepted, declined, cancelled, expired, and failed states where supported. Do not label a pending request as viewed or received without evidence.
+
+Recipients can open immediately, show without animation, or replay later. A reveal should not interrupt someone typing. Replaying artwork never changes ownership.
+
+Preserve sender-disclosure controls and legitimate ownership of retired items.
+
+Private gift notes remain unavailable until they travel through an actual protected conversation. Do not introduce a plaintext note field for visual completeness.
+
+## 13. Retain genuine authentication and encryption requirements
+
+### Accounts and owner controls
+
+Implement real Google sign-in with backend token verification, correct production configuration, stable provider identity, and secure account linking. Validate signature, issuer, audience, and expiry, with the CSRF/state protections appropriate to the selected flow.
+
+Preserve properly configured salted Argon2id password hashing, revocable sessions, server permissions, rate limits, and CSRF protections. Password reset replaces a credential; the owner does not receive a password-viewing feature.
+
+The intended owner handle is **@xrp**. Bind ownership through the existing authenticated setup procedure to the verified immutable account ID. A matching handle, display name, XRP collectible, or client-side role value grants no authority.
+
+### Private messaging
+
+Complete the existing Matrix/Rust integration using maintained SDK APIs. Preserve device keys, persistent storage, recovery state, and deliberate multi-tab writer coordination. The SDK warns against multiple clients writing the same crypto store.
+
+Provision a compatible homeserver on infrastructure that supports it. Resolve enrollment, account mapping, media persistence, monitoring, backups, and service-policy reconciliation.
+
+Provide understandable device verification, device lists, revocation, recovery setup, and missing-key states. Distinguish account recovery, encrypted-history recovery, and local Saved-note recovery.
+
+Encrypt private attachments through the supported protocol path. Keep private search local after decryption, label indexing coverage, and use generic push previews. Review secondary features according to their actual privacy boundaries.
+
+Make supported new private conversations encrypted by default after the complete journey passes real acceptance. An encrypted send must never silently fall back to Standard messaging.
+
+Keep existing Standard history accurately labeled. Later encryption does not remove old plaintext records, exports, or recipient copies.
+
+Do not promise security properties beyond the selected protocol. Megolm has specific forward-secrecy and post-compromise limitations; key retention, rotation, and distribution matter.
+
+Keep reports based on user-selected disclosures. Do not add a universal moderator decryption key. Treat calls, bots, bridges, AI features, and third-party processing as separate privacy decisions.
+
+## 14. Require visual and functional proof
+
+Before completing the full collection, finish six representative examples:
+
+1. Stirner cameo.
+2. Chudjak curtains.
+3. LARP PRO MAX.
+4. XRP Cross Signal.
+5. Chrome Rose.
+6. Midnight Tape.
+
+Compare their small, detailed, static, and animated states. Correct weak drawing and then finish the remaining catalog. This is a production quality gate, not the final deliverable.
+
+Produce:
+
+- A contact sheet of every item.
+- A strip showing every badge at approximately 20px.
+- Monochrome silhouettes.
+- Motion previews.
+- Actual profile and conversation examples.
+- Desktop and mobile screenshots.
+
+Reject an item when its identity depends entirely on its title, its miniature becomes a blob, its material is indistinguishable from unrelated objects, its motion is interchangeable with another item’s, or its resting pose looks unfinished.
+
+Test representative widths around 320, 375, 390, 768, 1024, and 1440px, plus enlarged text, keyboard navigation, screen readers, high contrast, and reduced motion.
+
+Target applicable WCAG 2.2 AA criteria. Check contrast, visible focus, correct labels, modal focus return, reflow, and accessible controls. Aim for comfortable 44px primary touch controls as a design target.
+
+Measure loading, asset decoding, interaction delay, scrolling, and memory on stated device/network conditions. Static thumbnails should load before detailed motion scenes.
+
+Verify meaningful behavior:
+
+- Browsing and previewing do not change ownership.
+- Repeated submissions produce one gift operation.
+- Accounts retain their existing items and awards.
+- Fresh accounts remain empty.
+- Outbox retries preserve correct order and identity.
+- Modal preferences work consistently.
+- Motion stops when disabled or the account is locked.
+- Private messages never fall back to plaintext.
+- Real independent devices verify encryption and recovery before those features are described as complete.
+
+## 15. Deliver the actual upgrade
+
+Work through the visual system, representative art, client layout, complete catalog, gift integration, accessibility, and performance. Continue independent design work when an external authentication or encryption service still needs configuration.
+
+Use the available authorized access and the project’s normal build/save/release workflow. Preserve the intended deployment audience.
+
+Deliver the updated product, editable assets, research manifest, before/after screenshots, contact sheet, motion previews, concise changelog, and actual verification results.
+
+Clearly distinguish implemented code, configured services, controlled tests, browser/device acceptance, and independent security review.
+
+The completed client should feel calm and fast in daily use, while every collectible has enough identity, craftsmanship, and motion to make opening it worthwhile.

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" data-vc-object="meme-nothing-happens" data-art-version="3" data-variant="detail" role="img" aria-labelledby="va3-meme-nothing-happens-detail-title"><title id="va3-meme-nothing-happens-detail-title">An angular deadpan face with thick rectangular glasses peers between folded teal curtains in a small graphite window.</title><defs><linearGradient id="va3-meme-nothing-happens-detail-steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#edf0ed"/><stop offset="0.24" stop-color="#b6bfc4"/><stop offset="0.42" stop-color="#65717a"/><stop offset="0.53" stop-color="#c8d0d3"/><stop offset="1" stop-color="#596570"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-steel-dark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60717c"/><stop offset="0.35" stop-color="#303d47"/><stop offset="0.6" stop-color="#17222b"/><stop offset="1" stop-color="#4d5c66"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f1e7"/><stop offset="0.18" stop-color="#cbd2d5"/><stop offset="0.39" stop-color="#6b7b85"/><stop offset="0.46" stop-color="#edf2ef"/><stop offset="0.51" stop-color="#475560"/><stop offset="0.8" stop-color="#8f9da5"/><stop offset="1" stop-color="#d7dcda"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-copper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2b68a"/><stop offset="0.3" stop-color="#ba7951"/><stop offset="0.62" stop-color="#81503b"/><stop offset="1" stop-color="#d2996c"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1d7a0"/><stop offset="0.35" stop-color="#c6ab6b"/><stop offset="0.7" stop-color="#76603c"/><stop offset="1" stop-color="#ccb277"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-ivory" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1ead7"/><stop offset="0.65" stop-color="#ddd4bb"/><stop offset="1" stop-color="#b4ac97"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eee6ce"/><stop offset="0.55" stop-color="#d9cdb0"/><stop offset="1" stop-color="#b8a98d"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-oxblood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a45d60"/><stop offset="0.45" stop-color="#783c42"/><stop offset="1" stop-color="#4b262e"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-jade-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a4c5b3"/><stop offset="0.25" stop-color="#4d8b78"/><stop offset="0.7" stop-color="#173e38"/><stop offset="1" stop-color="#77aa94"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-violet-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c0b2ce"/><stop offset="0.28" stop-color="#8e77a3"/><stop offset="0.7" stop-color="#44334f"/><stop offset="1" stop-color="#a48ab7"/></linearGradient><linearGradient id="va3-meme-nothing-happens-detail-ink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#343e48"/><stop offset="0.65" stop-color="#11171e"/><stop offset="1" stop-color="#080e15"/></linearGradient></defs>
+      <defs>
+        <clipPath id="va3-meme-nothing-happens-detail-window-opening"><path d="M49 48h159v160H49Z"/></clipPath>
+        <linearGradient id="va3-meme-nothing-happens-detail-window-room" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0dfb8"/><stop offset=".54" stop-color="#c6b89e"/><stop offset="1" stop-color="#8b8d7d"/></linearGradient>
+        <linearGradient id="va3-meme-nothing-happens-detail-curtain-front" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#1e4b48"/><stop offset=".17" stop-color="#477e72"/><stop offset=".35" stop-color="#2e625a"/><stop offset=".55" stop-color="#80a493"/><stop offset=".69" stop-color="#3b7367"/><stop offset="1" stop-color="#254d49"/></linearGradient>
+      </defs>
+      <g data-part="window-frame" stroke-linejoin="round">
+        <path d="M37 39h184v194H37Z" fill="#080f15" opacity=".7"/>
+        <path d="M32 34h192v195H32Z" fill="url(#va3-meme-nothing-happens-detail-steel-dark)" stroke="#0d171e" stroke-width="4"/>
+        <path d="M42 44h173v175H42Z" fill="#141e25" stroke="#a2aeab" stroke-width="1.6"/>
+        <path d="M49 48h159v160H49Z" fill="url(#va3-meme-nothing-happens-detail-window-room)" stroke="#0f1b22" stroke-width="2.3"/>
+        <path d="M51 50h155v5H51Z" fill="#d1ba8f"/>
+        <path d="M195 54h12v153h-12Z" fill="#364a45" opacity=".36"/>
+        <path d="M51 191h155v16H51Z" fill="#6f7d71"/>
+        <path d="M42 219h173v9H42Z" fill="#101a20"/>
+        <path d="M34 35h187M34 38v184m7-3h172" fill="none" stroke="#bfc7bf" stroke-width="1.1"/>
+        <path d="m42 219 7-10h159l7 10Z" fill="url(#va3-meme-nothing-happens-detail-steel)" stroke="#15232b" stroke-width="1.6"/>
+        <path d="M52 213h152" stroke="#e0e2d4" stroke-width="1.2"/>
+        <g class="va-detail-only" fill="none" stroke="#9aaba5" stroke-width=".8"><path d="m36 57 4-4m-4 128 3 6m178-107 2 10m-18 135-8 1m-139 0 7-1"/><path d="M45 217h5m157 0h5" stroke="#24343a"/></g>
+      </g>
+      <g clip-path="url(#va3-meme-nothing-happens-detail-window-opening)">
+        <path d="M64 82h46v75H64Zm90-16h32v103h-32Z" fill="#e6d8b5" fill-opacity=".18"/>
+        <path d="M130 53v42m-77 42h153" fill="none" stroke="#b1a98c" stroke-width="2" opacity=".38"/>
+        <g data-part="figure" stroke-linejoin="round" stroke-linecap="round">
+          <path d="m117 161-1 20-30 14-9 18h109l-11-20-28-12-1-20Z" fill="#d0c5aa" stroke="#28363a" stroke-width="2.6"/>
+          <path d="m116 177 15 13 17-12 28 15 10 22H76l10-20Z" fill="#424d4d" stroke="#1c2b31" stroke-width="2.2"/>
+          <path d="m116 177 14 13-9 12-13-20m39-5-16 13 10 12 15-20" fill="#7e8b7c" stroke="#25363a" stroke-width="1.5"/>
+          <path d="M131 190v24m-40-13 6-4m69 1 6 6" fill="none" stroke="#a4a994" stroke-width="1.1"/>
+          <path d="M105 93c10-12 43-15 55 2l4 25-5 25-10 20-14 9-17-7-16-21-5-25Z" fill="url(#va3-meme-nothing-happens-detail-ivory)" stroke="#263238" stroke-width="3"/>
+          <path d="m155 101 6 14-3 27-12 21-10 6 11-28 3-26Z" fill="#b0b29e" opacity=".8"/>
+          <path d="M101 115c-11-5-12 5-8 16 2 7 5 10 10 8m58-22c11-7 13 4 9 15-2 7-6 11-12 9" fill="#c6c3ab" stroke="#2d3c3e" stroke-width="2"/>
+          <path d="m97 122-2 2 2 8m69-9 2 2-3 9" fill="none" stroke="#747f70" stroke-width="1.3"/>
+          <path d="m99 107-5-9 8-11 6-3 35-5 16 5 10 17-7 11-7-17-14 1-26 2-10 12Z" fill="#26353a" stroke="#17262b" stroke-width="2.1"/>
+          <path d="m108 87 34-4 12 4m-48 6 39-4 11 4" fill="none" stroke="#69796f" stroke-width="1.1"/>
+          <g data-part="brows"><path d="m103 109 8-4 11 6m16 0 9-6 9 3" fill="none" stroke="#27363a" stroke-width="3.5" stroke-linecap="round"/></g>
+          <path d="m101 116 24-1 2 16-23 2Zm35-1 24-1-2 17-22-1Z" fill="#8aa696" fill-opacity=".2" stroke="#1d3036" stroke-width="4"/>
+          <path d="m127 121 8-1m-36-1-5-1m67-1 5-2" fill="none" stroke="#1c3038" stroke-width="3"/>
+          <path d="m105 119 17-1m17 1 16-1" fill="none" stroke="#f3ead3" stroke-width="1.1"/>
+          <g data-part="eyes"><path d="M108 123q8-5 14 0-7 4-14 0Zm31-1q8-5 15 0-7 5-15 0Z" fill="#f0e9d2" stroke="#4c5c54" stroke-width="1.1"/><ellipse cx="117" cy="122.6" rx="2.7" ry="2.5" fill="#273a3c"/><ellipse cx="148" cy="121.8" rx="2.6" ry="2.5" fill="#273a3c"/></g>
+          <path d="m130 122-5 18 8 3 5-2m-27 2-4 8m41-10 5 9" fill="none" stroke="#5e6a5e" stroke-width="1.7"/>
+          <path d="M118 156q14-12 28 0m-22 5 13-1" fill="none" stroke="#384b48" stroke-width="2.3"/>
+          <g class="va-detail-only" fill="none" stroke="#9c9e89" stroke-width=".9"><path d="m116 102 4 2m19-4 6-1m-39 38 5 1m36 0 6-2m-32 11 3-1m14 0 3 1m-19 17 5 2"/></g>
+        </g>
+        <g data-part="curtain-left" stroke-linejoin="round">
+          <path d="M8 44h78l-2 45 3 43-2 27 5 44-12 5-14-3-13 4-14-4-13 4-16-4Z" fill="url(#va3-meme-nothing-happens-detail-curtain-front)" stroke="#193f3d" stroke-width="2.3"/>
+          <path d="M74 46 70 84l6 53-4 38 8 29 9-2-4-43 2-27-3-43 2-45Z" fill="#1b4543"/>
+          <path d="M23 47 19 89l3 42-2 38 7 36m16-158-5 39 5 47-2 41 4 31m16-157-5 41 6 44-5 41 7 30m16-153-4 36 5 46-4 27 5 39" fill="none" stroke="#96b3a0" stroke-width="1.8"/>
+          <path d="M31 47 27 90l3 42-3 39 6 33m18-157-5 39 5 47-3 40 4 30m17-155-5 41 7 44-5 39 8 32" fill="none" stroke="#24544e" stroke-width="3.3"/>
+          <path d="m11 196 13 3 14-3 13 4 14-4 13 3 9-3" fill="none" stroke="#b0c1a6" stroke-width=".8"/>
+          <path d="m84 147 6-2c5-2 9 2 8 6l-1 9c0 5-6 8-11 6l-4-2 1-5 5 1-2-5-5 1 1-5 5-1Z" fill="#d9d3ba" stroke="#293e3e" stroke-width="1.7"/>
+          <path d="m87 151 7-1m-7 5 6-1m-6 5 5-1" fill="none" stroke="#8b9785" stroke-width="1.1"/>
+        </g>
+        <g data-part="curtain-right" stroke-linejoin="round">
+          <path d="M170 44h80v161l-15 3-13-4-15 4-14-4-12 4-15-6 3-42-3-36 4-39Z" fill="url(#va3-meme-nothing-happens-detail-curtain-front)" stroke="#193f3d" stroke-width="2.3"/>
+          <path d="m170 45 7 41-3 38 4 38-6 42-7-2 4-42-3-36 4-39Z" fill="#173c3c"/>
+          <path d="m183 46 5 40-5 39 4 37-5 41m20-157 5 43-6 39 6 38-4 37m19-157 6 44-5 38 7 39-3 36m17-156 3 41-4 41 5 37-4 36" fill="none" stroke="#8dac9a" stroke-width="1.7"/>
+          <path d="m191 46 5 41-5 39 5 38-5 39m21-157 5 43-5 39 7 39-4 36m21-156 3 41-4 40 5 38-4 35" fill="none" stroke="#27574f" stroke-width="3.4"/>
+          <path d="m169 196 12 4 12-3 14 4 15-4 13 3 12-3" fill="none" stroke="#aac0a5" stroke-width=".8"/>
+        </g>
+      </g>
+      <g data-part="rail" stroke-linecap="round">
+        <path d="M25 29h206" stroke="#14252a" stroke-width="10"/>
+        <path d="M25 27h206" stroke="url(#va3-meme-nothing-happens-detail-brass)" stroke-width="6"/>
+        <path d="M31 25h192" stroke="#e4ce97" stroke-width="1"/>
+        <circle cx="24" cy="28" r="6" fill="url(#va3-meme-nothing-happens-detail-brass)" stroke="#34423b" stroke-width="1.7"/>
+        <circle cx="231" cy="28" r="6" fill="url(#va3-meme-nothing-happens-detail-brass)" stroke="#34423b" stroke-width="1.7"/>
+        <path d="M57 30v15m15-15v15m14-15v15m84-15v15m16-15v15m15-15v15" stroke="#273b37" stroke-width="4"/>
+        <path d="M56 32v10m15-10v10m14-10v10m84-10v10m16-10v10m15-10v10" stroke="#c8b988" stroke-width="1.2"/>
+      </g>
+    </svg>

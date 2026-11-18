@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" data-vc-object="ego-unique-one" data-art-version="3" data-variant="detail" role="img" aria-labelledby="va3-ego-unique-one-detail-title"><title id="va3-ego-unique-one-detail-title">A left-facing ivory portrait with a long nose, round spectacles, swept-back hair and a high collar in a nicked oxidized-silver setting.</title><defs><linearGradient id="va3-ego-unique-one-detail-steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#edf0ed"/><stop offset="0.24" stop-color="#b6bfc4"/><stop offset="0.42" stop-color="#65717a"/><stop offset="0.53" stop-color="#c8d0d3"/><stop offset="1" stop-color="#596570"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-steel-dark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60717c"/><stop offset="0.35" stop-color="#303d47"/><stop offset="0.6" stop-color="#17222b"/><stop offset="1" stop-color="#4d5c66"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f1e7"/><stop offset="0.18" stop-color="#cbd2d5"/><stop offset="0.39" stop-color="#6b7b85"/><stop offset="0.46" stop-color="#edf2ef"/><stop offset="0.51" stop-color="#475560"/><stop offset="0.8" stop-color="#8f9da5"/><stop offset="1" stop-color="#d7dcda"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-copper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2b68a"/><stop offset="0.3" stop-color="#ba7951"/><stop offset="0.62" stop-color="#81503b"/><stop offset="1" stop-color="#d2996c"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1d7a0"/><stop offset="0.35" stop-color="#c6ab6b"/><stop offset="0.7" stop-color="#76603c"/><stop offset="1" stop-color="#ccb277"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-ivory" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1ead7"/><stop offset="0.65" stop-color="#ddd4bb"/><stop offset="1" stop-color="#b4ac97"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eee6ce"/><stop offset="0.55" stop-color="#d9cdb0"/><stop offset="1" stop-color="#b8a98d"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-oxblood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a45d60"/><stop offset="0.45" stop-color="#783c42"/><stop offset="1" stop-color="#4b262e"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-jade-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a4c5b3"/><stop offset="0.25" stop-color="#4d8b78"/><stop offset="0.7" stop-color="#173e38"/><stop offset="1" stop-color="#77aa94"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-violet-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c0b2ce"/><stop offset="0.28" stop-color="#8e77a3"/><stop offset="0.7" stop-color="#44334f"/><stop offset="1" stop-color="#a48ab7"/></linearGradient><linearGradient id="va3-ego-unique-one-detail-ink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#343e48"/><stop offset="0.65" stop-color="#11171e"/><stop offset="1" stop-color="#080e15"/></linearGradient></defs>
+      <defs>
+        <clipPath id="va3-ego-unique-one-detail-portrait-lens"><ellipse cx="99" cy="111" rx="9.1" ry="10.9"/></clipPath>
+        <linearGradient id="va3-ego-unique-one-detail-portrait-enamel" x1="0" y1="0" x2="1" y2=".7"><stop stop-color="#f5eed9"/><stop offset=".58" stop-color="#e4ddc6"/><stop offset="1" stop-color="#b4b3a4"/></linearGradient>
+      </defs>
+      <g data-part="setting">
+        <path d="m78 34 54-11 51 14 3 11 22 18 6 45-7 36 10 22-19 37-11 12-3 19-70 7-31-9-19-18-16-30 5-23-11-21 4-51 14-26 1-15Z" fill="#0a1016" opacity=".65"/>
+        <path d="m78 29 54-11 51 14 3 11 22 18 6 45-7 36 10 22-19 37-11 12-3 19-70 7-31-9-19-18-16-30 5-23-11-21 4-51 14-26 1-15Z" fill="url(#va3-ego-unique-one-detail-steel-dark)" stroke="#11181e" stroke-width="4"/>
+        <path d="m84 41-15 15-2 12-13 23-4 45 10 21-5 23 16 27 15 15 29 8 61-6 2-17 14-13 16-31-9-22 8-36-6-39-21-18-3-11-43-12Z" fill="#252e34" stroke="#9da9ac" stroke-width="2.2"/>
+        <path d="m88 45 45-10 42 12 4 10 18 15 6 35-8 35 9 21-15 28-14 13-2 16-57 7-27-7-15-14-15-25 5-24-10-21 5-42 12-23 2-12Z" fill="#1b252d" stroke="#10171d" stroke-width="2"/>
+        <path d="m77 31 6 10-9 3-7 7-5-5 6-10Z" fill="#0a1117"/>
+        <path d="m183 205 8-4-5 12-9 5 1-8Z" fill="#0c151b"/>
+        <path d="m87 30 43-8 38 10M51 92l-3 43 10 21m3 32 12 22 15 13m44 12 43-5" fill="none" stroke="#d3dcda" stroke-width="1.5" stroke-linecap="round"/>
+        <g class="va-detail-only" fill="none" stroke="#74887f" stroke-linecap="round">
+          <path d="m65 73 6-9m-16 44 3-11m-3 34 4 8m3 34 3 6m10 31 6 7m72 15 12-1m34-53-5 8m9-69-2-9m-7-36-5-8" stroke-width="2.1"/>
+          <path d="m85 36 8-1m-27 27 3-4m-16 61 2-6m8 82 4 6m94 32 6-1m37-74 1 5m-5-66-1-6" stroke="#c5ceca" stroke-width=".8"/>
+        </g>
+      </g>
+      <g data-part="portrait" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M116 48c-16 10-17 25-24 40-4 8-3 13 3 17l-14 16c-6 5-2 11 11 13l2 5-7 3 7 3-3 6c-7 3-6 9 0 10 5 5 12 5 18 4l3 13 61-27-6-17c11-15 18-38 14-58-4-23-34-39-65-28Z" fill="url(#va3-ego-unique-one-detail-portrait-enamel)" stroke="#151c20" stroke-width="3.2"/>
+        <path d="M117 48c17-9 40-5 55 10 12 13 13 31 6 48l-12 27-14 7 9-23c3-12 3-25-5-34-9-11-25-14-42-13l-10-5 5-11Z" fill="#465259" stroke="#202b30" stroke-width="2.1"/>
+        <path d="M110 57q3-8 10-10m-5 15q4-9 11-12m-5 15q5-8 12-11m-6 14q6-8 13-10m-6 13q5-7 13-9m-7 13q5-7 12-8m-7 13q5-6 11-7m-5 13q5-6 10-8m-5 15q6-7 9-11m-5 18q6-8 8-14m-6 23q7-8 9-17m-9 26q8-7 11-19m-13 27q9-7 12-18m-16 27q11-7 15-19m-18 26 10-12" fill="none" stroke="#c6cec7" stroke-width="1.25"/>
+        <path d="M113 57q3-8 9-10m-4 15q5-8 12-11m-5 15q5-8 12-10m-5 14q5-7 12-9m-5 13q5-7 11-8m-6 13q5-7 11-8m-5 14q5-7 10-9m-5 16q5-7 9-12m-5 21q6-8 8-16m-7 24q7-8 9-18m-11 27q8-6 12-20m-15 29q10-7 13-20" fill="none" stroke="#17242a" stroke-width="1.05"/>
+        <path d="M159 101c9-6 15-1 12 9-1 6-5 12-10 13l-4 10-8 5 5-15 2-13Z" fill="#c8c5b1" stroke="#263036" stroke-width="1.7"/>
+        <path d="m164 106 3-1-1 8-5 6m-4 3-5 7" fill="none" stroke="#6b6f65" stroke-width="1.4"/>
+        <path d="M159 114c-4 9-10 15-15 18m12-13-12 9m8-3-13 10m10-6-14 9m10-5-12 8m8-3-10 7" fill="none" stroke="#3c4649" stroke-width="1.6"/>
+        <path d="M109 163c9-3 15-8 22-11m-20 14 3 9 19-9m18-27 8-5" fill="none" stroke="#8c9185" stroke-width="1.5"/>
+        <path d="m113 166 61-22 7 18-67 27-4-14Z" fill="#e7dfc9" stroke="#20292f" stroke-width="2.6"/>
+        <path d="m174 144 9 15-2 18 19 49-130 1 28-27 16-18 67-25" fill="url(#va3-ego-unique-one-detail-ivory)" stroke="#20292f" stroke-width="2.8"/>
+        <path d="m114 189 65-27 2 15-54 33-28 15H72l29-27Z" fill="#c7c8bb"/>
+        <path d="m181 175 16 48-53 2 9-30Z" fill="#a7afa9"/>
+        <path d="m115 185 60-24m-73 36 14-12m15 25 37-23" fill="none" stroke="#f6eedb" stroke-width="1.8"/>
+        <g class="va-detail-only" fill="none" stroke="#5e6a69" stroke-width=".9" opacity=".78">
+          <path d="m143 179 13-4m-18 10 18-6m-23 12 23-8m-30 16 30-11m-37 18 29-11m-37 18 27-10m-35 17 26-10m39-22 7 18m-4-20 8 22m-5-24 8 24"/>
+          <path d="m121 84 5 2m-10 3 6 1m-8 5 6 1m-14 34 6 3m-12 4 10 2m-6 13 9-1m-6 7 10-1" stroke="#8b8e7e"/>
+        </g>
+        <path d="M90 106c3-2 8-2 11 0" fill="none" stroke="#182127" stroke-width="2"/>
+        <ellipse cx="99" cy="111" rx="10.4" ry="12.1" fill="#e4e8d8" fill-opacity=".22" stroke="#162229" stroke-width="3"/>
+        <ellipse cx="99" cy="111" rx="8.2" ry="9.9" fill="none" stroke="#e2e7df" stroke-width=".8"/>
+        <path d="m109 110 44-3 8-8M89 110l-3 2m8-1 4-1" fill="none" stroke="#152128" stroke-width="2.4"/>
+        <path d="M89 125q-5 4-8 3m10 11 5 1m-3 9 5 1" fill="none" stroke="#8a8d7e" stroke-width="1.2"/>
+        <g clip-path="url(#va3-ego-unique-one-detail-portrait-lens)"><g data-part="glasses-glint" opacity="0"><path d="m77 96 5-2 12 35-5 2Z" fill="#fffbed" opacity=".9"/><path d="m85 96 1-1 12 35-1 1Z" fill="#fffbed"/></g></g>
+      </g>
+    </svg>

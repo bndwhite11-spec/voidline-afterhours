@@ -1,0 +1,7 @@
+/** Shared lighting primitives. Objects retain individually drawn planes and construction. */
+export const artVersion=3;
+export const palette=Object.freeze({ink:'#15191f',outline:'#0b0e12',ivory:'#e6dfc8',silver:'#ced4d8',copper:'#ba7951',brass:'#c5ac72',oxblood:'#71363b',jade:'#5e9387',violet:'#8973a6'});
+export function materialDefs(p){
+ const gradient=(name,stops,xy='x1="0" y1="0" x2="1" y2="1"')=>`<linearGradient id="${p}-${name}" ${xy}>${stops.map(([o,c])=>`<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+ return gradient('steel',[[0,'#edf0ed'],[.24,'#b6bfc4'],[.42,'#65717a'],[.53,'#c8d0d3'],[1,'#596570']])+gradient('steel-dark',[[0,'#60717c'],[.35,'#303d47'],[.6,'#17222b'],[1,'#4d5c66']])+gradient('chrome',[[0,'#f4f1e7'],[.18,'#cbd2d5'],[.39,'#6b7b85'],[.46,'#edf2ef'],[.51,'#475560'],[.8,'#8f9da5'],[1,'#d7dcda']])+gradient('copper',[[0,'#e2b68a'],[.3,'#ba7951'],[.62,'#81503b'],[1,'#d2996c']])+gradient('brass',[[0,'#f1d7a0'],[.35,'#c6ab6b'],[.7,'#76603c'],[1,'#ccb277']])+gradient('ivory',[[0,'#f1ead7'],[.65,'#ddd4bb'],[1,'#b4ac97']])+gradient('paper',[[0,'#eee6ce'],[.55,'#d9cdb0'],[1,'#b8a98d']])+gradient('oxblood',[[0,'#a45d60'],[.45,'#783c42'],[1,'#4b262e']])+gradient('jade-glass',[[0,'#a4c5b3'],[.25,'#4d8b78'],[.7,'#173e38'],[1,'#77aa94']])+gradient('violet-glass',[[0,'#c0b2ce'],[.28,'#8e77a3'],[.7,'#44334f'],[1,'#a48ab7']])+gradient('ink',[[0,'#343e48'],[.65,'#11171e'],[1,'#080e15']]);
+}

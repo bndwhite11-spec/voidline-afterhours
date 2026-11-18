@@ -73,7 +73,7 @@ test('auth, message, modal and metadata sizes scale relatively without shrinking
  assert.match(css,/:root\[data-vh-font="17"\]\s*\{\s*--vl-text-scale:\s*1\.133/);assert.match(css,/:root\[data-vh-font="19"\]\s*\{\s*--vl-text-scale:\s*1\.266/);
  assert.doesNotMatch(css,/\.vh-app\[data-font=/);assert.doesNotMatch(css,/font(?:-size)?:\s*\d+px/);assert.doesNotMatch(entryCSS,/font-size:\s*\d+px/);
  for(const match of css.matchAll(/font-size:\s*calc\(([.\d]+)rem/g))assert(Number(match[1])>=.75,match[0]);
- assert.match(css,/\.vh-auth-card h1\s*\{[^}]*1\.875rem/);assert.match(css,/--vh-message-size:\s*calc\(\.9375rem/);
+ assert.match(css,/\.vh-auth-card h1\s*\{[^}]*1\.875rem/);assert.match(css,/--vh-message-size:\s*calc\(1rem/);
  for(const selector of ['.vh-dialog-body>h2','.vh-toast','.vh-field','.vh-message time'])assert(css.includes(selector));
 });
 test('Friends, Search, Saved and admin dialogs use the same scaled type and contrast tokens',()=>{

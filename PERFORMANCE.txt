@@ -22,3 +22,12 @@ into a mobile performance or product-wide security claim.
 
 Historical archive-only microbenchmarks live in prior Git history. Their local
 journal timings do not describe the current shared messenger's performance.
+
+EDITION3 ARTWORK
+81 authored masters produce324 fingerprinted mini/card/detail/silhouette SVGs.
+The public optical/motion client is130,675bytes (37,361bytes gzip in a local
+size calculation). Large scenes load only on inspection/explicit preview.
+Named part motion totals304 layers/1,557 keyframes, bounded per-object single
+plays with cancellation/reduced motion. These counts are source measurements,
+not evidence of browser frame rate. Inkscape contact/optical/silhouette renders
+and sampled-transform filmstrips establish illustration proof only.
