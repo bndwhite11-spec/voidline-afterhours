@@ -16,7 +16,7 @@ SOURCE BOUNDARIES
   dist/admin.js/.css            owner UI; server authorization is independent
   dist/notifications.js         deliberate Web Push device enrollment
   dist/help.html/.css           public security/recovery/privacy/terms/support
-  src/art/                     editable optical/detail/silhouette/motion masters
+  src/art/                     credited web-source images and safe reveal wrappers
   scripts/build-art.mjs         fingerprints, provenance and lazy asset compiler
   dist/art-review.*             public asset gallery and deliberate previews
   src/secure-messenger.js       maintained Matrix/Rust transport and lifecycle
@@ -39,7 +39,11 @@ SOURCE BOUNDARIES
   db/schema.ts; drizzle/        versioned schema, snapshots and migrations
 
 Do not remove dist/ as build output: most of it is authored application source.
-Generated outputs include collectible-art.js, art/v3/, passkey-client.js,
+Normal art builds require all83 actual web-source entries; historical vector
+geometry is not a silent production fallback. Source images remain local, hashed
+and credited; no source image bytes enter startup JS.
+
+Generated outputs include collectible-art.js, art/v4/, passkey-client.js,
 secure-messenger.js/legal/WASM,
 dist/server, packaged migration metadata and downloads. Build those from src/
 and scripts/, never hand-edit them. The production allowlist excludes sample

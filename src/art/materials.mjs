@@ -1,5 +1,5 @@
 /** Shared lighting primitives. Objects retain individually drawn planes and construction. */
-export const artVersion=3;
+export const artVersion=4;
 export const palette=Object.freeze({ink:'#15191f',outline:'#0b0e12',ivory:'#e6dfc8',silver:'#ced4d8',copper:'#ba7951',brass:'#c5ac72',oxblood:'#71363b',jade:'#5e9387',violet:'#8973a6'});
 export function materialDefs(p){
  const gradient=(name,stops,xy='x1="0" y1="0" x2="1" y2="1"')=>`<linearGradient id="${p}-${name}" ${xy}>${stops.map(([o,c])=>`<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient>`;

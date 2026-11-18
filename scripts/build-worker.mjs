@@ -32,7 +32,19 @@ const productionRoots = new Set(['art','art-motion.css','art-review.html','art-r
   'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
 const assets = {};
-let assetBytes = 0;
+// Each downloaded raster can appear as a public source file and as an embedded
+// data URI in several self-contained SVG variants. Keep one copy in the Worker;
+// reconstruct exact SVG bytes at response time rather than tripling image data.
+const rasterData = Object.create(null);
+const rasterMarker = '__VOIDLINE_STATIC_RASTER_SHA256_';
+const rasterURI = /data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})/g;
+let assetBytes = 0, rasterOccurrences = 0, rasterReferencedBytes = 0, rasterUniqueBytes = 0;
+function internRaster(bytes) {
+  const key = createHash('sha256').update(bytes).digest('hex');
+  rasterOccurrences++; rasterReferencedBytes += bytes.length;
+  if (!Object.hasOwn(rasterData,key)) { rasterData[key] = bytes.toString('base64'); rasterUniqueBytes += bytes.length; }
+  return key;
+}
 async function collect(directory, prefix = '') {
   const entries = await readdir(directory, { withFileTypes: true });
   entries.sort((a, b) => a.name.localeCompare(b.name));
@@ -45,13 +57,35 @@ async function collect(directory, prefix = '') {
     else if (entry.isFile()) {
       const bytes = await readFile(filename);
       assetBytes += bytes.length;
-      const compressed = (bytes.length>32768||entry.name.endsWith('.svg')&&bytes.length>1024) ? gzipSync(bytes,{level:9}) : null;
-      const encoded = compressed && compressed.length<bytes.length*.85 ? compressed : bytes;
-      assets[`/${relative}`] = {
-        body: encoded.toString('base64'),
-        gzip: encoded!==bytes,
-        type: contentTypes[path.extname(entry.name).toLowerCase()] || 'application/octet-stream',
+      const extension = path.extname(entry.name).toLowerCase();
+      const metadata = {
+        type: contentTypes[extension] || 'application/octet-stream',
         etag: `"${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}"`,
+      };
+      if (relative.startsWith('art/sources/') && /[.](?:png|jpe?g|webp)$/i.test(relative)) {
+        assets[`/${relative}`] = {...metadata,rasterKey:internRaster(bytes)};
+        continue;
+      }
+      let stored = bytes;
+      const rasterRefs = [];
+      if (relative.startsWith('art/') && extension === '.svg') {
+        const source = bytes.toString('utf8');
+        if (source.includes(rasterMarker)) throw new Error('Reserved raster marker in SVG: '+relative);
+        const template = source.replace(rasterURI,(_match,mime,base64) => {
+          const image = Buffer.from(base64,'base64');
+          if (image.toString('base64') !== base64) throw new Error('Noncanonical embedded raster in '+relative);
+          const key = internRaster(image), placeholder = rasterMarker+key+'_'+mime.slice(6)+'__';
+          if (!rasterRefs.some(ref => ref.placeholder === placeholder && ref.mime === mime)) rasterRefs.push({placeholder,key,mime});
+          return placeholder;
+        });
+        if (rasterRefs.length) stored = Buffer.from(template,'utf8');
+      }
+      const compressed = (stored.length>32768||extension==='.svg'&&stored.length>1024) ? gzipSync(stored,{level:9}) : null;
+      const encoded = compressed && compressed.length<stored.length*.85 ? compressed : stored;
+      assets[`/${relative}`] = {...metadata,
+        body: encoded.toString('base64'),
+        gzip: encoded!==stored,
+        ...(rasterRefs.length?{rasterRefs}:{}),
       };
     } else throw new Error(`Unexpected symlink or special asset: ${relative}`);
   }
@@ -61,6 +95,7 @@ if (!assets['/index.html']) throw new Error('Missing dist/index.html. Existing s
 
 const runtime = `
 const VOIDLINE_ASSETS = ${JSON.stringify(assets)};
+const VOIDLINE_STATIC_RASTERS = ${JSON.stringify(rasterData)};
 function matrixConnectOrigin(env) {
   try { const u=new URL(env?.MATRIX_HOMESERVER);return u.protocol==='https:'&&u.origin===u.href.replace(/\\/$/,'') ? ' '+u.origin : ''; } catch {return '';}
 }
@@ -103,7 +138,7 @@ async function serveVoidline(request, env, ctx) {
   if (!asset) return new Response('Not found', {status: 404});
   const headers = {
     'content-type': asset.type,
-    'cache-control': pathname.startsWith('/art/v3/') && /[.][a-f0-9]{12}[.]svg$/.test(pathname) ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'cache-control': pathname.startsWith('/art/') && /[.][a-f0-9]{12,64}[.](?:svg|webp|png|jpg)$/.test(pathname) ? 'public, max-age=31536000, immutable' : 'no-cache',
     'etag': asset.etag,
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
@@ -112,11 +147,23 @@ async function serveVoidline(request, env, ctx) {
   };
   if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
+  if (asset.rasterKey) {
+    const bytes = Uint8Array.from(atob(VOIDLINE_STATIC_RASTERS[asset.rasterKey]), c => c.charCodeAt(0));
+    return new Response(bytes, {headers});
+  }
   const bytes = Uint8Array.from(atob(asset.body), c => c.charCodeAt(0));
   // The Sites proxy owns HTTP content encoding. Keep compressed bytes only
   // inside the Worker bundle, then restore the original stream before handing
   // it to the proxy; otherwise an outer gzip layer hides an inner gzip file.
   const body = asset.gzip ? new Response(bytes).body.pipeThrough(new DecompressionStream('gzip')) : bytes;
+  if (asset.rasterRefs) {
+    const restored = body instanceof Uint8Array ? body : new Uint8Array(await new Response(body).arrayBuffer());
+    let svg = new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(restored);
+    for (const reference of asset.rasterRefs) {
+      svg = svg.split(reference.placeholder).join('data:'+reference.mime+';base64,'+VOIDLINE_STATIC_RASTERS[reference.key]);
+    }
+    return new Response(new TextEncoder().encode(svg), {headers});
+  }
   return new Response(body, {headers});
 }
 
@@ -163,4 +210,4 @@ if (currentLocalConfig !== localConfig) {
   await writeFile(nextConfig, localConfig);
   await rename(nextConfig, localConfigPath);
 }
-console.log(`Built self-contained Worker with ${Object.keys(assets).length} assets (${assetBytes} source bytes; ${Buffer.byteLength(bundle)} Worker bytes).`);
+console.log(`Built self-contained Worker with ${Object.keys(assets).length} assets (${assetBytes} source bytes; ${Buffer.byteLength(bundle)} Worker bytes). Shared ${Object.keys(rasterData).length} raster payloads across ${rasterOccurrences} references (${rasterUniqueBytes} unique bytes; ${rasterReferencedBytes-rasterUniqueBytes} repeated raster bytes omitted).`);

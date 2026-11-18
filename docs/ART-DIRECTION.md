@@ -1,47 +1,15 @@
-# VOIDLINE art direction / edition 3
+# VOIDLINE art direction / edition4
 
-The preserved full brief is `VOIDLINE-MEGA-IMPROVEMENT-8.txt`. Later user steering requires accurate names for recognized badges, a larger CHUD/Chudjak/Wojak meme family, and original gifts informed by Telegram collectible construction and motion. **Do not ship copies of Telegram’s named NFT gifts.** Their names, models and downloaded frames belong only to research. The final catalog is47 decorative badges and32 original gift designs, with2 earned awards separate.
+The latest user correction requires actual web images rather than newly generated artwork, including gifts, LARP PRO MAX, Blockchain and Ledger. The preserved improvement8 brief remains; `VOIDLINE-IMPROVEMENT-9-ADDENDUM.txt` states the superseding source-art direction. Current scope is49 free decorative badges,32 gifts and2 separately earned awards.
 
-Existing account IDs, catalog IDs, owned instances, showcase selections and legitimate awards remain. Display-name corrections retain aliases: XRP, Max Stirner, Chudjak, Bitcoin, Ethereum, Solana, Dogecoin and Reply Guy. None of these names or images signifies holdings, official affiliation, ideology, an earned achievement or platform authority.
+`web-badges.mjs`, `web-badges-objects.mjs`, `web-gifts-a.mjs` and `web-gifts-b.mjs` contain actual source metadata. `web-sources.mjs` rejects duplicate IDs. Production pixels under `/art/sources/` are conventional crops, masks, rasterizations or disclosed collages of real photographs, human illustrations, official marks and meme references. Their source URLs, creator/rights information and changes travel through the backend catalog, inspection, public manifest and SVG exports. Unknown source licenses stay unknown. No image generation or generative fill is used in edition4.
 
-## Visual direction
+`web-art.mjs` wraps these actual images with geometric presentation and eight kinds of short image opening effect. It does not redraw the photographed object or claim original authorship of source pixels. Static images remain complete. The runtime mounts only one trusted embedded PNG/JPEG image, validates its SHA256 against the compiled metadata, rewrites local IDs and permits local uses only of that image. Remote images, arbitrary SVG data, scripts and foreignObject remain rejected.
 
-Graphite and restrained acid-lime organize the interface. Object artwork uses ivory, oxblood, jade, brass, smoked glass and precise chrome. Draw anatomy, material planes, thickness, occlusion and attachments. Keep silhouettes distinct. Avoid generic gradient-filled logo cutouts, uniform circular frames and automatic decorative sparkle.
+The normal compiler requires web coverage for every object; old vector bodies cannot quietly return to production. Fingerprinted mini/card/detail/alpha-silhouette SVGs live under `/art/v4/`. Optical images load from their small fixed source paths; full raster bytes are absent from startup JavaScript. Large scenes mount only on demand. Shared raster bytes are deduplicated in the Worker and exact public SVG bytes reconstructed at response time.
 
-The first six quality-gate objects were Max Stirner, Chudjak’s curtain scene, LARP PRO MAX, XRP, Chrome Rose and Midnight Tape. Their actual SVGs were rasterized with Inkscape at optical/card/inspection/silhouette sizes. The rose was revised after review. All subsequent art uses the same contract and review process. This establishes illustration evidence, not browser playback or mobile layout verification.
+Gift effects are deliberate previews and acknowledged receipt opening presentations. They never mint, transfer, verify an external NFT or claim a real filmed object transformation. Stop, close, navigation, account changes, hidden documents and reduced motion restore the still. Keep ownership and earned awards authoritative on the server.
 
-## Editable module contract
+Graphite and acid lime organize the shell, while source artwork supplies its real colors. Preserve readable text, quiet navigation and profile privacy. Keep real inputs visible, keyboard focus clear and narrow Collection/inspection panes usable.
 
-Art packs in `src/art/` export object maps. Each known ID maps to:
-
-```js
-{
-  name, type: 'badge' | 'gift' | 'earned', series, material, alt,
-  mini: '<g>…</g>', // separately authored24×24, inspected at16/20/24px
-  body: prefix => '<g>…</g>', //256×256 scene with named construction layers
-  silhouette: '<path…/>',
-  motion: { duration: 1280, layers: [
-    { name: 'visor', origin: [128,116], frames: [
-      {at:0}, {at:.35,rotate:18}, {at:.8,rotate:0}, {at:1}
-    ] }
-  ] }
-}
-```
-
-`body(prefix)` receives a safe unique prefix. Parts use `<g data-part="visor">`. Repeated named parts deliberately move together. Build around credible pivots and attachment points. Do not substitute whole-card bobbing for part movement. Omitted motion transform fields have neutral defaults. Motion data is declarative; arbitrary JavaScript is not accepted.
-
-Shared material gradients live in `materials.mjs`; object-local definitions use prefix IDs. `va-detail-only` can omit microscopic inspection detail from cards. Inscriptions use real text with fallback fonts. Production SVGs contain no remote images, external references, scripts, foreignObject or SMIL.
-
-## Production architecture
-
-`catalog.mjs` merges original, culture, extra, genre and gift packs. `scripts/build-art.mjs` validates identity coverage, object contracts and bound choreography; it emits mini/card/detail/silhouette SVGs with content fingerprints under `/art/v3/`, plus a provenance manifest. The client bundle contains optical marks and motion metadata; full SVG scenes load on inspection or explicit preview.
-
-Static artwork is always complete. Hover/focus, deliberate previews and acknowledged receipt reveals remain separate. The runner animates named parts with Web Animations, bounded900–1800ms sequences, segment easing and a final settled hold. Stop, closing, replacement, account lock, visibility loss or reduced motion restore the complete still. There is no perpetual background animation or autoplay sound. Previewing unowned art never grants, transfers or claims anything.
-
-`gift-bases.mjs` contains the8 original base-inspired gifts: Chudjak Plush, Wojak Jelly, Doomer Bloom, Brainrot Pop, LARP Cap, Spook Crystal, LARP Helmet and Copium Cartridge. `telegram-references.mjs` documents actual reference-frame observations only. Reference metadata must never overwrite a product ID, name or type. No third-party TGS, preview image, rarity, edition, marketplace price or blockchain-ownership record is shipped.
-
-## Review artifacts and limits
-
-`scripts/review-art.mjs --all` exports actual SVG/PNG variants. `scripts/art-contact-sheet.mjs --all` produces the contact sheet and optical/silhouette proof. `scripts/render-art-motion.py` samples the same named-part keyframes into a filmstrip/GIF; these are rendered diagrams rather than screen recordings. The public `/art-review.html` shows actual generated assets and deliberate previews without account APIs.
-
-Review alt text, source credits and meaning with the visual forms. Cultural sources and creator attribution are in `COLLECTIBLE-RESEARCH.md` and the manifest. Research access is not a license or endorsement. Earned awards and real role indicators stay separate from decorative genre artwork. Browser/device acceptance is reported honestly in the release report.
+Illustration evidence uses actual PNG/JPEG decode and Inkscape rasterization. Motion filmstrips sample the same part keyframes; controlled DOM/WAAPI tests are not browser playback. Browser/device acceptance and hosted persistence checks are reported separately. Earlier edition3 sources remain in Git and source for recovery, but current artwork is required to use edition4 sources.

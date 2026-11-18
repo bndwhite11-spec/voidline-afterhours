@@ -1,6 +1,6 @@
 # Collections, profile decorations and gifts
 
-The current server catalog contains **79 free designs: 47 decorative badges and
+The current server catalog contains **81 free designs: 49 decorative badges and
 32 gifts**. Two earned-achievement illustrations remain separate from the
 catalog and do not count as free decorations. The original 21 decorations and
 12 gifts keep their stable IDs and legitimate ownership records.
@@ -14,7 +14,7 @@ additions are CHUD, Wojak, Soyjak, Gigachad, Cope & Seethe and Pepe.
 Eight additional original gifts are Chudjak Plush, Wojak Jelly, Doomer Bloom,
 Brainrot Pop, LARP Cap, Spook Crystal, LARP Helmet and Copium Cartridge. Telegram
 collectibles inform object staging and motion research. These entries use
-original VOIDLINE names, artwork and choreography; the catalog does not offer
+original VOIDLINE cosmetic names with credited source artwork and image opening effects; the catalog does not offer
 named Telegram NFT collections/models or imply ownership of an external asset.
 Source-collection and model links stay in the research/credit context rather
 than appearing as an owned or transferable NFT identity. Acquiring or sending a
@@ -63,16 +63,27 @@ and reduced-motion settings. Artwork may retain its colors under forced colors;
 functional controls keep system contrast. Real browser/mobile accessibility
 and optical acceptance must be recorded separately from controlled tests.
 
-## Drawings and choreography
+## Actual source artwork and image effects
 
-Editable masters live under `src/art/`. The art compiler supplies independently
-simplified 24px optical drawings, static card SVGs, detailed 256px construction
-scenes and monochrome silhouettes. Inspection and preview load the detailed
-scene lazily. The public art manifest records version, alt text, original drawn
-components, reference sources/credit status, variants and named-part motion.
-See `COLLECTIBLE-RESEARCH.md` for the actual cultural sources and reference-only
-asset boundary. No research bitmap, video or soundtrack is bundled as an app
-illustration.
+Edition4 uses actual downloaded human artwork, photographs, official marks and
+published meme images for all83 objects, including gifts and the two earned
+awards. No image generation or generative fill is used. The four source modules
+in `src/art/web-*.mjs` retain creators, sources, rights/usage status, preparation
+changes and component credits. Unknown reuse licenses remain explicitly unknown.
+`WEB-ART-SOURCES.md`, the public manifest and attribution file record the sources.
+
+Conventional crops, masks, rasterizations, recolors and disclosed collages retain
+source pixels. Captions describe the actual images rather than claiming the old
+drawn materials. Small thumbnails load from fixed hashed PNG paths. Card/detail
+SVGs embed validated PNG/JPEG source bytes. Hash-bound mounting permits one known
+raster and local uses, rejects arbitrary remote image references and rewrites IDs.
+Large scenes load only on demand; full image data is absent from startup JS.
+The Worker shares raster bytes across public originals and SVG templates while
+serving exact original asset bytes. Downloaded SVG descriptions include credit.
+
+Eight short image opening patterns offer folds, fans, shutters, turns, panels,
+slides and wobble. These are presentation effects on real source art, not a claim
+that photographed objects were filmed moving or that source NFTs are transferred.
 
 An explicit **Preview animation** is available for catalog art before collection
 and for earned-badge art before the requirement is earned. This is pure artwork
@@ -81,7 +92,7 @@ not imply ownership or success. Hover uses a short dwell and does not continuall
 restart while the pointer remains on the same object. Keyboard and touch users
 have the same explicit preview action.
 
-Named construction parts perform one short object-specific sequence, then hold
+Clipped image panels perform one short presentation sequence, then hold
 a settled pose until stopped/replaced. There is no animation beside every
 message and no default sound. Explicit reduced motion suppresses preview;
 page/dialog replacement, offscreen/hidden state, account lock and preference
@@ -164,7 +175,7 @@ award and gift ownership records are preserved.
 ## Verification boundaries
 
 `backend/cosmetics-test.mjs` uses actual authenticated handlers and migrated
-SQLite for empty accounts, the 47/32 catalog contract, stable renamed identities,
+SQLite for empty accounts, the 49/32 catalog contract, stable renamed identities,
 original-gift acquisition, permission denial,
 retry/grant/transfer atomicity, scoped showcase/privacy, retirement, commit-time
 status changes and immutable recipient preflight/rename behavior.

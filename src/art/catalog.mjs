@@ -5,15 +5,22 @@ import {extras} from './badges-extra.mjs';
 import {genre} from './badges-genre.mjs';
 import {telegramCharacters} from './telegram-characters.mjs';
 import {telegramObjects} from './telegram-objects.mjs';
+import {webSources} from './web-sources.mjs';
+import {createWebArt,assertSafeWebSVG} from './web-art.mjs';
 import {materialDefs,artVersion} from './materials.mjs';
-export const artCatalog=Object.freeze({...originals,...culture,...extras,...genre,...gifts,...telegramCharacters,...telegramObjects,...earned});
+const legacy={...originals,...culture,...extras,...genre,...gifts,...telegramCharacters,...telegramObjects,...earned,
+ 'coin-blockchain':{name:'Blockchain',type:'badge',series:'Chain Signals',material:'Web-sourced artwork',alt:'A web-sourced blockchain mark.'},
+ 'coin-ledger':{name:'Ledger',type:'badge',series:'Chain Signals',material:'Web-sourced artwork',alt:'A web-sourced Ledger hardware-wallet mark.'}};
+export const artCatalog=Object.freeze(Object.fromEntries(Object.entries(legacy).map(([id,a])=>[id,webSources[id]?createWebArt(a,webSources[id]):a])));
 const xml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export {artVersion};
 export function artSVG(id,variant='detail'){
  const item=artCatalog[id];if(!item)throw Error('Unknown artwork '+id);
  if(!['mini','card','detail','silhouette'].includes(variant))throw Error('Invalid art variant');
- const prefix='va3-'+id+'-'+variant,small=variant==='mini',silhouette=variant==='silhouette';
- const content=small?item.mini:silhouette?`<g fill="#10161d" fill-rule="evenodd">${item.silhouette}</g>`:`<defs>${materialDefs(prefix)}</defs>${item.body(prefix)}`;
- if(/<(?:script|foreignObject|image|iframe|animate|set)\b|\bon\w+\s*=|(?:href|src)\s*=/i.test(content))throw Error('Unsafe/external SVG content '+id);
- return `<svg xmlns="http://www.w3.org/2000/svg" width="${small?24:256}" height="${small?24:256}" viewBox="0 0 ${small?24:256} ${small?24:256}" data-vc-object="${xml(id)}" data-art-version="${artVersion}" data-variant="${variant}" role="img" aria-labelledby="${prefix}-title"><title id="${prefix}-title">${xml(item.alt)}</title>${content}</svg>`;
+ const prefix='va'+artVersion+'-'+id+'-'+variant,small=variant==='mini',silhouette=variant==='silhouette';
+ const credits=item.sourceArt?xml([item.sourceArt.creator,item.sourceArt.license,item.sourceArt.sourceURL,item.sourceArt.licenseURL,...(item.sourceArt.components||[]).flatMap(c=>[c.creator,c.license,c.sourceURL,c.licenseURL])].filter(Boolean).join(' · ')):'';
+ const content=small?item.mini:silhouette?`<g fill="#10161d" fill-rule="evenodd">${typeof item.silhouette==='function'?item.silhouette(prefix):item.silhouette}</g>`:(item.sourceArt?item.body(prefix):`<defs>${materialDefs(prefix)}</defs>${item.body(prefix)}`);
+ if(item.sourceArt)assertSafeWebSVG(content,item.sourceArt);
+ else if(/<(?:script|foreignObject|image|iframe|animate|set)\b|\bon\w+\s*=|(?:href|src)\s*=/i.test(content))throw Error('Unsafe/external SVG content '+id);
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="${small?24:256}" height="${small?24:256}" viewBox="0 0 ${small?24:256} ${small?24:256}" data-vc-object="${xml(id)}" data-art-version="${artVersion}" data-variant="${variant}" role="img" aria-labelledby="${prefix}-title"><title id="${prefix}-title">${xml(item.alt)}</title>${credits?`<desc>${credits}</desc>`:''}${content}</svg>`;
 }

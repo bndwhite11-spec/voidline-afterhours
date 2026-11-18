@@ -1,7 +1,7 @@
 """Render the same authored part transforms as still frames; this is not browser QA."""
 from pathlib import Path
 import json,math,subprocess,os,xml.etree.ElementTree as ET
-root=Path('/workspace/work/voidline-output/motion-v18');root.mkdir(exist_ok=True)
+root=Path('/workspace/work/voidline-output/motion-v19');root.mkdir(exist_ok=True)
 items=json.loads((root/'input.json').read_text())
 ET.register_namespace('','http://www.w3.org/2000/svg')
 def ease(x):
@@ -28,7 +28,7 @@ def scene(item,progress,instance):
    if node.attrib.get('data-part')!=layer['name']:continue
    base=node.attrib.get('transform','');node.set('transform',f'translate({ox+v["x"]} {oy+v["y"]}) rotate({v["rotate"]}) scale({v["scaleX"]} {v["scaleY"]}) translate({-ox} {-oy}) '+base)
    rest=float(node.attrib.get('opacity',1));opacity=left.get('opacity',rest)+(right.get('opacity',rest)-left.get('opacity',rest))*q;node.set('opacity',str(opacity))
- value=ET.tostring(svg,encoding='unicode');value=value.replace('va3-'+item['id']+'-detail','motion'+str(instance));return value
+ value=ET.tostring(svg,encoding='unicode');value=value.replace('va4-'+item['id']+'-detail','motion'+str(instance));return value
 
 def nested(svg,x,y,size):
  value=ET.fromstring(svg);value.set('x',str(x));value.set('y',str(y));value.set('width',str(size));value.set('height',str(size));return ET.tostring(value,encoding='unicode')

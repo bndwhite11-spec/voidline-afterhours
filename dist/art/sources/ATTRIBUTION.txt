@@ -1,0 +1,604 @@
+VOIDLINE / SOURCE ARTWORK ATTRIBUTION
+Current edition4 / 19 November2026
+
+Actual web photographs, illustrations, marks and meme images.
+Conventional cropping, rasterization, recoloring and composites are described per item.
+No AI image generation or generative fill is used for current collectible art.
+A source URL or brand publication does not imply a reuse license. Unknown rights remain explicit.
+
+LARP PRO MAX [larp]
+Creator: XxxBaloooxxx
+Source: https://commons.wikimedia.org/wiki/File:Man_in_LARP_gear.jpg
+Rights: CC BY-SA 3.0; this cropped/resized derivative is offered under the same license.
+License: https://creativecommons.org/licenses/by-sa/3.0/
+Preparation: Crop from original pixels [65, 55, 515, 505]. Resized with Lanczos and cover placement on a flat #1c2b23 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Max Stirner [ego-unique-one]
+Creator: Friedrich Engels, 1892 memory sketch; first published in John Henry Mackay’s 1898 biography
+Source: https://commons.wikimedia.org/wiki/File:Friedrich_Engels_-_Max_Stirner_(1892)_V02-1.2_raw.jpg
+Rights: Public domain historical drawing (Commons record); underlying author died in 1895; this sketch was published in 1898.
+License: https://commons.wikimedia.org/wiki/File:Friedrich_Engels_-_Max_Stirner_(1892)_V02-1.2_raw.jpg#Licensing
+Preparation: Crop from original pixels [160, 295, 430, 665]. Resized with Lanczos and contain placement on a flat #f4f3ee square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+CHUD [meme-chud]
+Creator: Anonymous reaction-image artist; particular source-image creator not identified by the archive.
+Source: https://knowyourmeme.com/sensitive/memes/chudjak
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [195, 0, 600, 445]. Resized with Lanczos and contain placement on a flat #f4f3ee square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Chudjak [meme-nothing-happens]
+Creator: Original Chudjak reaction-image artist (not identified by archive); curtain artwork by Delapouite.
+Source: https://knowyourmeme.com/sensitive/memes/chudjak
+Rights: Mixed component rights: curtains CC BY 3.0; reaction image has no stated reuse license.
+Preparation: Conventional collage of the actual published Chudjak crop and Delapouite’s human-drawn theater-curtains artwork. Cropped, scaled and layered existing source pixels; no face redraw or AI generation. Transparent PNG with a separately resized optical miniature.
+Component: Anonymous reaction-image artist; particular source-image creator not identified by the archive. / https://knowyourmeme.com/sensitive/memes/chudjak / Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Component: Delapouite / https://game-icons.net/1x1/delapouite/theater-curtains.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Wojak [meme-wojak]
+Creator: Wojak/Feels Guy internet template; particular source-image creator not identified by the archive.
+Source: https://knowyourmeme.com/memes/wojak
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [360, 15, 1155, 895]. Resized with Lanczos and contain placement on a flat #f4f3ee square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Soyjak [meme-soyjak]
+Creator: Anonymous line-drawn Soyjak template; source format documented by Know Your Meme.
+Source: https://knowyourmeme.com/memes/two-soyjaks-pointing
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [210, 230, 665, 900]. Resized with Lanczos and contain placement on a flat #f4f3ee square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Gigachad [meme-gigachad]
+Creator: Krista Sudmalis / SLEEK’N’TEARS (photography); Ernest Khalimov (subject).
+Source: https://knowyourmeme.com/memes/gigachad
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [460, 0, 1080, 720]. Resized with Lanczos and cover placement on a flat #181c22 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Pepe [meme-pepe]
+Creator: Pepe created by Matt Furie for Boy’s Club; particular reaction-image variant artist not identified by the archive.
+Source: https://knowyourmeme.com/memes/pepe-the-frog
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [180, 0, 780, 438]. Resized with Lanczos and contain placement on a flat #cbc9e6 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Doomer [meme-doomer]
+Creator: Anonymous Doomer meme maker; particular source-image creator not identified by the archive.
+Source: https://knowyourmeme.com/memes/doomer
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [280, 0, 665, 525]. Flat-white background patch removes only a stray surrounding caption fragment; character is unchanged.. Resized with Lanczos and contain placement on a flat #f4f3ee square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Bloomer [meme-bloomer]
+Creator: Anonymous Bloomer meme maker; particular source-image creator not identified by the archive.
+Source: https://knowyourmeme.com/sensitive/memes/bloomer
+Rights: Copyright/reuse license not stated on the source page; no public-domain or open-license claim.
+Preparation: Crop from original pixels [350, 45, 905, 600]. Resized with Lanczos and cover placement on a flat #dbeaf1 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Bitcoin [coin-bitforge]
+Creator: Grayliptrot (Commons SVG author/uploader).
+Source: https://commons.wikimedia.org/wiki/File:Bitcoin.svg
+Rights: Public domain (Commons licensing record for the simple Bitcoin logo vector).
+License: https://commons.wikimedia.org/wiki/File:Bitcoin.svg#Licensing
+Preparation: Published SVG rasterized with Inkscape; original vector paths were not redrawn. Resized with Lanczos and contain placement on a flat #181c22 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Ethereum [coin-etherglass]
+Creator: Ethereum.org / Ethereum Foundation brand-asset publication; original logo designer not identified on the download page.
+Source: https://ethereum.org/assets/
+Rights: Official published brand asset; no open redistribution license identified. Brand/trademark rights remain with their owner.
+Preparation: Published SVG rasterized with Inkscape; original vector paths were not redrawn. Resized with Lanczos and contain placement on a flat #181c22 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+XRP [coin-crosssignal]
+Creator: XRP community / XRPL.org published symbol.
+Source: https://xrpl.org/about/xrp
+Rights: Official published brand asset; no open redistribution license identified. Brand/trademark rights remain with their owner.
+Preparation: Published SVG rasterized with Inkscape; original vector paths were not redrawn. Resized with Lanczos and contain placement on a flat #f4f3ee square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Solana [coin-solarstack]
+Creator: Solana Foundation brand assets.
+Source: https://solana.com/branding
+Rights: Official published brand asset; no open redistribution license identified. Brand/trademark rights remain with their owner.
+Preparation: Published SVG rasterized with Inkscape; original vector paths were not redrawn. Resized with Lanczos and contain placement on a flat #181c22 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Dogecoin [coin-moonshibe]
+Creator: Dogecoin.com published Doge illustration; specific illustrator not identified on the asset.
+Source: https://dogecoin.com/
+Rights: Official published brand asset; no open redistribution license identified. Brand/trademark rights remain with their owner.
+Preparation: Published SVG rasterized with Inkscape; original vector paths were not redrawn. Resized with Lanczos and contain placement on a flat #181c22 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+Blockchain [coin-blockchain]
+Creator: Blockchain.com brand design team; original individual designer not identified on the published asset.
+Source: https://www.blockchain.com/
+Rights: Official published brand asset; no open redistribution license identified. Blockchain.com retains brand and trademark rights.
+Preparation: Actual official SVG downloaded from the Blockchain.com homepage. Cropped to the existing left 24×24 block-mark area, rasterized with Inkscape, centered on a transparent 512px canvas and resized to a 64px miniature. PNG encoding only; no recoloring, AI generation, vector tracing or redrawn paths. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Ledger [coin-ledger]
+Creator: Ledger brand design team.
+Source: https://brand.ledger.com/brand-design/logo
+Rights: Official published brand asset; no open redistribution license identified. Brand/trademark rights remain with their owner.
+Preparation: Published SVG rasterized with Inkscape; original vector paths were not redrawn. Resized with Lanczos and contain placement on a flat #181c22 square; prepared as 512px artwork and a separate 64px miniature. No AI generation, vector tracing or synthetic character redraw. Final prepared raster conventionally transcoded to JPEG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery.
+
+404 Angel [angel]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/angel-wings.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #d2dee2, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Ghost Frequency [ghost]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/ghost.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #c1d5cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Velvet Static [velvet]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/ribbon.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #baa5cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Night Shift [night]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/desk-lamp.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #dccd9d, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Unknown Entity [unknown]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/prism.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #c0c9db, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Dead Internet [dead]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/exploding-planet.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #b9bcb8, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Voidwalker [voidwalker]
+Creator: DarkZaitzev
+Source: https://game-icons.net/1x1/darkzaitzev/hooded-figure.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #a7b0c4, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Low Orbit [orbit]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/moon-orbit.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #c5cbd0, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Diamond Hands [coin-diamondhands]
+Creator: Skoll (Open Palm) and Lorc (Cut Diamond)
+Source: https://game-icons.net/1x1/skoll/open-palm.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Conventional composition of two mirrored Skoll Open Palm images and one Lorc Cut Diamond image, resized and recolored; original human-authored path geometry retained. No AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Skoll / https://game-icons.net/1x1/skoll/open-palm.html / CC BY3.0
+Component: Lorc / https://game-icons.net/1x1/lorc/cut-diamond.html / CC BY3.0
+
+Touch Grass [meme-grass]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/grass.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #b0ce9c, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Certified Yapper [meme-yapper]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/old-microphone.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #b7c8cc, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Absolutely Cooked [meme-cooked]
+Creator: Caro Asercion
+Source: https://game-icons.net/1x1/caro-asercion/saucepan.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #d4bb97, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Chronically Online [meme-terminal]
+Creator: Skoll
+Source: https://game-icons.net/1x1/skoll/pc.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #a8c8b2, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Ownness Seal [ego-ownness]
+Creator: Lorc (wax frame) and Friedrich Engels (1892 Max Stirner memory sketch)
+Source: https://game-icons.net/1x1/lorc/wax-seal.html
+Rights: CC BY3.0 wax-frame adaptation; public-domain historical portrait
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Conventionally recolored Lorc’s downloaded wax frame and covered its royal emblem with a circular crop of Engels’s public-domain1892 Stirner sketch. The drawing itself was not generated or redrawn. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Lorc / https://game-icons.net/1x1/lorc/wax-seal.html / CC BY3.0
+Component: Friedrich Engels / https://commons.wikimedia.org/wiki/File:Friedrich_Engels_-_Max_Stirner_(1892)_V02-1.2_raw.jpg / Public domain; historical drawing first published1898
+
+Spook Breaker [ego-spook-breaker]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/book-aura.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #c9c5b2, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Aura Receipt [meme-aura-receipt]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/scroll-unfurled.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #ded7bd, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Aura Farmer [meme-aura-farmer]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/ground-sprout.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #aec79e, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Cardboard Paladin [guild-cardboard-paladin]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/cracked-shield.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #ccb88e, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Guildless Knight [guild-guildless-knight]
+Creator: Caro Asercion
+Source: https://game-icons.net/1x1/caro-asercion/warlord-helmet.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #becbd0, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Side Quest Only [guild-side-quest]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/treasure-map.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #d4c9a7, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Cold Storage [coin-cold-storage]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/usb-key.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #b6c8cc, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Genesis Block [coin-genesis-block]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/cubeforce.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #bdd2cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Moon Pending [coin-moon-pending]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/rocket.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #d3c6ae, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Profile Authored [profile-authored]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/pencil-brush.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #bfd1a7, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Community Contribution [reviewed-contribution]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/spell-book.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Removed the original square background, conventionally recolored the existing paths #bad2b9, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+NPC Energy [meme-npc]
+Creator: Anonymous NPC Wojak template; archived by Know Your Meme
+Source: https://knowyourmeme.com/sensitive/memes/npc-wojak
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/sensitive/memes/npc-wojak
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Copium Reserve [meme-copium]
+Creator: Pepe character created by Matt Furie; Copium remix artist not stated by the source
+Source: https://knowyourmeme.com/sensitive/memes/copium
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/sensitive/memes/copium
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Reply Guy [meme-final-reply]
+Creator: Illustrator not identified by the archived source; Reply Guy article image published by Know Your Meme
+Source: https://knowyourmeme.com/memes/reply-guy
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/reply-guy
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Locked-In Alien [meme-locked-in-alien]
+Creator: Locked-In Alien reaction reference documented by Know Your Meme; original artist not identified
+Source: https://knowyourmeme.com/memes/locked-in-alien-what-is-the-next-step-of-the-operation
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/locked-in-alien-what-is-the-next-step-of-the-operation
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Six / Seven [meme-six-seven]
+Creator: Source gesture demonstration archived by Know Your Meme; photographer not stated
+Source: https://knowyourmeme.com/memes/67-hand-gesture
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/67-hand-gesture
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Dilly Dally [meme-dilly-dally]
+Creator: Anonymous meme collage archived by Know Your Meme; individual photo creators not stated
+Source: https://knowyourmeme.com/memes/born-to-dilly-dally-forced-to-lock-in
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/born-to-dilly-dally-forced-to-lock-in
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Absolute Cinema [meme-absolute-cinema]
+Creator: Martin Scorsese photograph/reaction edit archived by Know Your Meme; photographer and meme editor not stated
+Source: https://knowyourmeme.com/memes/absolute-cinema
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/absolute-cinema
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Forum Wizard [guild-forum-wizard]
+Creator: Wizardposting collage archived by Know Your Meme; the selected panel artist is not verified
+Source: https://knowyourmeme.com/memes/wizardposting
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/wizardposting
+Preparation: Conventional crop, resize and transparent padding of the downloaded reference image; no AI-generated redrawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Cope & Seethe [meme-cope-seethe]
+Creator: Anonymous Cope reaction lettering archived by Know Your Meme
+Source: https://knowyourmeme.com/memes/cope-seethe
+Rights: No reusable asset license stated by the source
+License: https://knowyourmeme.com/memes/cope-seethe
+Preparation: Conventional inversion of the downloaded COPE lettering to ivory ink, white-background removal, crop, resize and transparent padding. Original letter geometry retained. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Chrome Rose [gift-rose]
+Creator: Mauro Cateb
+Source: https://commons.wikimedia.org/wiki/File:Silver-plated_rose_01.jpg
+Rights: CC BY-SA 4.0
+License: https://creativecommons.org/licenses/by-sa/4.0
+Preparation: Hand-masked original photographic pixels around the rose, stem and leaves; cropped, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Midnight Tape [gift-cassette]
+Creator: Fyrsten
+Source: https://commons.wikimedia.org/wiki/File:Audio_cassette.png
+Rights: CC BY-SA 3.0
+License: https://creativecommons.org/licenses/by-sa/3.0
+Preparation: Original transparent illustration resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Pocket Star [gift-star]
+Creator: Perhelion
+Source: https://commons.wikimedia.org/wiki/File:Golden_star_2.svg
+Rights: Public domain
+License: https://creativecommons.org/publicdomain/mark/1.0/
+Preparation: Original human-created SVG rasterization resized and encoded as WebP; no replacement drawing or generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Afterhours Cup [gift-cup]
+Creator: Ross Parmly
+Source: https://commons.wikimedia.org/wiki/File:Black_coffee_cup_(Unsplash).jpg
+Rights: CC0
+License: https://creativecommons.org/publicdomain/zero/1.0/deed.en
+Preparation: Hand-masked original cup, ice cream, spoon and saucer pixels; cropped, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Paper Ghost [gift-ghost]
+Creator: Douglas P. Perkins
+Source: https://commons.wikimedia.org/wiki/File:Gold_origami_ghost.jpg
+Rights: CC BY-SA 3.0
+License: https://creativecommons.org/licenses/by-sa/3.0
+Preparation: Conventional color-threshold background removal with enclosed-mask filling; original paper/ink pixels retained, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Small Surprise [gift-parcel]
+Creator: Noa Paz
+Source: https://commons.wikimedia.org/wiki/File:Surprise_Box.png
+Rights: CC BY-SA 4.0
+License: https://creativecommons.org/licenses/by-sa/4.0
+Preparation: Conventional white-background knockout; original illustrated pixels retained, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Chrome Seraph [gift-seraph]
+Creator: François van Bleyswijck; image: Rijksmuseum
+Source: https://commons.wikimedia.org/wiki/File:Drie_serafijnen_in_verschillende_gedaanten_Verscheiden_afbeeldingen_der_cherubinen_(titel_op_object),_RP-P-1916-361.jpg
+Rights: CC0
+License: https://creativecommons.org/publicdomain/zero/1.0/deed.en
+Preparation: Hand-masked the central seraph from the original public-domain engraving, retaining its original linework and paper tones; resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Obsidian Key [gift-key]
+Creator: Unknown German maker; image: The Metropolitan Museum of Art
+Source: https://commons.wikimedia.org/wiki/File:Key_MET_sf87-11-446s1.jpg
+Rights: CC0
+License: https://creativecommons.org/publicdomain/zero/1.0/deed.en
+Preparation: Hand-masked original photograph around the key and its pierced areas; rotated for optical clarity, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Broken Halo [gift-halo]
+Creator: Unknown ancient maker; Yale University Art Gallery / Yale Digital Dura-Europos Archive
+Source: https://commons.wikimedia.org/wiki/File:Broken_ring_-_YDEA_-_86767.jpg
+Rights: CC0
+License: https://creativecommons.org/publicdomain/zero/1.0/deed.en
+Preparation: Manual contour mask and optical crop; original accession label/background removed; resized to512px WebP. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Midnight Orchid [gift-orchid]
+Creator: Filo gèn'
+Source: https://commons.wikimedia.org/wiki/File:Spathoglottis_plicata_flower_on_black_background.jpg
+Rights: CC BY-SA 4.0
+License: https://creativecommons.org/licenses/by-sa/4.0
+Preparation: Black backdrop made transparent with a deterministic colour key; optical crop and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Sealed Signal [gift-signal]
+Creator: Simon A. Eugster
+Source: https://commons.wikimedia.org/wiki/File:Sealing_wax_on_letters.jpg
+Rights: CC BY-SA 3.0
+License: https://creativecommons.org/licenses/by-sa/3.0
+Preparation: Manual mask isolates the original top envelope; crop, transparent canvas and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Afterhours Ticket [gift-ticket]
+Creator: William Weaver Tomlinson (1915 book); historical ticket maker unknown
+Source: https://commons.wikimedia.org/wiki/File:Hull_and_Selby_Railway_ticket.jpg
+Rights: Public domain
+License: https://creativecommons.org/publicdomain/mark/1.0/
+Preparation: Main ticket panel cropped from the1915 book illustration, excluding its caption; optical padding and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Pocket Doomer [gift-pocket-doomer]
+Creator: Petey21
+Source: https://commons.wikimedia.org/wiki/File:Knitted_rag_doll.jpg
+Rights: CC0
+License: https://creativecommons.org/publicdomain/zero/1.0/deed.en
+Preparation: Manual photographic silhouette mask; ordinary per-channel desaturation/dark colour grading of clothing; crop and512px WebP conversion. This is a knitted mascot reinterpretation, not an exact canonical Doomer likeness. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Orbit Mobile [gift-orbit-mobile]
+Creator: Rama
+Source: https://commons.wikimedia.org/wiki/File:Orrery-IMG_2156-white.jpg
+Rights: CC BY-SA 3.0 fr
+License: https://creativecommons.org/licenses/by-sa/3.0/fr/deed.en
+Preparation: Near-white backdrop removed by deterministic colour key; optical crop and512px WebP conversion. The source is an orrery, presented as the object base for Orbit Mobile. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Last Broadcast [gift-last-broadcast]
+Creator: Joe Haupt  from USA
+Source: https://commons.wikimedia.org/wiki/File:Vintage_Conion_Model_CR-2A_2-Transistor_Radio_(8020299184).jpg
+Rights: CC BY 2.0
+License: https://creativecommons.org/licenses/by/2.0
+Preparation: Manual photographic object mask; crop, transparent canvas and512px WebP conversion. Original product markings retained. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Night Lantern [gift-night-lantern]
+Creator: S. J. Shaw & Co. (1860 object); Cooper Hewitt, Smithsonian Design Museum
+Source: https://commons.wikimedia.org/wiki/File:Lantern_(USA),_1860_(CH_18565165).jpg
+Rights: Public domain
+License: https://creativecommons.org/publicdomain/mark/1.0/
+Preparation: Manual photographic silhouette mask; optical crop and512px WebP conversion. Glass appearance and original strap retained. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+
+Egoist’s Volume [gift-ego-volume]
+Creator: Unknown cover designer; publisher Verlag der Mackay-Gesellschaft; source inventaire.io
+Source: https://commons.wikimedia.org/wiki/File:John_Henry_Mackay,_Max_Stirner_1977.jpg
+Rights: Public domain (simple typographic book cover; Wikimedia PD-ineligible)
+License: https://commons.wikimedia.org/wiki/Template:PD-ineligible
+Preparation: Actual book-cover image fitted on transparent canvas and resized; no redrawing. The photographed book is Mackay’s biography of Max Stirner, not an invented edition. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit.
+Component: Unknown cover designer; publisher Verlag der Mackay-Gesellschaft; source inventaire.io / https://commons.wikimedia.org/wiki/File:John_Henry_Mackay,_Max_Stirner_1977.jpg / Public domain (simple typographic book cover; Wikimedia PD-ineligible) / https://commons.wikimedia.org/wiki/Template:PD-ineligible
+
+Curtain Call [gift-curtain-call]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/theater-curtains.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Delapouite. Source black background removed; curtain icon flat-tinted oxblood and resized. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Delapouite / https://game-icons.net/1x1/delapouite/theater-curtains.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+LARP Starter Kit [gift-larp-kit]
+Creator: Delapouite + Lorc
+Source: https://game-icons.net/1x1/delapouite/leather-armor.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Delapouite and Lorc. Backgrounds removed; armor and sword flat-tinted and conventionally composited into a fictional starter-kit cosmetic. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Delapouite / https://game-icons.net/1x1/delapouite/leather-armor.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+Component: Lorc / https://game-icons.net/1x1/lorc/broadsword.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Aura Meter [gift-aura-meter]
+Creator: ANDREY SHTANKO
+Source: https://commons.wikimedia.org/wiki/File:Analog_panel_(switch)_voltmeter_M_364.jpg
+Rights: CC BY 4.0
+License: https://creativecommons.org/licenses/by/4.0
+Preparation: Manual polygon mask removes the photograph’s circuit-diagram background; actual voltmeter pixels retained and resized. Aura Meter is the fictional cosmetic name, not a claim of aura measurement. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: ANDREY SHTANKO / https://commons.wikimedia.org/wiki/File:Analog_panel_(switch)_voltmeter_M_364.jpg / CC BY 4.0 / https://creativecommons.org/licenses/by/4.0
+
+Copium Reserve Tank [gift-copium-tank]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/chemical-tank.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Lorc. Source background removed, tank flat-tinted jade, and plain COPIUM text added conventionally. A fictional cosmetic, not a real gas product. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Lorc / https://game-icons.net/1x1/lorc/chemical-tank.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Cold Wallet Relic [gift-cold-wallet]
+Creator: Motokoka
+Source: https://commons.wikimedia.org/wiki/File:Ledger_Nano_S_-_Hard_Wallet_-_Cold_Storage_for_Cryptocurrency_03.jpg
+Rights: CC BY-SA 4.0
+License: https://creativecommons.org/licenses/by-sa/4.0
+Preparation: Manual polygon mask removes the tabletop; the real Ledger Nano S photograph is resized on transparency. Cosmetic imagery only; no device, cryptocurrency balance, sponsorship or holdings are granted. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Motokoka / https://commons.wikimedia.org/wiki/File:Ledger_Nano_S_-_Hard_Wallet_-_Cold_Storage_for_Cryptocurrency_03.jpg / CC BY-SA 4.0 / https://creativecommons.org/licenses/by-sa/4.0
+
+Block Zero [gift-block-zero]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/stone-block.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Lorc. Source background removed, block flat-tinted gray, and a plain zero added conventionally. No blockchain asset is represented. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Lorc / https://game-icons.net/1x1/lorc/stone-block.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Last Tab Open [gift-last-tab]
+Creator: No machine-readable author provided. Amtiss assumed (based on copyright claims).
+Source: https://commons.wikimedia.org/wiki/File:Tabulatortaste.jpg
+Rights: Public domain
+License: https://commons.wikimedia.org/wiki/Commons:Licensing
+Preparation: Manual polygon mask isolates the photographed physical Tab key; resized without generative enhancement. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: No machine-readable author provided. Amtiss assumed (based on copyright claims). / https://commons.wikimedia.org/wiki/File:Tabulatortaste.jpg / Public domain / https://commons.wikimedia.org/wiki/Commons:Licensing
+
+Chudjak Plush [gift-chudjak-plush]
+Creator: Unknown original meme artist; documented by Know Your Meme + Lorc
+Source: https://knowyourmeme.com/sensitive/memes/chudjak
+Rights: Unknown — no open reuse license verified for Chudjak + CC BY 3.0
+License: https://knowyourmeme.com/sensitive/memes/chudjak
+Preparation: Conventional collage of actual Chudjak meme pixels and Lorc’s human-drawn stitched fabric-doll icon. Original doll head removed, meme face manually cropped and placed; not a photograph of a manufactured plush. Icon CC BY3; meme license unknown. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Unknown original meme artist; documented by Know Your Meme / https://knowyourmeme.com/sensitive/memes/chudjak / Unknown — no open reuse license verified for Chudjak / https://knowyourmeme.com/sensitive/memes/chudjak
+Component: Lorc / https://game-icons.net/1x1/lorc/voodoo-doll.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Wojak Jelly [gift-wojak-jelly]
+Creator: Unknown original meme artist; documented by Know Your Meme + Delapouite
+Source: https://knowyourmeme.com/memes/wojak
+Rights: Unknown — no open reuse license verified for Wojak + CC BY 3.0
+License: https://knowyourmeme.com/memes/wojak
+Preparation: Conventional collage: actual Wojak facial linework cropped, white paper background keyed out, and overlaid on Delapouite’s flat-tinted jelly icon. No facial redrawing. Icon CC BY3; meme license unknown. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Unknown original meme artist; documented by Know Your Meme / https://knowyourmeme.com/memes/wojak / Unknown — no open reuse license verified for Wojak / https://knowyourmeme.com/memes/wojak
+Component: Delapouite / https://game-icons.net/1x1/delapouite/jelly.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Doomer Bloom [gift-doomer-bloom]
+Creator: Unknown original meme artist; documented by Know Your Meme + Lorc
+Source: https://knowyourmeme.com/memes/doomer
+Rights: Unknown — no open reuse license verified for Doomer + CC BY 3.0
+License: https://knowyourmeme.com/memes/doomer
+Preparation: Conventional collage of the actual Doomer head, manually cropped to remove surrounding stereotype captions, with Lorc’s human-drawn flower-pot icon. Not a claimed physical object. Icon CC BY3; meme license unknown. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Unknown original meme artist; documented by Know Your Meme / https://knowyourmeme.com/memes/doomer / Unknown — no open reuse license verified for Doomer / https://knowyourmeme.com/memes/doomer
+Component: Lorc / https://game-icons.net/1x1/lorc/flower-pot.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Brainrot Pop [gift-brainrot-pop]
+Creator: Delapouite + Lorc
+Source: https://game-icons.net/1x1/delapouite/spiral-lollipop.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Delapouite and Lorc. Two actual human-drawn source icons flat-tinted and conventionally composited. Brainrot is a genre label, not a falsely attributed named TikTok character. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Delapouite / https://game-icons.net/1x1/delapouite/spiral-lollipop.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+Component: Lorc / https://game-icons.net/1x1/lorc/brain.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+LARP Cap [gift-larp-cap]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/billed-cap.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Delapouite. Actual billed-cap icon background removed and flat-tinted; a plain LARP text label added conventionally. Original cosmetic identity, not Durov’s Cap. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Delapouite / https://game-icons.net/1x1/delapouite/billed-cap.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Spook Crystal [gift-spook-crystal]
+Creator: Lorc + Delapouite
+Source: https://game-icons.net/1x1/lorc/crystal-cluster.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Lorc and Delapouite. Actual crystal and ghost icons background-removed, flat-tinted and conventionally collaged. Original cosmetic, not Astral Shard. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Lorc / https://game-icons.net/1x1/lorc/crystal-cluster.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+Component: Delapouite / https://game-icons.net/1x1/delapouite/floating-ghost.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+LARP Helmet [gift-larp-helmet]
+Creator: Lorc
+Source: https://game-icons.net/1x1/lorc/visored-helm.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Lorc. Actual visored-helm icon background removed, steel-gray flat tint, and plain LARP text added conventionally. Original cosmetic, not Heroic Helmet. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Lorc / https://game-icons.net/1x1/lorc/visored-helm.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+
+Copium Cartridge [gift-copium-cartridge]
+Creator: Delapouite
+Source: https://game-icons.net/1x1/delapouite/energy-tank.html
+Rights: CC BY 3.0
+License: https://creativecommons.org/licenses/by/3.0/
+Preparation: Icons made by Delapouite. Actual energy-tank icon rotated and flat-tinted, then collaged with the actual speedometer icon as an imaginary cartridge gauge. Original cosmetic, not Vintage Cigar or a real inhalable product. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.
+Component: Delapouite / https://game-icons.net/1x1/delapouite/energy-tank.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+Component: Delapouite / https://game-icons.net/1x1/delapouite/speedometer.html / CC BY 3.0 / https://creativecommons.org/licenses/by/3.0/
+

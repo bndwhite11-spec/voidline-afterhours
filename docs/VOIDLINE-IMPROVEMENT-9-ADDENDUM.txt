@@ -1,0 +1,63 @@
+VOIDLINE: AFTERHOURS — current artwork correction
+19 November 2026 / Asia/Yerevan
+
+Use this clarification with the preserved full improvement8 prompt. It replaces
+previous instructions to draw new synthetic/vector illustrations for the current
+badge and gift presentation. Preserve working infrastructure, accounts, ownership,
+old catalog IDs and earned-award rules.
+
+ACTUAL WEB ARTWORK
+The user explicitly requests real web images, including LARP PRO MAX and gifts,
+and does not want AI-generated images. Use actual downloaded human illustrations,
+photographs, meme images and official marks. Do not call newly generated or traced
+images web-sourced. Do not use image generation or generative fill. Conventional
+cropping, background masking, resizing, recoloring where permitted, and disclosed
+collages of actual source pixels are acceptable presentation operations.
+
+Add separate free Blockchain and Ledger badges, with stable IDs coin-blockchain
+and coin-ledger. Blockchain uses Blockchain.com’s actual current mark, Ledger its
+actual published mark. Neither connects a wallet, verifies holdings, collects
+recovery phrases or grants an official role. Preserve direct names XRP, Max
+Stirner, CHUD, Chudjak, Wojak, Soyjak, Gigachad, Cope & Seethe and Pepe.
+
+Current scope:49 decorative badges,32 gifts and2 earned awards. Apply actual
+source art to all83 presentations. Keep earned awards distinct from freely
+collected decorations. Preserve legitimate original IDs and owned gift instances.
+
+GIFTS AND ANIMATIONS
+Keep all32 gifts and their server-owned free grant/transfer/receipt flows. Gifts
+also use actual web artwork. For fictional objects use credited conventional
+collages or clearly described human-made object bases; do not misrepresent a
+stock image’s real material. Original cosmetic names remain recognizable. Do not
+copy the exact Telegram NFT collections into the product or claim their ownership.
+
+Build deliberate image opening effects such as folds, panels, shutters, turns,
+fans and soft wobble around those real assets. Motion is presentation, not proof
+of collection, delivery or a financial transaction. Previews cannot grant gifts.
+Use short single plays and a complete still, with reduced motion, explicit replay
+and reliable cancellation on close/account/navigation/visibility changes. Label
+image effects honestly rather than claiming the photographed object was filmed
+moving or that a rendered filmstrip is a browser screen recording.
+
+SOURCES AND IMPLEMENTATION
+Keep downloaded production pixels local; do not hotlink remote assets at runtime.
+Record creator, source URL, license/usage information, transformations, component
+credits, actual file hashes, dimensions and sizes. Do not invent a license when
+none is stated. Keep attribution in the inspection, public manifest and SVG exports.
+Research access or brand publication alone is not an open-license grant.
+
+Use independently sized source thumbnails, lazy card/detail assets and bounded
+safe image mounting. Verify static formats by actual decode/rasterization; an SVG
+must not silently show a missing-image icon. Source images embedded into SVGs must
+match trusted source bytes and MIME. Reject arbitrary remote SVG image references,
+script, foreignObject and unsafe local uses. Do not ship full raster data in the
+startup JavaScript. Deduplicate shared raster bytes in the self-contained Worker
+while preserving exact public asset bytes, caching, CSP, ETag and HEAD behavior.
+
+Preserve the graphite/lime client, responsive Collection, profiles, search,
+readability and ordinary account flows. Keep the full original prompt’s security
+and data requirements, with truthful limits for unavailable providers/homeserver.
+Verify with current backend/client suites, real XML/image checks, actual vector
+rasterization, controlled animation tests and isolated live accounts. Report actual
+browser/device coverage separately. Publish the reviewed source and matching
+artifacts through the existing public Site and GitHub workflow.

@@ -9,17 +9,17 @@ messages or invented activity. Existing legitimate records remain. Save the
 one-time account recovery code in a password manager.
 
 CURRENT UPGRADE
-An edition3 art system with47 decorative badges,32 original gift designs and2
-separate earned-award drawings. Accurate XRP, Max Stirner and Chudjak identities,
-expanded meme family, authored optical miniatures, material illustration and
-part-based reveals. The8 Telegram-inspired bases become original VOIDLINE
-objects; no source NFT copies, ownership or market value are claimed.
+Edition4 uses actual credited web artwork for49 decorative badges,32 gifts and2
+separate earned-award images. Blockchain and Ledger join the crypto selection.
+LARP PRO MAX uses a real armor photograph; recognized memes and crypto marks use
+actual source images. Conventional source-image collages are disclosed. No image
+generation is used for the current badge/gift art.
 
-A graphite/lime shell, deliberate empty home, dedicated Collection destination,
-searchable/filterable catalog, full inspection, private profile shelf and clear
-preview/grant/transfer/receipt states. Existing accounts, data and owned IDs stay.
-Source and configuration are separate: see docs/UPGRADE-STATUS.md,
-docs/ART-DIRECTION.md and REVIEW-COVERAGE.md for evidence and remaining work.
+Source thumbnails stay small, detailed images load on demand, and gifts have
+short optional image opening effects. Credits and source links appear in item
+inspection and /art-review.html. The graphite/lime shell, empty home, Collection,
+profiles, privacy and persistent account/ownership rules remain. See
+ docs/UPGRADE-STATUS.md and docs/WEB-ART-SOURCES.md for exact evidence and scope.
 
 MESSAGING AND PRIVACY
 Standard messages and their private R2 attachments are service-readable. HTTPS,
@@ -70,7 +70,7 @@ never becomes platform administrator. No dashboard decrypts all private messages
 
 COLLECTIBLES AND LOCAL DATA
 All existing cosmetic IDs, gifts, earned awards and legitimate ownership
-remain. The expanded catalog contains47 decorations and32 original gifts. Free cosmetic art is distinct from authoritative achievements and actual
+remain. The expanded catalog contains49 decorations and32 gifts. Free cosmetic art is distinct from authoritative achievements and actual
 roles. Gift grants and accepted transfers use atomic server ownership; a replay
 is available only after an acknowledged receipt. No financial/token-balance or
 official-affiliation claim is made by crypto/meme artwork.
@@ -88,7 +88,7 @@ restore drill need separate verified setup. See docs/OPERATIONS.md and
 BACKUP-RESTORE.md. A local restore test does not establish production recovery.
 
 DOWNLOADS
- /downloads/voidline-improvement-prompt.txt  complete current artwork/product brief
+ /downloads/voidline-improvement-prompt.txt  full artwork/product brief plus latest web-art correction
  /downloads/voidline-source.zip             source without runtime credentials
  /downloads/voidline-offline.html           offline archive/recovery viewer
 /art-review.html                          public artwork and motion inspection

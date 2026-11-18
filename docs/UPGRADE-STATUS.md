@@ -1,3 +1,15 @@
+# Current edition4 web-art update
+
+Starts at published v18, source2540635ff7187ffa7d898df432643c2f39c67877. The user’s latest correction requires actual web images for badges and gifts and adds Blockchain and Ledger. Edition4 covers49 decorative badges,32 gifts and2 earned-award images with actual local source pixels, credits, factual license status and disclosed conventional image changes. No image generation is used for current art.
+
+Backend catalog IDs and legitimate ownership remain stable. New badge IDs are coin-blockchain and coin-ledger. Source-image captions replace material claims from old generated drawings. Item inspection and the public artwork gallery link the actual sources. Gifts keep their authoritative free grant/transfer/receipt flows and have optional image opening effects. These are neither copied Telegram NFT products nor blockchain transfers.
+
+The renderer requires complete web-source coverage, validates local raster dimensions/bytes/hashes and uses self-contained SVGs with safe embedded PNG/JPEG images. Full images load on demand; small thumbnails contain no full raster payload in startup JavaScript. Worker raster dedup preserves exact public bytes, ETags, HEAD, CSP and proxy-managed HTTP compression. The full uploaded prompt plus latest correction remains downloadable.
+
+No migration, account reset, ownership reset, identity/provider setting or hosting-audience change is added. The previous visual/navigation work and security/infrastructure limits below remain. Actual image/XML/controlled runtime checks, hosted temporary-account results and browser limits are recorded in the release report.
+
+## Previous edition3 delivery
+
 # Current edition3 artwork and product upgrade
 
 This release starts at published v17, commit77f55390c709e6d7fee447e94f7e7ad461f8e711. `VOIDLINE-MEGA-IMPROVEMENT-8.txt` preserves the latest uploaded brief. Subsequent user steering requires original Telegram-inspired gift bases, accurate XRP/Max Stirner/Chudjak names and a larger CHUD/Wojak meme family. Existing accounts, histories, memberships, IDs and legitimate ownership remain. No database migration is added.

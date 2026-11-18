@@ -1,3 +1,17 @@
+# Current web-art update plan — release v19
+
+Start from published v18 (2540635ff7187ffa7d898df432643c2f39c67877). Preserve the public Site, data, permissions and existing ownership. Latest user instructions replace current synthetic art with actual sourced images, including gifts, and add Blockchain/Ledger.
+
+1. Source and view actual human artwork, photographs, meme references and official marks for all83 objects. Record sources, component credits, licenses/unknown rights and conventional preparation changes.
+2. Retain IDs and free server-owned gift/award rules; add two distinct crypto badge definitions and expose truthful captions/credits.
+3. Build safe local raster-backed variants, small source thumbnails and short optional image opening effects. Require complete source coverage and verify hashes/MIME/size before release.
+4. Deduplicate raster payloads in the Worker, preserve exact asset/HEAD/ETag/CSP semantics, build matching source/offline/prompt downloads, and retain the previous release for rollback.
+5. Run focused/full acceptance, actual raster proof and isolated pre/post-release account/history/ownership checks, then commit/push/publish the reviewed result. Distinguish controlled tests from browser/device verification.
+
+No schema migration or new provider/owner bootstrap is part of this art update.
+
+## Previous planning history
+
 # Current upgrade plan — release v18
 
 Start from published v17, source77f55390c709e6d7fee447e94f7e7ad461f8e711. Preserve the existing public Site, accounts, histories, applied migrations and legitimate ownership. The uploaded artwork/product brief is preserved verbatim in `VOIDLINE-MEGA-IMPROVEMENT-8.txt`; later steering adds accurate meme/crypto names, six more genre badges and eight original gifts using researched Telegram collectible bases.

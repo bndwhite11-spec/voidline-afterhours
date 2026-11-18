@@ -15,7 +15,7 @@ downloads.mkdir(exist_ok=True)
 prompt_source = root / 'docs' / 'VOIDLINE-MEGA-IMPROVEMENT-8.txt'
 if not prompt_source.is_file():
     raise ValueError('Missing the authored improvement prompt.')
-prompt_addendum = root / 'docs' / 'VOIDLINE-IMPROVEMENT-8-ADDENDUM.txt'
+prompt_addendum = root / 'docs' / 'VOIDLINE-IMPROVEMENT-9-ADDENDUM.txt'
 if not prompt_addendum.is_file():
     raise ValueError('Missing the latest user-clarification addendum.')
 (downloads / 'voidline-improvement-prompt.txt').write_text(prompt_source.read_text(encoding='utf-8') + '\n\n' + prompt_addendum.read_text(encoding='utf-8'), encoding='utf-8')
@@ -135,6 +135,8 @@ def allowed(path):
         return False
     if len(parts) > 1 and parts[0] == 'dist' and parts[1] in generated_dist_roots:
         return False
+    if len(parts) > 2 and parts[:2] == ('dist', 'art') and re.fullmatch(r'v[0-9]+', parts[2]):
+        return False  # Rebuilt SVG variants; source PNG/JPEG and presentation modules are included.
     if relative == Path('dist/downloads/voidline-source.zip'):
         return False
     if relative == Path('dist/secure-messenger.js'):
