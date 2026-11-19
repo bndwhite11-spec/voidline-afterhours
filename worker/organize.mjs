@@ -6,6 +6,26 @@ const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,mes
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const DEFAULTS={listFilter:'all',notifications:{dm:true,mentions:true,replies:true,community:false,gifts:true,quietHours:{enabled:false,start:'22:00',end:'08:00',timeZone:'UTC'},preview:'generic'}};
 const FILTERS=['all','unread','favorites','dms','communities','archived'];
+// Recheck the actor inside each durable statement. Authentication preflight can
+// race owner suspension/deletion, logout, or an expiring session.
+const databaseNow="CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
+function actorGuard(user){return {sql:`EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND s.account_id=? AND s.revoked_at IS NULL AND s.expires_at>${databaseNow} AND a.account_status='active')`,args:[user.sessionId,user.id]};}
+function guarded(user,...checks){const actor=actorGuard(user);return {sql:[actor.sql,...checks.map(check=>check.sql)].map(sql=>'('+sql+')').join(' AND '),args:[...actor.args,...checks.flatMap(check=>check.args)]};}
+const folderGuard=(id,user)=>({sql:'EXISTS(SELECT 1 FROM organization_folders WHERE id=? AND account_id=?)',args:[id,user.id]});
+function accessGuard(kind,id,user){
+ if(kind==='channel')return {sql:'EXISTS(SELECT 1 FROM live_channels c JOIN live_memberships m ON m.community_id=c.community_id WHERE c.id=? AND m.account_id=?)',args:[id,user.id]};
+ if(kind==='native')return {sql:'EXISTS(SELECT 1 FROM native_conversations c JOIN native_members m ON m.conversation_id=c.id WHERE c.id=? AND m.account_id=?)',args:[id,user.id]};
+ return {sql:'1',args:[]};
+}
+function committed(result){need(result?.meta?.changes>0,409,'organization_access_changed','Your account, session or conversation access changed before this change could be saved. Reload and try again.');}
+function reportGuard(type,id,user){
+ if(type==='community')return {sql:'EXISTS(SELECT 1 FROM live_memberships WHERE community_id=? AND account_id=?)',args:[id,user.id]};
+ if(type==='native-conversation')return accessGuard('native',id,user);
+ if(type==='native-message')return {sql:'EXISTS(SELECT 1 FROM native_messages m JOIN native_members n ON n.conversation_id=m.conversation_id WHERE m.id=? AND n.account_id=?)',args:[id,user.id]};
+ if(type==='message')return {sql:'EXISTS(SELECT 1 FROM live_messages message JOIN live_channels c ON c.id=message.channel_id JOIN live_memberships m ON m.community_id=c.community_id WHERE message.id=? AND m.account_id=?)',args:[id,user.id]};
+ return {sql:`EXISTS(SELECT 1 FROM live_accounts a WHERE a.id=? AND a.username IS NOT NULL AND (EXISTS(SELECT 1 FROM social_requests r WHERE ((r.sender_id=? AND r.recipient_id=a.id) OR (r.recipient_id=? AND r.sender_id=a.id)) AND r.state IN ('pending','accepted')) OR EXISTS(SELECT 1 FROM social_blocks b WHERE b.blocker_id=? AND b.blocked_id=a.id) OR EXISTS(SELECT 1 FROM live_memberships mine JOIN live_memberships theirs ON theirs.community_id=mine.community_id WHERE mine.account_id=? AND theirs.account_id=a.id) OR EXISTS(SELECT 1 FROM native_members mine JOIN native_members theirs ON theirs.conversation_id=mine.conversation_id WHERE mine.account_id=? AND theirs.account_id=a.id)))`,args:[id,user.id,user.id,user.id,user.id,user.id]};
+}
+
 async function readBody(request){
  need(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');
  const reader=request.body?.getReader();need(reader,400,'invalid_body','A request body is required.');let size=0;const chunks=[];
@@ -71,7 +91,8 @@ export async function handleOrganizeRequest(request,env){
    if(method==='POST'){
     if(typeof body.listFilter==='string'&&body.listFilter.startsWith('folder:'))need(await q(db,'SELECT id FROM organization_folders WHERE id=? AND account_id=?',body.listFilter.slice(7),user.id).first(),404,'folder_unavailable','This folder is unavailable.');
     const patch=preferencePatch(body),sqlArgs=patch.map(()=>',?,json(?)').join(''),values=patch.flatMap(([key,value])=>[key,JSON.stringify(value)]);
-    await q(db,`INSERT INTO account_organization(account_id,preferences,updated_at) VALUES(?,json_set('{}'${sqlArgs}),?) ON CONFLICT(account_id) DO UPDATE SET preferences=json_set(account_organization.preferences${sqlArgs}),updated_at=excluded.updated_at`,user.id,...values,now,...values).run();
+    const guard=guarded(user,...(typeof body.listFilter==='string'&&body.listFilter.startsWith('folder:')?[folderGuard(body.listFilter.slice(7),user)]:[]));
+    const result=await q(db,`INSERT INTO account_organization(account_id,preferences,updated_at) SELECT ?,json_set('{}'${sqlArgs}),? WHERE ${guard.sql} ON CONFLICT(account_id) DO UPDATE SET preferences=json_set(account_organization.preferences${sqlArgs}),updated_at=excluded.updated_at WHERE ${guard.sql}`,user.id,...values,now,...guard.args,...values,...guard.args).run();committed(result);
    }
    const row=await q(db,'SELECT preferences FROM account_organization WHERE account_id=?',user.id).first();return json({preferences:preferences(row?.preferences),notificationDelivery:notificationAvailability(env)});
   }
@@ -82,8 +103,11 @@ export async function handleOrganizeRequest(request,env){
     if(body.folderId!==undefined){if(body.folderId!==null)need(typeof body.folderId==='string'&&await q(db,'SELECT id FROM organization_folders WHERE id=? AND account_id=?',body.folderId,user.id).first(),404,'folder_unavailable','This folder is unavailable.');fields.push('folder_id');values.push(body.folderId);}
     if(body.readSeq!==undefined){need(Number.isSafeInteger(body.readSeq)&&body.readSeq>=0,400,'invalid_read','Use a valid reading position.');const max=channel?(await q(db,'SELECT COALESCE(MAX(seq),0) AS seq FROM live_messages WHERE channel_id=?',channel.id).first()).seq:native?(await q(db,'SELECT COALESCE(MAX(seq),0) AS seq FROM native_messages WHERE conversation_id=?',native.id).first()).seq:body.readSeq;fields.push('read_seq');values.push(Math.min(max,body.readSeq));}
     need(fields.length,400,'empty_setting','Choose at least one setting.');
-    if(native)await q(db,`INSERT INTO native_conversation_preferences(account_id,conversation_id,${fields.join(',')},updated_at) VALUES(?,?,${fields.map(()=>'?').join(',')},?) ON CONFLICT(account_id,conversation_id) DO UPDATE SET ${fields.map(field=>field==='read_seq'?'read_seq=MAX(native_conversation_preferences.read_seq,excluded.read_seq)':field+'=excluded.'+field).join(',')},updated_at=excluded.updated_at`,user.id,native.id,...values,now).run();
-    else await q(db,`INSERT INTO organization_targets(account_id,target_key,kind,community_id,channel_id,${fields.join(',')},updated_at) VALUES(?,?,?,?,?,${fields.map(()=>'?').join(',')},?) ON CONFLICT(account_id,target_key) DO UPDATE SET ${fields.map(field=>field==='read_seq'?'read_seq=MAX(organization_targets.read_seq,excluded.read_seq)':field+'=excluded.'+field).join(',')},updated_at=excluded.updated_at`,user.id,key,body.kind,channel?.community_id||null,channel?.id||null,...values,now).run();
+    const guard=guarded(user,accessGuard(body.kind,body.targetId,user),...(body.folderId!==undefined&&body.folderId!==null?[folderGuard(body.folderId,user)]:[]));
+    let result;
+    if(native)result=await q(db,`INSERT INTO native_conversation_preferences(account_id,conversation_id,${fields.join(',')},updated_at) SELECT ?,?,${fields.map(()=>'?').join(',')},? WHERE ${guard.sql} ON CONFLICT(account_id,conversation_id) DO UPDATE SET ${fields.map(field=>field==='read_seq'?'read_seq=MAX(native_conversation_preferences.read_seq,excluded.read_seq)':field+'=excluded.'+field).join(',')},updated_at=excluded.updated_at WHERE ${guard.sql}`,user.id,native.id,...values,now,...guard.args,...guard.args).run();
+    else result=await q(db,`INSERT INTO organization_targets(account_id,target_key,kind,community_id,channel_id,${fields.join(',')},updated_at) SELECT ?,?,?,?, ?,${fields.map(()=>'?').join(',')},? WHERE ${guard.sql} ON CONFLICT(account_id,target_key) DO UPDATE SET ${fields.map(field=>field==='read_seq'?'read_seq=MAX(organization_targets.read_seq,excluded.read_seq)':field+'=excluded.'+field).join(',')},updated_at=excluded.updated_at WHERE ${guard.sql}`,user.id,key,body.kind,channel?.community_id||null,channel?.id||null,...values,now,...guard.args,...guard.args).run();
+    committed(result);
    }
    return json({targets:await targets(db,user.id),limit:1000,contentStored:false});
   }
@@ -94,11 +118,14 @@ export async function handleOrganizeRequest(request,env){
      const count=(await q(db,'SELECT COUNT(*) AS n FROM organization_folders WHERE account_id=?',user.id).first()).n;
      const clientId=body.clientId??crypto.randomUUID();need(typeof clientId==='string'&&/^[a-f0-9-]{36}$/.test(clientId),400,'invalid_retry','Use a stable folder request ID.');
      const prior=await q(db,'SELECT account_id FROM organization_folders WHERE id=?',clientId).first();need(!prior||prior.account_id===user.id,404,'folder_unavailable','This folder is unavailable.');
-     if(!prior){need(count<20,409,'folder_limit','An account can have up to 20 folders.');const result=await q(db,'INSERT OR IGNORE INTO organization_folders(id,account_id,name,position,created_at) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM organization_folders WHERE account_id=?)<20',clientId,user.id,body.name.trim(),count,now,user.id).run();if(result.meta?.changes!==1)need((await q(db,'SELECT account_id FROM organization_folders WHERE id=?',clientId).first())?.account_id===user.id,409,'folder_limit','An account can have up to 20 folders.');}
+     const guard=guarded(user);
+     if(!prior){need(count<20,409,'folder_limit','An account can have up to 20 folders.');const result=await q(db,`INSERT OR IGNORE INTO organization_folders(id,account_id,name,position,created_at) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM organization_folders WHERE account_id=?)<20 AND ${guard.sql}`,clientId,user.id,body.name.trim(),count,now,user.id,...guard.args).run();if(result.meta?.changes!==1){const replay=await q(db,`UPDATE organization_folders SET name=name WHERE id=? AND account_id=? AND ${guard.sql}`,clientId,user.id,...guard.args).run();committed(replay);}}
+     else committed(await q(db,`UPDATE organization_folders SET name=name WHERE id=? AND account_id=? AND ${guard.sql}`,clientId,user.id,...guard.args).run());
     }else if(path.length===2){
      need(await q(db,'SELECT id FROM organization_folders WHERE id=? AND account_id=?',path[1],user.id).first(),404,'folder_unavailable','This folder is unavailable.');
-     if(body.remove===true)await db.batch([q(db,'UPDATE native_conversation_preferences SET folder_id=NULL,updated_at=? WHERE account_id=? AND folder_id=?',now,user.id,path[1]),q(db,'UPDATE organization_targets SET folder_id=NULL,updated_at=? WHERE account_id=? AND folder_id=?',now,user.id,path[1]),q(db,"UPDATE account_organization SET preferences=json_set(preferences,'$.listFilter','all'),updated_at=? WHERE account_id=? AND json_extract(preferences,'$.listFilter')=?",now,user.id,'folder:'+path[1]),q(db,'DELETE FROM organization_folders WHERE id=? AND account_id=?',path[1],user.id)]);
-     else{need(typeof body.name==='string'&&body.name.trim().length>0&&body.name.trim().length<=40&&!/[\u0000-\u001f]/.test(body.name),400,'invalid_folder','Use a folder name between 1 and 40 characters.');const position=body.position??0;need(Number.isSafeInteger(position)&&position>=0&&position<=20,400,'invalid_position','Choose a valid folder position.');await q(db,'UPDATE organization_folders SET name=?,position=? WHERE id=? AND account_id=?',body.name.trim(),position,path[1],user.id).run();}
+     const guard=guarded(user,folderGuard(path[1],user));
+     if(body.remove===true){const result=await db.batch([q(db,`UPDATE native_conversation_preferences SET folder_id=NULL,updated_at=? WHERE account_id=? AND folder_id=? AND ${guard.sql}`,now,user.id,path[1],...guard.args),q(db,`UPDATE organization_targets SET folder_id=NULL,updated_at=? WHERE account_id=? AND folder_id=? AND ${guard.sql}`,now,user.id,path[1],...guard.args),q(db,`UPDATE account_organization SET preferences=json_set(preferences,'$.listFilter','all'),updated_at=? WHERE account_id=? AND json_extract(preferences,'$.listFilter')=? AND ${guard.sql}`,now,user.id,'folder:'+path[1],...guard.args),q(db,`DELETE FROM organization_folders WHERE id=? AND account_id=? AND ${guard.sql}`,path[1],user.id,...guard.args)]);committed(result.at(-1));}
+     else{need(typeof body.name==='string'&&body.name.trim().length>0&&body.name.trim().length<=40&&!/[\u0000-\u001f]/.test(body.name),400,'invalid_folder','Use a folder name between 1 and 40 characters.');const position=body.position??0;need(Number.isSafeInteger(position)&&position>=0&&position<=20,400,'invalid_position','Choose a valid folder position.');committed(await q(db,`UPDATE organization_folders SET name=?,position=? WHERE id=? AND account_id=? AND ${guard.sql}`,body.name.trim(),position,path[1],user.id,...guard.args).run());}
     }else throw new AuthError(404,'not_found','This folder action is unavailable.');
    }
    return json({folders:await folderList(db,user.id)});
@@ -108,7 +135,8 @@ export async function handleOrganizeRequest(request,env){
    await reportAccess(db,user.id,body.targetType,body.targetId);need(['spam','harassment','unsafe','impersonation','other'].includes(body.reason),400,'invalid_reason','Choose a report reason.');
    const detail=body.detailText??'';need(typeof detail==='string'&&detail.length<=2000,400,'invalid_detail','Use at most 2,000 characters.');need(body.disclosureAcknowledged===true,400,'disclosure_required','Confirm which report details you are sharing with the platform owner.');
    await authRateLimit(request,db,'reports',5,now,user.id);const id=crypto.randomUUID();
-   await q(db,"INSERT INTO abuse_reports(id,reporter_id,target_type,target_id,reason,detail_text,status,created_at) VALUES(?,?,?,?,?,?,'open',?)",id,user.id,body.targetType,body.targetId,body.reason,detail.trim(),now).run();
+   const guard=guarded(user,reportGuard(body.targetType,body.targetId,user));
+   committed(await q(db,`INSERT INTO abuse_reports(id,reporter_id,target_type,target_id,reason,detail_text,status,created_at) SELECT ?,?,?,?,?,?,'open',? WHERE ${guard.sql}`,id,user.id,body.targetType,body.targetId,body.reason,detail.trim(),now,...guard.args).run());
    return json({report:{id,status:'open',sharedWith:'platform-owner',includesContent:!!detail.trim()}},201);
   }
   throw new AuthError(404,'not_found','No organization action matches this request.');

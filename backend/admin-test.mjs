@@ -9,9 +9,9 @@ import {authenticate,authHash} from '../worker/auth.mjs';
 const origin='https://owner-test.example',bootstrapToken='test-infrastructure-token-'+crypto.randomUUID();
 const cases=[],test=(name,run)=>cases.push([name,run]);
 class Adapter {
- constructor(sqlite){this.sqlite=sqlite;this.failAudit=false;this.beforeStatusBatch=null;}
- prepare(sql){const db=this.sqlite,adapter=this;return {bind(...values){const s=db.prepare(sql),run=()=>{if(adapter.failAudit&&sql.includes('INSERT INTO admin_audit'))throw Error('Injected audit failure');return {success:true,meta:{changes:s.run(...values).changes}};};return {sql,first:async()=>s.get(...values)||null,all:async()=>({results:s.all(...values)}),run:async()=>run()};}};}
- async batch(statements){if(this.beforeStatusBatch&&statements.some(s=>s.sql.includes('UPDATE live_accounts SET account_status'))){const before=this.beforeStatusBatch;this.beforeStatusBatch=null;await before();}this.sqlite.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());this.sqlite.exec('COMMIT');return result;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}}
+ constructor(sqlite){this.sqlite=sqlite;this.failAudit=false;this.failCleanup=false;this.beforeStatusBatch=null;this.beforeAdminBatch=null;this.beforeFirst=null;this.queue=Promise.resolve();}
+ prepare(sql){const db=this.sqlite,adapter=this;return {bind(...values){const s=db.prepare(sql),run=()=>{if(adapter.failAudit&&/INSERT(?: OR IGNORE)? INTO admin_audit/.test(sql))throw Error('Injected audit failure');if(adapter.failCleanup&&sql.startsWith('DELETE FROM account_emails'))throw Error('Injected cleanup failure');return {success:true,meta:{changes:s.run(...values).changes}};};return {sql,first:async()=>{if(adapter.beforeFirst)await adapter.beforeFirst(sql,values);return s.get(...values)||null;},all:async()=>({results:s.all(...values)}),run:async()=>run()};}};}
+ async batch(statements){const operation=this.queue.then(async()=>{if(this.beforeAdminBatch){const before=this.beforeAdminBatch;this.beforeAdminBatch=null;await before();}if(this.beforeStatusBatch&&statements.some(s=>s.sql.includes('UPDATE live_accounts SET account_status'))){const before=this.beforeStatusBatch;this.beforeStatusBatch=null;await before();}this.sqlite.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());this.sqlite.exec('COMMIT');return result;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=operation.catch(()=>{});return operation;}
 }
 async function fixture(){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');const journal=JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url),'utf8'));for(const entry of journal.entries)sqlite.exec(readFileSync(new URL('../drizzle/'+entry.tag+'.sql',import.meta.url),'utf8'));
@@ -161,5 +161,83 @@ test('failure to record a recovery audit intent prevents any provider request',a
  const f=await fixture(),originalFetch=globalThis.fetch;let calls=0;try{f.bindDirect();f.db.failAudit=true;globalThis.fetch=async()=>{calls++;return new Response('{}');};assert.equal((await f.call('owner','/users/member/recovery',{})).status,503);assert.equal(calls,0);}finally{globalThis.fetch=originalFetch;f.sqlite.close();}
 });
 
+
+const deletionBody=(accountId='member',extra={})=>({confirmAccountId:accountId,reason:'Reviewed account deletion requested by the verified owner',clientId:crypto.randomUUID(),...extra});
+function seedDeletionTarget(f,{password=true}={}){
+ const db=f.sqlite,id='member',now=Date.now();
+ if(password)db.prepare('INSERT INTO auth_credentials(account_id,password_hash,salt,algorithm,iterations,recovery_hash,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(id,'a'.repeat(64),'b'.repeat(64),'fixture',1,'c'.repeat(64),1,1);
+ db.prepare('INSERT INTO auth_identities(provider,subject,account_id,created_at) VALUES(?,?,?,?)').run('google','isolated-provider-subject',id,1);
+ db.prepare('INSERT INTO account_emails(account_id,email,verified_at,created_at,updated_at) VALUES(?,?,?,?,?)').run(id,'isolated-private@example.com',1,1,1);
+ db.prepare('INSERT INTO auth_email_tokens(token_hash,account_id,kind,email,expires_at,created_at) VALUES(?,?,?,?,?,?)').run('d'.repeat(64),id,'reset','isolated-private@example.com',now+60000,1);
+ db.prepare('INSERT INTO account_passkeys(id,account_id,public_key,name,created_at) VALUES(?,?,?,?,?)').run('target-key',id,'isolated-public-key','Fixture key',1);
+ db.prepare('INSERT INTO passkey_challenges(id,account_id,session_id,kind,challenge,origin,rp_id,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)').run('target-challenge',id,f.actors.get(id).sessionId,'authentication','isolated-challenge',origin,'owner-test.example',now,now+60000);
+ db.exec("INSERT INTO organization_folders(id,account_id,name,position,created_at) VALUES('target-folder','member','Private folder',0,1);INSERT INTO account_organization(account_id,preferences,updated_at) VALUES('member','{}',1);INSERT INTO social_requests(id,sender_id,recipient_id,state,created_at,updated_at) VALUES('friend','member','name-only','accepted',1,1)");
+ db.exec("INSERT INTO native_conversations(id,kind,name,created_by,owner_id,client_id,request_hash,created_at,updated_at) VALUES('retained-group','group','Retained group','member','member','seed-group','hash',1,1);INSERT INTO native_members(conversation_id,account_id,joined_at) VALUES('retained-group','member',1),('retained-group','name-only',2),('retained-group','community-owner',3);INSERT INTO native_messages(id,conversation_id,author_id,client_id,text,original_hash,created_at) VALUES('retained-message','retained-group','member','seed-message','Legitimate retained shared text','hash',2);INSERT INTO native_bookmarks(account_id,message_id,created_at,updated_at) VALUES('member','retained-message',2,2)");
+ db.exec("INSERT INTO gift_instances(id,catalog_id,owner_id,origin_kind,created_at) VALUES('retained-gift','gift-rose','member','claim',1);INSERT INTO gift_transfers(id,instance_id,sender_id,recipient_id,client_id,state,created_at) VALUES('pending-transfer','retained-gift','member','name-only','seed-transfer','pending',1);UPDATE gift_instances SET pending_transfer_id='pending-transfer' WHERE id='retained-gift';INSERT INTO gift_showcase(account_id,slot,instance_id) VALUES('member',0,'retained-gift')");
+ for(const [mediaId,kind,state,message]of [['profile-image','avatar','ready',null],['staged-file','attachment','staged',null],['shared-file','attachment','attached','retained-message']])db.prepare('INSERT INTO media_assets(id,owner_id,client_id,object_key,sha256,kind,content_type,bytes,width,height,conversation_id,native_message_id,state,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(mediaId,id,mediaId,'isolated/'+mediaId,'e'.repeat(64),kind,kind==='avatar'?'image/png':'text/plain',128,kind==='avatar'?32:null,kind==='avatar'?32:null,kind==='avatar'?null:'retained-group',message,state,state==='staged'?now+60000:null,1,1);
+ db.prepare('INSERT INTO profile_preferences(account_id,avatar_media_id,updated_at) VALUES(?,?,?)').run(id,'profile-image',1);
+ db.prepare('INSERT INTO push_subscriptions(id,account_id,session_id,endpoint,keys_json,created_at,last_used_at) VALUES(?,?,?,?,?,?,?)').run('target-push',id,f.actors.get(id).sessionId,'https://updates.push.services.mozilla.com/isolated-owner-check','{}',now,now);
+ db.prepare('INSERT INTO matrix_account_links(account_id,matrix_user_id,matrix_subject,homeserver_origin,verified_at,created_at) VALUES(?,?,?,?,?,?)').run(id,'@fixture:matrix.example','fixture','https://matrix.example',1,1);
+}
+test('administrative deletion requires the verified owner, exact ID confirmation, reason and retry ID',async()=>{
+ const f=await fixture();try{
+  f.bindDirect();const body=deletionBody();for(const actor of [undefined,'name-only','community-owner','member'])assert.equal((await f.call(actor,'/users/member/delete',body)).status,actor?403:401);
+  assert.equal((await f.call('owner','/users/owner/delete',deletionBody('owner'))).data.error.code,'owner_protected');
+  for(const invalid of [{confirmAccountId:'other'},{reason:'no'},{reason:'x'.repeat(401)},{clientId:'not-a-uuid'}])assert.equal((await f.call('owner','/users/member/delete',{...body,...invalid})).status,400);
+  for(const options of [{omit:['origin']},{headers:{origin:'https://other.example'}},{omit:['x-voidline-csrf']}])assert.equal((await f.call('owner','/users/member/delete',body,options)).status,403);
+  assert.equal(f.sqlite.prepare("SELECT account_status FROM live_accounts WHERE id='member'").get().account_status,'active');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,0);
+ }finally{f.sqlite.close();}
+});
+test('owner deletion supports native and provider-only targets while preserving shared history, gift provenance and group succession',async()=>{
+ for(const password of [true,false]){const f=await fixture();try{
+  f.bindDirect();seedDeletionTarget(f,{password});const body=deletionBody(),result=await f.ok('owner','/users/member/delete',body);assert.equal(result.deleted,true);assert.equal(result.replayed,false);assert.deepEqual(result.deletedAccount,{id:'member',status:'deleted'});assert.match(result.retained,/remote completion is not implied/);
+  const account=f.sqlite.prepare("SELECT * FROM live_accounts WHERE id='member'").get();assert.equal(account.account_status,'deleted');assert.equal(account.username,null);assert.equal(account.display_name,'Deleted account');assert.equal(account.onboarding_complete,0);
+  for(const table of ['auth_credentials','auth_identities','account_emails','auth_email_tokens','account_passkeys','passkey_challenges','profile_preferences','organization_folders','account_organization','native_members','native_bookmarks','push_subscriptions','gift_showcase'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table+' WHERE account_id=?').get('member').n,0,table);
+  assert.ok(f.sqlite.prepare("SELECT revoked_at FROM auth_sessions WHERE account_id='member'").get().revoked_at);const request=new Request(origin+'/api/auth/session',{headers:{cookie:'__Host-voidline_session='+f.actors.get('member').token}});await assert.rejects(()=>authenticate(request,f.env));
+  assert.equal(f.sqlite.prepare("SELECT owner_id FROM native_conversations WHERE id='retained-group'").get().owner_id,'name-only');assert.equal(f.sqlite.prepare("SELECT text FROM native_messages WHERE id='retained-message'").get().text,'Legitimate retained shared text');assert.equal(f.sqlite.prepare("SELECT author_id FROM native_messages WHERE id='retained-message'").get().author_id,'member');
+  assert.equal(f.sqlite.prepare("SELECT state FROM gift_transfers WHERE id='pending-transfer'").get().state,'cancelled');const gift=f.sqlite.prepare("SELECT * FROM gift_instances WHERE id='retained-gift'").get();assert.equal(gift.owner_id,'member');assert.equal(gift.pending_transfer_id,null);
+  for(const id of ['profile-image','staged-file']){assert.equal(f.sqlite.prepare('SELECT state FROM media_assets WHERE id=?').get(id).state,'deleting');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM media_cleanup WHERE object_key=?').get('isolated/'+id).n,1);}assert.equal(f.sqlite.prepare("SELECT state FROM media_assets WHERE id='shared-file'").get().state,'attached');
+  const queue=f.sqlite.prepare('SELECT * FROM matrix_policy_operations').all();assert.equal(queue.length,1);assert.equal(queue[0].kind,'delete');assert.equal(queue[0].status,'pending');assert.equal(queue[0].requested_by,'owner');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,1);
+  const replay=await f.ok('owner','/users/member/delete',body);assert.equal(replay.replayed,true);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,1);assert.deepEqual(f.sqlite.prepare('PRAGMA foreign_key_check').all(),[]);
+ }finally{f.sqlite.close();}}
+});
+test('deletion receipts reject reused IDs with another target or reason and deleted accounts cannot be reinstated',async()=>{
+ const f=await fixture();try{
+  f.bindDirect();const body=deletionBody();await f.ok('owner','/users/member/delete',body);
+  for(const [target,payload]of [['member',{...body,reason:'Different reviewed reason'}],['name-only',{...body,confirmAccountId:'name-only'}],['missing',{...body,confirmAccountId:'missing'}]]){const conflict=await f.call('owner','/users/'+target+'/delete',payload);assert.equal(conflict.status,409);assert.equal(conflict.data.error.code,'idempotency_conflict');}
+  const deleted=await f.call('owner','/users/member/delete',deletionBody());assert.equal(deleted.status,409);assert.equal(deleted.data.error.code,'account_deleted');assert.equal((await f.call('owner','/users/member/status',{status:'active',reason:'Cannot revive a deleted identity'})).data.error.code,'account_deleted');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,1);
+ }finally{f.sqlite.close();}
+});
+test('concurrent retries acknowledge one deletion receipt and never duplicate remote deactivation',async()=>{
+ const f=await fixture();try{
+  f.bindDirect();f.sqlite.prepare('INSERT INTO matrix_account_links(account_id,matrix_user_id,matrix_subject,homeserver_origin,verified_at,created_at) VALUES(?,?,?,?,?,?)').run('member','@member:matrix.example','member','https://matrix.example',1,1);const body=deletionBody();
+  const responses=await Promise.all([f.call('owner','/users/member/delete',body),f.call('owner','/users/member/delete',body)]);assert.deepEqual(responses.map(r=>r.status),[200,200]);assert.equal(responses.filter(r=>r.data.replayed===false).length,1);assert.equal(responses.filter(r=>r.data.replayed===true).length,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,1);
+ }finally{f.sqlite.close();}
+});
+test('a matching deletion committed between receipt lookup and target read still returns the original receipt',async()=>{
+ const f=await fixture();try{
+  f.bindDirect();const body=deletionBody();let intercepted=false;f.db.beforeFirst=async sql=>{if(!sql.startsWith('SELECT id,username,display_name,account_status,created_at FROM live_accounts'))return;f.db.beforeFirst=null;intercepted=true;const winner=await f.ok('owner','/users/member/delete',body);assert.equal(winner.replayed,false);};
+  const result=await f.ok('owner','/users/member/delete',body);assert.equal(intercepted,true);assert.equal(result.deleted,true);assert.equal(result.replayed,true);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,1);
+ }finally{f.sqlite.close();}
+});
+test('an audit or late cleanup failure rolls back deletion, credentials, media, pending gifts and policy work together',async()=>{
+ for(const failure of ['failAudit','failCleanup']){const f=await fixture();try{
+  f.bindDirect();seedDeletionTarget(f);f.db[failure]=true;assert.equal((await f.call('owner','/users/member/delete',deletionBody())).status,503);
+  assert.equal(f.sqlite.prepare("SELECT account_status FROM live_accounts WHERE id='member'").get().account_status,'active');assert.equal(f.sqlite.prepare("SELECT revoked_at FROM auth_sessions WHERE account_id='member'").get().revoked_at,null);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM auth_credentials WHERE account_id='member'").get().n,1);assert.equal(f.sqlite.prepare("SELECT state FROM media_assets WHERE id='profile-image'").get().state,'ready');assert.equal(f.sqlite.prepare("SELECT state FROM gift_transfers WHERE id='pending-transfer'").get().state,'pending');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM media_cleanup').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,0);
+ }finally{f.sqlite.close();}}
+});
+test('community ownership blocks deletion before and after preflight without inventing a successor',async()=>{
+ for(const late of [false,true]){const f=await fixture();try{
+  f.bindDirect();const own=()=>f.sqlite.exec("INSERT INTO live_communities(id,name,created_by,created_at) VALUES('owned','Retained owned community','member',1);INSERT INTO live_memberships VALUES('owned','member','owner',1)");if(late)f.db.beforeAdminBatch=own;else own();
+  const result=await f.call('owner','/users/member/delete',deletionBody());assert.equal(result.status,409);assert.equal(result.data.error.code,'ownership_transfer_required');assert.equal(f.sqlite.prepare("SELECT created_by FROM live_communities WHERE id='owned'").get().created_by,'member');assert.equal(f.sqlite.prepare("SELECT role FROM live_memberships WHERE community_id='owned'").get().role,'owner');assert.equal(f.sqlite.prepare("SELECT account_status FROM live_accounts WHERE id='member'").get().account_status,'active');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,0);
+ }finally{f.sqlite.close();}}
+});
+test('logout, owner suspension, session expiry and password/passkey expiry at commit deny every destructive owner action',async()=>{
+ const alterations=["revoked_at=1","expires_at=1","reauthenticated_at=1","mfa_verified_at=1"];
+ for(const action of ['delete','status','revoke-sessions'])for(const alteration of [...alterations,'owner-suspended']){const f=await fixture();try{
+  f.bindDirect();f.db.beforeAdminBatch=()=>alteration==='owner-suspended'?f.sqlite.exec("UPDATE live_accounts SET account_status='suspended' WHERE id='owner'"):f.sqlite.exec("UPDATE auth_sessions SET "+alteration+" WHERE account_id='owner'");
+  const body=action==='delete'?deletionBody():action==='status'?{status:'suspended',reason:'Reviewed status change'}:{};const result=await f.call('owner','/users/member/'+action,body);assert.equal(result.status,401,action+' '+alteration);assert.equal(result.data.error.code,alteration==='reauthenticated_at=1'?'reauthentication_required':alteration==='mfa_verified_at=1'?'passkey_required':'sign_in_required');assert.equal(f.sqlite.prepare("SELECT account_status FROM live_accounts WHERE id='member'").get().account_status,'active');assert.equal(f.sqlite.prepare("SELECT revoked_at FROM auth_sessions WHERE account_id='member'").get().revoked_at,null);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM admin_audit').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM media_cleanup').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM matrix_policy_operations').get().n,0);
+ }finally{f.sqlite.close();}}
+});
 let failed=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${cases.length-failed}/${cases.length} platform administration checks passed. Generated SQLite and isolated authenticated sessions; no real owner binding, passkey browser or production action claimed.`);process.exitCode=failed?1:0;

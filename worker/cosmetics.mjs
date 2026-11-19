@@ -82,6 +82,11 @@ const catalog=new Map(COSMETICS.map(c=>[c.id,c]));
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
+// Evaluate access again inside each write: requests authenticated before Block,
+// Delete or session revocation must not restore private account state afterward.
+const databaseNow="CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
+function mutationGuard(user){return {sql:`EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND s.account_id=? AND s.revoked_at IS NULL AND s.expires_at>${databaseNow} AND a.account_status='active')`,binds:[user.sessionId,user.id]};}
+async function requireCurrentActor(db,user){const guard=mutationGuard(user);need(await q(db,'SELECT 1 AS allowed WHERE '+guard.sql,...guard.binds).first(),409,'account_changed','Your account or session changed. Sign in again before changing your collection.');}
 async function bodyJSON(request){
  need(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');
  need(Number(request.headers.get('content-length')||0)<=4096,413,'body_too_large','This request is too large.');
@@ -116,20 +121,21 @@ export async function earnedBadges(db,userId){
  FROM badge_awards a JOIN badge_definitions d ON d.id=a.badge_id LEFT JOIN live_accounts i ON i.id=a.issuer_id
  WHERE a.account_id=? AND a.revoked_at IS NULL AND d.active=1 ORDER BY a.issued_at,a.id`,userId).all()).results.map(row=>({...row,issuer:row.issuer_id?'Reviewed by '+(row.issuer_name||'platform owner'):'VOIDLINE server rule',valid:true}));
 }
-async function materializeLegacy(db,userId,now){
+async function materializeLegacy(db,user,now){
+ const userId=user.id,actor=mutationGuard(user);
  // Deterministic IDs reconcile only existing authoritative server records.
  // A transferred instance retains that ID, so a later refresh cannot mint it again.
  await db.batch([
  q(db,`INSERT OR IGNORE INTO gift_instances(id,catalog_id,owner_id,origin_gift_id,origin_kind,created_at)
  SELECT 'gift:'||g.id,g.catalog_id,g.recipient_id,g.id,'gift',COALESCE(g.opened_at,g.created_at) FROM cosmetic_gifts g
- WHERE g.recipient_id=? AND g.state='opened' AND NOT EXISTS(SELECT 1 FROM gift_instances i WHERE i.origin_gift_id=g.id) ORDER BY g.created_at LIMIT 100`,userId),
+ WHERE g.recipient_id=? AND g.state='opened' AND ${actor.sql} AND NOT EXISTS(SELECT 1 FROM gift_instances i WHERE i.origin_gift_id=g.id) ORDER BY g.created_at LIMIT 100`,userId,...actor.binds),
  q(db,`INSERT OR IGNORE INTO gift_instances(id,catalog_id,owner_id,origin_kind,created_at)
  SELECT 'claim:'||o.account_id||':'||o.cosmetic_id,o.cosmetic_id,o.account_id,'legacy-claim',o.claimed_at FROM cosmetic_ownership o
- WHERE o.account_id=? AND o.cosmetic_id LIKE 'gift-%' AND NOT EXISTS(SELECT 1 FROM cosmetic_gifts g WHERE g.recipient_id=o.account_id AND g.catalog_id=o.cosmetic_id AND g.state='opened')`,userId)
+ WHERE o.account_id=? AND o.cosmetic_id LIKE 'gift-%' AND ${actor.sql} AND NOT EXISTS(SELECT 1 FROM cosmetic_gifts g WHERE g.recipient_id=o.account_id AND g.catalog_id=o.cosmetic_id AND g.state='opened')`,userId,...actor.binds)
  ]);
 }
-async function inventory(db,userId){
- await materializeLegacy(db,userId,Date.now());
+async function inventory(db,user){
+ const userId=user.id;await materializeLegacy(db,user,Date.now());
  const [owned,profile,pending,instances,preferences,showcase,awards]=await Promise.all([
   q(db,'SELECT cosmetic_id,claimed_at FROM cosmetic_ownership WHERE account_id=? ORDER BY claimed_at,cosmetic_id',userId).all(),
   q(db,'SELECT equipped_id,gifts_enabled FROM cosmetic_profiles WHERE account_id=?',userId).first(),
@@ -152,30 +158,33 @@ export async function handleCosmeticsRequest(request,env){
   const url=new URL(request.url),path=url.pathname.replace(/^\/api\/cosmetics\/?/,'').split('/').filter(Boolean),method=request.method;
   need(url.pathname.startsWith('/api/cosmetics/'),404,'not_found','This collection page is unavailable.');
   need(['GET','POST'].includes(method),405,'method_not_allowed','This action is unavailable.');
-  const user=await authenticate(request,env),db=env.DB,now=Date.now();
+  const user=await authenticate(request,env),db=env.DB,now=Date.now(),actor=mutationGuard(user);
   let body;if(method==='POST'){body=await bodyJSON(request);await validateSessionMutation(request,user,body);await authRateLimit(request,db,'cosmetics',60,now,user.id);}
   if(path.length===1&&path[0]==='catalog'&&method==='GET')return json({items:await effectiveCatalog(db),free:true});
-  if(path.length===1&&path[0]==='inventory'&&method==='GET')return json(await inventory(db,user.id));
+  if(path.length===1&&path[0]==='inventory'&&method==='GET')return json(await inventory(db,user));
   if(path.length===1&&path[0]==='recipient'&&method==='GET'){await authRateLimit(request,db,'gift-recipient',60,now,user.id);const recipient=await requireRecipient(db,user.id,url.searchParams.get('username'));return json({recipient:{id:recipient.id,username:recipient.username,displayName:recipient.display_name,avatar:recipient.avatar}});}
   if(path.length===1&&path[0]==='claim'&&method==='POST'){
    const item=itemFor(body.cosmeticId);need((await effectiveCatalog(db)).find(i=>i.id===item.id)?.active,409,'item_retired','This item is not available for a new grant.');
    const previous=await q(db,'SELECT 1 AS found FROM cosmetic_ownership WHERE account_id=? AND cosmetic_id=?',user.id,item.id).first();
-   if(item.type==='gift'&&previous){await materializeLegacy(db,user.id,now);need(await q(db,'SELECT 1 AS found FROM gift_instances WHERE owner_id=? AND catalog_id=?',user.id,item.id).first(),409,'claim_used','You already used this design’s free claim. You can receive another instance as a gift.');}
-   await db.batch([q(db,"INSERT OR IGNORE INTO cosmetic_ownership(account_id,cosmetic_id,claimed_at) SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM live_accounts WHERE id=? AND account_status='active') AND NOT EXISTS(SELECT 1 FROM gift_catalog WHERE id=? AND active=0)",user.id,item.id,now,user.id,item.id),...(item.type==='gift'?[q(db,"INSERT OR IGNORE INTO gift_instances(id,catalog_id,owner_id,origin_kind,created_at) SELECT ?,?,?,'claim',? WHERE EXISTS(SELECT 1 FROM cosmetic_ownership WHERE account_id=? AND cosmetic_id=?) AND EXISTS(SELECT 1 FROM live_accounts WHERE id=? AND account_status='active') AND NOT EXISTS(SELECT 1 FROM gift_catalog WHERE id=? AND active=0)",'claim:'+user.id+':'+item.id,item.id,user.id,now,user.id,item.id,user.id,item.id)]:[])]);
-   const committed=await inventory(db,user.id);need(committed.owned.some(row=>row.cosmetic_id===item.id),409,'claim_unavailable','This item became unavailable before the claim completed.');return json({claimed:true,...committed});
+   if(item.type==='gift'&&previous){await materializeLegacy(db,user,now);need(await q(db,'SELECT 1 AS found FROM gift_instances WHERE owner_id=? AND catalog_id=?',user.id,item.id).first(),409,'claim_used','You already used this design’s free claim. You can receive another instance as a gift.');}
+   await db.batch([q(db,"INSERT OR IGNORE INTO cosmetic_ownership(account_id,cosmetic_id,claimed_at) SELECT ?,?,? WHERE "+actor.sql+" AND NOT EXISTS(SELECT 1 FROM gift_catalog WHERE id=? AND active=0)",user.id,item.id,now,...actor.binds,item.id),...(item.type==='gift'?[q(db,"INSERT OR IGNORE INTO gift_instances(id,catalog_id,owner_id,origin_kind,created_at) SELECT ?,?,?,'claim',? WHERE EXISTS(SELECT 1 FROM cosmetic_ownership WHERE account_id=? AND cosmetic_id=?) AND "+actor.sql+" AND NOT EXISTS(SELECT 1 FROM gift_catalog WHERE id=? AND active=0)",'claim:'+user.id+':'+item.id,item.id,user.id,now,user.id,item.id,...actor.binds,item.id)]:[])]);
+   await requireCurrentActor(db,user);const committed=await inventory(db,user);need(committed.owned.some(row=>row.cosmetic_id===item.id),409,'claim_unavailable','This item became unavailable before the claim completed.');return json({claimed:true,...committed});
   }
   if(path.length===1&&path[0]==='equip'&&method==='POST'){
    const id=body.cosmeticId;
    if(id!==null){itemFor(id,'badge');need(await q(db,'SELECT 1 AS found FROM cosmetic_ownership WHERE account_id=? AND cosmetic_id=?',user.id,id).first(),403,'not_owned','Collect this badge before equipping it.');}
-   await q(db,'INSERT INTO cosmetic_profiles(account_id,equipped_id) VALUES(?,?) ON CONFLICT(account_id) DO UPDATE SET equipped_id=excluded.equipped_id',user.id,id).run();
-   return json({equipped:true,...await inventory(db,user.id)});
+   const ownedSql=id===null?'1=1':'EXISTS(SELECT 1 FROM cosmetic_ownership WHERE account_id=? AND cosmetic_id=?)';
+   const equipped=await q(db,'INSERT INTO cosmetic_profiles(account_id,equipped_id) SELECT ?,? WHERE '+actor.sql+' AND '+ownedSql+' ON CONFLICT(account_id) DO UPDATE SET equipped_id=excluded.equipped_id',user.id,id,...actor.binds,...(id===null?[]:[user.id,id])).run();
+   need(equipped.meta?.changes===1,409,'collection_changed','Your account, session or badge ownership changed. Refresh before trying again.');
+   return json({equipped:true,...await inventory(db,user)});
   }
   if(path.length===1&&path[0]==='settings'&&method==='POST'){
    need(body.giftsEnabled!==undefined||body.collectionVisibility!==undefined,400,'invalid_setting','Choose a collection preference.');
    if(body.giftsEnabled!==undefined)need(typeof body.giftsEnabled==='boolean',400,'invalid_setting','Choose whether to receive gifts.');
    if(body.collectionVisibility!==undefined)need(['public','shared','friends','private'].includes(body.collectionVisibility),400,'invalid_visibility','Choose a collection visibility.');
-   await db.batch([...(body.giftsEnabled!==undefined?[q(db,'INSERT INTO cosmetic_profiles(account_id,gifts_enabled) VALUES(?,?) ON CONFLICT(account_id) DO UPDATE SET gifts_enabled=excluded.gifts_enabled',user.id,body.giftsEnabled?1:0)]:[]),...(body.collectionVisibility!==undefined?[q(db,'INSERT INTO profile_preferences(account_id,collection_visibility,updated_at) VALUES(?,?,?) ON CONFLICT(account_id) DO UPDATE SET collection_visibility=excluded.collection_visibility,updated_at=excluded.updated_at',user.id,body.collectionVisibility,now)]:[])]);
-   return json(await inventory(db,user.id));
+   const results=await db.batch([...(body.giftsEnabled!==undefined?[q(db,'INSERT INTO cosmetic_profiles(account_id,gifts_enabled) SELECT ?,? WHERE '+actor.sql+' ON CONFLICT(account_id) DO UPDATE SET gifts_enabled=excluded.gifts_enabled',user.id,body.giftsEnabled?1:0,...actor.binds)]:[]),...(body.collectionVisibility!==undefined?[q(db,'INSERT INTO profile_preferences(account_id,collection_visibility,updated_at) SELECT ?,?,? WHERE '+actor.sql+' ON CONFLICT(account_id) DO UPDATE SET collection_visibility=excluded.collection_visibility,updated_at=excluded.updated_at',user.id,body.collectionVisibility,now,...actor.binds)]:[])]);
+   need(results.every(result=>result.meta?.changes===1),409,'account_changed','Your account or session changed. Sign in again before saving collection preferences.');
+   return json(await inventory(db,user));
   }
   if(path.length===2&&path[0]==='profiles'&&method==='GET'){
    const id=decodeURIComponent(path[1]);
@@ -199,7 +208,7 @@ export async function handleCosmeticsRequest(request,env){
    need(typeof body.clientId==='string'&&/^[A-Za-z0-9_-]{8,100}$/.test(body.clientId),400,'invalid_client_id','Use a stable gift request ID.');
    const username=normalizeUsername(body.username);
    const previous=await q(db,'SELECT g.*,a.username AS recipient_username FROM cosmetic_gifts g JOIN live_accounts a ON a.id=g.recipient_id WHERE sender_id=? AND client_id=?',user.id,body.clientId).first();
-   if(previous){need(previous.catalog_id===item.id&&(body.recipientId?body.recipientId===previous.recipient_id:previous.recipient_username===username),409,'retry_conflict','That gift request ID already belongs to a different gift.');return json({gift:previous,acknowledged:true});}
+   if(previous){need(previous.catalog_id===item.id&&(body.recipientId?body.recipientId===previous.recipient_id:previous.recipient_username===username),409,'retry_conflict','That gift request ID already belongs to a different gift.');await requireCurrentActor(db,user);return json({gift:previous,acknowledged:true});}
    const recipient=await q(db,"SELECT a.id,a.username,a.display_name,a.avatar,p.gifts_enabled FROM live_accounts a LEFT JOIN cosmetic_profiles p ON p.account_id=a.id WHERE a.username=? AND a.onboarding_complete=1 AND a.account_status='active'",username).first();
    need(recipient&&recipient.gifts_enabled!==0,404,'recipient_unavailable','This username is unavailable for gifts.');
    need(!body.recipientId||typeof body.recipientId==='string'&&body.recipientId===recipient.id,409,'recipient_changed','The recipient identity changed. Review this gift again before sending.');
@@ -216,8 +225,8 @@ export async function handleCosmeticsRequest(request,env){
     (SELECT COUNT(*) FROM live_accounts WHERE id IN (?,?) AND account_status='active')=2 AND
     NOT EXISTS(SELECT 1 FROM gift_catalog WHERE id=? AND active=0) AND
     NOT EXISTS(SELECT 1 FROM cosmetic_profiles WHERE account_id=? AND gifts_enabled=0) AND
-    NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?))`,id,user.id,recipient.id,item.id,body.clientId,now,user.id,now-3600000,user.id,recipient.id,now-86400000,user.id,recipient.id,item.id,recipient.id,user.id,recipient.id,recipient.id,user.id).run();
-   const gift=await q(db,'SELECT * FROM cosmetic_gifts WHERE sender_id=? AND client_id=?',user.id,body.clientId).first();
+    NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)) AND ${actor.sql}`,id,user.id,recipient.id,item.id,body.clientId,now,user.id,now-3600000,user.id,recipient.id,now-86400000,user.id,recipient.id,item.id,recipient.id,user.id,recipient.id,recipient.id,user.id,...actor.binds).run();
+   await requireCurrentActor(db,user);const gift=await q(db,'SELECT * FROM cosmetic_gifts WHERE sender_id=? AND client_id=?',user.id,body.clientId).first();
    need(gift,429,'gift_limit','The recipient became unavailable or a gift limit was reached. You can send up to 10 new gifts per hour and 3 to the same person per day.');
    need(gift.catalog_id===item.id&&gift.recipient_id===recipient.id,409,'retry_conflict','That request ID already belongs to a different gift.');
    return json({gift,acknowledged:true},201);
@@ -229,13 +238,13 @@ export async function handleCosmeticsRequest(request,env){
    if(opening){const blocked=await q(db,'SELECT 1 AS found FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?) LIMIT 1',user.id,gift.sender_id,gift.sender_id,user.id).first();need(!blocked,409,'gift_unavailable','This gift cannot be collected while either account is blocked.');}
    need(gift.state!==(opening?'declined':'opened'),409,'gift_already_handled',opening?'This gift was declined.':'This gift was already collected.');
    const blockGuard=opening?" AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)) AND(SELECT COUNT(*) FROM live_accounts WHERE id IN (?,?) AND account_status='active')=2":'';
-   const writes=[q(db,"UPDATE cosmetic_gifts SET state=?,opened_at=COALESCE(opened_at,?) WHERE id=? AND recipient_id=? AND state='pending'"+blockGuard,opening?'opened':'declined',now,gift.id,user.id,...(opening?[user.id,gift.sender_id,gift.sender_id,user.id,user.id,gift.sender_id]:[]))];
-   if(opening)writes.push(q(db,"INSERT OR IGNORE INTO cosmetic_ownership(account_id,cosmetic_id,claimed_at) SELECT recipient_id,catalog_id,? FROM cosmetic_gifts WHERE id=? AND recipient_id=? AND state='opened' AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?))",now,gift.id,user.id,user.id,gift.sender_id,gift.sender_id,user.id));
-   if(opening)writes.push(q(db,"INSERT OR IGNORE INTO gift_instances(id,catalog_id,owner_id,origin_gift_id,origin_kind,created_at) SELECT 'gift:'||id,catalog_id,recipient_id,id,'gift',? FROM cosmetic_gifts WHERE id=? AND recipient_id=? AND state='opened' AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR(blocker_id=? AND blocked_id=?))",now,gift.id,user.id,user.id,gift.sender_id,gift.sender_id,user.id));
+   const writes=[q(db,"UPDATE cosmetic_gifts SET state=?,opened_at=COALESCE(opened_at,?) WHERE id=? AND recipient_id=? AND state='pending'"+blockGuard+' AND '+actor.sql,opening?'opened':'declined',now,gift.id,user.id,...(opening?[user.id,gift.sender_id,gift.sender_id,user.id,user.id,gift.sender_id]:[]),...actor.binds)];
+   if(opening)writes.push(q(db,"INSERT OR IGNORE INTO cosmetic_ownership(account_id,cosmetic_id,claimed_at) SELECT recipient_id,catalog_id,? FROM cosmetic_gifts WHERE id=? AND recipient_id=? AND state='opened' AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)) AND "+actor.sql,now,gift.id,user.id,user.id,gift.sender_id,gift.sender_id,user.id,...actor.binds));
+   if(opening)writes.push(q(db,"INSERT OR IGNORE INTO gift_instances(id,catalog_id,owner_id,origin_gift_id,origin_kind,created_at) SELECT 'gift:'||id,catalog_id,recipient_id,id,'gift',? FROM cosmetic_gifts WHERE id=? AND recipient_id=? AND state='opened' AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR(blocker_id=? AND blocked_id=?)) AND "+actor.sql,now,gift.id,user.id,user.id,gift.sender_id,gift.sender_id,user.id,...actor.binds));
    await db.batch(writes);
-   const final=await q(db,'SELECT state FROM cosmetic_gifts WHERE id=? AND recipient_id=?',gift.id,user.id).first();
+   await requireCurrentActor(db,user);const final=await q(db,'SELECT state FROM cosmetic_gifts WHERE id=? AND recipient_id=?',gift.id,user.id).first();
    need(final?.state===(opening?'opened':'declined'),409,'gift_already_handled','This gift was already handled in another session. Refresh the gift requests.');
-   return json({handled:true,...await inventory(db,user.id)});
+   return json({handled:true,...await inventory(db,user)});
   }
   if(path.length===1&&path[0]==='badges'&&method==='GET'){
    const rows=(await q(db,'SELECT * FROM badge_definitions ORDER BY created_at,id').all()).results,definitions=[...BADGE_DEFINITIONS.map(d=>({...d,...rows.find(r=>r.id===d.id)})),...rows.filter(r=>!BADGE_DEFINITIONS.some(d=>d.id===r.id))];
@@ -243,7 +252,7 @@ export async function handleCosmeticsRequest(request,env){
    return json({definitions,awards:awards.map(a=>({...a,valid:!a.revoked_at&&!!a.active,issuer:a.issuer_id?'Reviewed by '+(a.issuer_name||'platform owner'):'VOIDLINE server rule'})),decorationsAreAchievements:false});
   }
   if(path.length===1&&path[0]==='instances'&&method==='GET'){
-   await materializeLegacy(db,user.id,now);const offset=Number(url.searchParams.get('offset')||0);need(Number.isSafeInteger(offset)&&offset>=0,400,'invalid_page','Choose a valid page.');
+   await materializeLegacy(db,user,now);const offset=Number(url.searchParams.get('offset')||0);need(Number.isSafeInteger(offset)&&offset>=0,400,'invalid_page','Choose a valid page.');
    const filter=url.searchParams.get('catalogId');if(filter)itemFor(filter,'gift');const where=filter?'owner_id=? AND catalog_id=?':'owner_id=?',args=filter?[user.id,filter]:[user.id];const total=(await q(db,'SELECT COUNT(*) AS n FROM gift_instances WHERE '+where,...args).first()).n,instances=(await q(db,'SELECT id,catalog_id,origin_kind,created_at,pending_transfer_id FROM gift_instances WHERE '+where+' ORDER BY created_at DESC,id LIMIT 30 OFFSET ?',...args,offset).all()).results;
    const names=new Map((await effectiveCatalog(db)).map(item=>[item.id,item.name]));return json({instances:instances.map(item=>({...item,name:names.get(item.catalog_id)||'Gift'})),total,page:{offset,limit:30,hasMore:offset+instances.length<total}});
   }
@@ -255,12 +264,12 @@ export async function handleCosmeticsRequest(request,env){
    const names=new Map((await effectiveCatalog(db)).map(item=>[item.id,item.name]));return json({instances:instances.map(item=>({...item,name:names.get(item.catalog_id)||'Gift'})),total,page:{offset,limit:30,hasMore:offset+instances.length<total}});
   }
   if(path.length===1&&path[0]==='showcase'&&method==='POST'){
-   await materializeLegacy(db,user.id,now);const slots=body.slots;
+   await materializeLegacy(db,user,now);const slots=body.slots;
    need(Array.isArray(slots)&&slots.length<=3&&slots.every(s=>s&&typeof s.instanceId==='string'&&typeof s.showSender==='boolean'&&(s.slot===undefined||Number.isSafeInteger(s.slot)&&s.slot>=1&&s.slot<=3))&&new Set(slots.map(s=>s.instanceId)).size===slots.length&&new Set(slots.map((s,index)=>s.slot??index+1)).size===slots.length,400,'invalid_showcase','Choose up to three different owned gifts.');
    const ids=slots.map(s=>s.instanceId),condition=ids.length?`(SELECT COUNT(*) FROM gift_instances WHERE owner_id=? AND id IN (${ids.map(()=>'?').join(',')}))=?`:'1=1',binds=ids.length?[user.id,...ids,ids.length]:[];
    need(!ids.length||(await q(db,`SELECT COUNT(*) AS n FROM gift_instances WHERE owner_id=? AND id IN (${ids.map(()=>'?').join(',')})`,user.id,...ids).first()).n===ids.length,403,'instance_not_owned','Only gifts currently owned by you can appear in the showcase.');
-   await db.batch([q(db,'DELETE FROM gift_showcase WHERE account_id=? AND '+condition,user.id,...binds),...slots.map((slot,index)=>q(db,'INSERT INTO gift_showcase(account_id,slot,instance_id,show_sender) SELECT ?,?,?,? WHERE '+condition,user.id,slot.slot??index+1,slot.instanceId,slot.showSender?1:0,...binds))]);
-   const committed=await inventory(db,user.id);need(committed.showcase.length===slots.length&&slots.every((s,index)=>committed.showcase.some(row=>row.slot===(s.slot??index+1)&&row.instance_id===s.instanceId&&!!row.show_sender===s.showSender)),409,'showcase_changed','Gift ownership changed before the showcase could save. Refresh and try again.');return json({saved:true,...committed});
+   await db.batch([q(db,'DELETE FROM gift_showcase WHERE account_id=? AND '+condition+' AND '+actor.sql,user.id,...binds,...actor.binds),...slots.map((slot,index)=>q(db,'INSERT INTO gift_showcase(account_id,slot,instance_id,show_sender) SELECT ?,?,?,? WHERE '+condition+' AND '+actor.sql,user.id,slot.slot??index+1,slot.instanceId,slot.showSender?1:0,...binds,...actor.binds))]);
+   await requireCurrentActor(db,user);const committed=await inventory(db,user);need(committed.showcase.length===slots.length&&slots.every((s,index)=>committed.showcase.some(row=>row.slot===(s.slot??index+1)&&row.instance_id===s.instanceId&&!!row.show_sender===s.showSender)),409,'showcase_changed','Gift ownership changed before the showcase could save. Refresh and try again.');return json({saved:true,...committed});
   }
   if(path.length===1&&path[0]==='transfers'&&method==='GET'){
    const sent=url.searchParams.get('box')==='sent',offset=Number(url.searchParams.get('offset')||0);need(Number.isSafeInteger(offset)&&offset>=0,400,'invalid_page','Choose a valid page.');const column=sent?'sender_id':'recipient_id';
@@ -271,8 +280,8 @@ export async function handleCosmeticsRequest(request,env){
    need(!body.message,503,'private_note_unavailable','Private gift notes require encrypted messaging and cannot be sent here.');
    need(typeof body.instanceId==='string'&&body.instanceId.length<=220&&typeof body.clientId==='string'&&/^[A-Za-z0-9_-]{8,100}$/.test(body.clientId),400,'invalid_transfer','Choose a gift and stable transfer request ID.');
    const username=normalizeUsername(body.username),previous=await q(db,'SELECT t.*,a.username AS recipient_username FROM gift_transfers t JOIN live_accounts a ON a.id=t.recipient_id WHERE t.sender_id=? AND t.client_id=?',user.id,body.clientId).first();
-   if(previous){need(previous.instance_id===body.instanceId&&(body.recipientId?body.recipientId===previous.recipient_id:previous.recipient_username===username),409,'retry_conflict','This transfer request ID belongs to another transfer.');return json({transfer:previous,acknowledged:true});}
-   await materializeLegacy(db,user.id,now);const recipient=await requireRecipient(db,user.id,username),instance=await q(db,'SELECT * FROM gift_instances WHERE id=? AND owner_id=?',body.instanceId,user.id).first();need(instance,404,'instance_unavailable','This owned gift is unavailable.');need(!instance.pending_transfer_id,409,'transfer_pending','This instance already has a pending transfer.');
+   if(previous){need(previous.instance_id===body.instanceId&&(body.recipientId?body.recipientId===previous.recipient_id:previous.recipient_username===username),409,'retry_conflict','This transfer request ID belongs to another transfer.');await requireCurrentActor(db,user);return json({transfer:previous,acknowledged:true});}
+   await materializeLegacy(db,user,now);const recipient=await requireRecipient(db,user.id,username),instance=await q(db,'SELECT * FROM gift_instances WHERE id=? AND owner_id=?',body.instanceId,user.id).first();need(instance,404,'instance_unavailable','This owned gift is unavailable.');need(!instance.pending_transfer_id,409,'transfer_pending','This instance already has a pending transfer.');
    need(!body.recipientId||typeof body.recipientId==='string'&&body.recipientId===recipient.id,409,'recipient_changed','The recipient identity changed. Review this transfer again before sending.');
    const id=crypto.randomUUID();
    await db.batch([
@@ -281,11 +290,11 @@ export async function handleCosmeticsRequest(request,env){
      AND NOT EXISTS(SELECT 1 FROM cosmetic_profiles WHERE account_id=? AND gifts_enabled=0)
      AND(SELECT COUNT(*) FROM live_accounts WHERE id IN (?,?) AND account_status='active')=2
      AND (SELECT COUNT(*) FROM gift_transfers WHERE sender_id=? AND created_at>?)<10
-     AND (SELECT COUNT(*) FROM gift_transfers WHERE sender_id=? AND recipient_id=? AND created_at>?)<3`,id,instance.id,user.id,user.id,recipient.id,recipient.id,user.id,recipient.id,user.id,recipient.id,user.id,now-3600000,user.id,recipient.id,now-86400000),
+     AND (SELECT COUNT(*) FROM gift_transfers WHERE sender_id=? AND recipient_id=? AND created_at>?)<3 AND ${actor.sql}`,id,instance.id,user.id,user.id,recipient.id,recipient.id,user.id,recipient.id,user.id,recipient.id,user.id,now-3600000,user.id,recipient.id,now-86400000,...actor.binds),
     q(db,"INSERT OR IGNORE INTO gift_transfers(id,instance_id,sender_id,recipient_id,client_id,state,created_at) SELECT ?,?,?,?,?,'pending',? WHERE EXISTS(SELECT 1 FROM gift_instances WHERE id=? AND owner_id=? AND pending_transfer_id=?)",id,instance.id,user.id,recipient.id,body.clientId,now,instance.id,user.id,id),
     q(db,'UPDATE gift_instances SET pending_transfer_id=NULL WHERE id=? AND pending_transfer_id=? AND NOT EXISTS(SELECT 1 FROM gift_transfers WHERE id=?)',instance.id,id,id)
    ]);
-   const transfer=await q(db,'SELECT * FROM gift_transfers WHERE sender_id=? AND client_id=?',user.id,body.clientId).first();need(transfer,409,'transfer_unavailable','The gift changed, the recipient became unavailable or the transfer limit was reached. Refresh before retrying.');need(transfer.instance_id===instance.id&&transfer.recipient_id===recipient.id,409,'retry_conflict','This request ID belongs to another transfer.');
+   await requireCurrentActor(db,user);const transfer=await q(db,'SELECT * FROM gift_transfers WHERE sender_id=? AND client_id=?',user.id,body.clientId).first();need(transfer,409,'transfer_unavailable','The gift changed, the recipient became unavailable or the transfer limit was reached. Refresh before retrying.');need(transfer.instance_id===instance.id&&transfer.recipient_id===recipient.id,409,'retry_conflict','This request ID belongs to another transfer.');
    return json({transfer,acknowledged:true},201);
   }
   if(path.length===3&&path[0]==='transfers'&&['open','decline','cancel'].includes(path[2])&&method==='POST'){
@@ -295,13 +304,13 @@ export async function handleCosmeticsRequest(request,env){
    if(transfer.state==='pending'){
     const guard=opening?` AND EXISTS(SELECT 1 FROM gift_instances WHERE id=? AND owner_id=? AND pending_transfer_id=?) AND NOT EXISTS(SELECT 1 FROM social_blocks WHERE(blocker_id=? AND blocked_id=?)OR(blocker_id=? AND blocked_id=?)) AND NOT EXISTS(SELECT 1 FROM cosmetic_profiles WHERE account_id=? AND gifts_enabled=0) AND(SELECT COUNT(*) FROM live_accounts WHERE id IN (?,?) AND account_status='active')=2`:'';
     await db.batch([
-     q(db,"UPDATE gift_transfers SET state=?,handled_at=? WHERE id=? AND state='pending'"+guard,next,now,transfer.id,...(opening?[transfer.instance_id,transfer.sender_id,transfer.id,transfer.sender_id,transfer.recipient_id,transfer.recipient_id,transfer.sender_id,transfer.recipient_id,transfer.sender_id,transfer.recipient_id]:[])),
-     opening?q(db,"UPDATE gift_instances SET owner_id=?,pending_transfer_id=NULL WHERE id=? AND owner_id=? AND pending_transfer_id=? AND EXISTS(SELECT 1 FROM gift_transfers WHERE id=? AND state='accepted')",transfer.recipient_id,transfer.instance_id,transfer.sender_id,transfer.id,transfer.id):q(db,"UPDATE gift_instances SET pending_transfer_id=NULL WHERE id=? AND pending_transfer_id=? AND EXISTS(SELECT 1 FROM gift_transfers WHERE id=? AND state=?)",transfer.instance_id,transfer.id,transfer.id,next),
-     q(db,"DELETE FROM gift_showcase WHERE instance_id=? AND account_id=? AND EXISTS(SELECT 1 FROM gift_transfers WHERE id=? AND state='accepted')",transfer.instance_id,transfer.sender_id,transfer.id)
+     q(db,"UPDATE gift_transfers SET state=?,handled_at=? WHERE id=? AND state='pending'"+guard+' AND '+actor.sql,next,now,transfer.id,...(opening?[transfer.instance_id,transfer.sender_id,transfer.id,transfer.sender_id,transfer.recipient_id,transfer.recipient_id,transfer.sender_id,transfer.recipient_id,transfer.sender_id,transfer.recipient_id]:[]),...actor.binds),
+     opening?q(db,"UPDATE gift_instances SET owner_id=?,pending_transfer_id=NULL WHERE id=? AND owner_id=? AND pending_transfer_id=? AND EXISTS(SELECT 1 FROM gift_transfers WHERE id=? AND state='accepted') AND "+actor.sql,transfer.recipient_id,transfer.instance_id,transfer.sender_id,transfer.id,transfer.id,...actor.binds):q(db,"UPDATE gift_instances SET pending_transfer_id=NULL WHERE id=? AND pending_transfer_id=? AND EXISTS(SELECT 1 FROM gift_transfers WHERE id=? AND state=?) AND "+actor.sql,transfer.instance_id,transfer.id,transfer.id,next,...actor.binds),
+     q(db,"DELETE FROM gift_showcase WHERE instance_id=? AND account_id=? AND EXISTS(SELECT 1 FROM gift_transfers WHERE id=? AND state='accepted') AND "+actor.sql,transfer.instance_id,transfer.sender_id,transfer.id,...actor.binds)
     ]);
    }
-   const final=await q(db,'SELECT state FROM gift_transfers WHERE id=?',transfer.id).first();need(final?.state===next,409,'transfer_unavailable','The transfer could not be completed. Its owner and your inventory are unchanged.');
-   return json({handled:true,state:next,...await inventory(db,user.id)});
+   await requireCurrentActor(db,user);const final=await q(db,'SELECT state FROM gift_transfers WHERE id=?',transfer.id).first();need(final?.state===next,409,'transfer_unavailable','The transfer could not be completed. Its owner and your inventory are unchanged.');
+   return json({handled:true,state:next,...await inventory(db,user)});
   }
   throw new AuthError(404,'not_found','This collection action is unavailable.');
  }catch(error){return json({error:{code:error instanceof AuthError?error.code:'collection_unavailable',message:error instanceof AuthError?error.message:'The collection could not be updated. Please retry.'}},error instanceof AuthError?error.status:503);}

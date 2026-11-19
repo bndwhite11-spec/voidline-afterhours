@@ -1,4 +1,26 @@
-# Current edition4 web-art update
+# Owner account moderation update
+
+The existing hosted @xrp identity was verified through the one-time, passkey-backed
+operator bootstrap on 19 November 2026. The immutable platform-owner record remains
+the authority. Runtime bootstrap values were removed after binding.
+
+The owner dashboard now distinguishes reversible Block/Unblock controls from
+irreversible account deletion. Deletion requires the exact target account ID and
+a reason, uses a stable retry receipt, atomically removes private account access
+and metadata with its audit, and retains anonymized shared-history/provenance
+references. Platform-owner deletion and community orphaning are refused.
+Session revocation, verified-channel recovery, reports and catalog/badge controls
+remain available. Responsive account rows replace the wide account table.
+
+In-flight account, relationship, cosmetic and organization mutations must recheck
+the active session/account before committing so they cannot restore private data
+after deletion or finish an action after blocking. Native restrictions are
+separate from queued Matrix lifecycle decisions. No homeserver or encrypted
+message access is introduced. See OWNER-BOOTSTRAP.md for operation and retention
+details. Existing accounts, memberships, legitimate gifts and applied migrations
+remain intact; no new schema migration is required.
+
+## Previous edition4 web-art update
 
 Starts at published v18, source2540635ff7187ffa7d898df432643c2f39c67877. The user’s latest correction requires actual web images for badges and gifts and adds Blockchain and Ledger. Edition4 covers49 decorative badges,32 gifts and2 earned-award images with actual local source pixels, credits, factual license status and disclosed conventional image changes. No image generation is used for current art.
 

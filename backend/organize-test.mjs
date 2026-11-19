@@ -6,7 +6,7 @@ import {handleLiveRequest} from '../worker/index.mjs';
 import {handleMessagesRequest} from '../worker/messages.mjs';
 import {authHash} from '../worker/auth.mjs';
 const origin='https://organization.example';
-class Adapter{constructor(db){this.db=db;this.failAudit=false;}prepare(sql){const adapter=this;return{bind(...values){const statement=adapter.db.prepare(sql);return{first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>{if(adapter.failAudit&&sql.startsWith('INSERT INTO admin_audit'))throw Error('Isolated audit failure');return{success:true,meta:{changes:statement.run(...values).changes}};}};}};}async batch(statements){this.db.exec('BEGIN');try{const result=[];for(const stmt of statements)result.push(await stmt.run());this.db.exec('COMMIT');return result;}catch(error){this.db.exec('ROLLBACK');throw error;}}}
+class Adapter{constructor(db){this.db=db;this.failAudit=false;}prepare(sql){const adapter=this;return{bind(...values){const statement=adapter.db.prepare(sql);return{first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>{if(adapter.beforeRun)await adapter.beforeRun(sql,values);if(adapter.failAudit&&sql.startsWith('INSERT INTO admin_audit'))throw Error('Isolated audit failure');return{success:true,meta:{changes:statement.run(...values).changes}};}};}};}async batch(statements){this.db.exec('BEGIN');try{const result=[];for(const stmt of statements)result.push(await stmt.run());this.db.exec('COMMIT');return result;}catch(error){this.db.exec('ROLLBACK');throw error;}}}
 async function fixture(){const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');const journal=JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url),'utf8'));for(const row of journal.entries)db.exec(readFileSync(new URL('../drizzle/'+row.tag+'.sql',import.meta.url),'utf8'));const adapter=new Adapter(db),env={DB:adapter},users={};
  for(const id of ['owner','mod','member','stranger']){const token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-',''),csrf=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-',''),now=Date.now();db.prepare('INSERT INTO live_accounts(id,username,display_name,email,onboarding_complete,created_at,updated_at) VALUES(?,?,?,?,1,?,?)').run(id,'test_'+id,'Test '+id,'',now,now);db.prepare('INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)').run(crypto.randomUUID(),id,await authHash(token),await authHash(csrf),'Isolated fixture',now,now,now,now+3600000);users[id]={token,csrf};}
  const now=Date.now();db.prepare('INSERT INTO live_communities(id,name,created_by,created_at) VALUES(?,?,?,?)').run('community','Private community','owner',now);for(const [id,role]of [['owner','owner'],['mod','moderator'],['member','member']])db.prepare('INSERT INTO live_memberships(community_id,account_id,role,joined_at) VALUES(?,?,?,?)').run('community',id,role,now);db.prepare('INSERT INTO live_channels(id,community_id,name,kind,created_at) VALUES(?,?,?,?,?)').run('channel','community','general','text',now);db.prepare('INSERT INTO live_messages(id,channel_id,author_id,client_id,text,created_at) VALUES(?,?,?,?,?,?)').run('message','channel','owner','initial-message','Genuine retained history',now);
@@ -77,4 +77,62 @@ test('same-count native changes and empty membership additions advance only auth
  const before=await f.ok('member','/api/organize/activity'),foreignBefore=await f.ok('stranger','/api/organize/activity');f.db.prepare('UPDATE native_messages SET text=? WHERE id=?').run('Edited private source',message);f.db.prepare("INSERT INTO native_changes(conversation_id,message_id,actor_id,kind,created_at) VALUES(?,?,'owner','edit',?)").run(conversation,message,now+1);const edited=await f.ok('member','/api/organize/activity?revision='+encodeURIComponent(before.revision));assert.deepEqual(edited.counts,before.counts);assert.notEqual(edited.revision,before.revision);assert.equal(edited.changed,true);assert.equal((await f.ok('stranger','/api/organize/activity')).revision,foreignBefore.revision);
  const empty=crypto.randomUUID();f.db.prepare("INSERT INTO native_conversations(id,kind,name,created_by,client_id,request_hash,created_at,updated_at) VALUES(?,'group','Empty activity group','owner','revision-empty','hash',?,?)").run(empty,now,now);f.db.prepare("INSERT INTO native_members(conversation_id,account_id,joined_at) VALUES(?,'member',?)").run(empty,now);const joined=await f.ok('member','/api/organize/activity');assert.deepEqual(joined.counts,edited.counts);assert.notEqual(joined.revision,edited.revision);assert.equal(JSON.stringify(joined).includes('Private revision source'),false);assert.match(joined.revision,/^[a-f0-9]{64}$/);
 }finally{f.db.close();}});
+
+function beforeWrite(f,predicate,change){f.adapter.beforeRun=async sql=>{if(!predicate(sql))return;f.adapter.beforeRun=null;await change();};}
+function lostWrite(result){assert.equal(result.status,409,JSON.stringify(result));assert.equal(result.data.error.code,'organization_access_changed');}
+function nativeFixture(f,id='guard-native'){const now=Date.now();f.db.prepare("INSERT INTO native_conversations(id,kind,name,created_by,client_id,request_hash,created_at,updated_at) VALUES(?,'group','Guarded group','owner',?,'hash',?,?)").run(id,id,now,now);for(const account of ['owner','member'])f.db.prepare('INSERT INTO native_members(conversation_id,account_id,joined_at) VALUES(?,?,?)').run(id,account,now);return id;}
+test('every private organization mutation rechecks actor account and session at commit',async()=>{
+ const cases=[
+  {path:'/api/organize/preferences',body:{listFilter:'favorites'},match:sql=>sql.startsWith('INSERT INTO account_organization')},
+  {path:'/api/organize/targets',body:{kind:'channel',targetId:'channel',favorite:true},match:sql=>sql.startsWith('INSERT INTO organization_targets')},
+  {path:'/api/organize/targets',body:{kind:'matrix',targetId:'!opaque:matrix.example',favorite:true},match:sql=>sql.startsWith('INSERT INTO organization_targets')},
+  {path:'/api/organize/targets',body:{kind:'native',targetId:'guard-native',favorite:true},setup:f=>nativeFixture(f),match:sql=>sql.startsWith('INSERT INTO native_conversation_preferences')},
+  {path:'/api/organize/folders',body:{name:'Cannot resurrect'},match:sql=>sql.startsWith('INSERT OR IGNORE INTO organization_folders')},
+  {path:'/api/organize/reports',body:{targetType:'message',targetId:'message',reason:'spam',detailText:'Selected evidence',disclosureAcknowledged:true},match:sql=>sql.startsWith('INSERT INTO abuse_reports')}
+ ];
+ for(const invalidation of ['suspended','deleted','revoked','expired'])for(const action of cases){const f=await fixture();try{
+  action.setup?.(f);beforeWrite(f,action.match,()=>{if(invalidation==='revoked')f.db.prepare('UPDATE auth_sessions SET revoked_at=? WHERE account_id=?').run(Date.now(),'member');else if(invalidation==='expired')f.db.prepare('UPDATE auth_sessions SET expires_at=1 WHERE account_id=?').run('member');else f.db.prepare('UPDATE live_accounts SET account_status=? WHERE id=?').run(invalidation,'member');});
+  lostWrite(await f.call('member',action.path,action.body));
+  for(const table of ['account_organization','organization_targets','native_conversation_preferences','organization_folders','abuse_reports'])assert.equal(f.db.prepare('SELECT COUNT(*) n FROM '+table).get().n,0,table+' '+invalidation+' '+action.path);
+ }finally{f.db.close();}}
+});
+test('in-flight preference updates cannot recreate metadata removed by account deletion',async()=>{const f=await fixture();try{
+ await f.ok('member','/api/organize/preferences',{notifications:{mentions:false}});
+ beforeWrite(f,sql=>sql.startsWith('INSERT INTO account_organization'),()=>{f.db.prepare("UPDATE live_accounts SET account_status='deleted' WHERE id='member'").run();f.db.prepare("DELETE FROM account_organization WHERE account_id='member'").run();f.db.prepare("UPDATE auth_sessions SET revoked_at=1 WHERE account_id='member'").run();});
+ lostWrite(await f.call('member','/api/organize/preferences',{listFilter:'favorites'}));assert.equal(f.db.prepare("SELECT COUNT(*) n FROM account_organization WHERE account_id='member'").get().n,0);
+}finally{f.db.close();}});
+test('target writes recheck membership and assigned folder ownership after preflight',async()=>{
+ for(const kind of ['channel','native'])for(const race of ['membership','folder']){const f=await fixture();try{
+  const id=kind==='native'?nativeFixture(f):'channel',folder=(await f.ok('member','/api/organize/folders',{name:'Private folder'})).folders[0].id;
+  const table=kind==='native'?'native_conversation_preferences':'organization_targets';
+  beforeWrite(f,sql=>sql.startsWith('INSERT INTO '+table),()=>{if(race==='folder')f.db.prepare('UPDATE organization_folders SET account_id=? WHERE id=?').run('stranger',folder);else f.db.prepare('DELETE FROM '+(kind==='native'?'native_members':'live_memberships')+' WHERE account_id=?').run('member');});
+  lostWrite(await f.call('member','/api/organize/targets',{kind,targetId:id,favorite:true,folderId:folder}));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM '+table).get().n,0);
+ }finally{f.db.close();}}
+ const f=await fixture();try{const folder=(await f.ok('member','/api/organize/folders',{name:'Gone folder'})).folders[0].id;beforeWrite(f,sql=>sql.startsWith('INSERT INTO account_organization'),()=>f.db.prepare('DELETE FROM organization_folders WHERE id=?').run(folder));lostWrite(await f.call('member','/api/organize/preferences',{listFilter:'folder:'+folder}));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM account_organization').get().n,0);}finally{f.db.close();}
+});
+test('existing folder retry rename and deletion fail truthfully when actor access is revoked',async()=>{
+ for(const operation of ['retry','rename','delete']){const f=await fixture();try{
+  const id=crypto.randomUUID();await f.ok('member','/api/organize/folders',{name:'Keep folder',clientId:id});await f.ok('member','/api/organize/preferences',{listFilter:'folder:'+id});await f.ok('member','/api/organize/targets',{kind:'channel',targetId:'channel',folderId:id});
+  const table=operation==='delete'?'UPDATE native_conversation_preferences':'UPDATE organization_folders';
+  beforeWrite(f,sql=>sql.startsWith(table),()=>f.db.prepare("UPDATE auth_sessions SET revoked_at=1 WHERE account_id='member'").run());
+  const result=await f.call('member',operation==='retry'?'/api/organize/folders':'/api/organize/folders/'+id,operation==='retry'?{name:'Ignored retry',clientId:id}:operation==='rename'?{name:'Cannot rename'}:{remove:true});lostWrite(result);
+  assert.equal(f.db.prepare('SELECT name FROM organization_folders WHERE id=?').get(id).name,'Keep folder');assert.equal(f.db.prepare("SELECT folder_id FROM organization_targets WHERE account_id='member'").get().folder_id,id);assert.equal(JSON.parse(f.db.prepare("SELECT preferences FROM account_organization WHERE account_id='member'").get().preferences).listFilter,'folder:'+id);
+ }finally{f.db.close();}}
+});
+test('folder cleanup rolls back its reference changes when deletion cannot commit',async()=>{const f=await fixture();try{
+ const native=nativeFixture(f),id=(await f.ok('member','/api/organize/folders',{name:'Atomic folder'})).folders[0].id;
+ await f.ok('member','/api/organize/targets',{kind:'channel',targetId:'channel',folderId:id});await f.ok('member','/api/organize/targets',{kind:'native',targetId:native,folderId:id});await f.ok('member','/api/organize/preferences',{listFilter:'folder:'+id,notifications:{mentions:false}});
+ beforeWrite(f,sql=>sql.startsWith('DELETE FROM organization_folders'),()=>{throw Error('Isolated final statement failure');});
+ assert.equal((await f.call('member','/api/organize/folders/'+id,{remove:true})).status,503);
+ assert.equal(f.db.prepare('SELECT folder_id FROM organization_targets').get().folder_id,id);assert.equal(f.db.prepare('SELECT folder_id FROM native_conversation_preferences').get().folder_id,id);assert.equal(JSON.parse(f.db.prepare('SELECT preferences FROM account_organization').get().preferences).listFilter,'folder:'+id);assert.equal(f.db.prepare('SELECT name FROM organization_folders').get().name,'Atomic folder');
+}finally{f.db.close();}});
+test('report creation rechecks source permission after an accepted preflight',async()=>{
+ for(const type of ['community','message','native-message','native-conversation','account']){const f=await fixture();try{
+  let id=type==='community'?'community':type==='message'?'message':type==='account'?'owner':nativeFixture(f);
+  if(type==='native-message'){const now=Date.now();f.db.prepare("INSERT INTO native_messages(id,conversation_id,author_id,client_id,text,original_hash,created_at) VALUES('guard-message',?,'owner','guard-send','Not automatically disclosed','hash',?)").run(id,now);id='guard-message';}
+  beforeWrite(f,sql=>sql.startsWith('INSERT INTO abuse_reports'),()=>{f.db.prepare("DELETE FROM live_memberships WHERE account_id='member'").run();f.db.prepare("DELETE FROM native_members WHERE account_id='member'").run();});
+  lostWrite(await f.call('member','/api/organize/reports',{targetType:type,targetId:id,reason:'spam',detailText:'Explicitly chosen evidence',disclosureAcknowledged:true}));assert.equal(f.db.prepare('SELECT COUNT(*) n FROM abuse_reports').get().n,0);
+ }finally{f.db.close();}}
+});
+
 let failures=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}console.log(`${tests.length-failures}/${tests.length} organization and community checks passed. Actual handlers, sessions and migrated SQLite; not a browser or encrypted-service test.`);process.exitCode=failures?1:0;

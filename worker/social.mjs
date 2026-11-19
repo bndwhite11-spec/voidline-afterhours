@@ -7,6 +7,10 @@ const q=(db,sql,...args)=>db.prepare(sql).bind(...args);
 const check=(value,status,code,message)=>{if(!value)throw new AuthError(status,code,message);};
 const unavailable=()=>new AuthError(404,'request_unavailable','This request is unavailable. Check the username or try again later.');
 const blockedSQL='NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.blocker_id=r.sender_id AND b.blocked_id=r.recipient_id) OR (b.blocker_id=r.recipient_id AND b.blocked_id=r.sender_id))';
+const databaseNow="CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
+function activeSession(user){return {sql:`EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND s.account_id=? AND s.revoked_at IS NULL AND s.expires_at>${databaseNow} AND a.account_status='active')`,args:[user.sessionId,user.id]};}
+const activeTargetSql="EXISTS(SELECT 1 FROM live_accounts WHERE id=? AND account_status='active' AND username IS NOT NULL AND onboarding_complete=1)";
+async function requireActive(db,guard){check(await q(db,'SELECT 1 AS allowed WHERE '+guard.sql,...guard.args).first(),409,'session_changed','Your account or session changed. Sign in again before changing Friends.');}
 async function bodyOf(request){
  check(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');
  const reader=request.body?.getReader();check(reader,400,'invalid_body','A request body is required.');let size=0;const chunks=[];
@@ -17,7 +21,7 @@ async function bodyOf(request){
 async function isBlocked(db,a,b){return !!await q(db,'SELECT 1 AS found FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?) LIMIT 1',a,b,b,a).first();}
 async function accountByName(db,value){
  check(typeof value==='string'&&/^[a-z][a-z0-9_]{2,23}$/.test(value.trim().normalize('NFKC').toLowerCase()),400,'invalid_username','Enter an exact username, without @.');
- return q(db,'SELECT id,username,display_name,avatar FROM live_accounts WHERE username=? AND onboarding_complete=1',value.trim().normalize('NFKC').toLowerCase()).first();
+ return q(db,"SELECT id,username,display_name,avatar FROM live_accounts WHERE username=? AND onboarding_complete=1 AND account_status='active'",value.trim().normalize('NFKC').toLowerCase()).first();
 }
 export async function handleSocialRequest(request,env){
  try{
@@ -47,9 +51,11 @@ export async function handleSocialRequest(request,env){
   check(request.method==='POST',405,'method_not_allowed','This action requires a POST request.');
   const body=await bodyOf(request);await validateSessionMutation(request,user,body);
   await authRateLimit(request,db,'social-actions',30,now,user.id);
+  const active=activeSession(user);
   if(path.length===1&&path[0]==='settings'){
    check(typeof body.allowRequests==='boolean',400,'invalid_setting','Choose whether to allow friend requests.');
-   await q(db,'INSERT INTO social_settings(account_id,allow_requests) VALUES(?,?) ON CONFLICT(account_id) DO UPDATE SET allow_requests=excluded.allow_requests',user.id,body.allowRequests?1:0).run();
+   const saved=await q(db,'INSERT INTO social_settings(account_id,allow_requests) SELECT ?,? WHERE '+active.sql+' ON CONFLICT(account_id) DO UPDATE SET allow_requests=excluded.allow_requests',user.id,body.allowRequests?1:0,...active.args).run();
+   check(saved.meta?.changes===1,409,'session_changed','Your account or session changed. Your preference was not saved.');
    return json({settings:{allowRequests:body.allowRequests}});
   }
   if(path.length===1&&path[0]==='request'){
@@ -57,14 +63,16 @@ export async function handleSocialRequest(request,env){
    const target=await accountByName(db,body.username);if(!target||target.id===user.id||await isBlocked(db,user.id,target.id))throw unavailable();
    const setting=await q(db,'SELECT allow_requests FROM social_settings WHERE account_id=?',target.id).first();if(setting?.allow_requests===0)throw unavailable();
    const existing=await q(db,"SELECT * FROM social_requests WHERE ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) AND state IN ('pending','accepted') ORDER BY CASE state WHEN 'accepted' THEN 0 ELSE 1 END LIMIT 1",user.id,target.id,target.id,user.id).first();
-   if(existing)return json({request:{id:existing.id,state:existing.state,direction:existing.sender_id===user.id?'outgoing':'incoming'},alreadyExists:true});
+   if(existing){await requireActive(db,active);return json({request:{id:existing.id,state:existing.state,direction:existing.sender_id===user.id?'outgoing':'incoming'},alreadyExists:true});}
    const id=crypto.randomUUID();
    await q(db,`INSERT INTO social_requests(id,sender_id,recipient_id,state,created_at,updated_at)
     SELECT ?,?,?,'pending',?,? WHERE NOT EXISTS(SELECT 1 FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?))
     AND COALESCE((SELECT allow_requests FROM social_settings WHERE account_id=?),1)=1
     AND (SELECT COUNT(*) FROM social_requests WHERE recipient_id=? AND state='pending')<200
     AND NOT EXISTS(SELECT 1 FROM social_requests WHERE sender_id=? AND recipient_id=? AND state IN ('pending','accepted'))
-    ON CONFLICT(sender_id,recipient_id) DO UPDATE SET state='pending',updated_at=excluded.updated_at WHERE social_requests.state IN ('declined','cancelled')`,id,user.id,target.id,now,now,user.id,target.id,target.id,user.id,target.id,target.id,target.id,user.id).run();
+    AND ${active.sql} AND ${activeTargetSql}
+    ON CONFLICT(sender_id,recipient_id) DO UPDATE SET state='pending',updated_at=excluded.updated_at WHERE social_requests.state IN ('declined','cancelled')`,id,user.id,target.id,now,now,user.id,target.id,target.id,user.id,target.id,target.id,target.id,user.id,...active.args,target.id).run();
+   await requireActive(db,active);if(!await q(db,'SELECT 1 AS allowed WHERE '+activeTargetSql,target.id).first())throw unavailable();
    const sent=await q(db,"SELECT id,state FROM social_requests WHERE sender_id=? AND recipient_id=? AND state='pending'",user.id,target.id).first();
    if(!sent){const reverse=await q(db,"SELECT id,state FROM social_requests WHERE sender_id=? AND recipient_id=? AND state IN ('pending','accepted')",target.id,user.id).first();if(reverse)return json({request:{...reverse,direction:'incoming'},alreadyExists:true});throw unavailable();}
    return json({request:{...sent,direction:'outgoing'},alreadyExists:false},201);
@@ -73,7 +81,8 @@ export async function handleSocialRequest(request,env){
    const record=await q(db,'SELECT * FROM social_requests WHERE id=?',path[1]).first();
    if(!record||record[path[2]==='respond'?'recipient_id':'sender_id']!==user.id)throw unavailable();
    if(path[2]==='cancel'){
-    await q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE id=? AND sender_id=? AND state='pending'",now,record.id,user.id).run();
+    await q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE id=? AND sender_id=? AND state='pending' AND "+active.sql,now,record.id,user.id,...active.args).run();
+    await requireActive(db,active);
     const latest=await q(db,'SELECT state FROM social_requests WHERE id=?',record.id).first();
     check(latest?.state==='cancelled',409,'request_changed','This request was already handled. Refresh Friends to see its current state.');
     return json({cancelled:true});
@@ -81,26 +90,29 @@ export async function handleSocialRequest(request,env){
    check(typeof body.accept==='boolean',400,'invalid_response','Choose accept or decline.');
    if(await isBlocked(db,record.sender_id,record.recipient_id))throw unavailable();
    const state=body.accept?'accepted':'declined';
-   if(record.state===state)return json({state,alreadyHandled:true});
+   if(record.state===state){await requireActive(db,active);return json({state,alreadyHandled:true});}
    if(record.state!=='pending')throw unavailable();
    await db.batch([
-    q(db,`UPDATE social_requests AS r SET state=?,updated_at=? WHERE id=? AND recipient_id=? AND state='pending' AND ${blockedSQL}`,state,now,record.id,user.id),
-    q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE sender_id=? AND recipient_id=? AND state='pending' AND EXISTS(SELECT 1 FROM social_requests WHERE id=? AND state='accepted')",now,record.recipient_id,record.sender_id,record.id)
+    q(db,`UPDATE social_requests AS r SET state=?,updated_at=? WHERE id=? AND recipient_id=? AND state='pending' AND ${blockedSQL} AND ${active.sql} AND ${activeTargetSql}`,state,now,record.id,user.id,...active.args,record.sender_id),
+    q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE sender_id=? AND recipient_id=? AND state='pending' AND EXISTS(SELECT 1 FROM social_requests WHERE id=? AND state='accepted') AND "+active.sql,now,record.recipient_id,record.sender_id,record.id,...active.args)
    ]);
-   const done=await q(db,'SELECT state FROM social_requests WHERE id=?',record.id).first();if(done.state!==state)throw unavailable();return json({state});
+   await requireActive(db,active);const done=await q(db,'SELECT state FROM social_requests WHERE id=?',record.id).first();if(done?.state!==state)throw unavailable();return json({state});
   }
   if(path.length===3&&path[0]==='friends'&&path[2]==='remove'){
    check(path[1]!==user.id,400,'invalid_person','Choose another account.');
-   await q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) AND state='accepted'",now,user.id,path[1],path[1],user.id).run();return json({removed:true});
+   await q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) AND state='accepted' AND "+active.sql,now,user.id,path[1],path[1],user.id,...active.args).run();await requireActive(db,active);return json({removed:true});
   }
   if(path.length===1&&path[0]==='blocks'){
    check(typeof body.active==='boolean',400,'invalid_state','Choose whether to block this account.');
-   let target;if(typeof body.accountId==='string')target=await q(db,'SELECT id FROM live_accounts WHERE id=? AND username IS NOT NULL',body.accountId).first();else target=await accountByName(db,body.username);
+   let target;if(typeof body.accountId==='string')target=await q(db,"SELECT id FROM live_accounts WHERE id=? AND username IS NOT NULL AND account_status='active'",body.accountId).first();else target=await accountByName(db,body.username);
    if(!target||target.id===user.id)throw unavailable();
+   const guard={sql:active.sql+' AND '+activeTargetSql,args:[...active.args,target.id]};
    if(body.active)await db.batch([
-    q(db,'INSERT OR IGNORE INTO social_blocks(blocker_id,blocked_id,created_at) VALUES(?,?,?)',user.id,target.id,now),
-    q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE (sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)",now,user.id,target.id,target.id,user.id)
-   ]);else await q(db,'DELETE FROM social_blocks WHERE blocker_id=? AND blocked_id=?',user.id,target.id).run();
+    q(db,'INSERT OR IGNORE INTO social_blocks(blocker_id,blocked_id,created_at) SELECT ?,?,? WHERE '+guard.sql,user.id,target.id,now,...guard.args),
+    q(db,"UPDATE social_requests SET state='cancelled',updated_at=? WHERE ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) AND "+guard.sql,now,user.id,target.id,target.id,user.id,...guard.args)
+   ]);else await q(db,'DELETE FROM social_blocks WHERE blocker_id=? AND blocked_id=? AND '+guard.sql,user.id,target.id,...guard.args).run();
+   await requireActive(db,active);if(!await q(db,'SELECT 1 AS allowed WHERE '+activeTargetSql,target.id).first())throw unavailable();
+   const ownBlock=await q(db,'SELECT 1 AS found FROM social_blocks WHERE blocker_id=? AND blocked_id=?',user.id,target.id).first();check(body.active?!!ownBlock:!ownBlock,409,'request_changed','This block changed before it could be saved. Refresh Friends.');
    return json({blocked:body.active});
   }
   throw new AuthError(404,'not_found','No social action matches this request.');

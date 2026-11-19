@@ -8,8 +8,8 @@ import {createAuthService,authHash,normalizeUsername} from '../worker/auth.mjs';
 const origin='https://voidline.example',PASSWORD='A private midnight password 7';
 const tests=[],test=(name,run)=>tests.push([name,run]);
 class Adapter{
- constructor(db){this.db=db;this.queue=Promise.resolve();}
- prepare(sql){return {bind:(...values)=>{const statement=this.db.prepare(sql);return {first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>({success:true,meta:{changes:statement.run(...values).changes}})};}};}
+ constructor(db){this.db=db;this.queue=Promise.resolve();this.beforeRun=null;}
+ prepare(sql){return {bind:(...values)=>{const statement=this.db.prepare(sql);return {first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>{if(this.beforeRun)await this.beforeRun(sql);return {success:true,meta:{changes:statement.run(...values).changes}};}};}};}
  batch(statements){const operation=this.queue.then(async()=>{this.db.exec('BEGIN');try{const results=[];for(const statement of statements)results.push(await statement.run());this.db.exec('COMMIT');return results;}catch(error){this.db.exec('ROLLBACK');throw error;}});this.queue=operation.catch(()=>{});return operation;}
 }
 function jar(){const values=new Map();return {values,header:()=>[...values].map(([k,v])=>k+'='+v).join('; '),apply(response){for(const value of response.headers.getSetCookie()){const pair=value.split(';')[0],split=pair.indexOf('=');if(pair.slice(split+1))values.set(pair.slice(0,split),pair.slice(split+1));else values.delete(pair.slice(0,split));}}};}
@@ -110,6 +110,13 @@ test('recovery replay cannot enqueue a second remote logout and account deletion
  const f=fixture();try{const a=await f.register();linkMatrix(f,a);const recovery={username:'night_one',recoveryCode:a.session.recoveryCode,password:'Recovered remote private password 9'},browser=jar(),response=await f.call('/api/auth/recover',{browser,body:recovery});assert.equal(response.status,200);const recovered={browser,session:await response.json()};assert.equal((await f.call('/api/auth/recover',{body:recovery})).status,401);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM matrix_policy_operations WHERE kind='logout_all'").get().n,1);
   assert.equal((await f.mutation(recovered,'/api/auth/account/delete',{password:recovery.password})).status,200);const op=f.sqlite.prepare("SELECT kind,status FROM matrix_policy_operations WHERE kind='delete'").get();assert.deepEqual({...op},{kind:'delete',status:'pending'});assert.equal(f.sqlite.prepare('SELECT account_status FROM live_accounts WHERE id=?').get(a.session.account.id).account_status,'deleted');
  }finally{f.sqlite.close();}
+});
+
+test('a delayed onboarding request cannot restore a deleted identity or write through a revoked session',async()=>{
+ for(const deleted of [true,false]){const f=fixture();try{
+  const a=await f.register(),id=a.session.account.id;let intercepted=false;f.env.DB.beforeRun=sql=>{if(!sql.startsWith('UPDATE live_accounts SET username='))return;f.env.DB.beforeRun=null;intercepted=true;if(deleted)f.sqlite.prepare("UPDATE live_accounts SET username=NULL,display_name='Deleted account',onboarding_complete=0,account_status='deleted' WHERE id=?").run(id);f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE account_id=?').run(f.time,id);};
+  const response=await f.mutation(a,'/api/auth/onboarding',{username:'resurrected_user',displayName:'Restored identity',avatar:'ghost'});assert.equal(intercepted,true);assert.equal(response.status,409);assert.equal((await response.json()).error.code,'account_changed');const row=f.sqlite.prepare('SELECT username,display_name,onboarding_complete,account_status FROM live_accounts WHERE id=?').get(id);assert.notEqual(row.username,'resurrected_user');assert.notEqual(row.display_name,'Restored identity');if(deleted){assert.equal(row.username,null);assert.equal(row.account_status,'deleted');assert.equal(row.onboarding_complete,0);}
+ }finally{f.sqlite.close();}}
 });
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${tests.length-failed}/${tests.length} native account/session checks passed against migrated SQLite, real Argon2id and legacy WebCrypto verification.`);process.exitCode=failed?1:0;

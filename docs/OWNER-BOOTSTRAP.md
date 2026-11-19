@@ -4,11 +4,14 @@ The intended owner handle is **@xrp**. That text is a way to identify the accoun
 the user means. A matching username, display name, community role, browser flag,
 or first registration never grants platform administration.
 
-## Current binding state and smallest remaining step
+## Hosted binding state and bootstrap procedure
 
-No real owner account has been verified or bound by this upgrade. The public
-application must continue to deny platform administration until the procedure
-below completes. A test-fixture owner is not a production owner.
+The intended @xrp account was verified and bound on the existing hosted Site on
+19 November 2026 through the procedure below. The bootstrap credentials were
+then removed and the same Site was redeployed. The immutable database record
+remains the authority; the public handle is not an authorization rule. This
+runbook also describes initial setup in an independently restored deployment.
+A test-fixture owner is never evidence of a production binding.
 
 The account holder must sign into the intended account, confirm their password,
 enroll a passkey in **You → Devices & security**, then choose
@@ -67,8 +70,10 @@ user-verifying passkey assertion within five minutes. HTTP methods, origin,
 account expectation, CSRF and mutation limits are checked independently of the
 dashboard. A suspended or revoked session fails before administrative access.
 
-The dashboard offers paginated account lookup, account status and authentication
-method/verification indicators, suspension/reinstatement, session revocation,
+Open **You → Platform administration → Accounts**, or **Administration** in the
+navigation. The dashboard offers paginated account lookup, account status and
+authentication method/verification indicators, blocking/unblocking, deletion,
+session revocation,
 community invitation revocation, reporter-selected abuse evidence, official
 gift-catalog settings, reviewed badge awards/revocations, health and an audit
 trail. Account lists exclude passwords, hashes, tokens, passkey public keys,
@@ -88,6 +93,47 @@ Suspension revokes all existing account sessions. Reinstatement permits a new
 login and does not revive old cookies. Administrative account mutations and
 their audit records commit together. The verified owner cannot suspend themself,
 and the native account-deletion endpoint must protect that owner record.
+
+### Block and delete accounts
+
+**Block account** sets the existing suspended status. It prevents native sign-in
+and authenticated account actions, and revokes all existing sessions. **Unblock
+account** permits a new sign-in; it never revives revoked sessions. These are
+platform restrictions, distinct from a user's private social-block list.
+
+**Delete account** is a separate, irreversible account action. The owner must
+enter the exact internal target ID and a five-to-400-character reason. The UI
+keeps one mutation ID for retries of that confirmation. The server binds the
+receipt to the acting owner, target and reason, so a lost response can be retried
+without repeating deletion or its audit. Reusing that ID for another operation
+is rejected. Both password and passwordless target accounts are supported;
+the owner never needs or receives the target's password.
+
+Deletion removes native authentication methods, verified-email/recovery records,
+passkeys, private profile/organization data, memberships, bookmarks and push
+subscriptions, cancels pending gift transfers, and revokes sessions. Profile and
+uncommitted media are queued for durable removal. Shared history retains a
+tombstoned, anonymized author reference; it is not silently erased from other
+people's conversations. Already shared attachments, legitimate gift instances,
+ownership events, earned-award references and administrative audits keep their
+existing integrity and permission rules.
+
+The platform owner cannot be deleted or blocked through these controls. A
+community owner must transfer community ownership first; deletion does not
+invent a successor, orphan a community, or delete the community's history. Native
+private-group succession follows the existing database membership rules.
+
+The server checks immutable ownership, active session, recent password and
+passkey proof again when account restrictions or deletion commit. Cleanup and
+the audit record are atomic. Deletion is terminal and cannot be reversed by a
+stale unblock request. The dashboard shows deleted accounts only as retained
+references and does not offer recovery or reinstatement for them.
+
+Native restrictions take effect independently of Matrix. Verified remote
+lifecycle decisions are queued only when a legitimate Matrix mapping exists.
+A queued operation is not proof of remote deactivation; the current deployment
+still has no configured homeserver. Nothing in these controls gives the owner
+a key for decrypting end-to-end encrypted conversations.
 
 ## Owner recovery
 

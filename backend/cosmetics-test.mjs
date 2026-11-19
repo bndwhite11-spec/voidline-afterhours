@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {handleCosmeticsRequest, COSMETICS} from '../worker/cosmetics.mjs';
 import {authHash} from '../worker/auth.mjs';
+import {accountDeletionStatements} from '../worker/account-deletion.mjs';
 
 const origin='https://cosmetics.example',tests=[];const test=(name,fn)=>tests.push([name,fn]);
 class Adapter{
@@ -10,7 +11,7 @@ class Adapter{
  prepare(sql){const adapter=this;return {bind(...values){return {
   first:async()=>{if(adapter.fail&&sql.includes(adapter.fail))throw Error('Injected database failure');return adapter.sqlite.prepare(sql).get(...values)||null;},
   all:async()=>({results:adapter.sqlite.prepare(sql).all(...values)}),
-  run:async()=>{adapter.beforeWrite?.(sql);if(adapter.fail&&sql.includes(adapter.fail))throw Error('Injected database failure');return {success:true,meta:{changes:adapter.sqlite.prepare(sql).run(...values).changes}};}
+  run:async()=>{await adapter.beforeWrite?.(sql);if(adapter.fail&&sql.includes(adapter.fail))throw Error('Injected database failure');return {success:true,meta:{changes:adapter.sqlite.prepare(sql).run(...values).changes}};}
  };}};}
  batch(statements){const operation=this.queue.then(async()=>{this.sqlite.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());this.sqlite.exec('COMMIT');return values;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=operation.catch(()=>{});return operation;}
 }
@@ -209,6 +210,48 @@ test('commit-time suspension prevents grants, transfer reservations and acceptan
    if(stage==='open')assert.equal(f.sqlite.prepare('SELECT state FROM cosmetic_gifts WHERE id=?').get(gift.id).state,'pending');
   }finally{f.sqlite.close();}
  }
+});
+test('queued collection preferences, equip, showcase and claims cannot restore a blocked or deleted account',async()=>{
+ for(const state of ['suspended','deleted','revoked','expired'])for(const action of ['settings','visibility','equip','unequip','showcase','claim']){
+  const f=await fixture();try{
+   await f.ok('sender','/claim',{cosmeticId:'angel'});const instance=(await f.ok('sender','/claim',{cosmeticId:'gift-rose'})).instances[0];
+   const configurations={settings:['/settings',{giftsEnabled:false,collectionVisibility:'private'},'INSERT INTO cosmetic_profiles'],visibility:['/settings',{collectionVisibility:'private'},'INSERT INTO profile_preferences'],equip:['/equip',{cosmeticId:'angel'},'INSERT INTO cosmetic_profiles'],unequip:['/equip',{cosmeticId:null},'INSERT INTO cosmetic_profiles'],showcase:['/showcase',{slots:[{instanceId:instance.id,showSender:false}]},'DELETE FROM gift_showcase'],claim:['/claim',{cosmeticId:'ghost'},'INSERT OR IGNORE INTO cosmetic_ownership']};
+   const [path,body,prefix]=configurations[action];let invalidated=false;
+   f.db.beforeWrite=async sql=>{if(!invalidated&&sql.startsWith(prefix)){invalidated=true;f.db.beforeWrite=null;
+    if(state==='deleted'){for(const statement of accountDeletionStatements(f.db,{accountId:'sender',guardSql:'1=1',time:Date.now(),operationId:'isolated-delete-'+crypto.randomUUID()}))await statement.run();}
+    else if(state==='suspended')f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id='sender'").run();
+    else f.sqlite.prepare('UPDATE auth_sessions SET '+(state==='revoked'?'revoked_at':'expires_at')+'=1 WHERE account_id=?').run('sender');
+   }};
+   const response=await f.call('sender',path,body);assert.equal(invalidated,true,state+' '+action+' crossed the write boundary');assert.equal(response.status,409,state+' '+action+' must truthfully fail');assert.equal(response.data.saved,undefined);assert.equal(response.data.equipped,undefined);assert.equal(response.data.claimed,undefined);
+   for(const table of ['cosmetic_profiles','profile_preferences','gift_showcase'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table+' WHERE account_id=?').get('sender').n,0,state+' '+action+' must not recreate '+table);
+   assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM cosmetic_ownership WHERE account_id='sender' AND cosmetic_id='ghost'").get().n,0);
+   if(state==='deleted'){const account=f.sqlite.prepare("SELECT username,display_name,account_status FROM live_accounts WHERE id='sender'").get();assert.equal(account.account_status,'deleted');assert.equal(account.username,null);assert.equal(account.display_name,'Deleted account');assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM cosmetic_ownership WHERE account_id='sender'").get().n,0);}
+  }finally{f.sqlite.close();}
+ }
+});
+test('revoking an authenticated device at the write boundary prevents gift grants and transfer changes',async()=>{
+ for(const action of ['grant','reserve','accept','open','decline','cancel']){
+  const f=await fixture();try{
+   let instance,transfer,gift;
+   if(['reserve','accept','cancel'].includes(action)){instance=(await f.ok('sender','/claim',{cosmeticId:'gift-rose'})).instances[0];if(action!=='reserve')transfer=(await f.ok('sender','/transfers',{instanceId:instance.id,username:'recipient',clientId:'revoked-transfer'})).transfer;}
+   if(['open','decline'].includes(action))gift=(await f.gift()).gift;
+   const actor=['accept','open','decline'].includes(action)?'recipient':'sender',prefix={grant:'INSERT OR IGNORE INTO cosmetic_gifts',reserve:'UPDATE gift_instances SET pending_transfer_id',accept:'UPDATE gift_transfers SET state',open:'UPDATE cosmetic_gifts SET state',decline:'UPDATE cosmetic_gifts SET state',cancel:'UPDATE gift_transfers SET state'}[action];let revoked=false;
+   f.db.beforeWrite=sql=>{if(!revoked&&sql.startsWith(prefix)){revoked=true;f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=1 WHERE account_id=?').run(actor);}};
+   const result=action==='grant'?await f.call(actor,'/gifts',{username:'recipient',catalogId:'gift-rose',clientId:'revoked-grant'}):action==='reserve'?await f.call(actor,'/transfers',{instanceId:instance.id,username:'recipient',clientId:'revoked-reserve'}):['accept','cancel'].includes(action)?await f.call(actor,'/transfers/'+transfer.id+'/'+(action==='accept'?'open':'cancel'),{}):await f.call(actor,'/gifts/'+gift.id+'/'+action,{});
+   assert.equal(revoked,true);assert.equal(result.status,409,action+' must reject a revoked device');assert.equal(result.data.handled,undefined);assert.equal(result.data.acknowledged,undefined);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM gift_instances WHERE owner_id='recipient'").get().n,0);
+   if(action==='grant')assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_gifts').get().n,0);
+   if(action==='reserve'){assert.equal(f.sqlite.prepare('SELECT pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id).pending_transfer_id,null);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_transfers').get().n,0);}
+   if(['accept','cancel'].includes(action)){assert.equal(f.sqlite.prepare('SELECT state FROM gift_transfers WHERE id=?').get(transfer.id).state,'pending');assert.equal(f.sqlite.prepare('SELECT owner_id,pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id).owner_id,'sender');assert.equal(f.sqlite.prepare('SELECT pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id).pending_transfer_id,transfer.id);}
+   if(['open','decline'].includes(action))assert.equal(f.sqlite.prepare('SELECT state FROM cosmetic_gifts WHERE id=?').get(gift.id).state,'pending');
+  }finally{f.sqlite.close();}
+ }
+});
+test('replaying an opened gift cannot restore private ownership after deletion between lookup and write',async()=>{
+ const f=await fixture();try{
+  const gift=(await f.gift()).gift;await f.ok('recipient','/gifts/'+gift.id+'/open',{});let deleted=false;
+  f.db.beforeWrite=async sql=>{if(!deleted&&sql.startsWith('UPDATE cosmetic_gifts SET state')){deleted=true;f.db.beforeWrite=null;for(const statement of accountDeletionStatements(f.db,{accountId:'recipient',guardSql:'1=1',time:Date.now(),operationId:'isolated-replay-delete'}))await statement.run();}};
+  const result=await f.call('recipient','/gifts/'+gift.id+'/open',{});assert.equal(deleted,true);assert.equal(result.status,409);assert.equal(result.data.handled,undefined);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM cosmetic_ownership WHERE account_id='recipient'").get().n,0);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM gift_instances WHERE owner_id='recipient'").get().n,1,'legitimate provenance remains retained');
+ }finally{f.sqlite.close();}
 });
 test('expanded catalog preserves original identities and keeps all new designs separate from earned awards',async()=>{
  const f=await fixture();try{const items=(await f.ok('sender','/catalog')).items;assert.equal(items.filter(i=>i.type==='badge').length,49);assert.equal(items.filter(i=>i.type==='gift').length,32);for(const id of ['larp','angel','ghost','velvet','night','unknown','dead','voidwalker','orbit','coin-bitforge','coin-etherglass','coin-crosssignal','coin-solarstack','coin-moonshibe','coin-diamondhands','meme-grass','meme-npc','meme-yapper','meme-copium','meme-cooked','meme-terminal','gift-rose','gift-cassette','gift-star','gift-cup','gift-ghost','gift-parcel','gift-seraph','gift-key','gift-halo','gift-orchid','gift-signal','gift-ticket'])assert(items.some(item=>item.id===id),id);for(const id of ['ego-unique-one','meme-nothing-happens','meme-six-seven','guild-guildless-knight','coin-cold-storage','gift-ego-volume','gift-curtain-call','gift-last-tab','meme-doomer','meme-bloomer','meme-absolute-cinema','guild-forum-wizard','gift-pocket-doomer','gift-orbit-mobile','gift-last-broadcast','gift-night-lantern'])assert(items.some(item=>item.id===id),id);assert(!items.some(i=>['profile-authored','reviewed-contribution'].includes(i.id)));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM badge_awards').get().n,0);}finally{f.sqlite.close();}

@@ -1,5 +1,6 @@
 import {matrixPolicyStatement,matrixPolicySessionsStatement,matrixPolicyHealth} from './matrix-policy.mjs';
 import {hostedBackupHealth} from './hosted-backup.mjs';
+import {accountDeletionStatements,ACCOUNT_DELETION_RETENTION} from './account-deletion.mjs';
 /** Platform administration. A public name never confers a platform role. */
 import {authenticate,validateSessionMutation,authHash,authRateLimit,requestVerifiedResetForAccount,AuthError} from './auth.mjs';
 import {requireRecentPasskey} from './passkeys.mjs';
@@ -49,6 +50,54 @@ async function claimForCode(db,code,now){
  return claim;
 }
 async function targetAccount(db,id){identifier(id);const account=await q(db,'SELECT id,username,display_name,account_status,created_at FROM live_accounts WHERE id=?',id).first();need(account,404,'account_unavailable','This account is unavailable.');return account;}
+// The database clock is evaluated inside the mutation transaction. A logout,
+// suspension or proof expiry after request preflight cannot authorize a write.
+const databaseNow="CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
+function ownerMutationGuard(user){return {sql:`EXISTS(SELECT 1 FROM platform_owner p JOIN live_accounts a ON a.id=p.account_id JOIN auth_sessions s ON s.account_id=p.account_id WHERE p.id=1 AND p.account_id=? AND s.id=? AND a.account_status='active' AND s.revoked_at IS NULL AND s.expires_at>${databaseNow} AND s.reauthenticated_at>${databaseNow}-600000 AND COALESCE(s.mfa_verified_at,0)>${databaseNow}-300000)`,binds:[user.id,user.sessionId]};}
+async function currentOwnerProof(db,user){
+ const row=await q(db,`SELECT a.account_status,s.revoked_at,s.expires_at,s.reauthenticated_at,s.mfa_verified_at,${databaseNow} AS clock_now FROM platform_owner p JOIN live_accounts a ON a.id=p.account_id JOIN auth_sessions s ON s.account_id=p.account_id WHERE p.id=1 AND p.account_id=? AND s.id=?`,user.id,user.sessionId).first();
+ need(row&&row.account_status==='active'&&row.revoked_at===null&&row.expires_at>row.clock_now,401,'sign_in_required','Your owner session changed. Sign in and verify again.');
+ requireRecentPasskey({reauthenticatedAt:row.reauthenticated_at,session:row},row.clock_now);
+}
+const communityOwnershipSql="(EXISTS(SELECT 1 FROM live_memberships WHERE account_id=? AND role='owner') OR EXISTS(SELECT 1 FROM live_communities WHERE created_by=? AND ownership_repair_required=0))";
+async function ownsCommunity(db,accountId){return !!await q(db,'SELECT 1 AS found WHERE '+communityOwnershipSql,accountId,accountId).first();}
+const deletionResult=(accountId,replayed)=>json({deleted:true,accountId,deletedAccount:{id:accountId,status:'deleted'},status:'deleted',replayed,retained:ACCOUNT_DELETION_RETENTION,matrixPolicyCompletion:'queued-if-verified-mapping-exists'});
+function validateDeletionReceipt(receipt,{actorId,accountId,reason,clientId}){
+ let detail;try{detail=JSON.parse(receipt.detail_json);}catch{}
+ need(receipt.actor_id===actorId&&receipt.action==='account.deleted'&&receipt.target_type==='account'&&receipt.target_id===accountId&&detail?.reason===reason&&detail?.clientId===clientId,409,'idempotency_conflict','This deletion request ID was already used for a different account or reason. Start a new reviewed action.');
+}
+async function deleteAccountAsOwner(db,user,targetId,body){
+ const accountId=identifier(targetId);need(body.confirmAccountId===accountId,400,'confirmation_required','Confirm the exact immutable account ID before deleting.');
+ const reason=text(body.reason,400,'Deletion reason',5);need(typeof body.clientId==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(body.clientId),400,'invalid_client_id','Use a stable deletion request ID for retries.');
+ const clientId=body.clientId.toLowerCase(),auditId='admin-delete:'+user.id+':'+clientId,receiptArgs={actorId:user.id,accountId,reason,clientId};
+ const receipt=await q(db,'SELECT * FROM admin_audit WHERE id=?',auditId).first();
+ if(receipt){await currentOwnerProof(db,user);validateDeletionReceipt(receipt,receiptArgs);return deletionResult(accountId,true);}
+ const account=await targetAccount(db,accountId);need(account.id!==user.id&&!await q(db,'SELECT 1 AS found FROM platform_owner WHERE account_id=?',accountId).first(),409,'owner_protected','The platform owner cannot be deleted through account administration.');
+ if(account.account_status==='deleted'){
+  // Another identical request can commit after the initial receipt lookup but
+  // before this account read. A tombstone alone must not hide its valid receipt.
+  const lateReceipt=await q(db,'SELECT * FROM admin_audit WHERE id=?',auditId).first();if(lateReceipt){await currentOwnerProof(db,user);validateDeletionReceipt(lateReceipt,receiptArgs);return deletionResult(accountId,true);}
+  throw new AuthError(409,'account_deleted','This account was already deleted. It cannot be reinstated.');
+ }
+ need(!await ownsCommunity(db,accountId),409,'ownership_transfer_required','Transfer or repair community ownership before deleting this account. Communities and their histories will not be orphaned.');
+ const time=Date.now(),authorization=ownerMutationGuard(user),executionId=crypto.randomUUID(),detail=JSON.stringify({clientId,reason,executionId,retention:'anonymized-account-and-shared-history'});
+ // The receipt's unique execution marker authorizes cleanup only for the
+ // transaction that actually won the INSERT, never a duplicate or losing CAS.
+ const appliedSql="EXISTS(SELECT 1 FROM admin_audit WHERE id=? AND actor_id=? AND action='account.deleted' AND target_type='account' AND target_id=? AND detail_json=?)",appliedBinds=[auditId,user.id,accountId,detail];
+ const result=await db.batch([
+  q(db,`INSERT OR IGNORE INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) SELECT ?,?,'account.deleted','account',?,?,? WHERE ${authorization.sql} AND EXISTS(SELECT 1 FROM live_accounts target WHERE target.id=? AND target.account_status<>'deleted') AND NOT EXISTS(SELECT 1 FROM platform_owner WHERE account_id=?) AND NOT ${communityOwnershipSql}`,auditId,user.id,accountId,detail,time,...authorization.binds,accountId,accountId,accountId,accountId),
+  ...accountDeletionStatements(db,{accountId,guardSql:appliedSql,guardBinds:appliedBinds,time,actorId:user.id,operationId:'account-delete:'+auditId}),
+ ]);
+ if(result[0]?.meta?.changes>0)return deletionResult(accountId,false);
+ // Distinguish an acknowledged duplicate from authorization/ownership changes
+ // without ever claiming that a skipped transaction deleted an account.
+ await currentOwnerProof(db,user);
+ const concurrentReceipt=await q(db,'SELECT * FROM admin_audit WHERE id=?',auditId).first();if(concurrentReceipt){validateDeletionReceipt(concurrentReceipt,receiptArgs);return deletionResult(accountId,true);}
+ need(!await q(db,'SELECT 1 AS found FROM platform_owner WHERE account_id=?',accountId).first(),409,'owner_protected','The platform owner cannot be deleted through account administration.');
+ need(!await ownsCommunity(db,accountId),409,'ownership_transfer_required','Transfer or repair community ownership before deleting this account.');
+ const current=await targetAccount(db,accountId);need(current.account_status!=='deleted',409,'account_deleted','This account was already deleted. It cannot be reinstated.');
+ throw new AuthError(409,'account_changed','This account changed before deletion committed. Refresh and review the account again.');
+}
 
 export async function handleAdminRequest(request,env){
  try{
@@ -107,27 +156,30 @@ export async function handleAdminRequest(request,env){
    return json({users:rows.map(r=>({id:r.id,username:r.username,displayName:r.display_name,status:r.account_status,createdAt:r.created_at,updatedAt:r.updated_at,verifiedEmail:!!r.verified_email,methods:[...(r.has_password?['password']:[]),...(r.passkey_count?['passkey']:[]),...(r.provider_methods?r.provider_methods.split(','):[])]})),page:pageInfo(p,total)});
   }
   if(path.length===3&&path[0]==='users'&&method==='POST'){
-   const account=await targetAccount(db,path[1]);const action=path[2];
+   const action=path[2];if(action==='delete')return await deleteAccountAsOwner(db,user,path[1],body);
+   const account=await targetAccount(db,path[1]);
    if(action==='status'){
     need(['active','suspended'].includes(body.status),400,'invalid_status','Choose active or suspended.');need(account.id!==user.id,409,'owner_protected','The platform owner cannot suspend their own account.');need(account.account_status!=='deleted',409,'account_deleted','Deleted accounts cannot be reinstated.');
-    const reason=text(body.reason,400,'Reason',5),auditId=crypto.randomUUID();
+    const reason=text(body.reason,400,'Reason',5),auditId=crypto.randomUUID(),authorization=ownerMutationGuard(user);
     // Deletion may commit after the preliminary account read. A tombstone is
     // terminal; the direct SQL changes() gate binds the audit and every later
     // effect to this request's successful update inside the same transaction.
     // D1 metadata can include trigger effects, so check the unique update >0.
     const appliedSql='EXISTS(SELECT 1 FROM admin_audit WHERE id=? AND actor_id=? AND target_id=?)',appliedBinds=[auditId,user.id,account.id];
     const result=await db.batch([
-     q(db,"UPDATE live_accounts SET account_status=?,updated_at=? WHERE id=? AND account_status<>'deleted'",body.status,now,account.id),
+     q(db,"UPDATE live_accounts SET account_status=?,updated_at=? WHERE id=? AND account_status<>'deleted' AND NOT EXISTS(SELECT 1 FROM platform_owner WHERE account_id=live_accounts.id) AND "+authorization.sql,body.status,now,account.id,...authorization.binds),
      q(db,'INSERT INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) SELECT ?,?,?,?,?,?,? WHERE changes()=1',auditId,user.id,'account.'+body.status,'account',account.id,JSON.stringify({reason}),now),
      q(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL AND '+appliedSql,now,account.id,...appliedBinds),
      matrixPolicyStatement(db,{accountId:account.id,kind:body.status==='suspended'?'suspend':'reinstate',idempotencyKey:'admin-status:'+auditId,requestedBy:user.id,time:now,guardSql:appliedSql,guardBinds:appliedBinds})
     ]);
+    if(!(result[0]?.meta?.changes>0&&result[1]?.meta?.changes>0))await currentOwnerProof(db,user);
     need(result[0]?.meta?.changes>0&&result[1]?.meta?.changes>0,409,'account_changed','This account changed before the action committed. Refresh before trying again.');
     return json({changed:true,status:body.status,sessionsRevoked:true,matrixPolicyCompletion:'queued-if-verified-mapping-exists'});
    }
    if(action==='revoke-sessions'){
-    const includeCurrent=body.includeCurrent===true;const writes=[q(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL'+(!includeCurrent&&account.id===user.id?' AND id<>?':''),now,account.id,...(!includeCurrent&&account.id===user.id?[user.sessionId]:[])),audit(db,user.id,'account.sessions.revoked','account',account.id,{includeCurrent},now)];
-    writes.push(matrixPolicySessionsStatement(db,{accountId:account.id,exceptSessionId:!includeCurrent&&account.id===user.id?user.sessionId:null,idempotencyKey:'admin-revoke:'+crypto.randomUUID(),requestedBy:user.id,time:now,revokedAt:now}));await db.batch(writes);return json({revoked:true,matrixPolicyCompletion:'queued-if-verified-mapping-exists',currentSessionRevoked:includeCurrent&&account.id===user.id});
+    const includeCurrent=body.includeCurrent===true,auditId=crypto.randomUUID(),authorization=ownerMutationGuard(user),appliedSql='EXISTS(SELECT 1 FROM admin_audit WHERE id=? AND actor_id=? AND target_id=?)',appliedBinds=[auditId,user.id,account.id];
+    const writes=[q(db,'INSERT INTO admin_audit(id,actor_id,action,target_type,target_id,detail_json,created_at) SELECT ?,?,?,?,?,?,? WHERE '+authorization.sql,auditId,user.id,'account.sessions.revoked','account',account.id,JSON.stringify({includeCurrent}),now,...authorization.binds),q(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL'+(!includeCurrent&&account.id===user.id?' AND id<>?':'')+' AND '+appliedSql,now,account.id,...(!includeCurrent&&account.id===user.id?[user.sessionId]:[]),...appliedBinds)];
+    writes.push(matrixPolicySessionsStatement(db,{accountId:account.id,exceptSessionId:!includeCurrent&&account.id===user.id?user.sessionId:null,idempotencyKey:'admin-revoke:'+auditId,requestedBy:user.id,time:now,revokedAt:now,guardSql:appliedSql,guardBinds:appliedBinds}));const result=await db.batch(writes);if(!(result[0]?.meta?.changes>0)){await currentOwnerProof(db,user);throw new AuthError(409,'authorization_changed','Owner authorization changed before this action committed. Verify and retry.');}return json({revoked:true,matrixPolicyCompletion:'queued-if-verified-mapping-exists',currentSessionRevoked:includeCurrent&&account.id===user.id});
    }
    if(action==='recovery'){
     // Record intent before external delivery, so an audit failure cannot send

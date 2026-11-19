@@ -9,8 +9,8 @@ function database(){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');
  const journal=JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url)));
  for(const entry of journal.entries)sqlite.exec(readFileSync(new URL(`../drizzle/${entry.tag}.sql`,import.meta.url),'utf8'));
- const adapter={prepare(sql){return {bind(...values){const stmt=sqlite.prepare(sql);return {first:async()=>stmt.get(...values)||null,all:async()=>({results:stmt.all(...values)}),run:async()=>({success:true,meta:{changes:stmt.run(...values).changes}})};}};},async batch(statements){sqlite.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());sqlite.exec('COMMIT');return values;}catch(error){sqlite.exec('ROLLBACK');throw error;}}};
- return {sqlite,env:{DB:adapter,VOIDLINE_ORIGIN:origin}};
+ const adapter={prepare(sql){return {bind(...values){const stmt=sqlite.prepare(sql);return {first:async()=>stmt.get(...values)||null,all:async()=>({results:stmt.all(...values)}),run:async()=>{adapter.beforeWrite?.(sql,values);return {success:true,meta:{changes:stmt.run(...values).changes}};}};}};},async batch(statements){sqlite.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());sqlite.exec('COMMIT');return values;}catch(error){sqlite.exec('ROLLBACK');throw error;}}};
+ return {sqlite,db:adapter,env:{DB:adapter,VOIDLINE_ORIGIN:origin}};
 }
 async function fixture(){
  const f=database(),accounts={};
@@ -68,6 +68,41 @@ test('origin, CSRF and expected-account checks protect every social mutation',as
 });
 test('removal is account-scoped and pagination counts the correct private lists',async()=>{
  const f=await fixture();try{for(const name of ['bobby','claire']){const r=await f.ok('alice','/request',{username:'social_'+name});await f.ok(name,`/requests/${r.request.id}/respond`,{accept:true});}const first=await f.ok('alice','?limit=1&offset=0'),second=await f.ok('alice','?limit=1&offset=1');assert.equal(first.counts.friends,2);assert.equal(first.friends.length,1);assert.notEqual(first.friends[0].accountId,second.friends[0].accountId);await f.ok('claire',`/friends/${f.accounts.bobby.id}/remove`,{});assert.equal((await f.ok('alice')).friends.length,2);await f.ok('alice',`/friends/${f.accounts.bobby.id}/remove`,{});assert.equal((await f.ok('alice')).friends.length,1);assert.equal((await f.ok('bobby')).friends.length,0);}finally{await f.close();}
+});
+test('preauthenticated settings, requests and blocks cannot write after actor suspension, deletion, revocation or expiry',async()=>{
+ for(const change of ['suspended','deleted','revoked','expired'])for(const action of ['settings','request','blocks']){
+  const f=await fixture();try{
+   const id=f.accounts.alice.id,table=action==='settings'?'social_settings':action==='request'?'social_requests':'social_blocks';let injected=false;
+   f.db.beforeWrite=sql=>{if(injected||!sql.startsWith('INSERT')||!sql.includes('INTO '+table+'('))return;injected=true;
+    if(change==='revoked')f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=1 WHERE account_id=?').run(id);
+    else if(change==='expired')f.sqlite.prepare('UPDATE auth_sessions SET expires_at=1 WHERE account_id=?').run(id);
+    else f.sqlite.prepare("UPDATE live_accounts SET account_status=?,username=CASE WHEN ?='deleted' THEN NULL ELSE username END WHERE id=?").run(change,change,id);
+   };
+   const body=action==='settings'?{allowRequests:false}:action==='request'?{username:'social_bobby'}:{accountId:f.accounts.bobby.id,active:true};
+   const result=await f.call('alice','/'+action,body);assert.ok(injected,action+' did not reach the mutation');assert.equal(result.status,409,`${change} ${action}: ${JSON.stringify(result.data)}`);
+   for(const name of ['social_settings','social_requests','social_blocks'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+name).get().n,0,`${change} ${action} recreated ${name}`);
+  }finally{await f.close();}
+ }
+});
+test('suspended or deleted targets cannot receive an in-flight friend request or new block',async()=>{
+ for(const status of ['suspended','deleted'])for(const action of ['request','blocks']){
+  const f=await fixture();try{
+   let injected=false;const table=action==='request'?'social_requests':'social_blocks';
+   f.db.beforeWrite=sql=>{if(injected||!sql.startsWith('INSERT')||!sql.includes('INTO '+table+'('))return;injected=true;f.sqlite.prepare("UPDATE live_accounts SET account_status=?,username=CASE WHEN ?='deleted' THEN NULL ELSE username END WHERE id=?").run(status,status,f.accounts.bobby.id);};
+   const body=action==='request'?{username:'social_bobby'}:{accountId:f.accounts.bobby.id,active:true},result=await f.call('alice','/'+action,body);
+   assert.ok(injected);assert.equal(result.status,404,`${status} ${action}: ${JSON.stringify(result.data)}`);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);
+  }finally{await f.close();}
+ }
+});
+test('a stale block cannot cancel an existing request and a suspended sender cannot gain an accepted friendship',async()=>{
+ for(const action of ['block','accept']){
+  const f=await fixture();try{
+   const sent=await f.ok('alice','/request',{username:'social_bobby'});let injected=false;
+   f.db.beforeWrite=sql=>{if(injected||!(action==='block'?sql.startsWith('INSERT OR IGNORE INTO social_blocks'):sql.startsWith('UPDATE social_requests AS r')))return;injected=true;f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id=?").run(f.accounts[action==='block'?'bobby':'alice'].id);};
+   const result=action==='block'?await f.call('alice','/blocks',{accountId:f.accounts.bobby.id,active:true}):await f.call('bobby','/requests/'+sent.request.id+'/respond',{accept:true});
+   assert.ok(injected);assert.equal(result.status,404);assert.equal(f.sqlite.prepare('SELECT state FROM social_requests WHERE id=?').get(sent.request.id).state,'pending');assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM social_blocks').get().n,0);
+  }finally{await f.close();}
+ }
 });
 let failures=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}
 console.log(`${tests.length-failures}/${tests.length} native social checks passed. Isolated registered accounts and actual SQLite, no contacts or real user accounts.`);process.exitCode=failures?1:0;

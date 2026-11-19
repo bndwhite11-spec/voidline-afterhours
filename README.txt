@@ -107,6 +107,14 @@ never grants authority. Follow docs/OWNER-BOOTSTRAP.md using authenticated nativ
 account/passkey proof and trusted immutable-ID configuration. A community owner
 never becomes platform administrator. No dashboard decrypts all private messages.
 
+On the existing hosted Site, the intended @xrp account was verified and bound on
+19 November 2026; bootstrap runtime values were removed afterward. The bound
+owner opens You > Platform administration > Accounts to block/unblock accounts,
+revoke sessions, request verified-channel recovery, or delete a non-owner account
+with its exact ID and an audited reason. Deletion keeps anonymized shared-history
+references and legitimate provenance. Community owners must transfer ownership
+first. A matching name, free badge or community role cannot use these controls.
+
 COLLECTIBLES AND LOCAL DATA
 All existing cosmetic IDs, gifts, earned awards and legitimate ownership
 remain. The expanded catalog contains49 decorations and32 gifts. Free cosmetic art is distinct from authoritative achievements and actual
