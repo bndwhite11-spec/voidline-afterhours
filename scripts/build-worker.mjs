@@ -34,8 +34,6 @@ const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css'
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
 const release = JSON.parse(await readFile(path.join(output,'downloads/voidline-release.json'),'utf8'));
 if(!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(release.tag)||release.android?.filename!=='VOIDLINE-Android.apk'||!/^app\.voidline\.afterhours$/.test(release.android?.packageId||''))throw Error('Native release metadata is incomplete.');
-const releaseBase='https://github.com/bndwhite11-spec/voidline-afterhours/releases/download/'+release.tag+'/';
-const downloadRedirects={'/downloads/voidline-source.zip':releaseBase+'voidline-source.zip','/downloads/VOIDLINE-Windows-x64.zip':releaseBase+'VOIDLINE-Windows-x64.zip'};
 const apkBytes=await readFile(path.join(output,'downloads',release.android.filename));
 if(apkBytes.length!==release.android.bytes||createHash('sha256').update(apkBytes).digest('hex')!==release.android.sha256||apkBytes[0]!==0x50||apkBytes[1]!==0x4b)throw Error('Android package is missing or does not match the verified release.');
 // Historical route names are retained independently of generated v3 files so
@@ -451,7 +449,7 @@ const runtime = `
 const VOIDLINE_ASSETS = ${JSON.stringify(assets)};
 const VOIDLINE_LEGACY_ART = ${JSON.stringify(legacyArtAliases)};
 const VOIDLINE_STATIC_RASTERS = ${JSON.stringify(rasterData)};
-const VOIDLINE_DOWNLOAD_REDIRECTS = ${JSON.stringify(downloadRedirects)};
+const VOIDLINE_RELEASE = ${JSON.stringify(release)};
 function matrixConnectOrigin(env) {
   try { const u=new URL(env?.MATRIX_HOMESERVER);return u.protocol==='https:'&&u.origin===u.href.replace(/\\/$/,'') ? ' '+u.origin : ''; } catch {return '';}
 }
@@ -466,6 +464,7 @@ async function apiResponse(request,env,ctx,handler){
 }
 async function serveVoidline(request, env, ctx) {
   const url = new URL(request.url);
+  if(['/downloads/VOIDLINE-Windows-x64.zip','/downloads/voidline-source.zip'].includes(url.pathname)||url.pathname.startsWith('/api/native-release-upload/'))return handleNativeReleaseRequest(request,env,VOIDLINE_RELEASE);
   if (url.pathname==='/api/export') return apiResponse(request,env,ctx,handleAccountExportRequest);
   if (url.pathname==='/mcp') return handleOperationsMCP(request,env);
   if (url.pathname==='/api/realtime') return handleRealtimeRequest(request,env);
@@ -489,7 +488,6 @@ async function serveVoidline(request, env, ctx) {
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); }
   catch { return new Response('Invalid path', {status: 400}); }
-  if(Object.hasOwn(VOIDLINE_DOWNLOAD_REDIRECTS,pathname))return new Response(null,{status:302,headers:{location:VOIDLINE_DOWNLOAD_REDIRECTS[pathname],'cache-control':'no-cache','x-content-type-options':'nosniff'}});
   if(Object.hasOwn(VOIDLINE_LEGACY_ART,pathname))return new Response(null,{status:302,headers:{
     location:VOIDLINE_LEGACY_ART[pathname], 'cache-control':'no-cache',
     'x-content-type-options':'nosniff', 'referrer-policy':'strict-origin-when-cross-origin',
@@ -548,7 +546,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

@@ -267,10 +267,22 @@ Build and package in this order:
 
 Downloads contain the signed Android APK, offline viewer, public release metadata
 and prompt. Native sources live under native/. Large Windows/source ZIPs are
-pinned GitHub release assets with bounded same-path redirects, not Worker table
-payloads. npm run build retrieves a missing Android package only from that pinned
-public release and verifies its SHA-256/size before packaging. Native build and
+checksum-verified R2 objects, streamed through fixed same-origin download routes
+rather than embedded in the Worker table. npm run build retrieves a missing
+Android package from the canonical Site and verifies its pinned SHA-256/size
+before packaging. Native build and
 signing instructions are separate; keys never enter source or downloads.
+
+The release operator temporarily sets NATIVE_RELEASE_UPLOAD_TOKEN in the Sites
+secret store, deploys the release, and passes that token plus origin and file
+metadata to scripts/upload-native-release.py over hidden stdin. Only the two
+fixed ZIP names are accepted. Parts are checksum-verified and completion streams
+the entire object through SHA-256 before publishing an immutable ready manifest.
+Remove the temporary secret and redeploy the same saved version after verifying
+public downloads. App sessions confer no upload permission. Never commit the
+upload token or Android signing key. Source ZIP hashes are recorded in R2 rather
+than inside their own archive. Keep the signed Android key backed up privately
+for future updates. Native release uploads do not modify account data.
 The second Worker build embeds fresh public downloads. Exclude DBs, credentials, dependencies, caches and recursive
 output. The actual built Worker is checked for exact bytes, private-path rejection,
 HEAD/ETag, migrations, preserved Site identity and a static trusted ChatGPT frame

@@ -15,9 +15,9 @@ let existing;try{existing=await readFile(file);}catch(error){if(error.code!=='EN
 if(existing){if(!matches(existing))throw Error('The local Android package does not match its pinned release.');}
 else{
  if(process.argv.includes('--check'))throw Error('The signed Android package is missing. Run this script without --check to retrieve the pinned public release.');
- const url='https://github.com/bndwhite11-spec/voidline-afterhours/releases/download/'+release.tag+'/'+item.filename;
+ const url='https://voidline-afterhours.pipedcactus1.chatgpt.site'+item.url;
  const response=await fetch(url,{signal:AbortSignal.timeout(120000)});
- if(!response.ok||!['github.com','release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(new URL(response.url).hostname)||new URL(response.url).protocol!=='https:')throw Error('The public Android release could not be retrieved.');
+ if(!response.ok||new URL(response.url).origin!=='https://voidline-afterhours.pipedcactus1.chatgpt.site')throw Error('The public Android release could not be retrieved.');
  const reader=response.body.getReader(),chunks=[];let size=0;
  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>item.bytes){await reader.cancel();throw Error('The Android release exceeds its expected size.');}chunks.push(value);}
  const bytes=Buffer.concat(chunks);

@@ -107,15 +107,15 @@ assert.equal(certificate.sha256CertificateFingerprint,'9E:1A:6F:B3:D7:53:55:1A:B
 assert.equal(release.android.certificateSha256,certificate.sha256CertificateFingerprint,'public release metadata and the Android association must identify the signed package');
 assert.deepEqual(Object.keys(compiledAssets).filter(route=>route.startsWith('/.')), [dalRoute],'only the explicitly allowed public asset-links file may be embedded from dot directories');
 for(const route of ['/.well-known','/.well-known/','/.well-known/secrets.json','/.well-known/assetlinks.json.bak','/.well-known/../.openai/hosting.json'])assert.equal((await fetchAsset(route)).status,404,route);
-const releaseBase='https://github.com/bndwhite11-spec/voidline-afterhours/releases/download/'+release.tag+'/';
 for(const filename of ['voidline-source.zip','VOIDLINE-Windows-x64.zip']){
- const route='/downloads/'+filename;assert.equal(compiledAssets[route],undefined,filename+' must not inflate the embedded asset table');assert.equal(verifiedFiles.has(route),false);
+ const route='/downloads/'+filename;
  for(const method of ['GET','HEAD']){
-  const response=await fetchAsset(route,{method});assert.equal(response.status,302,method+' '+route);assert.equal(response.headers.get('location'),releaseBase+filename);assert.equal(response.headers.get('cache-control'),'no-cache');assert.equal(response.headers.get('x-content-type-options'),'nosniff');assert.equal((await response.arrayBuffer()).byteLength,0);
+  const response=await fetchAsset(route,{method});
+  assert.equal(response.status,503,route+' requires its real R2 binding; the isolated R2 suite verifies ready-file responses');
  }
- assert.equal((await fetchAsset(route,{method:'POST'})).status,405);
+ assert.equal(compiledAssets[route],undefined,'large developer/desktop files are not embedded in the Worker');
 }
-console.log('PASS native downloads: exact signed APK bytes/hash/MIME/filename, GET/HEAD/ETag, byte/suffix/invalid/If-Range responses, matching public Android certificate association, and bounded GitHub release redirects. Device installation and remote release availability are checked separately.');
+console.log('PASS native downloads: exact signed APK bytes/hash/MIME/filename, GET/HEAD/ETag, byte/suffix/invalid/If-Range responses, matching public Android certificate association, and R2-backed large-download routing. Device installation and remote release availability are checked separately.');
 // Frozen v3 route names remain reconstructible when generated v3 files are
 // absent from source downloads. Every one must resolve to the current same-ID
 // variant, rather than disappear or retain the old synthetic artwork payload.

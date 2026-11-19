@@ -19,9 +19,11 @@ responds to scrolling without network/repaint, selected message text survives
 reaction updates, More menus dismiss predictably with keyboard focus retained,
 late media sizes follow latest only for readers already at the bottom, and
 acknowledged sends do not wait for sidebar requests before the next queued send.
-The source ZIP moves to a pinned GitHub release asset while its existing route
-remains available. The small APK replaces the developer archive in the public
-Worker bundle, reducing its cold asset payload.
+The Windows and source ZIPs use checksum-verified private R2 objects behind
+fixed public download routes, with resumable byte ranges. A temporary deployment
+secret authorizes staging; normal accounts cannot publish binaries. That secret
+is removed after upload. The small APK replaces the developer archive in the
+Worker bundle, reducing its bundled asset payload.
 
 Android signatures/alignment/manifest/ZIP checks, Windows PE/ASAR/fuse/ZIP checks
 and controlled native-handler/client interaction tests are distinct from device

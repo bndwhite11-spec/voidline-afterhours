@@ -153,15 +153,16 @@ BACKUP-RESTORE.md. A local restore test does not establish production recovery.
 
 DOWNLOADS
  /downloads/VOIDLINE-Android.apk            signed Android application package
- /downloads/VOIDLINE-Windows-x64.zip        Windows x64 portable app (release redirect)
+ /downloads/VOIDLINE-Windows-x64.zip        Windows x64 portable app
  /downloads/voidline-release.json           public versions, sizes and SHA-256 digests
  /downloads/voidline-improvement-prompt.txt  full artwork/product brief plus latest web-art correction
  /downloads/voidline-source.zip             source without runtime credentials
  /downloads/voidline-offline.html           offline archive/recovery viewer
 /art-review.html                          public artwork and motion inspection
-The source ZIP is hosted as a pinned GitHub release asset; its existing URL is
-preserved through a bounded redirect. The small APK is served directly by the
-Site with a real Android package MIME type, attachment filename and byte ranges.
+The Windows and source ZIPs stream from the Site's private R2 storage through
+fixed public download routes, with verified release checksums and byte ranges.
+The small APK is bundled with the Site and served with a real Android package
+MIME type, attachment filename and byte ranges.
 Keeping the source ZIP outside the Worker reduces its bundled asset payload.
 The offline viewer cannot sign in or exchange network messages. Deliberate
 recovery exports may contain plaintext. Native build instructions and verification
