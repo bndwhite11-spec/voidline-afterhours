@@ -1,0 +1,10 @@
+.vh-startup-recovery[hidden]{display:none!important}
+.vh-startup-recovery{position:fixed;inset:0;z-index:1000;display:grid;place-content:center;gap:16px;padding:28px;background:#0e1013;color:#f1f0ec;font:16px/1.6 system-ui,sans-serif}
+.vh-startup-recovery>div{width:min(100%,440px);margin:auto}
+.vh-startup-recovery h1{font-size:1.5rem;line-height:1.25;margin:0 0 14px}
+.vh-startup-recovery p{margin:0 0 20px;color:#c4c9d0}
+.vh-startup-recovery nav{display:flex;flex-wrap:wrap;gap:12px}
+.vh-startup-recovery button,.vh-startup-recovery a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border:1px solid #657546;border-radius:6px;background:#cbef84;color:#14180f;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
+.vh-startup-recovery a{border-color:#3e454f;background:transparent;color:#f1f0ec}
+.vh-startup-recovery button:focus-visible,.vh-startup-recovery a:focus-visible{outline:2px solid #cbef84;outline-offset:4px}
+@media(forced-colors:active){.vh-startup-recovery{background:Canvas;color:CanvasText}.vh-startup-recovery p{color:CanvasText}.vh-startup-recovery button,.vh-startup-recovery a{background:ButtonFace;color:ButtonText;border-color:ButtonText}}

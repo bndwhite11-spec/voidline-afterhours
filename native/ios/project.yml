@@ -19,8 +19,6 @@ targets:
     sources:
       - Sources
       - Resources/Assets.xcassets
-    info:
-      path: Resources/Info.plist
     configFiles:
       Debug: Config/Signing.xcconfig
       Release: Config/Signing.xcconfig
@@ -35,6 +33,7 @@ targets:
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
         GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Resources/Info.plist
   VoidlinePolicyTests:
     type: bundle.unit-test
     platform: iOS

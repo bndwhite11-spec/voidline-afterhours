@@ -27,10 +27,12 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="voidline-afterhours.pipedcactus1.chatgpt.site" />
+                <data android:scheme="https" android:host="voidline-afterhours.pipedcactus1.chatgpt.site" android:path="/" />
+                <data android:path="/index.html" />
             </intent-filter>
         </activity>
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" android:exported="false" />
+        <activity android:name=".RecoveryActivity" android:exported="false" android:theme="@style/Theme.Voidline.Recovery" />
         <!-- This app does not supply dynamic/static Android shortcuts. Remove
              unused library entrypoints instead of exposing another launcher. -->
         <activity android:name="com.google.androidbrowserhelper.trusted.ShortcutTrampolineActivity" tools:node="remove" />

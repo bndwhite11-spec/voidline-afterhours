@@ -93,7 +93,7 @@ def main():
     tools = sdk / 'build-tools/35.0.0'
     if not (tools / 'apksigner').is_file():
         raise RuntimeError('Android SDK build-tools 35.0.0 are required.')
-    version = os.environ.get('VOIDLINE_ANDROID_VERSION_NAME', '1.0.0')
+    version = os.environ.get('VOIDLINE_ANDROID_VERSION_NAME', '1.0.1')
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-.][A-Za-z0-9.-]+)?', version):
         raise RuntimeError('Use a semantic Android version name.')
     environment = {**os.environ, 'VOIDLINE_ANDROID_SIGNING_FILE': str(settings)}
@@ -120,7 +120,7 @@ def main():
     shutil.copyfile(source, artifact)
     checksum = hashlib.sha256(artifact.read_bytes()).hexdigest()
     (output / (artifact.name + '.sha256')).write_text(checksum + '  ' + artifact.name + '\n')
-    metadata = {**public, 'versionName': version, 'versionCode': int(os.environ.get('VOIDLINE_ANDROID_VERSION_CODE', '1')),
+    metadata = {**public, 'versionName': version, 'versionCode': int(os.environ.get('VOIDLINE_ANDROID_VERSION_CODE', '2')),
                 'file': artifact.name, 'bytes': artifact.stat().st_size, 'sha256': checksum,
                 'verified': ['apksigner-signature-and-public-certificate', 'release-not-debuggable', 'package-and-sdk-levels', 'zipalign-16kb'],
                 'deviceTesting': 'not-performed'}

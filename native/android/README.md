@@ -25,7 +25,7 @@ been verified in this package.
 | Minimum SDK | 24 |
 | Java source/target | 17; build with a complete JDK 17 or 21 |
 | Application ID | `app.voidline.afterhours` |
-| First release | `1.0.0`, version code `1` |
+| Current release | `1.0.1`, version code `2` |
 
 Transitive dependency locks and SHA-256 verification metadata are committed.
 R8 and resource shrinking reduce the installed wrapper; the release is not
@@ -42,6 +42,17 @@ export ANDROID_HOME=/workspace/.voidline-android-tools/android-sdk
 export GRADLE_USER_HOME=/workspace/.voidline-android-tools/gradle-user-home
 python3 native/android/build-release.py
 ```
+
+The startup regression suite uses Robolectric 4.18.1 and JUnit 4.13.2:
+
+```sh
+cd native/android
+./gradlew :app:testDebugUnitTest
+```
+
+It executes the Android activity/callback paths with Android API 24, 28, 35 and
+36 framework implementations. See [startup evidence](STARTUP-TESTS.md) for what
+this establishes and the remaining real-device verification gap.
 
 The checked-in wrapper downloads Gradle 8.13 and checks its distribution hash.
 An existing verified installation can be selected with `VOIDLINE_GRADLE_BIN`.
@@ -91,8 +102,9 @@ The app also declares the inverse site association in Android resources.
 
 If association verification fails or a browser lacks TWA support, the browser
 shows its Custom Tab toolbar. Do not disable Digital Asset Links verification
-to hide a failed association. URLs outside the configured HTTPS origin cannot
-be supplied as this launcher's starting URL. The wrapper never reads browser
+to hide a failed association. Only the configured HTTPS app root and `/index.html` can be supplied as this
+launcher's starting URL. Root query/hash navigation is retained. Binary download
+links and unknown paths reopen home rather than starting a TWA on an APK file. The wrapper never reads browser
 cookies or local account storage.
 
 Because the browser supplies the website runtime, Google sign-in and passkeys

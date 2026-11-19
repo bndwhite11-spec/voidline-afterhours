@@ -28,7 +28,7 @@ const contentTypes = {
 const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
 // never an executable production fallback or automatically loaded fixture.
-const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
+const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','startup.css','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
   'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);

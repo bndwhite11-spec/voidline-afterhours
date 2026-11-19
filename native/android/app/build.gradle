@@ -4,8 +4,8 @@ plugins {
     id 'com.android.application'
 }
 
-def versionCodeValue = System.getenv('VOIDLINE_ANDROID_VERSION_CODE') ?: '1'
-def versionNameValue = System.getenv('VOIDLINE_ANDROID_VERSION_NAME') ?: '1.0.0'
+def versionCodeValue = System.getenv('VOIDLINE_ANDROID_VERSION_CODE') ?: '2'
+def versionNameValue = System.getenv('VOIDLINE_ANDROID_VERSION_NAME') ?: '1.0.1'
 if (!(versionCodeValue ==~ /[1-9][0-9]{0,8}/)) throw new GradleException('Use a positive Android version code.')
 if (!(versionNameValue ==~ /[0-9]+\.[0-9]+\.[0-9]+(?:[-.][A-Za-z0-9.-]+)?/)) throw new GradleException('Use a semantic Android version name.')
 
@@ -57,10 +57,20 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     buildFeatures { buildConfig false }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+            maxHeapSize = '1536m'
+            testLogging { events 'passed', 'skipped', 'failed'; exceptionFormat 'full' }
+        }
+    }
 }
 
 dependencies {
     implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.18.1'
 }
 
 dependencyLocking { lockAllConfigurations() }

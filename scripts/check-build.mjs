@@ -13,7 +13,7 @@ const dist = path.join(root, 'dist');
 const worker = (await import(pathToFileURL(path.join(dist, 'server/index.js')))).default;
 const origin = 'https://voidline-build.example';
 const fetchAsset = (name, options) => worker.fetch(new Request(origin + name, options), {}, {});
-const productionRoots=new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js','cosmetics.js','cosmetics.css','social.js','social.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
+const productionRoots=new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','startup.css','entry.js','entry.css','home.js','home.css','organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js','cosmetics.js','cosmetics.css','social.js','social.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
 const publicDownloads=new Set(['voidline-offline.html','voidline-improvement-prompt.txt','voidline-release.json','VOIDLINE-Android.apk']);
 async function bytes(response){assert.equal(response.headers.get('content-encoding'),null,'The Sites proxy owns HTTP compression; Worker responses must contain original bytes.');return Buffer.from(await response.arrayBuffer());}
 let count = 0;
@@ -23,7 +23,7 @@ async function verify(directory, prefix = '') {
     const relative = prefix + '/' + item.name;
     if ((item.name.startsWith('.') && relative !== '/.well-known') || (!prefix && !productionRoots.has(item.name))) continue;
     if(prefix==='/.well-known'&&relative!=='/.well-known/assetlinks.json')continue;
-    if(prefix==='/downloads'&&!publicDownloads.has(item.name))continue; // Large source/Windows downloads are release redirects.
+    if(prefix==='/downloads'&&!publicDownloads.has(item.name))continue; // Large source/Windows downloads are streamed from R2.
     if(prefix==='/art'&&item.name==='v3')continue; // Historical files are checked as compatibility redirects below.
     if (item.isDirectory()) { await verify(path.join(directory,item.name), relative); continue; }
     assert(item.isFile(), `Unexpected deploy asset ${relative}`);
@@ -61,14 +61,16 @@ function bundledAssetTable() {
 }
 const compiledAssets=bundledAssetTable(),rasters=new Map();
 // The Android package is served as original installable bytes. Large source
-// and desktop packages resolve to immutable GitHub release assets instead of
-// duplicating them inside the constrained Worker bundle.
+// and desktop packages stream verified R2 objects instead of duplicating them
+// inside the constrained Worker bundle.
 const release=JSON.parse(await readFile(path.join(dist,'downloads/voidline-release.json'),'utf8'));
-assert.equal(release.tag,'v1.0.0');
+assert.equal(release.tag,'v1.0.1');
+assert.equal(release.android.version,'1.0.1');
+assert.equal(release.android.versionCode,2);
 assert.equal(release.android.filename,'VOIDLINE-Android.apk');
 assert.equal(release.android.packageId,'app.voidline.afterhours');
-assert.equal(release.android.bytes,564978);
-assert.equal(release.android.sha256,'2b1f7523d364d45b1568628d1812f3f9a73a2fb45b6e5bbb657b958e9825ba2b');
+assert.equal(release.android.bytes,567012);
+assert.equal(release.android.sha256,'450802e848d6e0bde3f24b20c71fd08e564205d5080476cac47438228b93383a');
 const apkRoute='/downloads/'+release.android.filename,apkBytes=verifiedFiles.get(apkRoute);
 assert(apkBytes,'the verified Android package is among the real bundled assets');
 assert.equal(apkBytes.length,release.android.bytes);

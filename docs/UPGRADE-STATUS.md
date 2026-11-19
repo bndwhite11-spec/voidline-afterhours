@@ -1,3 +1,37 @@
+# Android launch recovery and startup reliability
+
+Android 1.0.1 (version code 2) keeps the existing package and signing key so it
+can update 1.0.0 without removing the app. Incoming app links are limited to the
+actual home/index pages and their query/hash state; APK downloads, APIs and
+unserved paths cannot become launcher pages. A failed browser navigation now
+has a native recovery screen with deliberate retry and explicit browser launch.
+No cache, credentials, account data or messaging history is automatically cleared.
+
+The shipped Browser Helper default callback contains an intentional main-thread
+RuntimeException for quality_enforcement.crash. Its exact dependency code is
+reproduced in Android framework tests, and the supported callback override is
+tested separately. This establishes a concrete unsafe path; the user's exact
+crash cannot be attributed to it without device diagnostics. Browser behavior
+varies, and file integrity checks do not establish successful device launch.
+
+Verification for this update: 44 Robolectric Android-framework cases pass on
+API 24/28/35/36 (Android 7/9/15/16), including a fixture Custom Tabs service and
+real Binder session callbacks. These are JVM/framework tests with a simulated
+browser, not execution in Chrome or on a physical phone. The 44 server suites,
+40 web-client suites and 13 Electron handler tests also pass. iOS checks validate
+preparation only; they do not compile Swift or run an iPhone app.
+
+The web page now offers manual recovery for a blocked or failed main script,
+and a nonfatal slow-start notice after 35 seconds. A delayed but successful
+login replaces that notice without rebuilding the form or clearing storage.
+The panel never displays exception messages, tokens or callback URLs.
+
+iOS preparation now preserves the reviewed static Info.plist rather than
+having XcodeGen overwrite required privacy and launch declarations. No native
+IPA or Xcode/device execution is claimed. Windows source and its existing
+1.0.0 portable binary are unchanged; focused handler tests and public HTTP
+checks are separate from Windows OS execution.
+
 # Downloadable clients and smoother conversations
 
 This update adds actual Android and Windows application files to the existing

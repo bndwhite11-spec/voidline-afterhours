@@ -1,14 +1,16 @@
 {
-  "version": "1.0.0",
-  "tag": "v1.0.0",
+  "version": "1.0.1",
+  "tag": "v1.0.1",
   "android": {
     "filename": "VOIDLINE-Android.apk",
     "url": "/downloads/VOIDLINE-Android.apk",
     "packageId": "app.voidline.afterhours",
-    "bytes": 564978,
-    "sha256": "2b1f7523d364d45b1568628d1812f3f9a73a2fb45b6e5bbb657b958e9825ba2b",
+    "bytes": 567012,
+    "sha256": "450802e848d6e0bde3f24b20c71fd08e564205d5080476cac47438228b93383a",
     "minSdk": 24,
-    "certificateSha256": "9E:1A:6F:B3:D7:53:55:1A:B7:C6:4D:09:C3:F6:DE:B3:77:00:3A:E6:2F:96:86:D7:27:32:FA:19:2E:D7:5E:19"
+    "certificateSha256": "9E:1A:6F:B3:D7:53:55:1A:B7:C6:4D:09:C3:F6:DE:B3:77:00:3A:E6:2F:96:86:D7:27:32:FA:19:2E:D7:5E:19",
+    "version": "1.0.1",
+    "versionCode": 2
   },
   "windows": {
     "filename": "VOIDLINE-Windows-x64.zip",
@@ -16,7 +18,8 @@
     "architecture": "x64",
     "signed": false,
     "bytes": 158360531,
-    "sha256": "a00b2ccd9ddbc47103fab5ffc121cce20c889e01951e98ecac5d790607cd5b6f"
+    "sha256": "a00b2ccd9ddbc47103fab5ffc121cce20c889e01951e98ecac5d790607cd5b6f",
+    "version": "1.0.0"
   },
   "ios": {
     "nativeAvailable": false,

@@ -8,8 +8,8 @@ const require=createRequire(import.meta.url),wranglerRequire=createRequire(requi
 const {Miniflare}=await import(pathToFileURL(wranglerRequire.resolve('miniflare')).href);
 const hash=value=>createHash('sha256').update(value).digest('hex'),partBytes=5*1024*1024;
 const windows=Buffer.alloc(partBytes+37,0x61);windows.set(Buffer.from('PK\x03\x04'));const source=Buffer.from('PK\x03\x04source archive fixture');
-const release={tag:'v1.0.0',windows:{bytes:windows.length,sha256:hash(windows)}},token='isolated-native-release-token-'+crypto.randomUUID();
-const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';export default{fetch(request,env){if(request.headers.get('x-fixture-no-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:undefined};return handleNativeReleaseRequest(request,env,${JSON.stringify(release)});}}`,resolveDir:new URL('../',import.meta.url).pathname,loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true});
+const release={tag:'v1.0.1',windows:{bytes:windows.length,sha256:hash(windows)}},token='isolated-native-release-token-'+crypto.randomUUID();
+const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';export default{fetch(request,env){if(request.headers.get('x-fixture-no-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:undefined};if(request.headers.get('x-fixture-disabled-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:'disabled'};return handleNativeReleaseRequest(request,env,${JSON.stringify(release)});}}`,resolveDir:new URL('../',import.meta.url).pathname,loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true});
 const mf=new Miniflare({modules:true,script:compiled.outputFiles[0].text,compatibilityDate:'2026-05-15',r2Buckets:{MEDIA:'isolated-native-release-runtime'},r2Persist:false,bindings:{NATIVE_RELEASE_UPLOAD_TOKEN:token}});
 let passed=0,failed=0;
 async function test(name,run){try{await run();passed++;console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error.stack);}}
@@ -25,6 +25,7 @@ try{
   await upload('start',body,403,{headers:{authorization:'',cookie:'__Host-voidline_session='+token}});
   await upload('start',body,403,{headers:{authorization:'Bearer wrong-token-with-more-than-thirty-two-characters'}});
   await upload('start',body,403,{headers:{'x-fixture-no-token':'1'}});
+  await upload('start',body,403,{headers:{'x-fixture-disabled-token':'1'}});
   assert.equal((await bucket.list()).objects.length,0);
  });
  await test('unready multipart bytes and arbitrary object paths are never public application downloads',async()=>{
@@ -33,7 +34,7 @@ try{
   assert.equal((await raw('/downloads/VOIDLINE-Windows-x64.zip')).status,404);
   assert.equal((await raw('/downloads/native-releases/uploads/'+id.operationId+'.json')).status,404);
   await upload('complete',{operationId:id.operationId},409);
-  assert.equal(await bucket.get('native-releases/v1.0.0/VOIDLINE-Windows-x64.zip.json'),null);
+  assert.equal(await bucket.get('native-releases/v1.0.1/VOIDLINE-Windows-x64.zip.json'),null);
  });
  await test('multipart part sizes and checksums are bounded, resumable and immutable within an operation',async()=>{
   const id=globalThis.testWindows;
@@ -53,7 +54,7 @@ try{
  await test('complete validates actual R2 bytes before publishing one immutable manifest and supports a lost-response retry',async()=>{
   const id=globalThis.testWindows,complete=await upload('complete',{operationId:id.operationId});assert.equal(complete.completed,true);assert.equal(complete.bytes,windows.length);assert.equal(complete.sha256,hash(windows));assert.equal(complete.url,'/downloads/VOIDLINE-Windows-x64.zip');assert.equal(JSON.stringify(complete).includes('staging'),false);
   assert.deepEqual(await upload('complete',{operationId:id.operationId}),complete);
-  const manifest=await (await bucket.get('native-releases/v1.0.0/VOIDLINE-Windows-x64.zip.json')).json();assert.equal(manifest.objectKey,'native-releases/staging/'+id.operationId+'/VOIDLINE-Windows-x64.zip');
+  const manifest=await (await bucket.get('native-releases/v1.0.1/VOIDLINE-Windows-x64.zip.json')).json();assert.equal(manifest.objectKey,'native-releases/staging/'+id.operationId+'/VOIDLINE-Windows-x64.zip');
   assert.equal((await bucket.head(manifest.objectKey)).size,windows.length);
   await upload('start',{operationId:crypto.randomUUID(),name:'VOIDLINE-Windows-x64.zip',bytes:windows.length,sha256:'0'.repeat(64)},409);
   await upload('abort',{operationId:id.operationId},409);

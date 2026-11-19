@@ -275,12 +275,14 @@ signing instructions are separate; keys never enter source or downloads.
 
 The release operator temporarily sets NATIVE_RELEASE_UPLOAD_TOKEN in the Sites
 secret store, deploys the release, and passes that token plus origin and file
-metadata to scripts/upload-native-release.py over hidden stdin. Only the two
-fixed ZIP names are accepted. Parts are checksum-verified and completion streams
+metadata and releaseTag to scripts/upload-native-release.py over private stdin.
+Only the two fixed ZIP names are accepted. Parts are checksum-verified and completion streams
 the entire object through SHA-256 before publishing an immutable ready manifest.
-Remove the temporary secret and redeploy the same saved version after verifying
-public downloads. App sessions confer no upload permission. Never commit the
-upload token or Android signing key. Source ZIP hashes are recorded in R2 rather
+After verifying public downloads, replace the temporary secret with the short
+inert value disabled and redeploy the same saved version. Confirm that both
+anonymous requests and the former bearer are denied. Key removal alone was
+observed to leave a previous runtime value active; explicitly overwrite it.
+App sessions confer no upload permission. Never commit the upload token or Android signing key. Source ZIP hashes are recorded in R2 rather
 than inside their own archive. Keep the signed Android key backed up privately
 for future updates. Native release uploads do not modify account data.
 The second Worker build embeds fresh public downloads. Exclude DBs, credentials, dependencies, caches and recursive

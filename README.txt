@@ -30,7 +30,8 @@ Inside the app: You > Friends & requests > Add a friend > Send request. Once
 accepted, choose Message. An internet connection is required. Home Screen
 installation and physical keyboards still require actual-device acceptance.
 The APK and Windows ZIP are real application packages using the same hosted
-accounts. They are separate from browser installation and the offline viewer.
+accounts. Android 1.0.1 updates 1.0.0 with the same signing key; choose
+Update when Android offers it. Browser-load failures have a native retry screen. They are separate from browser installation and the offline viewer.
 No App Store or Play Store listing is claimed. Native iOS source is prepared in
 native/ios, but an installable IPA still needs an Apple team, Xcode build/signing
 and distribution. The Safari option remains available on iPhone/iPad and Mac.

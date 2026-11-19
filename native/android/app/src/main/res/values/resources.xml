@@ -10,4 +10,12 @@
         <item name="android:navigationBarColor">@color/voidline_background</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>
+    <style name="Theme.Voidline.Recovery" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/voidline_background</item>
+        <item name="android:colorAccent">#C9BAF0</item>
+        <item name="android:statusBarColor">@color/voidline_background</item>
+        <item name="android:navigationBarColor">@color/voidline_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
 </resources>

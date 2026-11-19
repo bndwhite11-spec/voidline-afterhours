@@ -121,6 +121,12 @@ not compile Swift, generate/inspect an Xcode build, sign an app, validate WebAut
 on an Apple device, or verify native UI.** The XCTest sources are prepared for
 the Mac build step; no passing XCTest run is claimed here.
 
+The app target uses the checked-in `Resources/Info.plist` through
+`INFOPLIST_FILE`. Keep that static input: XcodeGen's target `info:` block writes
+a new plist and can discard the microphone/camera descriptions and launch keys.
+Preparation checks reject the earlier path-only generator configuration and
+missing privacy descriptions before an app is built.
+
 Before enabling an iOS native download, verify login/recovery, fresh owner
 passkey checks, account switching/cache isolation, image/GIF picker and crop,
 voice-note recording/cancel, downloads/share cleanup, keyboard and rotation,

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Upload public VOIDLINE release archives. Secret configuration enters via stdin.
 
-Input: {"token": "...", "origin": "https://...", "files": [
+Input: {"token": "...", "origin": "https://...", "releaseTag": "v1.0.0", "files": [
   {"name": "VOIDLINE-Windows-x64.zip", "path": "/absolute/public/archive.zip",
    "sha256": "64 lowercase hex", "bytes": 123}]}.
 
 No command-line token, environment mutation, credential file, redirect, shell,
 or artifact execution. Failures leave resumable server state. Repeating identical
 input uses the same operation UUID and validates already-acknowledged parts.
+releaseTag is optional and defaults to v1.0.0. Each release has its own operation
+namespace even when a binary is unchanged from the previous release.
 """
 
 import hashlib
@@ -53,6 +55,9 @@ def checked_input(config):
     token = config.get("token")
     if not isinstance(token, str) or not re.fullmatch(r"[A-Za-z0-9._~+/=-]{32,512}", token):
         raise UploadError("A valid upload token is required on standard input.")
+    release_tag = config.get("releaseTag", "v1.0.0")
+    if not isinstance(release_tag, str) or not re.fullmatch(r"v\d+\.\d+\.\d+", release_tag, flags=re.ASCII):
+        raise UploadError("Use a release tag in vMAJOR.MINOR.PATCH format.")
     files = config.get("files")
     if not isinstance(files, list) or not 1 <= len(files) <= len(ALLOWED_NAMES):
         raise UploadError("Supply one or two public release files.")
@@ -86,8 +91,8 @@ def checked_input(config):
                 raise UploadError("Expected a public ZIP release archive.")
         except OSError:
             raise UploadError("Unable to read a public release file.") from None
-        operation = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{APP_ORIGIN}/downloads/{name}#{size}:{digest}"))
-        result.append({"name": name, "path": path, "sha256": digest, "bytes": size, "operationId": operation})
+        operation = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{APP_ORIGIN}/downloads/{name}#{size}:{digest}:{release_tag}"))
+        result.append({"name": name, "path": path, "sha256": digest, "bytes": size, "operationId": operation, "releaseTag": release_tag})
         seen.add(name)
     return token, result
 

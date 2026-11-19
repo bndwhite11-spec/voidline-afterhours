@@ -16,7 +16,7 @@ const prefix=tag=>'native-releases/'+tag+'/';
 const manifestKey=(tag,name)=>prefix(tag)+name+'.json';
 const operationKey=id=>'native-releases/uploads/'+id+'.json';
 const stagingKey=(id,name)=>'native-releases/staging/'+id+'/'+name;
-function configuration(release){need(release?.tag==='v1.0.0',503,'release_unavailable','This application release is unavailable.');return release;}
+function configuration(release){need(typeof release?.tag==='string'&&/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(release.tag),503,'release_unavailable','This application release is unavailable.');return release;}
 function rate(token){const key=bytesToHex(sha256(encoder.encode(token))),now=Date.now();let entry=windows.get(key);if(!entry||entry.until<=now){entry={until:now+60000,count:0};windows.set(key,entry);}need(++entry.count<=240,429,'upload_rate_limited','Wait before continuing this release upload.');if(windows.size>16)for(const [id,value]of windows)if(value.until<=now)windows.delete(id);}
 function authorize(request,env){
  const configured=env.NATIVE_RELEASE_UPLOAD_TOKEN,header=request.headers.get('authorization')||'',provided=header.startsWith('Bearer ')?header.slice(7):'';
