@@ -107,7 +107,10 @@ These are polled counts, not simulated online state or delivery/read receipts.
 Preferences persist for DMs, mentions, replies, communities and gifts. Rich
 previews on an unlocked client have **generic**, **sender** and **full** choices;
 the older `content` value maps to `full`. These do not place protected text in
-push infrastructure. Native Inbox previews respect the choice.
+push infrastructure. Native Inbox previews respect the choice. Accounts that
+never saved a choice start with **full** in-app previews for Standard
+conversations; a saved **generic** or **sender** choice is kept. Encrypted room
+previews stay hidden until the account's preferences have loaded.
 
 Quiet hours store an explicit validated IANA time zone plus start/end times.
 Older missing zones use UTC, shown in settings. The UI can select the saved zone

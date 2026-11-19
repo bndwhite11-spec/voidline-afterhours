@@ -535,4 +535,35 @@ test('collection rerender preserves only the same account main position and cont
  const outside=app.document.createElement('input');outside.id='profile-dialog-field';outside.focus();app.api.render();assert.equal(app.document.activeElement,outside);
  app.api.state.account={...app.api.state.account,id:'account-b'};app.api.render();assert.equal(app.document.getElementById('home-main').scrollTop,0);assert.equal(app.document.getElementById('home-main').scrollLeft,0);
 });
+test('standard messaging is acknowledged once per account on this device and then covers channels, other conversations and new tabs',async()=>{
+ const stored=new Map(),app=client({storage:stored});await app.start();nativeFixture(app,{messages:[nativeMessage()]});await app.api.openNativeConversation(nativeId);
+ assert.match(app.nodes.get('home-root').innerHTML,/Review standard messaging/);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/id="home-native-input"/);
+ await app.api.submit(app.form('native-consent',{acknowledge:'on'},{target:'dm:'+nativeId}));assert.equal(stored.get('voidline.standard.ack.v2.account-a'),'yes');
+ Object.assign(app.api.state,{view:'servers',nativeId:null,communityId:'community',channelId:'channel',channels:[{id:'channel',name:'general'}],communities:[{id:'community',name:'Community',role:'owner'}],nativeMode:'standard',nativePermissions:{canSend:true}});app.api.render();
+ assert.match(app.nodes.get('home-root').innerHTML,/id="home-native-input"/);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/Review standard messaging/);
+ const tab=client({storage:stored});await tab.start();nativeFixture(tab,{messages:[nativeMessage()]});await tab.api.openNativeConversation(nativeId);
+ assert.match(tab.nodes.get('home-root').innerHTML,/id="home-native-input"/);assert.doesNotMatch(tab.nodes.get('home-root').innerHTML,/Review standard messaging/);
+ tab.api.action('new-message');const dialog=tab.nodes.get('home-dialog').innerHTML;assert.match(dialog,/name="acknowledge" value="on"/);assert.doesNotMatch(dialog,/type="checkbox" name="acknowledge"/);
+ const fresh=client();await fresh.start();fresh.api.action('new-message');assert.match(fresh.nodes.get('home-dialog').innerHTML,/type="checkbox" name="acknowledge" required/);
+});
+test('a new server takes its icon from its name when the field is blank and opens the channel the server created',async()=>{
+ const app=client();await app.start();app.server.communities=[{id:'new-server',name:'Our chosen room',role:'owner'}];app.server.replies.set('/api/live/communities',request=>request.method==='POST'?app.response({community:{id:'new-server'},channel:{id:'general-new',name:'general'}}):app.response({communities:app.server.communities}));app.server.replies.set('/api/live/communities/new-server/channels',app.response({channels:[{id:'general-new',name:'general'}]}));app.server.replies.set('/api/live/channels/general-new/messages?limit=50',app.response({messages:[],page:{hasMore:false},changeCursor:0,securityMode:'standard',permissions:{canSend:true,canManageMessages:false}}));
+ await app.api.submit(app.form('create',{name:'Our chosen room',description:'',icon:''}));const write=app.calls.find(c=>c.request.method==='POST');assert.equal(write.body.icon,'OC');assert.equal(app.api.state.communityId,'new-server');assert.equal(app.api.state.channelId,'general-new');
+});
+test('chat rows show message text by default, drop the per-row storage label and hide encrypted options that are not configured',async()=>{
+ const app=client();await app.start();nativeFixture(app,{messages:[nativeMessage()]});app.api.state.view='chats';app.api.render();const html=app.nodes.get('home-root').innerHTML;
+ assert.doesNotMatch(html,/server-stored/);assert.doesNotMatch(html,/Message preview hidden/);assert.doesNotMatch(html,/Encrypted messaging options/);
+});
+test('direct conversations mark own messages for bubbles, show clock-only times and keep stable avatar tones; channels stay rows',async()=>{
+ const app=client();await app.start();nativeFixture(app,{messages:[nativeMessage('theirs',1,'From a friend'),{...nativeMessage('mine',2,'From this account'),author_id:'account-a',author_name:'Night A'}]});await app.api.openNativeConversation(nativeId);
+ const html=app.nodes.get('home-root').innerHTML,theirs=html.match(/<article class="([^"]*)" data-native-key="message:theirs"/),mine=html.match(/<article class="([^"]*)" data-native-key="message:mine"/);
+ assert.match(html,/id="home-native-feed" class="vh-feed vh-feed-direct"/);assert.ok(theirs&&!/is-own/.test(theirs[1]));assert.ok(mine&&/\bis-own\b/.test(mine[1]));
+ assert.ok(!/is-fresh/.test(theirs[1]),'an old message does not replay the arrival animation');
+ const tones=[...html.matchAll(/class="vh-avatar vh-message-profile" data-tone="(\d)"/g)].map(match=>match[1]);assert.equal(tones.length,2);assert.ok(tones.every(tone=>Number(tone)>=0&&Number(tone)<8));
+ const shown=html.match(/<time title="[^"]*">([^<]*)<\/time>/)[1];assert.ok(shown.length<=11&&!/2023|Nov/.test(shown),'the visible time is a clock time; the day comes from the separator');
+ const live=client();await live.start();nativeFixture(live,{messages:[{...nativeMessage('arriving',1,'Just arrived'),created_at:Date.now()},{...nativeMessage('sent',2,'Just sent'),author_id:'account-a',created_at:Date.now()}]});await live.api.openNativeConversation(nativeId);
+ const arrived=live.nodes.get('home-root').innerHTML;assert.match(arrived,/<article class="vh-message is-fresh" data-native-key="message:arriving"/);assert.doesNotMatch(arrived.match(/<article class="([^"]*)" data-native-key="message:sent"/)[1],/is-fresh/);
+ Object.assign(app.api.state,{view:'servers',nativeId:null,communityId:'community',channelId:'channel',channels:[{id:'channel',name:'general'}],communities:[{id:'community',name:'Community',role:'owner'}],nativeMode:'standard',nativePermissions:{canSend:true}});app.api.render();
+ const server=app.nodes.get('home-root').innerHTML;assert.match(server,/id="home-native-feed" class="vh-feed"/);assert.doesNotMatch(server,/data-filter="dms"/);assert.match(server,/data-filter="favorites"/);
+});
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failed}/${tests.length} production-entry behavior checks passed. VM DOM/transport; browser layouts and live account/Matrix networks are not exercised.`);process.exitCode=failed?1:0;})();

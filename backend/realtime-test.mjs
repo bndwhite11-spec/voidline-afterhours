@@ -50,8 +50,19 @@ test('community channels use current community membership and never disclose cha
  const created=await f.call('alice','/api/live/communities',{name:'Private fixture community'}),id=created.channel.id;assert.equal((await f.open('bob','?channel='+id)).response.status,404);s=await f.open('alice','?channel='+id);const hello=await frame(s.reader);assert.equal(hello.data.scope,'community');await f.call('alice','/api/live/channels/'+id+'/messages',{clientId:uuid(),text:'Sensitive community fixture',acknowledgeStandard:true});await f.tick();const update=await frame(s.reader);assert.equal(update.event,'revision');assert(update.data.conversationRevision>0);assert.equal(update.text.includes('Sensitive community'),false);assert.equal(update.text.includes('Private fixture community'),false);
 }finally{await f.close(s);f.sqlite.close();}});
 test('stream leases limit simultaneous tabs, disconnect cleans up, heartbeat and renewal stay bounded',async()=>{const f=await fixture();const streams=[];try{
- for(let n=0;n<3;n++){const s=await f.open('alice');streams.push(s);await frame(s.reader);}assert.equal((await f.open('alice')).response.status,429);await f.close(streams.pop());assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM realtime_streams').get().n,2);
+ for(let n=0;n<5;n++){const s=await f.open('alice');streams.push(s);await frame(s.reader);}assert.equal((await f.open('alice')).response.status,429);await f.close(streams.pop());assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM realtime_streams').get().n,4);
  await f.tick(35);assert.equal((await frame(streams[0].reader)).event,'heartbeat');await frame(streams[1].reader);await f.tick(1000);assert.equal((await frame(streams[0].reader)).event,'renew');assert.equal(await frame(streams[0].reader),null);assert.equal((await frame(streams[1].reader)).event,'renew');await turn();assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM realtime_streams').get().n,0);
+}finally{for(const s of streams)await f.close(s);f.sqlite.close();}});
+test('a tab reconnecting under its own name replaces its lease instead of using up the account slots',async()=>{const f=await fixture(),tab=uuid(),streams=[];try{
+ assert.equal((await f.open('alice','?client=not-a-tab-name')).response.status,400);
+ for(let n=0;n<8;n++){const s=await f.open('alice','?client='+tab);assert.equal(s.response.status,200);streams.push(s);await frame(s.reader);await f.tick(10);}
+ assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM realtime_streams').get().n,1);
+ await f.tick(10);assert.equal(await frame(streams[0].reader),null,'a superseded stream ends and stops reading the database');
+ for(let n=0;n<4;n++){const s=await f.open('alice','?client='+uuid());assert.equal(s.response.status,200);streams.push(s);await frame(s.reader);}
+ assert.equal((await f.open('alice','?client='+uuid())).response.status,429,'other tabs still count toward the per-account limit');
+ await f.tick(10);const again=await f.open('alice','?client='+tab);assert.equal(again.response.status,200,'a tab at the limit can still switch conversations');streams.push(again);
+ const other=await f.open('bob','?client='+tab);assert.equal(other.response.status,200);streams.push(other);
+ assert.equal(f.sqlite.prepare("SELECT COUNT(*) n FROM realtime_streams WHERE account_id='alice'").get().n,5,'another session reusing the name cannot replace this lease');
 }finally{for(const s of streams)await f.close(s);f.sqlite.close();}});
 let failed=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${cases.length-failed}/${cases.length} revision-stream checks passed. Actual migrated SQLite and ReadableStream frames with controlled clock/session fixtures; not hosted transport, browser or Matrix evidence.`);process.exitCode=failed?1:0;

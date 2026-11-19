@@ -4,7 +4,7 @@ import {notificationAvailability} from './notifications.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
-const DEFAULTS={listFilter:'all',notifications:{dm:true,mentions:true,replies:true,community:false,gifts:true,quietHours:{enabled:false,start:'22:00',end:'08:00',timeZone:'UTC'},preview:'generic'}};
+const DEFAULTS={listFilter:'all',notifications:{dm:true,mentions:true,replies:true,community:false,gifts:true,quietHours:{enabled:false,start:'22:00',end:'08:00',timeZone:'UTC'},preview:'full'}};
 const FILTERS=['all','unread','favorites','dms','communities','archived'];
 async function readBody(request){
  need(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');

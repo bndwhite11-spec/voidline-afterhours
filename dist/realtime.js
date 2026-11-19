@@ -1,7 +1,10 @@
 /* Content-free authenticated hints. Existing authorized cursor reads provide messages. */
 (() => {
   'use strict';
-  function create({conversationId,channelId,onRevision=()=>{},onStatus=()=>{},onDenied=()=>{},poll=()=>{},EventSourceClass=window.EventSource,random=Math.random}){
+  // One random name per loaded page. The server keeps a single live-update
+  // lease per tab, so switching conversations never uses up the account's slots.
+  const tabId=(()=>{try{return crypto.randomUUID();}catch(_){return '';}})();
+  function create({conversationId,channelId,clientId=tabId,onRevision=()=>{},onStatus=()=>{},onDenied=()=>{},poll=()=>{},EventSourceClass=window.EventSource,random=Math.random}){
     let source=null,timer=0,watchdog=0,stopped=false,failures=0,lastId='',lastRevision='',phase='idle',lastEvent=0;
     const status=(value,copy)=>{phase=value;onStatus({phase:value,copy,lastEvent});};
     const close=()=>{source?.close();source=null;clearTimeout(watchdog);};
@@ -13,7 +16,7 @@
     }
     function connect(){clearTimeout(timer);if(stopped)return;if(document.hidden){close();status('paused','Updates paused while this tab is hidden');return;}if(navigator.onLine===false){status('offline','Offline · outgoing messages stay on this device');timer=setTimeout(connect,10000);return;}
       if(typeof EventSourceClass!=='function'){status('polling','Live streaming unavailable · checking for updates');fallback();timer=setTimeout(connect,10000);return;}
-      close();status('connecting','Connecting live updates · polling remains available');const params=new URLSearchParams();if(conversationId)params.set('conversation',conversationId);if(channelId)params.set('channel',channelId);if(lastId)params.set('after',lastId);
+      close();status('connecting','Connecting live updates · polling remains available');const params=new URLSearchParams();if(conversationId)params.set('conversation',conversationId);if(channelId)params.set('channel',channelId);if(lastId)params.set('after',lastId);if(clientId)params.set('client',clientId);
       try{source=new EventSourceClass('/api/realtime?'+params,{withCredentials:true});const connection=source,receive=value=>{if(source===connection)event(value);};source.addEventListener('hello',receive);source.addEventListener('revision',receive);source.addEventListener('heartbeat',receive);source.addEventListener('restricted',()=>{if(source!==connection)return;close();status('denied','Live access ended · checking permissions');Promise.resolve(onDenied()).catch(()=>{});});source.addEventListener('unavailable',()=>{if(source===connection)retry();});source.addEventListener('renew',()=>{if(source!==connection)return;close();status('connecting','Renewing live update connection');timer=setTimeout(connect,150+random()*250);});source.onerror=()=>{if(source===connection)retry();};watchdog=setTimeout(()=>retry('Live streaming is unavailable · checking for updates'),12000);}catch(_){retry('Live streaming is unavailable · checking for updates');}
     }
     const visibility=()=>{if(document.hidden){close();clearTimeout(timer);status('paused','Updates paused while this tab is hidden');}else{fallback();connect();}},online=()=>{fallback();connect();},offline=()=>{close();status('offline','Offline · outgoing messages stay on this device');};

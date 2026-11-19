@@ -550,6 +550,9 @@ const localConfig = `${JSON.stringify({
     binding: 'DB',
     database_name: 'site-creator-d1',
     database_id: '00000000-0000-4000-8000-000000000000',
+    // Local preview only: lets `wrangler d1 migrations apply --local` create the
+    // schema from the same versioned files the hosted database uses.
+    migrations_dir: '../drizzle',
   }],
 }, null, 2)}\n`;
 let currentLocalConfig;

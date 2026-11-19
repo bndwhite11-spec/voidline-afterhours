@@ -1,3 +1,30 @@
+# Current everyday-use update (Telegram-style chats, Discord-style servers)
+
+Starts at commit d51af5f384bf33a2bc9cbbb1fc1d5cd3f27fb216. No migration, account, ownership, identity/provider or hosting-audience change is added.
+
+- Standard messaging is acknowledged once per account on a device (`localStorage`), not once per conversation per tab. The server still requires `acknowledgeStandard: true` on writes.
+- Chat rows show message text by default for accounts that never saved a preview choice, drop the per-row "Standard · server-stored" label and align the preview under the name. Saved generic/sender choices are kept; push payloads remain generic.
+- The conversation header says "Mark read", the status strip is one line, and phones keep the message input and its actions on one row.
+- "Encrypted messaging options" is listed only when a Matrix service is configured.
+- A new server takes its rail icon from its name instead of the fixed "WL", and opens its first channel. Opening a server from the rail or an invitation opens its first channel on wide layouts.
+- Live updates: each loaded page names itself and replaces its own stream lease, so switching conversations no longer uses up the account's slots (previously a closed stream could hold a slot for the full 45-second lease). The per-account limit is five.
+- `npm run dev` applies the versioned migrations to the local preview database before starting.
+
+Interface and motion pass (no server, schema or data change):
+
+- Direct messages and private groups render as bubbles with own messages on the right, in the same visual language as the encrypted feed. One-to-one chats drop the repeated name and avatar; groups keep them. Channels keep full-width rows.
+- Message actions (reply, react, more) no longer reserve a row under every message. They float beside the message and appear on pointer hover, on keyboard focus of any action, or after a tap on touch screens. The buttons stay in the tab order and keep their accessible names; touch targets remain 44px.
+- Messages show a clock time only (the feed's day separators carry the date; the full timestamp stays in the tooltip). People get one of eight stable avatar tones.
+- The conversation header groups its actions on the right; list filters are one row of tabs and only list filters that apply to the current list; Send is quiet until there is text.
+- Motion: dialogs, their backdrop, menus and toasts settle in; a newly arrived or newly sent message rises into place once; opening a destination plays one short pane entrance that continues, rather than restarts, across the loading re-render. Controls have hover and press transitions.
+- All of it is disabled by the in-app reduced-motion preference and by `prefers-reduced-motion`.
+
+Checked in headless Chromium at 1280px and 390px against local workerd: animations present in normal mode and absent with reduced motion, action bar by hover, keyboard and tap, and the earlier two-account regression walk-through. Physical devices, iOS Safari and screen readers are not covered by that run.
+
+Verified with the client and server suites and a headless Chromium walk-through against local workerd/D1 (two accounts: sign-up, friend request, DM both ways, live delivery, server and channel post, 390px layout). Physical phones, hosted transport and the published site are not covered by that run.
+
+## Previous edition4 web-art delivery
+
 # Current edition4 web-art update
 
 Starts at published v18, source2540635ff7187ffa7d898df432643c2f39c67877. The user’s latest correction requires actual web images for badges and gifts and adds Blockchain and Ledger. Edition4 covers49 decorative badges,32 gifts and2 earned-award images with actual local source pixels, credits, factual license status and disclosed conventional image changes. No image generation is used for current art.
