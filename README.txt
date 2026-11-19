@@ -140,6 +140,9 @@ BUILD AND CHECKS (Node 24 and Python 3)
  npm run build
  node scripts/check-build.mjs
 
+Local preview: npm run dev builds the Worker, applies the versioned migrations
+to the local preview database and starts it on http://127.0.0.1:4173.
+
 Media's shared generated validator must exist before the offline bundler. The
 final build embeds matching downloads into the self-contained Worker. Preserve
 Sites-managed HTTP compression, the static ChatGPT frame-ancestor allowlist and

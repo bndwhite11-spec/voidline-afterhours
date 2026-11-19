@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,22 +24,34 @@ const runtime = path.join(root, '.sites-runtime');
 await mkdir(path.join(runtime, 'wrangler-logs'), { recursive: true });
 await mkdir(path.join(runtime, 'xdg-config'), { recursive: true });
 await mkdir(path.join(runtime, 'xdg-cache'), { recursive: true });
+const wrangler = path.join(root, 'node_modules/wrangler/bin/wrangler.js');
+const localEnvironment = {
+  ...process.env,
+  WRANGLER_SEND_METRICS: 'false',
+  CLOUDFLARE_CF_FETCH_ENABLED: 'false',
+  WRANGLER_LOG_PATH: path.join(runtime, 'wrangler-logs'),
+  XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME || path.join(runtime, 'xdg-config'),
+  XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || path.join(runtime, 'xdg-cache'),
+};
+// A fresh local D1 database has no tables, so account creation cannot work
+// until the versioned migrations run. Apply any that this local database has
+// not recorded yet; Wrangler tracks them in d1_migrations, as hosting does.
+// This only ever touches the local preview state under .wrangler/state.
+const migrated = spawnSync(process.execPath, [
+  wrangler, 'd1', 'migrations', 'apply', 'DB', '--local',
+  '--config', path.join(runtime, 'wrangler.json'),
+  '--persist-to', path.join(root, '.wrangler/state'),
+], { cwd: root, stdio: 'inherit', env: { ...localEnvironment, CI: 'true' } });
+if (migrated.status !== 0) throw new Error('Local database migrations failed; the preview was not started.');
 const child = spawn(process.execPath, [
-  path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+  wrangler,
   'dev', '--local', '--config', path.join(runtime, 'wrangler.json'),
   '--persist-to', path.join(root, '.wrangler/state'),
   '--ip', host, '--port', port, '--inspector-port', '0',
 ], {
   cwd: root,
   stdio: 'inherit',
-  env: {
-    ...process.env,
-    WRANGLER_SEND_METRICS: 'false',
-    CLOUDFLARE_CF_FETCH_ENABLED: 'false',
-    WRANGLER_LOG_PATH: path.join(runtime, 'wrangler-logs'),
-    XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME || path.join(runtime, 'xdg-config'),
-    XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || path.join(runtime, 'xdg-cache'),
-  },
+  env: localEnvironment,
 });
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
 child.on('error', error => { console.error(error.message); process.exitCode = 1; });
