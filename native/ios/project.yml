@@ -1,0 +1,63 @@
+name: Voidline
+options:
+  minimumXcodeGenVersion: 2.47.0
+  bundleIdPrefix: app.voidline
+  deploymentTarget:
+    iOS: "16.4"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.4"
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+targets:
+  VoidlineApp:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+      - Resources/Assets.xcassets
+    info:
+      path: Resources/Info.plist
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.voidline.afterhours
+        PRODUCT_NAME: VOIDLINE
+        PRODUCT_MODULE_NAME: VoidlineApp
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Resources/VOIDLINE.entitlements
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        GENERATE_INFOPLIST_FILE: NO
+  VoidlinePolicyTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    dependencies:
+      - target: VoidlineApp
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.voidline.afterhours.policytests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Voidline:
+    build:
+      targets:
+        VoidlineApp: all
+        VoidlinePolicyTests: [test]
+    test:
+      targets:
+        - VoidlinePolicyTests
+    archive:
+      config: Release
+

@@ -1,0 +1,13 @@
+build/
+DerivedData/
+*.xcodeproj/
+Config/LocalSigning.xcconfig
+*.xcarchive/
+*.ipa
+*.p12
+*.mobileprovision
+*.p8
+*.cer
+*.key
+*.pem
+

@@ -12,7 +12,14 @@ INSTALL ON IOS, ANDROID AND PC
 Share https://voidline-afterhours.pipedcactus1.chatgpt.site/ with friends.
 Each person creates their own username/password account; ChatGPT is not needed.
 Install and downloads: https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html
-Android: Chrome menu > Install app / Add to Home screen.
+Android file: /downloads/VOIDLINE-Android.apk (signed APK, Android 7.0+).
+Download it, open the file from Downloads and choose Install. Android may ask
+you to permit installation from your browser. A compatible browser and internet
+connection are required by the Trusted Web Activity client.
+Windows file: /downloads/VOIDLINE-Windows-x64.zip (Windows 10+, x64).
+Extract every file, then run VOIDLINE.exe from the extracted folder. This preview
+is not Windows code-signed. It uses an isolated, sandboxed Chromium client.
+Android browser alternative: Chrome menu > Install app / Add to Home screen.
 iPhone/iPad: Safari > Share > Add to Home Screen > Open as Web App > Add.
 PC: open the site in Chrome or Edge and use the browser's Install app option.
 Mac: Chrome/Edge installation or Safari > File > Add to Dock when available.
@@ -22,8 +29,11 @@ only after an installed event or a standalone app launch, never from a click.
 Inside the app: You > Friends & requests > Add a friend > Send request. Once
 accepted, choose Message. An internet connection is required. Home Screen
 installation and physical keyboards still require actual-device acceptance.
-This is the live website installed as an app, using the same server accounts;
-it is not an App Store/Play Store listing or a signed APK/IPA/EXE package.
+The APK and Windows ZIP are real application packages using the same hosted
+accounts. They are separate from browser installation and the offline viewer.
+No App Store or Play Store listing is claimed. Native iOS source is prepared in
+native/ios, but an installable IPA still needs an Apple team, Xcode build/signing
+and distribution. The Safari option remains available on iPhone/iPad and Mac.
 
 CURRENT UPGRADE
 Edition4 uses actual credited web artwork for49 decorative badges,32 gifts and2
@@ -142,12 +152,20 @@ restore drill need separate verified setup. See docs/OPERATIONS.md and
 BACKUP-RESTORE.md. A local restore test does not establish production recovery.
 
 DOWNLOADS
+ /downloads/VOIDLINE-Android.apk            signed Android application package
+ /downloads/VOIDLINE-Windows-x64.zip        Windows x64 portable app (release redirect)
+ /downloads/voidline-release.json           public versions, sizes and SHA-256 digests
  /downloads/voidline-improvement-prompt.txt  full artwork/product brief plus latest web-art correction
  /downloads/voidline-source.zip             source without runtime credentials
  /downloads/voidline-offline.html           offline archive/recovery viewer
 /art-review.html                          public artwork and motion inspection
-The offline viewer cannot sign in or exchange network messages. These files are
-not a signed desktop installer. Deliberate recovery exports may contain plaintext.
+The source ZIP is hosted as a pinned GitHub release asset; its existing URL is
+preserved through a bounded redirect. The small APK is served directly by the
+Site with a real Android package MIME type, attachment filename and byte ranges.
+Keeping the source ZIP outside the Worker reduces its bundled asset payload.
+The offline viewer cannot sign in or exchange network messages. Deliberate
+recovery exports may contain plaintext. Native build instructions and verification
+boundaries are documented in native/android, native/desktop and native/ios.
 
 BUILD AND CHECKS (Node 24 and Python 3)
  npm ci --no-audit --no-fund

@@ -115,7 +115,7 @@ os.replace(offline_temporary, offline_path)
 # Archive authored source and migration history. Generated Worker bundles must
 # never re-enter the source archive or become embedded recursively.
 excluded_names = {'node_modules', '.git', '.wrangler', '.sites-runtime', '.vinext',
-                  '__pycache__', '.npmrc', '.pypirc'}
+                  '__pycache__', '.npmrc', '.pypirc', '.gradle', '.kotlin', '.idea'}
 generated_dist_roots = {'server', '.openai', '_appgen_meta', 'crypto', 'pkg'}
 
 
@@ -132,7 +132,9 @@ def allowed(path):
         return False
     if path.suffix in {'.pyc', '.pyo'} or path.name.startswith('.voidline-'):
         return False
-    if path.suffix.lower() in {'.sqlite', '.sqlite3', '.db', '.vlb', '.backup', '.bak', '.log', '.pem', '.key', '.p12', '.pfx'}:
+    if path.suffix.lower() in {'.sqlite', '.sqlite3', '.db', '.vlb', '.backup', '.bak', '.log', '.pem', '.key', '.p12', '.pfx', '.jks', '.keystore', '.apk', '.aab', '.ipa', '.mobileprovision', '.p8', '.cer'}:
+        return False
+    if parts[0] == 'native' and (any(part in {'build', 'out', 'DerivedData'} or part.endswith('.xcodeproj') for part in parts) or path.name in {'local.properties', 'signing.properties', 'LocalSigning.xcconfig'}):
         return False
     if len(parts) > 1 and parts[0] == 'dist' and parts[1] in generated_dist_roots:
         return False
@@ -148,7 +150,7 @@ def allowed(path):
 
 
 sources = set()
-for directory in ('dist', 'worker', 'backend', 'db', 'drizzle', 'scripts', 'tests', 'src', 'docs'):
+for directory in ('dist', 'worker', 'backend', 'db', 'drizzle', 'scripts', 'tests', 'src', 'docs', 'native'):
     for path in (root / directory).rglob('*'):
         if allowed(path):
             sources.add(path)

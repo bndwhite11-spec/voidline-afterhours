@@ -11,7 +11,7 @@
  window.addEventListener('appinstalled',()=>{installed=true;promptEvent=null;paintInstall();status('VOIDLINE was added to this device. Open it from your Home Screen or app launcher.');});
  display?.addEventListener?.('change',()=>{if(installedNow())promptEvent=null;paintInstall();});
  function manualInstall(message='Choose the iOS, Android or PC steps below to install through your browser.'){
-  if(installedNow())return;status(message);const instructions=$('vm-install-instructions');instructions?.focus?.({preventScroll:true});instructions?.scrollIntoView?.({block:'start',behavior:'auto'});
+  if(installedNow())return;status(message);const instructions=$('vm-install-instructions');const disclosure=instructions?.closest?.('details');if(disclosure)disclosure.open=true;instructions?.focus?.({preventScroll:true});instructions?.scrollIntoView?.({block:'start',behavior:'auto'});
  }
  async function install(){
   if(promptBusy||installedNow())return;if(!promptEvent){manualInstall();return;}
@@ -24,6 +24,8 @@
  async function shareLink(){if(sharedBusy)return;if(!navigator.share)return copyLink();sharedBusy=true;try{await navigator.share({title:'VOIDLINE: AFTERHOURS',text:'Join me on VOIDLINE. Create your own account to get started.',url:appURL});status('Link handed to your sharing app.');}catch(error){if(error?.name!=='AbortError')await copyLink();}finally{sharedBusy=false;}}
  document.addEventListener('click',event=>{const button=event.target.closest?.('[data-vm]');if(!button)return;event.preventDefault();if(button.dataset.vm==='install')install();if(button.dataset.vm==='copy')copyLink();if(button.dataset.vm==='share')shareLink();});
  if($('vm-link'))$('vm-link').value=appURL;paintInstall();
+ function revealInstallFragment(){if(['#vm-ios','#vm-android','#vm-pc'].includes(location.hash))manualInstall();}
+ window.addEventListener('hashchange',revealInstallFragment);revealInstallFragment();
  // CSS updates only: never replace a composer, inspect its value or touch drafts.
  const viewport=window.visualViewport;let scheduled=false,fullHeight=window.innerHeight||0,fullWidth=window.innerWidth||0;const heightByWidth=new Map();
  const editable=node=>!!node&&(node.isContentEditable||node.tagName==='TEXTAREA'||node.tagName==='INPUT'&&['text','search','password','email','url','tel','number'].includes(node.type||'text'));
@@ -37,7 +39,7 @@
  }
  function schedule(){if(scheduled)return;scheduled=true;(window.requestAnimationFrame||((fn)=>window.setTimeout(fn,16)))(()=>{scheduled=false;updateViewport();});}
  viewport?.addEventListener?.('resize',schedule);viewport?.addEventListener?.('scroll',schedule);window.addEventListener('resize',schedule);window.addEventListener('orientationchange',schedule);document.addEventListener('focusin',schedule);document.addEventListener('focusout',schedule);updateViewport();
- const extension={id:'mobile',accountHTML(){return '<a class="vm-account-link" href="/install.html" target="_blank" rel="noopener noreferrer"><b>Install app · iOS, Android &amp; PC</b><small>Add VOIDLINE to your Home Screen or desktop, or share the app link</small></a>';}};
+ const extension={id:'mobile',accountHTML(){return '<a class="vm-account-link" href="/install.html" target="_blank" rel="noopener noreferrer"><b>Download VOIDLINE</b><small>Android APK, Windows app, and iPhone browser setup</small></a>';}};
  const register=()=>window.VoidHome?.registerExtension?.(extension);window.addEventListener('voidline:home-ready',register,{once:true});register();
  window.VoidMobile=Object.freeze({appURL,installed:installedNow});
 })();

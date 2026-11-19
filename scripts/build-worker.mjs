@@ -23,6 +23,7 @@ const contentTypes = {
   '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
   '.zip': 'application/zip', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4',
   '.wasm': 'application/wasm',
+  '.apk': 'application/vnd.android.package-archive',
 };
 const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
@@ -30,7 +31,13 @@ const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
   'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
-  'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads']);
+  'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
+const release = JSON.parse(await readFile(path.join(output,'downloads/voidline-release.json'),'utf8'));
+if(!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(release.tag)||release.android?.filename!=='VOIDLINE-Android.apk'||!/^app\.voidline\.afterhours$/.test(release.android?.packageId||''))throw Error('Native release metadata is incomplete.');
+const releaseBase='https://github.com/bndwhite11-spec/voidline-afterhours/releases/download/'+release.tag+'/';
+const downloadRedirects={'/downloads/voidline-source.zip':releaseBase+'voidline-source.zip','/downloads/VOIDLINE-Windows-x64.zip':releaseBase+'VOIDLINE-Windows-x64.zip'};
+const apkBytes=await readFile(path.join(output,'downloads',release.android.filename));
+if(apkBytes.length!==release.android.bytes||createHash('sha256').update(apkBytes).digest('hex')!==release.android.sha256||apkBytes[0]!==0x50||apkBytes[1]!==0x4b)throw Error('Android package is missing or does not match the verified release.');
 // Historical route names are retained independently of generated v3 files so
 // a source-ZIP rebuild can redirect cached clients to current credited artwork.
 // Only the image rendering changes; catalog IDs and ownership remain stable.
@@ -392,9 +399,10 @@ async function collect(directory, prefix = '') {
   const entries = await readdir(directory, { withFileTypes: true });
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
-    if ((!prefix && (excludedRoots.has(entry.name)||!productionRoots.has(entry.name))) || entry.name.startsWith('.')) continue;
-    if(prefix==='downloads'&&!['voidline-offline.html','voidline-source.zip','voidline-improvement-prompt.txt'].includes(entry.name)) continue;
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if ((!prefix && (excludedRoots.has(entry.name)||!productionRoots.has(entry.name))) || (entry.name.startsWith('.')&&relative!=='.well-known')) continue;
+    if(prefix==='.well-known'&&relative!=='.well-known/assetlinks.json')continue;
+    if(prefix==='downloads'&&!['voidline-offline.html','voidline-improvement-prompt.txt','voidline-release.json','VOIDLINE-Android.apk'].includes(entry.name)) continue;
     if(relative==='art/v3')continue; // Compatibility routes below serve current artwork without duplicating retired pixels.
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await collect(filename, relative);
@@ -405,6 +413,7 @@ async function collect(directory, prefix = '') {
       const metadata = {
         type: contentTypes[extension] || 'application/octet-stream',
         etag: `"${createHash('sha256').update(bytes).digest('hex').slice(0, 24)}"`,
+        ...(extension==='.apk'?{size:bytes.length}:{}),
       };
       if (relative.startsWith('art/sources/') && /[.](?:png|jpe?g|webp)$/i.test(relative)) {
         assets[`/${relative}`] = {...metadata,rasterKey:internRaster(bytes)};
@@ -442,6 +451,7 @@ const runtime = `
 const VOIDLINE_ASSETS = ${JSON.stringify(assets)};
 const VOIDLINE_LEGACY_ART = ${JSON.stringify(legacyArtAliases)};
 const VOIDLINE_STATIC_RASTERS = ${JSON.stringify(rasterData)};
+const VOIDLINE_DOWNLOAD_REDIRECTS = ${JSON.stringify(downloadRedirects)};
 function matrixConnectOrigin(env) {
   try { const u=new URL(env?.MATRIX_HOMESERVER);return u.protocol==='https:'&&u.origin===u.href.replace(/\\/$/,'') ? ' '+u.origin : ''; } catch {return '';}
 }
@@ -479,6 +489,7 @@ async function serveVoidline(request, env, ctx) {
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); }
   catch { return new Response('Invalid path', {status: 400}); }
+  if(Object.hasOwn(VOIDLINE_DOWNLOAD_REDIRECTS,pathname))return new Response(null,{status:302,headers:{location:VOIDLINE_DOWNLOAD_REDIRECTS[pathname],'cache-control':'no-cache','x-content-type-options':'nosniff'}});
   if(Object.hasOwn(VOIDLINE_LEGACY_ART,pathname))return new Response(null,{status:302,headers:{
     location:VOIDLINE_LEGACY_ART[pathname], 'cache-control':'no-cache',
     'x-content-type-options':'nosniff', 'referrer-policy':'strict-origin-when-cross-origin',
@@ -495,6 +506,8 @@ async function serveVoidline(request, env, ctx) {
     'permissions-policy': 'camera=(), microphone=(self), geolocation=(), display-capture=()',
     'content-security-policy': "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'self' https://chatgpt.com https://chat.openai.com; form-action 'self'; upgrade-insecure-requests",
   };
+  const androidPackage=pathname==='/downloads/VOIDLINE-Android.apk';
+  if(androidPackage){headers['content-disposition']='attachment; filename="VOIDLINE-Android.apk"';headers['accept-ranges']='bytes';headers['content-length']=String(asset.size);}
   if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
   if (asset.rasterKey) {
@@ -506,6 +519,12 @@ async function serveVoidline(request, env, ctx) {
   // inside the Worker bundle, then restore the original stream before handing
   // it to the proxy; otherwise an outer gzip layer hides an inner gzip file.
   const body = asset.gzip ? new Response(bytes).body.pipeThrough(new DecompressionStream('gzip')) : bytes;
+  if(androidPackage&&request.headers.get('range')&&(!request.headers.get('if-range')||request.headers.get('if-range')===asset.etag)){
+    const match=/^bytes=(\\d*)-(\\d*)$/.exec(request.headers.get('range'));let start=0,end=asset.size-1,valid=!!match&&(!!match[1]||!!match[2]);
+    if(valid){if(!match[1]){const suffix=Number(match[2]);valid=Number.isSafeInteger(suffix)&&suffix>0;start=Math.max(0,asset.size-suffix);}else{start=Number(match[1]);end=match[2]?Math.min(Number(match[2]),asset.size-1):end;valid=Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&start>=0&&start<=end&&start<asset.size;}}
+    if(!valid){delete headers['content-length'];return new Response(null,{status:416,headers:{...headers,'content-range':'bytes */'+asset.size}});}
+    const full=body instanceof Uint8Array?body:new Uint8Array(await new Response(body).arrayBuffer());headers['content-range']='bytes '+start+'-'+end+'/'+asset.size;headers['content-length']=String(end-start+1);return new Response(full.slice(start,end+1),{status:206,headers});
+  }
   if (asset.rasterRefs) {
     const restored = body instanceof Uint8Array ? body : new Uint8Array(await new Response(body).arrayBuffer());
     let svg = new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(restored);

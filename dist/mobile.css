@@ -8,3 +8,25 @@
 @media(max-width:600px){.vm-page{padding:20px 20px calc(36px + env(safe-area-inset-bottom))}.vm-header{margin-bottom:36px;gap:12px}.vm-grid{grid-template-columns:minmax(0,1fr);gap:28px}.vm-actions>*{flex:1}.vm-hero p{font-size:1rem}}
 @media(max-width:860px){:root{--vh-topbar-height:calc(56px + env(safe-area-inset-top))}.vh-app{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}.vh-topbar{padding-top:calc(6px + env(safe-area-inset-top))}.vh-bottom-nav{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}}
 @media(max-width:600px){.vm-page{padding-top:calc(20px + env(safe-area-inset-top));padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}}
+
+.vm-hero{max-width:none}
+.vm-hero>p{max-width:680px}
+.vm-app-downloads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:28px 0 18px}
+.vm-download-card{display:flex;flex-direction:column;gap:20px;min-width:0;padding:24px;border:1px solid var(--vh-line);border-radius:10px;background:var(--vh-side)}
+.vm-download-card h2{margin:9px 0 12px}
+.vm-download-card p{font-size:.9375rem;line-height:1.6;margin:0 0 12px}
+.vm-download-card>.vm-note{margin:0}
+.vm-download-card>div{flex:1;min-width:0}
+.vm-download-meta{display:block;color:var(--vh-muted);font-size:.8125rem;overflow-wrap:anywhere}
+.vm-file-download{width:100%;min-height:48px}
+.vm-download-featured{border-color:var(--vh-control-line)}
+.vm-install-help{font-size:.875rem;line-height:1.6}
+.vm-page summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--vh-text);font-weight:550;list-style:revert}
+.vm-page summary:focus-visible{outline:2px solid var(--vh-accent);outline-offset:4px}
+.vm-page details[open]>summary{margin-bottom:16px}
+.vm-other-devices{margin:34px 0 20px;padding-top:26px;border-top:1px solid var(--vh-line)}
+.vm-other-devices p{font-size:.9375rem;max-width:680px}
+.vm-browser-install{margin:0 0 30px;padding:8px 0;border-bottom:1px solid var(--vh-line)}
+.vm-browser-install .vm-instructions{border:0;padding-top:10px}
+.vm-downloads>section{padding:8px 0}
+@media(max-width:650px){.vm-app-downloads{grid-template-columns:minmax(0,1fr)}.vm-download-card{padding:20px}.vm-file-links a{min-width:0;flex-basis:100%}}

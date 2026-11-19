@@ -1,4 +1,35 @@
-# Owner account moderation and merged messaging update
+# Downloadable clients and smoother conversations
+
+This update adds actual Android and Windows application files to the existing
+merged messenger. The Android 1.0.0 APK is signed for app.voidline.afterhours,
+uses maintained Android Browser Helper 2.7.4, and targets the existing HTTPS
+origin through a Trusted Web Activity. Its public certificate association is
+served at /.well-known/assetlinks.json. The signing key stays outside source.
+The Windows x64 portable ZIP uses pinned Electron 45.4.1 with an isolated,
+sandboxed renderer, no Node bridge, scoped permissions and actual failure/retry
+states. It is an unsigned preview, not a signed Windows installer.
+
+The main download screen exposes Download APK and Download for Windows directly.
+Browser installation and source/offline files remain separate. Native iOS source
+is prepared, but no IPA, Apple domain association or TestFlight release is
+claimed without a real Apple team, Xcode compilation, signing and acceptance.
+
+Conversation improvements address observed interaction defects: Jump to latest
+responds to scrolling without network/repaint, selected message text survives
+reaction updates, More menus dismiss predictably with keyboard focus retained,
+late media sizes follow latest only for readers already at the bottom, and
+acknowledged sends do not wait for sidebar requests before the next queued send.
+The source ZIP moves to a pinned GitHub release asset while its existing route
+remains available. The small APK replaces the developer archive in the public
+Worker bundle, reducing its cold asset payload.
+
+Android signatures/alignment/manifest/ZIP checks, Windows PE/ASAR/fuse/ZIP checks
+and controlled native-handler/client interaction tests are distinct from device
+execution. No physical Android or Windows installation, Xcode build or real
+owner passkey ceremony is claimed by those checks. No database migration or
+account/ownership reset is introduced.
+
+## Previous owner account moderation and merged messaging update
 
 Combines the existing managed Site v24 with GitHub revision c892b62d9f7ead7e85318027aa589a85a0ec0746 and the owner-control implementation.
 

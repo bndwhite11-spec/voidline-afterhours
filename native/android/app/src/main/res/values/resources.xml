@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="voidline_background">#0E1013</color>
+    <string name="asset_statements" translatable="false">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://voidline-afterhours.pipedcactus1.chatgpt.site\"}}]</string>
+    <style name="Theme.Voidline" parent="android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/voidline_background</item>
+        <item name="android:navigationBarColor">@color/voidline_background</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

@@ -1,0 +1,22 @@
+{
+  "name": "voidline-desktop",
+  "productName": "VOIDLINE",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VOIDLINE desktop client for the existing HTTPS service",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test security-test.cjs",
+    "build:windows": "node build-windows.mjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "@electron/asar": "4.3.2",
+    "@electron/fuses": "2.1.3",
+    "@electron/packager": "20.3.0",
+    "electron": "45.4.1"
+  }
+}

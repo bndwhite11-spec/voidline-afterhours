@@ -17,3 +17,13 @@ __pycache__/
 /dist/secure-messenger.js.LEGAL.txt
 
 /dist/passkey-client.js
+
+# Generated application packages and local native build/signing state.
+/dist/downloads/*.apk
+/native/**/.gradle/
+/native/**/build/
+/native/**/local.properties
+/native/**/node_modules/
+/native/**/out/
+*.jks
+*.keystore
