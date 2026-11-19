@@ -1,3 +1,19 @@
+# Current everyday-use update (Telegram-style chats, Discord-style servers)
+
+Starts at commit d51af5f384bf33a2bc9cbbb1fc1d5cd3f27fb216. No migration, account, ownership, identity/provider or hosting-audience change is added.
+
+- Standard messaging is acknowledged once per account on a device (`localStorage`), not once per conversation per tab. The server still requires `acknowledgeStandard: true` on writes.
+- Chat rows show message text by default for accounts that never saved a preview choice, drop the per-row "Standard · server-stored" label and align the preview under the name. Saved generic/sender choices are kept; push payloads remain generic.
+- The conversation header says "Mark read", the status strip is one line, and phones keep the message input and its actions on one row.
+- "Encrypted messaging options" is listed only when a Matrix service is configured.
+- A new server takes its rail icon from its name instead of the fixed "WL", and opens its first channel. Opening a server from the rail or an invitation opens its first channel on wide layouts.
+- Live updates: each loaded page names itself and replaces its own stream lease, so switching conversations no longer uses up the account's slots (previously a closed stream could hold a slot for the full 45-second lease). The per-account limit is five.
+- `npm run dev` applies the versioned migrations to the local preview database before starting.
+
+Verified with the client and server suites and a headless Chromium walk-through against local workerd/D1 (two accounts: sign-up, friend request, DM both ways, live delivery, server and channel post, 390px layout). Physical phones, hosted transport and the published site are not covered by that run.
+
+## Previous edition4 web-art delivery
+
 # Current edition4 web-art update
 
 Starts at published v18, source2540635ff7187ffa7d898df432643c2f39c67877. The user’s latest correction requires actual web images for badges and gifts and adds Blockchain and Ledger. Edition4 covers49 decorative badges,32 gifts and2 earned-award images with actual local source pixels, credits, factual license status and disclosed conventional image changes. No image generation is used for current art.

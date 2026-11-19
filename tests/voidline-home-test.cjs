@@ -535,4 +535,23 @@ test('collection rerender preserves only the same account main position and cont
  const outside=app.document.createElement('input');outside.id='profile-dialog-field';outside.focus();app.api.render();assert.equal(app.document.activeElement,outside);
  app.api.state.account={...app.api.state.account,id:'account-b'};app.api.render();assert.equal(app.document.getElementById('home-main').scrollTop,0);assert.equal(app.document.getElementById('home-main').scrollLeft,0);
 });
+test('standard messaging is acknowledged once per account on this device and then covers channels, other conversations and new tabs',async()=>{
+ const stored=new Map(),app=client({storage:stored});await app.start();nativeFixture(app,{messages:[nativeMessage()]});await app.api.openNativeConversation(nativeId);
+ assert.match(app.nodes.get('home-root').innerHTML,/Review standard messaging/);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/id="home-native-input"/);
+ await app.api.submit(app.form('native-consent',{acknowledge:'on'},{target:'dm:'+nativeId}));assert.equal(stored.get('voidline.standard.ack.v2.account-a'),'yes');
+ Object.assign(app.api.state,{view:'servers',nativeId:null,communityId:'community',channelId:'channel',channels:[{id:'channel',name:'general'}],communities:[{id:'community',name:'Community',role:'owner'}],nativeMode:'standard',nativePermissions:{canSend:true}});app.api.render();
+ assert.match(app.nodes.get('home-root').innerHTML,/id="home-native-input"/);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/Review standard messaging/);
+ const tab=client({storage:stored});await tab.start();nativeFixture(tab,{messages:[nativeMessage()]});await tab.api.openNativeConversation(nativeId);
+ assert.match(tab.nodes.get('home-root').innerHTML,/id="home-native-input"/);assert.doesNotMatch(tab.nodes.get('home-root').innerHTML,/Review standard messaging/);
+ tab.api.action('new-message');const dialog=tab.nodes.get('home-dialog').innerHTML;assert.match(dialog,/name="acknowledge" value="on"/);assert.doesNotMatch(dialog,/type="checkbox" name="acknowledge"/);
+ const fresh=client();await fresh.start();fresh.api.action('new-message');assert.match(fresh.nodes.get('home-dialog').innerHTML,/type="checkbox" name="acknowledge" required/);
+});
+test('a new server takes its icon from its name when the field is blank and opens the channel the server created',async()=>{
+ const app=client();await app.start();app.server.communities=[{id:'new-server',name:'Our chosen room',role:'owner'}];app.server.replies.set('/api/live/communities',request=>request.method==='POST'?app.response({community:{id:'new-server'},channel:{id:'general-new',name:'general'}}):app.response({communities:app.server.communities}));app.server.replies.set('/api/live/communities/new-server/channels',app.response({channels:[{id:'general-new',name:'general'}]}));app.server.replies.set('/api/live/channels/general-new/messages?limit=50',app.response({messages:[],page:{hasMore:false},changeCursor:0,securityMode:'standard',permissions:{canSend:true,canManageMessages:false}}));
+ await app.api.submit(app.form('create',{name:'Our chosen room',description:'',icon:''}));const write=app.calls.find(c=>c.request.method==='POST');assert.equal(write.body.icon,'OC');assert.equal(app.api.state.communityId,'new-server');assert.equal(app.api.state.channelId,'general-new');
+});
+test('chat rows show message text by default, drop the per-row storage label and hide encrypted options that are not configured',async()=>{
+ const app=client();await app.start();nativeFixture(app,{messages:[nativeMessage()]});app.api.state.view='chats';app.api.render();const html=app.nodes.get('home-root').innerHTML;
+ assert.doesNotMatch(html,/server-stored/);assert.doesNotMatch(html,/Message preview hidden/);assert.doesNotMatch(html,/Encrypted messaging options/);
+});
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failed}/${tests.length} production-entry behavior checks passed. VM DOM/transport; browser layouts and live account/Matrix networks are not exercised.`);process.exitCode=failed?1:0;})();

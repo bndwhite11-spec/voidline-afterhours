@@ -543,3 +543,26 @@ img, svg { max-width: 100%; }
 @media (max-width: 390px) { .vh-conversation-header { gap: 6px; } .vh-conversation-tools { flex-wrap: wrap; } }
 @media (pointer: coarse) { .vh-message-actions button, .vh-reactions>button, .vh-thread-link, .vh-location-more, .vh-native-more>summary, .vh-auth-help>a { min-height: 44px; min-width: 44px; } }
 @media (forced-colors: active) { .vh-sidebar-resize:focus-visible::after { background: Highlight; }  }
+
+/* Chat list rows: the preview line starts under the name. The generic
+   .vh-nav-item small rule pushes small text to the right edge for counts. */
+.vh-location-name>small { margin-left:0; }
+/* One-line conversation status strip instead of a stacked block. */
+.vh-native-security { padding-top:2px;padding-bottom:2px; }
+.vh-native-security>span { flex-wrap:nowrap;overflow:hidden;white-space:nowrap; }
+.vh-native-security>span>b, .vh-native-security>span>span { flex-shrink:0; }
+.vh-native-security>span>span, .vh-native-security small { flex-basis:auto;margin-left:0;overflow:hidden;text-overflow:ellipsis; }
+.vh-native-security small { min-width:0; }
+.vh-native-security>span>span::before, .vh-native-security small::before { content:"·";margin-right:8px; }
+.vh-mark-read { flex-shrink:0;white-space:nowrap; }
+.vh-standard-brief { margin:0;color:var(--vh-muted);font-size: calc(0.75rem * var(--vl-text-scale)); }
+@media (max-width:860px) {
+  .vh-native-security>span>b { display:none; }
+  .vh-native-security>span>span::before { content:none; }
+}
+/* The Send label never wraps; on narrow screens the status strip stays on one row. */
+.vh-native-composer>.vh-primary { flex-shrink:0;white-space:nowrap; }
+@media (max-width:860px) {
+  .vh-native-security { flex-wrap:nowrap; }
+  .vh-native-security>span { flex:1 1 auto; }
+}
