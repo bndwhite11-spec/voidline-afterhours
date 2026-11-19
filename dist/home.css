@@ -119,6 +119,72 @@ img, svg { max-width: 100%; }
 .vh-password-field { position: relative; display: flex; align-items: center; margin-top: 7px; }
 .vh-password-field input { padding-right: 72px !important; margin-top: 0 !important; }
 .vh-password-field>.vh-text-button { position: absolute; right: 4px; min-width: 60px; min-height: 42px; padding: 5px 9px; color: var(--vh-copy); font-size: calc(0.75rem * var(--vl-text-scale)); text-align: center; }
+
+/* Password guidance stays in place while the meter settles into its next state. */
+.vh-password-feedback {
+  --vh-password-color: var(--vh-muted);
+  --vh-password-default-progress: 0%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding-top: 11px;
+  color: var(--vh-muted);
+  font-size: calc(0.75rem * var(--vl-text-scale));
+  font-weight: 400;
+  line-height: 1.5;
+}
+.vh-password-feedback[data-strength="short"] { --vh-password-color: #F18B92; --vh-password-default-progress: 24%; }
+.vh-password-feedback[data-strength="weak"] { --vh-password-color: #F18B92; --vh-password-default-progress: 40%; }
+.vh-password-feedback[data-strength="fair"] { --vh-password-color: #E8C66E; --vh-password-default-progress: 68%; }
+.vh-password-feedback[data-strength="strong"] { --vh-password-color: #8FD3AB; --vh-password-default-progress: 100%; }
+.vh-password-meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--vh-line);
+}
+.vh-password-meter-fill {
+  display: block;
+  width: var(--vh-password-progress, var(--vh-password-default-progress));
+  height: 100%;
+  border-radius: inherit;
+  color: var(--vh-password-color);
+  background-color: currentColor;
+  box-shadow: inset 0 1px 0 #FFFFFF20;
+  transition: width 440ms cubic-bezier(.22, 1, .36, 1), color 280ms ease;
+}
+.vh-password-caption { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.vh-password-strength {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--vh-password-color);
+  font-weight: 600;
+  transition: color 280ms ease;
+}
+.vh-password-strength::before { content: ""; flex: 0 0 5px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.vh-password-length { flex-shrink: 0; color: var(--vh-muted); font-variant-numeric: tabular-nums; font-size: inherit; font-weight: 400; }
+.vh-password-hint { min-height: 3em; margin: -2px 0 0; color: var(--vh-muted); font-size: inherit; font-weight: 400; line-height: 1.5; text-wrap: pretty; }
+.vh-password-field input[data-strength] { --vh-password-color: var(--vh-accent); transition: border-color 220ms ease, box-shadow 220ms ease; }
+.vh-password-field input[data-strength="short"], .vh-password-field input[data-strength="weak"] { --vh-password-color: #F18B92; }
+.vh-password-field input[data-strength="fair"] { --vh-password-color: #E8C66E; }
+.vh-password-field input[data-strength="strong"] { --vh-password-color: #8FD3AB; }
+.vh-password-field input[data-strength]:focus { border-color: var(--vh-password-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--vh-password-color) 10%, transparent); }
+.vh-password-field input[data-strength]:focus-visible { outline-color: var(--vh-password-color); }
+.vh-password-field.is-invalid input, .vh-password-field input[aria-invalid="true"] { border-color: #F18B92; }
+.vh-password-field.is-valid input { border-color: #8FD3AB; }
+.vh-field-feedback { display: block; min-height: 1.5em; margin: 7px 0 0; color: var(--vh-muted); font-size: calc(0.75rem * var(--vl-text-scale)); line-height: 1.5; font-weight: 400; transition: color 220ms ease; }
+.vh-field .vh-field-feedback.is-error { color: #F18B92; }
+.vh-field .vh-field-feedback.is-success { color: #8FD3AB; }
+@media (max-width: 390px) { .vh-password-caption { gap: 8px; } }
+@media (forced-colors: active) {
+  .vh-password-feedback, .vh-password-field input[data-strength] { --vh-password-color: CanvasText !important; }
+  .vh-password-meter { height: 5px; border: 1px solid CanvasText; background: Canvas; }
+  .vh-password-meter-fill { background: Highlight; box-shadow: none; }
+  .vh-password-field.is-invalid input, .vh-password-field input[aria-invalid="true"], .vh-password-field.is-valid input { border-color: CanvasText; }
+  .vh-field .vh-field-feedback.is-error, .vh-field .vh-field-feedback.is-success { color: CanvasText; }
+}
 .vh-auth-card .vh-recovery-code { display: block; width: 100%; min-height: 98px; resize: none; padding: 14px; background: var(--vh-bg); border: 1px solid var(--vh-control-line); border-radius: 8px; color: var(--vh-text); font: calc(0.9375rem * var(--vl-text-scale))/1.7 ui-monospace, monospace; overflow-wrap: anywhere; }
 .vh-auth-card>.vh-primary, .vh-auth-card>.vh-secondary { width: 100%; margin-top: 10px; }
 .vh-note, .vh-session-status { color: var(--vh-muted); font-size: calc(0.8125rem * var(--vl-text-scale)); line-height: 1.65; overflow-wrap: anywhere; }
