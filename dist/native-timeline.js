@@ -3,14 +3,14 @@
   'use strict';
   const controllers=new WeakMap(),ESTIMATE=88,OVERSCAN=700,MAX_CACHE=500;
   function create(feed){
-    const heights=new Map(),nodes=new Map(),mediaState=new Map();let items=[],frame=0,observer=null,destroyed=false,follow=true;
+    const heights=new Map(),nodes=new Map(),mediaState=new Map(),gaps=[];let items=[],frame=0,observer=null,destroyed=false,follow=true;
     // Recycling earlier rows must not announce them as newly received messages.
     // The messenger announces actual incoming cursor updates separately.
     feed.setAttribute('aria-live','off');
     const top=document.createElement('div'),bottom=document.createElement('div');for(const node of[top,bottom]){node.className='vh-timeline-spacer';node.setAttribute('aria-hidden','true');}
     const height=item=>heights.get(item.key)||ESTIMATE;
     const offsets=()=>{const result=[0];for(const item of items)result.push(result[result.length-1]+height(item));return result;};
-    function pins(){const result=new Set(),selected=window.getSelection?.();for(const [key,node]of nodes){if(node.contains?.(document.activeElement)||(selected&&!selected.isCollapsed&&(node.contains?.(selected.anchorNode)||node.contains?.(selected.focusNode)))||[...(node.querySelectorAll?.('audio,video')||[])].some(media=>!media.paused))result.add(key);}return result;}
+    function pins(){const result=new Set(),selected=window.getSelection?.();for(const [key,node]of nodes){if(node.parentNode!==feed)continue;if(node.contains?.(document.activeElement)||(selected&&!selected.isCollapsed&&(node.contains?.(selected.anchorNode)||node.contains?.(selected.focusNode)))||[...(node.querySelectorAll?.('audio,video')||[])].some(media=>!media.paused))result.add(key);}return result;}
     function anchor(){if(!feed.getBoundingClientRect)return null;const top=feed.getBoundingClientRect().top;for(const child of feed.children||[]){if(!child.dataset?.nativeKey||!child.getBoundingClientRect)continue;const rect=child.getBoundingClientRect();if(rect.bottom>top)return{key:child.dataset.nativeKey,offset:rect.top-top};}return null;}
     function restore(saved){if(!saved)return;const node=nodes.get(saved.key);if(node?.parentNode===feed&&node.getBoundingClientRect)feed.scrollTop+=node.getBoundingClientRect().top-feed.getBoundingClientRect().top-saved.offset;}
     function make(item){let node=nodes.get(item.key);if(!node||node.__voidlineHTML!==item.html){const template=document.createElement('template');template.innerHTML=item.html;const fresh=template.content?.firstElementChild;if(!fresh)return null;if(node&&node.tagName===fresh.tagName){const focused=node.contains?.(document.activeElement)?document.activeElement:null,focus=focused?.dataset?{...focused.dataset}:null,open=!!node.querySelector?.('details[open]'),media=node.querySelector?.('.vh-message-attachments'),nextMedia=fresh.querySelector?.('.vh-message-attachments');if(media&&nextMedia&&media.outerHTML===nextMedia.outerHTML)nextMedia.replaceWith(media);node.className=fresh.className;node.replaceChildren(...fresh.childNodes);for(const attribute of fresh.attributes)node.setAttribute(attribute.name,attribute.value);if(open){const menu=node.querySelector('details');if(menu)menu.open=true;}if(focus){const replacement=[...node.querySelectorAll('button')].find(button=>button.dataset.nativeAction===focus.nativeAction&&button.dataset.event===focus.event&&button.dataset.emoji===focus.emoji);(replacement||node).focus({preventScroll:true});}}
@@ -21,16 +21,22 @@
       last=first;while(last<items.length&&positions[last]<scroll+viewport+OVERSCAN)last++;
       if(bottomAnchor){last=items.length;first=last;while(first>0&&positions[last]-positions[first]<viewport+OVERSCAN)first--;if(first===last)first=Math.max(0,last-30);}
       if(targetKey){const index=items.findIndex(item=>item.key===targetKey);if(index>=0){first=Math.max(0,index-15);last=Math.min(items.length,index+25);}}
-      const pinned=pins();for(const [index,item]of items.entries())if(pinned.has(item.key)){first=Math.min(first,index);last=Math.max(last,index+1);}
-      top.style.height=positions[first]+'px';bottom.style.height=(positions[items.length]-positions[last])+'px';let cursor=feed.firstChild;const keep=new Set([top,bottom]),mounted=[];
+      const pinned=pins(),ranges=[{first,last}];for(const [index,item]of items.entries())if(pinned.has(item.key))ranges.push({first:index,last:index+1});
+      ranges.sort((a,b)=>a.first-b.first);const windows=[];for(const range of ranges){const previous=windows.at(-1);if(previous&&range.first<=previous.last)previous.last=Math.max(previous.last,range.last);else windows.push({...range});}
+      top.style.height=positions[windows[0].first]+'px';bottom.style.height=(positions[items.length]-positions[windows.at(-1).last])+'px';let cursor=feed.firstChild,gapIndex=0;const keep=new Set([top,bottom]),mounted=[];
       function insert(node){if(node!==cursor)feed.insertBefore(node,cursor);cursor=node.nextSibling;keep.add(node);}
-      insert(top);for(let i=first;i<last;i++){const node=make(items[i]);if(!node)continue;insert(node);mounted.push(node);observer?.observe(node);}insert(bottom);
+      // A distant focused/selected/playing row stays attached without mounting
+      // every message between it and the visible window. Spacers retain layout.
+      insert(top);for(let rangeIndex=0;rangeIndex<windows.length;rangeIndex++){
+        const range=windows[rangeIndex];if(rangeIndex){let gap=gaps[gapIndex];if(!gap){gap=document.createElement('div');gap.className='vh-timeline-spacer';gap.setAttribute('aria-hidden','true');gaps[gapIndex]=gap;}gap.style.height=(positions[range.first]-positions[windows[rangeIndex-1].last])+'px';insert(gap);gapIndex++;}
+        for(let i=range.first;i<range.last;i++){const node=make(items[i]);if(!node)continue;insert(node);mounted.push(node);observer?.observe(node);}
+      }insert(bottom);
       for(const child of [...feed.children])if(!keep.has(child)){observer?.unobserve(child);child.remove();}
       for(const node of mounted){const measured=node.getBoundingClientRect?.().height;if(measured>0)heights.set(node.dataset.nativeKey,measured);}
       if(bottomAnchor)feed.scrollTop=feed.scrollHeight;else restore(saved);
       const alive=new Set(items.map(item=>item.key));for(const [key,node]of nodes)if(!alive.has(key)){observer?.unobserve(node);nodes.delete(key);heights.delete(key);mediaState.delete(key);}
       for(const [key,node]of nodes){if(nodes.size<=MAX_CACHE)break;if(node.parentNode===feed||pinned.has(key))continue;const positions=[...(node.querySelectorAll?.('audio,video')||[])].map(media=>Number(media.currentTime)||0);if(positions.length)mediaState.set(key,positions);nodes.delete(key);}
-      feed.dataset.windowed='true';feed.dataset.renderedRows=String(last-first);feed.dataset.totalRows=String(items.length);
+      feed.dataset.windowed='true';feed.dataset.renderedRows=String(mounted.length);feed.dataset.totalRows=String(items.length);
     }
     const schedule=()=>{if(frame||destroyed)return;frame=requestAnimationFrame(()=>{frame=0;render();});};
     const onScroll=()=>{follow=feed.scrollHeight-feed.clientHeight-feed.scrollTop<80;schedule();};feed.addEventListener('scroll',onScroll,{passive:true});

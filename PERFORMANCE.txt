@@ -23,6 +23,34 @@ into a mobile performance or product-wide security claim.
 Historical archive-only microbenchmarks live in prior Git history. Their local
 journal timings do not describe the current shared messenger's performance.
 
+CURRENT PROFILE AND RUNTIME REPAIR
+Profile typing patches changed text/attributes without replacing uploaded image
+nodes. Crop inputs do not rebuild unrelated profile previews. Preset choices
+explicitly replace one custom image; unchanged Save and clean Discard behave
+according to actual state. Image format tools and SVG sanitizer load only after
+a deliberate image selection; ordinary message image validation stays available.
+
+The initial20-script payload drops from754,360 to719,660raw bytes; summedgzip
+(level6,mtime0) from204,432 to190,107bytes. CSS is measured separately. These
+are source/transfer-size calculations, not browser timing measurements.
+
+With healthy live updates, automatic conversation-list fallback is bounded to
+one minute. Real revisions still catch up immediately; failures retain5-second
+fallback. Unchanged connection heartbeats do not rebuild message presentation.
+A reply lookup map and account/conversation-scoped row cache avoid repeated
+quadratic lookup/formatting work. Quote edits, reactions, permissions, bookmarks,
+media, delivery state and account changes invalidate the relevant cached rows.
+Distant playing/selected rows use sparse gaps rather than mounting intervening
+history. Initial loaded rows are still formatted once.
+
+Local Node/VM measurements of warm2,000-row formatting fell from230–394ms to
+10–29ms. Controlledvirtual-clock, request-count and10,000-row pin regressions
+verify behavior; no physical-phone speedup is claimed from these measurements.
+
+Unchanged/private profile saves skip historical message invalidation inside the
+atomic database batch. Actual author name/avatar changes preserve the existing
+per-message protocol and still scale with authored history.
+
 EDITION3 ARTWORK (HISTORICAL)
 81 authored masters produce324 fingerprinted mini/card/detail/silhouette SVGs.
 The public optical/motion client is130,675bytes (37,361bytes gzip in a local

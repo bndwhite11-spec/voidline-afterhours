@@ -1,7 +1,22 @@
 /* Still-image crops and original GIF staging; private upload receipts remain authoritative. */
 (() => {
  'use strict';
- const active=new Set(),selections=new WeakMap();
+ const active=new Set(),selections=new WeakMap();let imageToolsPromise=null;
+ function imageTools(){
+  const ready=()=>window.VoidProfileImageTools?.inspectProfileImage?window.VoidProfileImageTools:window.VoidMediaValidation?.inspectProfileImage?window.VoidMediaValidation:null;
+  if(ready())return Promise.resolve(ready());
+  if(imageToolsPromise)return imageToolsPromise;
+  imageToolsPromise=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');let settled=false,timer;
+   const finish=error=>{if(settled)return;settled=true;if(timer!==undefined)clearTimeout(timer);script.onload=script.onerror=null;if(error){script.remove?.();reject(error);}else resolve(ready());};
+   script.src='/pkg/profile-images/tools.js';script.async=true;
+   script.onload=()=>finish(ready()?null:Error('Image format tools could not start. Refresh and try again.'));
+   script.onerror=()=>finish(Error('Image format tools could not load. Check your connection and try again.'));
+   timer=setTimeout(()=>finish(Error('Image format tools took too long to load. Check your connection and try again.')),15000);
+   try{(document.head||document.documentElement).appendChild(script);}catch{finish(Error('Image format tools could not load. Refresh and try again.'));}
+  }).catch(error=>{imageToolsPromise=null;throw error;});
+  return imageToolsPromise;
+ }
  async function encode(blob){const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';for(let at=0;at<bytes.length;at+=32768)binary+=String.fromCharCode(...bytes.subarray(at,at+32768));return btoa(binary);}
  async function upload({request,blob,kind,clientId=crypto.randomUUID(),filename,conversationId,channelId,isCurrent=()=>true}){
   if(!isCurrent())throw Error('The account or conversation changed. Select the file again.');
@@ -91,9 +106,10 @@
   try{
    if(Number.isFinite(file.size)&&(file.size<=0||file.size>(helpers.MEDIA_LIMIT||8*1024*1024)))throw Error('Choose a file smaller than 8 MiB.');
    const bytes=new Uint8Array(await file.arrayBuffer());if(!selection.current()){selection.dispose();return null;}
-   let metadata=helpers.inspectProfileImage(bytes),sourceBytes=bytes;
+   const formats=await imageTools();if(!selection.current()){selection.dispose();return null;}
+   let metadata=formats.inspectProfileImage(bytes),sourceBytes=bytes;
    if(metadata.mime==='image/gif')return await mountGif({container,bytes,kind,metadata,onApply,onCancel,onError,selection});
-   if(metadata.decoder==='svg'){metadata=await helpers.prepareProfileSvg(bytes);if(!selection.current()){selection.dispose();return null;}sourceBytes=metadata.bytes;}
+   if(metadata.decoder==='svg'){metadata=await formats.prepareProfileSvg(bytes);if(!selection.current()){selection.dispose();return null;}sourceBytes=metadata.bytes;}
    // Android providers may omit or mislabel File.type. Validated bytes define
    // the decoder MIME; a browser Image is a fallback for bitmap-decoder limits.
    // A phone JPEG may carry a Motion Photo or secondary image after its EOI.

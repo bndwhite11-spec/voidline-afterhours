@@ -39,6 +39,10 @@ not replace your saved profile. The image editor brings its confirmation control
 into view. Selection, upload and save states appear beside the image tools; a
 failed selection displays an error rather than claiming the image was saved.
 Failed uploads can be retried, and Discard changes keeps your saved profile.
+Preset avatar/banner choices replace only that image after Save profile. The
+Uploaded image option identifies an active custom photo; changing a preset is an
+explicit replacement. An unchanged Save is disabled, and Discard closes a clean
+editor. Empty earned-badge controls show requirements instead of unused slots.
 
 Profile imports include JPEG, PNG/APNG, WebP, GIF, AVIF, HEIC/HEIF, BMP, ICO,
 self-contained SVG and supported uncompressed TIFF variants, up to 8 MiB.
@@ -53,8 +57,8 @@ an error. The original GIF is retained, including any embedded metadata.
 
 Profiles initially show a still first frame. Choose Play GIFs on a profile to
 animate its avatar/banner, or Pause GIFs to stop. Inline message/list avatars
-stay still. Reduced-motion settings take priority. Allow GIF playback and profile
-effects in Edit profile controls whether your profile offers playback.
+stay still. Reduced-motion settings take priority. Allow GIF playback on my
+profile appears when a GIF is selected; turning it off removes the Play control.
 
 MESSAGING AND PRIVACY
 Standard messages and their private R2 attachments are service-readable. HTTPS,

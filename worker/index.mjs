@@ -1,7 +1,7 @@
 import {profileAvatarMediaForViewer} from './media.mjs';
 import {authenticate, validateSessionMutation, normalizeUsername, AuthError} from './auth.mjs';
 import {standardAttachmentIds,stagedAttachmentGuard,claimStandardAttachments,standardAttachmentMetadata} from './attachments.mjs';
-import {readProfile} from './profiles.mjs';
+import {readProfile,profileAuthorChanges} from './profiles.mjs';
 /**
  * Authenticated standard-text API for Sites Workers + D1.
  * The build embeds this handler alongside the authored browser client.
@@ -219,7 +219,11 @@ export async function handleLiveRequest(request,env) {
    const theme=body.theme??old.theme,avatar=body.avatar??old.avatar;
    requireThat(['obsidian','lilac','ice'].includes(theme),400,'invalid_theme','Choose an available profile theme.');
    requireThat(['moon','orbit','spark','leaf','ghost'].includes(avatar),400,'invalid_avatar','Choose an available profile avatar.');
-   await db.batch([query(db,'UPDATE live_accounts SET display_name=?,bio=?,status=?,theme=?,avatar=?,updated_at=? WHERE id=?',name,bio,status,theme,avatar,now,user.id),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'profile',? FROM live_messages WHERE author_id=?",user.id,now,user.id)]);
+   const guard=activeSessionGuard(user,now),saved=await db.batch([
+    profileAuthorChanges(db,user,now,{displayName:name,avatar},guard),
+    query(db,'UPDATE live_accounts SET display_name=?,bio=?,status=?,theme=?,avatar=?,updated_at=? WHERE id=? AND '+guard.sql,name,bio,status,theme,avatar,now,user.id,...guard.args)
+   ]);
+   requireThat(saved[1]?.meta?.changes>0,409,'profile_changed','Your account access changed before the profile could be saved. Please retry.');
    return json({account:publicProfile(await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first())});
   }
   if(path.length===2&&path[0]==='profiles'&&method==='GET'){
