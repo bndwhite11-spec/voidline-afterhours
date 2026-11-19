@@ -554,4 +554,16 @@ test('chat rows show message text by default, drop the per-row storage label and
  const app=client();await app.start();nativeFixture(app,{messages:[nativeMessage()]});app.api.state.view='chats';app.api.render();const html=app.nodes.get('home-root').innerHTML;
  assert.doesNotMatch(html,/server-stored/);assert.doesNotMatch(html,/Message preview hidden/);assert.doesNotMatch(html,/Encrypted messaging options/);
 });
+test('direct conversations mark own messages for bubbles, show clock-only times and keep stable avatar tones; channels stay rows',async()=>{
+ const app=client();await app.start();nativeFixture(app,{messages:[nativeMessage('theirs',1,'From a friend'),{...nativeMessage('mine',2,'From this account'),author_id:'account-a',author_name:'Night A'}]});await app.api.openNativeConversation(nativeId);
+ const html=app.nodes.get('home-root').innerHTML,theirs=html.match(/<article class="([^"]*)" data-native-key="message:theirs"/),mine=html.match(/<article class="([^"]*)" data-native-key="message:mine"/);
+ assert.match(html,/id="home-native-feed" class="vh-feed vh-feed-direct"/);assert.ok(theirs&&!/is-own/.test(theirs[1]));assert.ok(mine&&/\bis-own\b/.test(mine[1]));
+ assert.ok(!/is-fresh/.test(theirs[1]),'an old message does not replay the arrival animation');
+ const tones=[...html.matchAll(/class="vh-avatar vh-message-profile" data-tone="(\d)"/g)].map(match=>match[1]);assert.equal(tones.length,2);assert.ok(tones.every(tone=>Number(tone)>=0&&Number(tone)<8));
+ const shown=html.match(/<time title="[^"]*">([^<]*)<\/time>/)[1];assert.ok(shown.length<=11&&!/2023|Nov/.test(shown),'the visible time is a clock time; the day comes from the separator');
+ const live=client();await live.start();nativeFixture(live,{messages:[{...nativeMessage('arriving',1,'Just arrived'),created_at:Date.now()},{...nativeMessage('sent',2,'Just sent'),author_id:'account-a',created_at:Date.now()}]});await live.api.openNativeConversation(nativeId);
+ const arrived=live.nodes.get('home-root').innerHTML;assert.match(arrived,/<article class="vh-message is-fresh" data-native-key="message:arriving"/);assert.doesNotMatch(arrived.match(/<article class="([^"]*)" data-native-key="message:sent"/)[1],/is-fresh/);
+ Object.assign(app.api.state,{view:'servers',nativeId:null,communityId:'community',channelId:'channel',channels:[{id:'channel',name:'general'}],communities:[{id:'community',name:'Community',role:'owner'}],nativeMode:'standard',nativePermissions:{canSend:true}});app.api.render();
+ const server=app.nodes.get('home-root').innerHTML;assert.match(server,/id="home-native-feed" class="vh-feed"/);assert.doesNotMatch(server,/data-filter="dms"/);assert.match(server,/data-filter="favorites"/);
+});
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failed}/${tests.length} production-entry behavior checks passed. VM DOM/transport; browser layouts and live account/Matrix networks are not exercised.`);process.exitCode=failed?1:0;})();

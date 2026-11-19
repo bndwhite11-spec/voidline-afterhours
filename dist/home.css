@@ -435,7 +435,6 @@ img, svg { max-width: 100%; }
 .vh-conversation-tools { display:flex;gap:2px;margin-left:auto; }
 .vh-history-button { display:block;min-height:36px;padding:6px 12px;margin:0 auto 12px;border:1px solid var(--vh-line);border-radius:6px;color:var(--vh-muted);background:var(--vh-side);font-size: calc(0.75rem * var(--vl-text-scale)); }
 .vh-message-actions { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; margin-top: 7px; opacity: 1; }
-.vh-message:hover .vh-message-actions,.vh-message:focus-within .vh-message-actions { opacity:1; }
 .vh-message-actions button { display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:36px;padding:4px 6px;border:0;border-radius:4px;background:#ffffff05;color:var(--vh-muted);font-size: calc(0.75rem * var(--vl-text-scale)); }
 .vh-message-actions button:hover { color:var(--vh-text);background:#ffffff0d; }
 .vh-message-actions .vh-icon { width:14px;height:14px; }
@@ -566,3 +565,125 @@ img, svg { max-width: 100%; }
   .vh-native-security { flex-wrap:nowrap; }
   .vh-native-security>span { flex:1 1 auto; }
 }
+
+/* ==========================================================================
+   Interaction polish: motion, message presentation and control states.
+   Every animation and transition below is switched off by .vh-reduced-motion
+   and by prefers-reduced-motion (rules earlier in this file); the ::backdrop
+   pseudo-element is covered explicitly at the end of this section.
+   ========================================================================== */
+:root { --vh-ease-out: cubic-bezier(.2,.7,.2,1); --vh-motion-enter: 200ms; }
+
+/* Controls respond to hover and press instead of switching state abruptly. */
+.vh-nav-item, .vh-rail button, .vh-bottom-nav button, .vh-icon-button, .vh-text-button, .vh-primary, .vh-secondary, .vh-danger,
+.vh-list-filters button, .vh-location-more, .vh-message-actions button, .vh-native-more>summary, .vh-reactions>button, .vh-settings-list>button, .vh-author-button {
+  transition: background-color var(--vh-motion-control) ease, border-color var(--vh-motion-control) ease, color var(--vh-motion-control) ease, opacity var(--vh-motion-control) ease, transform var(--vh-motion-control) ease, box-shadow var(--vh-motion-control) ease;
+}
+.vh-primary:active, .vh-secondary:active, .vh-danger:active, .vh-icon-button:active, .vh-rail button:active, .vh-bottom-nav button:active, .vh-list-filters button:active, .vh-message-actions button:active { transform: scale(.95); }
+.vh-nav-item:active, .vh-settings-list>button:active { transform: scale(.985); }
+.vh-primary:hover { filter: brightness(1.06); }
+
+/* Thin scrollbars that match the dark surface. */
+.vh-sidebar-scroll, .vh-feed, .vh-main, .vh-dialog { scrollbar-width: thin; scrollbar-color: #ffffff2e transparent; }
+
+/* Conversation filters: one row of evenly spread tabs with an accent underline. */
+.vh-list-filters { flex-wrap: nowrap; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.vh-list-filters::-webkit-scrollbar { display: none; }
+.vh-list-filters button { position: relative; flex: 1 1 auto; padding: 5px 6px; border-color: transparent; border-radius: 6px; text-align: center; white-space: nowrap; }
+.vh-list-filters button.is-active { border-color: transparent; background: transparent; color: var(--vh-text); font-weight: 600; }
+.vh-list-filters button::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 18px; height: 2px; margin-left: -9px; border-radius: 2px; background: var(--vh-accent); opacity: 0; transform: scaleX(.4); transition: opacity var(--vh-motion-control) ease, transform var(--vh-motion-control) ease; }
+.vh-list-filters button.is-active::after { opacity: 1; transform: none; }
+
+/* Conversation header: title on the left, actions grouped on the right. */
+.vh-conversation-header { flex-wrap: nowrap; justify-content: flex-start; gap: 4px; }
+.vh-conversation-header>div { flex: 1 1 auto; min-width: 0; }
+.vh-conversation-header h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vh-conversation-header>.vh-mark-read { max-width: none; margin-left: 6px; }
+
+/* Message actions float beside the message and appear on hover (pointer),
+   keyboard focus or tap (touch), so a message no longer reserves a row of
+   buttons under its text. Labels stay available to assistive technology. */
+.vh-message { position: relative; }
+.vh-feed:not(.vh-feed-direct) .vh-message:hover { background: #ffffff05; }
+.vh-message-actions { --vh-actions-rest: translateY(4px); --vh-actions-shown: none; position: absolute; z-index: 3; top: -16px; right: 22px; flex-wrap: nowrap; gap: 2px; margin: 0; padding: 3px; border: 1px solid var(--vh-line); border-radius: 10px; background: var(--vh-raised); box-shadow: 0 8px 24px #0007; opacity: 0; pointer-events: none; transform: var(--vh-actions-rest); transition: opacity var(--vh-motion-control) ease, transform var(--vh-motion-control) ease; }
+/* Hidden bars stay focusable: tabbing to a button reveals its bar. */
+.vh-message:has(:focus-visible) .vh-message-actions, .vh-message-actions:has(details[open]) { opacity: 1; pointer-events: auto; transform: var(--vh-actions-shown); }
+/* Pointer hover on desktop. Touch screens use an explicit tap (is-touched, set
+   in home.js), so focus moved by the app never opens a bar. cursor:pointer lets
+   iOS deliver that tap for an otherwise non-interactive message. */
+@media (hover: hover) { .vh-message:hover .vh-message-actions { opacity: 1; pointer-events: auto; transform: var(--vh-actions-shown); } }
+@media (hover: none) {
+  .vh-message { cursor: pointer; }
+  .vh-message.is-touched .vh-message-actions { opacity: 1; pointer-events: auto; transform: var(--vh-actions-shown); }
+  .vh-message-actions { top: auto; right: 10px; bottom: calc(100% - 8px); }
+}
+.vh-message-actions>button>span, .vh-native-more>summary>span { display: none; }
+.vh-message-actions button, .vh-native-more>summary { border-radius: 7px; background: transparent; }
+.vh-native-more>summary:hover { color: var(--vh-text); background: #ffffff0d; }
+.vh-native-more>div { bottom: calc(100% + 6px); border-radius: 10px; background: var(--vh-raised); transform-origin: bottom right; }
+.vh-native-more[open]>div { animation: vh-pop-in 140ms var(--vh-ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .vh-message-actions>button, .vh-native-more>summary { min-width: 32px; min-height: 32px; padding: 4px; }
+}
+
+/* Direct messages and groups read as bubbles with own messages on the right
+   (the same language as the encrypted feed). One-to-one chats drop the
+   repeated name and avatar; groups keep them. Channels keep full-width rows. */
+.vh-feed-direct .vh-message { align-items: flex-end; padding-top: 2px; padding-bottom: 2px; }
+.vh-feed-direct .vh-message:not(.vh-message-grouped) { padding-top: 7px; }
+.vh-feed-direct .vh-message>div { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 8px; flex: 0 1 auto; max-width: min(74%, 640px); padding: 7px 12px 8px; border: 1px solid var(--vh-line); border-radius: 16px 16px 16px 5px; background: var(--vh-surface); }
+.vh-feed-direct .vh-message>div>* { grid-column: 1 / -1; order: 4; min-width: 0; }
+.vh-feed-direct .vh-message>div>header { display: contents; }
+.vh-feed-direct .vh-message>div>header>.vh-author-button, .vh-feed-direct .vh-message>div>header>b { grid-column: 1 / -1; order: 0; justify-self: start; margin-bottom: 2px; color: var(--vh-accent); font-size: calc(0.8125rem * var(--vl-text-scale)); }
+.vh-feed-direct .vh-message>div>.vh-reply-preview { order: 1; }
+.vh-feed-direct .vh-message>div>.vh-message-text { grid-column: 1; order: 2; }
+.vh-feed-direct .vh-message>div>header>small { grid-column: 2; order: 3; align-self: end; font-size: calc(0.75rem * var(--vl-text-scale)); line-height: 1.5; white-space: nowrap; }
+.vh-feed-direct .vh-message>div>header>time { grid-column: 3; order: 3; align-self: end; font-size: calc(0.75rem * var(--vl-text-scale)); line-height: 1.5; white-space: nowrap; }
+.vh-feed-direct .vh-message-pending>div>header>small { grid-column: 1 / -1; order: 4; justify-self: end; }
+.vh-feed-direct .vh-message.is-own { flex-direction: row-reverse; }
+.vh-feed-direct .vh-message.is-own>div { border-color: var(--vh-line); border-radius: 16px 16px 5px 16px; background: var(--vh-own-message); }
+.vh-feed-direct .vh-message.is-own>.vh-avatar, .vh-feed-direct .vh-message.is-own>div>header>.vh-author-button, .vh-feed-direct .vh-message.is-own>div>header>b { display: none; }
+.vh-feed-direct:not(.vh-feed-group) .vh-message>.vh-avatar, .vh-feed-direct:not(.vh-feed-group) .vh-message>div>header>.vh-author-button { display: none; }
+.vh-feed-direct .vh-message-grouped>div { border-top-left-radius: 8px; }
+.vh-feed-direct .vh-message-grouped.is-own>div { border-top-left-radius: 16px; border-top-right-radius: 8px; }
+.vh-feed-direct .vh-message-actions { --vh-actions-rest: translate(-4px, -50%); --vh-actions-shown: translateY(-50%); top: 50%; right: auto; left: calc(100% + 8px); }
+.vh-feed-direct .vh-message.is-own .vh-message-actions { --vh-actions-rest: translate(4px, -50%); right: calc(100% + 8px); left: auto; }
+@media (hover: none) {
+  .vh-feed-direct .vh-message-actions, .vh-feed-direct .vh-message.is-own .vh-message-actions { --vh-actions-rest: translateY(4px); --vh-actions-shown: none; top: auto; bottom: calc(100% - 12px); }
+  .vh-feed-direct .vh-message.is-touched>div { border-color: var(--vh-accent); }
+  .vh-feed .vh-message.is-touched.is-bar-below .vh-message-actions { top: calc(100% - 12px); bottom: auto; }
+  .vh-feed-direct .vh-message-actions { right: auto; left: 0; }
+  .vh-feed-direct .vh-message.is-own .vh-message-actions { right: 0; left: auto; }
+}
+
+/* A message that has just arrived, or one being sent, rises into place once. */
+.vh-message.is-fresh { animation: vh-message-in 240ms var(--vh-ease-out) both; }
+.vh-feed-direct .vh-message.is-fresh { transform-origin: bottom left; }
+.vh-feed-direct .vh-message.is-fresh.is-own { transform-origin: bottom right; }
+
+/* Stable per-person avatar tones. */
+.vh-avatar[data-tone="0"] { background: #24323f; color: #a9c8ea; }
+.vh-avatar[data-tone="1"] { background: #2f2a40; color: #c6b6f2; }
+.vh-avatar[data-tone="2"] { background: #3a2a33; color: #f0b3cf; }
+.vh-avatar[data-tone="3"] { background: #3b2f24; color: #f1c79b; }
+.vh-avatar[data-tone="4"] { background: #2c3524; color: #c9e59a; }
+.vh-avatar[data-tone="5"] { background: #223733; color: #9ee0cf; }
+.vh-avatar[data-tone="6"] { background: #3a2626; color: #f2b0a6; }
+.vh-avatar[data-tone="7"] { background: #30343b; color: #d5dae2; }
+
+/* Composer: rounded field; Send is quiet until there is text. */
+.vh-native-composer textarea { border-radius: 14px; }
+.vh-native-composer>.vh-primary { border-radius: 12px; }
+.vh-native-composer textarea:placeholder-shown ~ .vh-primary { opacity: .55; }
+
+/* Dialogs, menus and toasts arrive with a short settle instead of popping in. */
+.vh-dialog[open] { animation: vh-dialog-in var(--vh-motion-enter) var(--vh-ease-out); }
+.vh-dialog[open]::backdrop { animation: vh-fade-in var(--vh-motion-enter) ease; backdrop-filter: blur(3px); }
+.vh-toast:not([hidden]) { animation: vh-toast-in var(--vh-motion-enter) var(--vh-ease-out); }
+@keyframes vh-dialog-in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes vh-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vh-pop-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes vh-toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes vh-message-in { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+.vh-reduced-motion .vh-dialog::backdrop { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .vh-dialog::backdrop { animation: none !important; } }
