@@ -31,6 +31,24 @@ inspection and /art-review.html. The graphite/lime shell, empty home, Collection
 profiles, privacy and persistent account/ownership rules remain. See
  docs/UPGRADE-STATUS.md and docs/WEB-ART-SOURCES.md for exact evidence and scope.
 
+PROFILE IMAGES
+Open your profile > Edit profile. Under Avatar or Banner, choose Upload image or
+GIF. For a still image, adjust the crop and choose Upload crop. For a GIF, choose
+Upload GIF. Then choose Save profile to publish the change; uploading alone does
+not replace your saved profile. Failed uploads can be retried, and Discard changes
+keeps your saved profile.
+
+PNG, JPEG, WebP and GIF uploads are limited to 8 MiB. GIFs keep their original
+frames, with centered cover framing rather than an encoded crop. GIFs must fit
+1024 x 1024 pixels, 200 frames, a 30-second loop and the total decoded-pixel
+budget; a large animation may need fewer frames. Invalid or oversized files show
+an error. The original GIF is retained, including any embedded metadata.
+
+Profiles initially show a still first frame. Choose Play GIFs on a profile to
+animate its avatar/banner, or Pause GIFs to stop. Inline message/list avatars
+stay still. Reduced-motion settings take priority. Allow GIF playback and profile
+effects in Edit profile controls whether your profile offers playback.
+
 MESSAGING AND PRIVACY
 Standard messages and their private R2 attachments are service-readable. HTTPS,
 session authorization and scoped permissions protect access; this mode is not
@@ -51,8 +69,8 @@ passwords, authentication/recovery secrets, Matrix content/keys, device-only
 Saved notes and uploaded file bytes. Browser exports are bounded at 10MiB/10k
 records and are not an atomic database backup.
 
-Private profile media follows current profile visibility and blocking. Avatar
-and banner crop locally before staged upload; Save commits the actual reference.
+Private profile media, including GIF originals and still previews, follows current
+profile visibility and blocking. See docs/MEDIA-AND-PROFILES.md for upload limits.
 Standard files/voice use private R2 with current-access reads, stable digests,
 atomic message claims, ranges and durable cleanup. Browser/microphone/Canvas
 acceptance still needs actual devices.

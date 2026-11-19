@@ -1,5 +1,6 @@
 /** Native, account-scoped friend requests. No presence or message delivery is inferred. */
 import {authenticate, validateSessionMutation, authRateLimit, AuthError} from './auth.mjs';
+import {profileAvatarMediaForViewer} from './media.mjs';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const q=(db,sql,...args)=>db.prepare(sql).bind(...args);
@@ -38,6 +39,8 @@ export async function handleSocialRequest(request,env){
    const outgoingRows=await rows(`SELECT r.id,r.created_at AS createdAt,${publicFields} ${outgoing} ORDER BY r.updated_at DESC,r.id LIMIT ? OFFSET ?`,user.id,limit,offset);
    const blocked=await rows(`SELECT ${publicFields},b.created_at AS createdAt FROM social_blocks b JOIN live_accounts a ON a.id=b.blocked_id WHERE b.blocker_id=? ORDER BY b.created_at DESC LIMIT ? OFFSET ?`,user.id,limit,offset);
    const counts={friends:(await q(db,`SELECT COUNT(DISTINCT a.id) AS n ${relation}`,user.id,user.id,user.id).first()).n,incoming:(await q(db,`SELECT COUNT(*) AS n ${incoming}`,user.id).first()).n,outgoing:(await q(db,`SELECT COUNT(*) AS n ${outgoing}`,user.id).first()).n,blocked:(await q(db,'SELECT COUNT(*) AS n FROM social_blocks WHERE blocker_id=?',user.id).first()).n};
+   const people=[...friends,...incomingRows,...outgoingRows],avatars=await profileAvatarMediaForViewer(db,user.id,people.map(person=>person.accountId));
+   for(const person of people)person.avatarMedia=avatars.get(person.accountId)||null;
    const setting=await q(db,'SELECT allow_requests FROM social_settings WHERE account_id=?',user.id).first();
    return json({friends,incoming:incomingRows,outgoing:outgoingRows,blocked,counts,settings:{allowRequests:setting?.allow_requests!==0},page:{limit,offset}});
   }

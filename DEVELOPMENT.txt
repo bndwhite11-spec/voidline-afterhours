@@ -15,6 +15,7 @@ SOURCE BOUNDARIES
   dist/social.js/.css           friend consent, blocking and request preferences
   dist/cosmetics.js/.css        server-owned free decorations/gifts/transfers
   dist/profiles-panel.js/.css   profile preview, privacy and showcases
+  dist/profile-media.js        still-image crop and original GIF staging
   dist/admin.js/.css            owner UI; server authorization is independent
   dist/notifications.js         deliberate Web Push device enrollment
   dist/help.html/.css           public security/recovery/privacy/terms/support
@@ -26,6 +27,8 @@ SOURCE BOUNDARIES
   src/secure-vault.js           authenticated-encrypted IndexedDB records
   src/local-saved.js            independent device-only encrypted notes
   src/passkey-client.js         maintained SimpleWebAuthn browser entry
+  src/media-validation.mjs     shared bounded image/audio structure checks
+  src/profile-gif.mjs          server GIF decoding and first-frame PNG preview
   worker/auth.mjs               native identity, providers, sessions/recovery
   worker/passwords.mjs          Argon2id and credential-version upgrades
   worker/passkeys.mjs           signed-in WebAuthn challenge/signature step-up
@@ -35,6 +38,7 @@ SOURCE BOUNDARIES
   worker/encryption.mjs         configured supported native-to-Matrix enrollment
   worker/notifications.mjs      scoped generic native Web Push delivery
   worker/profiles.mjs           profile privacy and earned-award rules
+  worker/media.mjs              private R2 uploads, access and durable cleanup
   worker/cosmetics.mjs          legitimate collectible ownership and transfers
   worker/social.mjs             relationships, discovery and block authority
   worker/admin.mjs              immutable owner binding, controls and audit
@@ -132,6 +136,28 @@ MESSAGE, QUERY AND UI CONTRACTS
   and cap input growth. Windowed large-history rendering and physical-device
   screen-reader/keyboard acceptance remain further work.
 
+PROFILE MEDIA
+Profile > Edit profile > Upload image or GIF opens the selected Avatar/Banner
+flow. Still images retain Canvas cropping and Upload crop; GIFs use Upload GIF
+and preserve original bytes/metadata. Centered cover framing changes display,
+not the encoded GIF. Both paths stage media; Save profile is the commit action.
+Keep stable upload IDs on retry and reject obsolete editor/account callbacks.
+
+All files have an 8 MiB bound. Profile GIF limits combine 1024 pixels per side,
+one megapixel per canvas, 200 frames, 32 megapixels across frame canvases and a
+30-second loop. Shared validation is browser structural preflight; the server
+decodes every GIF frame and creates a protected static first-frame PNG preview.
+Do not flatten a GIF through Canvas or claim its metadata has been stripped.
+
+The canonical /api/media/:id URL serves a GIF's static PNG preview for old and
+current inline-avatar clients. Only /api/media/:id/animation serves the original;
+both use the same current profile/block authorization. Play GIFs/Pause GIFs are
+explicit profile-card controls. Reduced motion, hidden/closed profiles and
+account changes stop playback. Uploads do not autoplay. New GIF staging enables
+Allow GIF playback and profile effects in the draft; the owner can clear it.
+Controlled DOM tests establish state/lifecycle behavior, not actual browser GIF
+decoding, native pickers or physical-device playback.
+
 ENCRYPTED PATH
 Matrix SDK 45.1.0 / Rust crypto WASM 18.9.2 are the maintained protocol. Do not
 invent a cipher protocol, embed a shared content key, weaken verified-device
@@ -150,7 +176,8 @@ Rust v2 attachment encryption protects contents before upload; key/name/descript
 travel inside encrypted messages. Fetch media with Authorization, size/type
 limits and no URL credentials; revoke decrypted Blob URLs after their view ends.
 Microphone permission is deliberate, late tracks are stopped and cancellation
-must not attach a recording to a new conversation. Native media is still absent.
+must not attach a recording to a new conversation. Native Standard media remains
+service-readable and separate from this encrypted path.
 
 Invitations preview without joining, validate encryption after deliberate accept
 and distinguish invitation state from verified identity. Leave/removal/cancel

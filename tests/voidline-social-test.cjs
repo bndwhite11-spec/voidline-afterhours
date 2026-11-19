@@ -3,13 +3,13 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const source=fs.readFileSync(path.join(__dirname,'../dist/social.js'),'utf8');
 const defer=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function client(){
+function client({avatar}={}){
  const nodes=new Map(),listeners=new Map(),calls=[],notices=[],answers=new Map();
  const blank={friends:[],incoming:[],outgoing:[],blocked:[],counts:{friends:0,incoming:0,outgoing:0,blocked:0},settings:{allowRequests:true},page:{limit:30,offset:0}};
  const state={account:{id:'alice'},dialogGeneration:0};
  const node=(id='')=>({id,innerHTML:'',textContent:'',isConnected:true,hidden:false,checked:true,disabled:false,dataset:{},querySelector(){return null;}});
  const bridge={state,esc:value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),icon:name=>`<svg data-icon="${name}"></svg>`,announce:message=>notices.push(message),request:async(route,body)=>{calls.push({route,body});if(answers.has(route)){const answer=answers.get(route);return typeof answer==='function'?answer(body):answer;}return blank;},showDialog(title,copy,html){state.dialogGeneration++;for(const old of nodes.values())old.isConnected=false;nodes.clear();const dialog=node('dialog');dialog.innerHTML=title+copy+html;nodes.set('dialog',dialog);for(const match of html.matchAll(/\bid="([^"]+)"/g))nodes.set(match[1],node(match[1]));},registerExtension(){} };
- const context={window:{VoidHome:{registerExtension:extension=>extension.init(bridge)},addEventListener(){}},document:{getElementById:id=>nodes.get(id)||null,addEventListener:(name,fn)=>listeners.set(name,fn)},FormData:class{constructor(form){this.values=form.values;}get(key){return this.values[key];}},console};
+ const context={window:{...(avatar?{VoidProfilesPanel:{avatar}}:{}),VoidHome:{registerExtension:extension=>extension.init(bridge)},addEventListener(){}},document:{getElementById:id=>nodes.get(id)||null,addEventListener:(name,fn)=>listeners.set(name,fn)},FormData:class{constructor(form){this.values=form.values;}get(key){return this.values[key];}},console};
  vm.createContext(context);vm.runInContext(source,context,{filename:'dist/social.js'});
  const api=context.window.VoidSocial;
  return {api,bridge,nodes,listeners,calls,notices,answers,blank,node,state,async form(username){const form=node();form.dataset={socialForm:'request'};form.values={username};listeners.get('submit')({target:form,preventDefault(){}});await flush();await flush();return form;},async click(data){const button=node();button.dataset={socialAction:data.action,...data};listeners.get('click')({target:{closest:()=>button},preventDefault(){}});await flush();await flush();return button;}};
@@ -20,6 +20,11 @@ test('the friend panel starts empty and a read never sends a request or invents 
 });
 test('friend profile labels are escaped and pending counts come from the account response',async()=>{
  const c=client();c.answers.set('/api/social?limit=30&offset=0',{...c.blank,friends:[{accountId:'bob',username:'bob',displayName:'<script>bad()</script>'}],counts:{...c.blank.counts,friends:1,incoming:2}});await c.api.open();assert.match(c.nodes.get('social-results').innerHTML,/&lt;script&gt;/);assert.doesNotMatch(c.nodes.get('social-results').innerHTML,/<script>/);assert.match(c.api.extension.navHTML(),/2 incoming friend requests/);
+});
+test('friends render uploaded static avatar representations while blocked rows never request those images',async()=>{
+ const calls=[],id='a'.repeat(64),person={accountId:'bob',username:'bobby',displayName:'Bobby',avatarMedia:{id,url:'/api/media/'+id,posterUrl:'/api/media/'+id,isGif:true,animationUrl:'/api/media/'+id+'/animation'}},c=client({avatar:p=>{calls.push(p);return '<img src="'+p.avatarMedia.posterUrl+'" alt="">';}});
+ c.answers.set('/api/social?limit=30&offset=0',{...c.blank,friends:[person],counts:{...c.blank.counts,friends:1}});await c.api.open();assert.equal(calls.length,1);assert.match(c.nodes.get('social-results').innerHTML,new RegExp('src="/api/media/'+id+'"'));assert.doesNotMatch(c.nodes.get('social-results').innerHTML,/src="[^"]+\/animation/);
+ c.answers.set('/api/social?limit=30&offset=0',{...c.blank,blocked:[person],counts:{...c.blank.counts,blocked:1}});await c.api.open('blocked');assert.equal(calls.length,1);assert.doesNotMatch(c.nodes.get('social-results').innerHTML,/<img/);
 });
 test('sending to an existing incoming request opens Incoming rather than claiming a new send',async()=>{
  const c=client();await c.api.open();c.answers.set('/api/social/request',{request:{id:'request1',state:'pending',direction:'incoming'},alreadyExists:true});await c.form('@bobby');const mutation=c.calls.find(call=>call.body);assert.equal(mutation.body.username,'bobby');assert.match(c.notices[0],/already sent you a request/);assert.match(c.nodes.get('social-tabs').innerHTML,/data-view="incoming" aria-pressed="true"/);

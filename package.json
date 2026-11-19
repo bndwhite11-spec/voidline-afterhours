@@ -26,7 +26,9 @@
     "@noble/hashes": "2.4.0",
     "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.1.0",
+    "@sindresorhus/gifkit": "0.1.1",
     "esbuild": "0.25.12",
+    "fast-png": "8.0.0",
     "jose": "6.2.17",
     "matrix-js-sdk": "45.1.0"
   }

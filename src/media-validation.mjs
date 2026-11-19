@@ -1,19 +1,69 @@
 /** Bounded image headers and structures; no remote fetching or executable formats. */
 export const MEDIA_LIMIT = 8 * 1024 * 1024;
 export const IMAGE_PIXELS = 16 * 1024 * 1024;
+export const PROFILE_GIF_LIMITS = Object.freeze({maxSide:1024,maxPixels:1024*1024,maxFrames:200,maxCanvasPixels:32*1024*1024,maxDurationMs:30000,maxBlocks:2048,maxSubBlocks:65536,maxMetadataBytes:128*1024});
 const fail = message => { throw new Error(message); };
 const equal = (bytes, offset, values) => values.every((value, i) => bytes[offset + i] === value);
 const ascii = (bytes, start, length) => String.fromCharCode(...bytes.subarray(start, start + length));
 const u16 = (b, i) => b[i] * 256 + b[i + 1];
 const u32 = (b, i) => (b[i] * 0x1000000 + b[i + 1] * 65536 + b[i + 2] * 256 + b[i + 3]) >>> 0;
 const le32 = (b, i) => (b[i] + b[i + 1] * 256 + b[i + 2] * 65536 + b[i + 3] * 0x1000000) >>> 0;
+const le16 = (b, i) => b[i] + b[i + 1] * 256;
 const dimensions = (width, height, maxPixels) => {
  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 16384 || height > 16384 || width * height > maxPixels) fail('This image is too large. Choose an image under 16 megapixels.');
  return {width, height};
 };
-export function inspectImage(input, {maxPixels = IMAGE_PIXELS} = {}) {
+/** Structural/resource preflight only. The server strictly decodes every LZW frame before storage. */
+export function inspectProfileGif(input, {maxPixels = PROFILE_GIF_LIMITS.maxPixels,includeFrameRanges = false} = {}) {
+ const b=input instanceof Uint8Array?input:new Uint8Array(input),limit=PROFILE_GIF_LIMITS;
+ if(!b.length||b.length>MEDIA_LIMIT)fail('Choose a file smaller than 8 MiB.');
+ if(b.length<14||!['GIF87a','GIF89a'].includes(ascii(b,0,6)))fail('This GIF header is invalid.');
+ const width=le16(b,6),height=le16(b,8),pixels=width*height;
+ if(!width||!height||width>limit.maxSide||height>limit.maxSide||pixels>Math.min(maxPixels,limit.maxPixels))fail('Choose a GIF no larger than 1024 pixels per side and one megapixel.');
+ let at=13,subBlocks=0,blocks=0,metadataBytes=0,durationMs=0,pending=null,ended=false;
+ const ranges=[];
+ const requireBytes=count=>{if(count>b.length-at)fail('This GIF is incomplete.');};
+ if(b[10]&128){at+=3*(1<<((b[10]&7)+1));if(at>b.length)fail('This GIF palette is incomplete.');}
+ const headerEnd=at;
+ const skipSubBlocks=()=>{let payload=0;for(;;){requireBytes(1);const length=b[at++];if(!length)return payload;if(++subBlocks>limit.maxSubBlocks)fail('This GIF has too many data blocks.');requireBytes(length);payload+=length;at+=length;}};
+ while(at<b.length){
+  const start=at,marker=b[at++];
+  if(marker===59){if(at!==b.length||pending)fail('This GIF has an invalid ending.');ended=true;break;}
+  if(++blocks>limit.maxBlocks)fail('This GIF has too many blocks.');
+  if(marker===44){
+   requireBytes(9);const left=le16(b,at),top=le16(b,at+2),frameWidth=le16(b,at+4),frameHeight=le16(b,at+6),packed=b[at+8];at+=9;
+   if(!frameWidth||!frameHeight||left+frameWidth>width||top+frameHeight>height||(packed&24))fail('This GIF has invalid frame dimensions.');
+   if(packed&128){const paletteBytes=3*(1<<((packed&7)+1));requireBytes(paletteBytes);at+=paletteBytes;}
+   requireBytes(1);const minimumCodeSize=b[at++];if(minimumCodeSize<2||minimumCodeSize>8)fail('This GIF has invalid image data.');
+   if(!skipSubBlocks())fail('This GIF has no image data.');
+   ranges.push({start,end:at,controlStart:pending?.start??null,controlEnd:pending?.end??null});
+   // Browsers commonly clamp absent/0/10ms delays to 100ms. Count that cost too.
+   durationMs+=pending?.delayMs>=20?pending.delayMs:100;pending=null;
+   if(ranges.length>limit.maxFrames||pixels*ranges.length>limit.maxCanvasPixels)fail('This GIF has too many frames or decoded pixels. Choose a shorter or smaller GIF.');
+   if(durationMs>limit.maxDurationMs)fail('Choose a GIF with a loop no longer than 30 seconds.');
+   continue;
+  }
+  if(marker!==33)fail('This GIF has an invalid block.');
+  requireBytes(1);const label=b[at++];if(ascii(b,0,6)!=='GIF89a')fail('This GIF uses extensions with an unsupported header.');
+  if(label===249){
+   requireBytes(6);if(ascii(b,0,6)!=='GIF89a'||pending||b[at]!==4||b[at+5]!==0||(b[at+1]&224)||((b[at+1]>>2)&7)>3)fail('This GIF has invalid frame controls.');
+   pending={start,end:at+6,delayMs:le16(b,at+2)*10};at+=6;
+  }else if(label===254||label===255){
+   if(label===255){requireBytes(12);if(ascii(b,0,6)!=='GIF89a'||b[at]!==11)fail('This GIF application header is invalid.');at+=12;}
+   skipSubBlocks();metadataBytes+=at-start;
+   if(metadataBytes>limit.maxMetadataBytes)fail('This GIF contains too much metadata.');
+  }else fail('This GIF contains unsupported text or extension blocks.');
+ }
+ if(!ended||!ranges.length)fail('This GIF has no complete image.');
+ return {width,height,mime:'image/gif',extension:'gif',frames:ranges.length,durationMs,animated:ranges.length>1,...(includeFrameRanges?{headerEnd,frameRanges:ranges}:{})};
+}
+export function inspectImage(input, {maxPixels = IMAGE_PIXELS,allowGif = false} = {}) {
  const b = input instanceof Uint8Array ? input : new Uint8Array(input);
  if (!b.length || b.length > MEDIA_LIMIT) fail('Choose a file smaller than 8 MiB.');
+ if(ascii(b,0,3)==='GIF'){
+  if(!allowGif)fail('GIFs are supported only for profile pictures and banners.');
+  return inspectProfileGif(b,{maxPixels});
+ }
  if (equal(b, 0, [137,80,78,71,13,10,26,10])) {
   if (b.length < 45 || u32(b, 8) !== 13 || ascii(b, 12, 4) !== 'IHDR') fail('This PNG header is invalid.');
   const size = dimensions(u32(b, 16), u32(b, 20), maxPixels);
@@ -79,7 +129,7 @@ export function inspectImage(input, {maxPixels = IMAGE_PIXELS} = {}) {
   if (!size || !image || at !== b.length) fail('This WebP has no complete image.');
   return {...size, mime:'image/webp', extension:'webp'};
  }
- fail('Choose a still PNG, JPEG or WebP image. SVG and GIF are not supported.');
+ fail(allowGif?'Choose PNG, JPEG, WebP or GIF. SVG is not supported.':'Choose a still PNG, JPEG or WebP image. SVG is not supported.');
 }
 export function safeFilename(value) {
  return String(value || 'file').normalize('NFKC').replace(/[\u0000-\u001f\u007f/\\<>:"|?*\u202a-\u202e\u2066-\u2069]/g,'_').trim().slice(0,120) || 'file';

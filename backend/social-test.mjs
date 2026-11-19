@@ -37,6 +37,17 @@ test('sending an exact username request is idempotent and does not auto-accept a
 test('only the recipient can accept; acceptance creates one friendship visible to both accounts',async()=>{
  const f=await fixture();try{const first=await f.ok('alice','/request',{username:'social_bobby'}),path=`/requests/${first.request.id}/respond`;assert.equal((await f.call('claire',path,{accept:true})).status,404);assert.equal((await f.call('alice',path,{accept:true})).status,404);await f.ok('bobby',path,{accept:true});await f.ok('bobby',path,{accept:true});assert.equal((await f.ok('alice')).friends[0].accountId,f.accounts.bobby.id);assert.equal((await f.ok('bobby')).friends[0].accountId,f.accounts.alice.id);assert.equal((await f.ok('claire')).friends.length,0);}finally{await f.close();}
 });
+test('uploaded friend avatars use the protected static representation and never expose pictures to unrelated requests or blocks',async()=>{
+ const f=await fixture();try{
+  const actor=f.accounts.alice.id,id='d'.repeat(64),now=Date.now();
+  f.sqlite.prepare("INSERT INTO media_assets(id,owner_id,client_id,object_key,sha256,kind,content_type,filename,bytes,width,height,state,created_at,updated_at) VALUES(?,?,?,?,?,'avatar','image/gif','avatar.gif',64,8,8,'ready',?,?)").run(id,actor,crypto.randomUUID(),'v1/'+id,'f'.repeat(64),now,now);
+  f.sqlite.prepare("INSERT INTO profile_preferences(account_id,avatar_media_id,details_visibility,updated_at) VALUES(?,?,'private',?)").run(actor,id,now);
+  await f.ok('claire','/request',{username:'social_alice'});assert.equal((await f.ok('claire')).outgoing[0].avatarMedia,null);
+  const r=await f.ok('bobby','/request',{username:'social_alice'});await f.ok('alice','/requests/'+r.request.id+'/respond',{accept:true});
+  const picture=(await f.ok('bobby')).friends[0].avatarMedia;assert.equal(picture.id,id);assert.equal(picture.url,'/api/media/'+id);assert.equal(picture.posterUrl,picture.url);assert.equal(picture.animationUrl,picture.url+'/animation');assert.equal(picture.isGif,true);assert.deepEqual(Object.keys(picture).sort(),['animationUrl','id','isGif','posterUrl','url']);
+  await f.ok('bobby','/blocks',{accountId:actor,active:true});assert.equal((await f.ok('bobby')).friends.length,0);assert.equal((await f.ok('bobby')).blocked[0].avatarMedia,undefined);
+ }finally{await f.close();}
+});
 test('simultaneous opposite requests create one pending relationship with a truthful incoming response',async()=>{
  const f=await fixture();try{const responses=await Promise.all([f.ok('alice','/request',{username:'social_bobby'}),f.ok('bobby','/request',{username:'social_alice'})]);assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM social_requests WHERE state='pending'").get().n,1);assert.equal(responses[0].request.id,responses[1].request.id);assert.equal(responses.filter(r=>r.request.direction==='incoming').length,1);assert.equal((await f.ok('alice')).friends.length,0);}finally{await f.close();}
 });
