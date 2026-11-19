@@ -8,7 +8,10 @@ existing encrypted room, key, outbox record or message silently moves here.
 ## Security and identity
 
 New direct/group creation and content mutations require the Standard disclosure
-and `acknowledgeStandard: true`. Conversation `security_mode` is constrained to
+and `acknowledgeStandard: true`. The browser client shows that disclosure once
+per account on a device, remembers it in `localStorage`
+(`voidline.standard.ack.v2.<account id>`) and applies it to later direct
+messages, groups and channels; a new device or cleared storage asks again. Conversation `security_mode` is constrained to
 `standard`; native identifiers cannot select a Matrix room. The client checks
 returned security mode before enabling composition. A trusted database operator
 can read this mode's text. A dashboard lacking a universal content reader does

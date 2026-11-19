@@ -8,15 +8,22 @@ New accounts have zero communities, conversations, sample contacts, gifts,
 messages or invented activity. Existing legitimate records remain. Save the
 one-time account recovery code in a password manager.
 
-ANDROID, IPHONE AND FRIENDS
+INSTALL ON IOS, ANDROID AND PC
 Share https://voidline-afterhours.pipedcactus1.chatgpt.site/ with friends.
 Each person creates their own username/password account; ChatGPT is not needed.
-Phone setup: https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html
+Install and downloads: https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html
 Android: Chrome menu > Install app / Add to Home screen.
-iPhone/iPad: Safari > Share > Add to Home Screen, then open the icon and log in.
+iPhone/iPad: Safari > Share > Add to Home Screen > Open as Web App > Add.
+PC: open the site in Chrome or Edge and use the browser's Install app option.
+Mac: Chrome/Edge installation or Safari > File > Add to Dock when available.
+The install page's button opens a browser prompt only when the browser supplies
+one; otherwise it shows device instructions. The installed state is reported
+only after an installed event or a standalone app launch, never from a click.
 Inside the app: You > Friends & requests > Add a friend > Send request. Once
 accepted, choose Message. An internet connection is required. Home Screen
 installation and physical keyboards still require actual-device acceptance.
+This is the live website installed as an app, using the same server accounts;
+it is not an App Store/Play Store listing or a signed APK/IPA/EXE package.
 
 CURRENT UPGRADE
 Edition4 uses actual credited web artwork for49 decorative badges,32 gifts and2
@@ -151,6 +158,9 @@ BUILD AND CHECKS (Node 24 and Python 3)
  python3 build_offline.py
  npm run build
  node scripts/check-build.mjs
+
+Local preview: npm run dev builds the Worker, applies the versioned migrations
+to the local preview database and starts it on http://127.0.0.1:4173.
 
 Media's shared generated validator must exist before the offline bundler. The
 final build embeds matching downloads into the self-contained Worker. Preserve

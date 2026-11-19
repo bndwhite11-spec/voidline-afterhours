@@ -9,6 +9,11 @@ const json=(data,status)=>new Response(JSON.stringify(data),{status,headers:{'co
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
 const pause=(ms,signal)=>new Promise(resolve=>{if(signal.aborted)return resolve();const done=()=>{clearTimeout(timer);signal.removeEventListener('abort',done);resolve();},timer=setTimeout(done,ms);signal.addEventListener('abort',done,{once:true});});
 const UUID=/^[a-f0-9-]{36}$/i;
+// A browser tab names itself with a random UUID. Its slot prefix is derived
+// from the session and that name, so switching conversations replaces its own
+// lease. Each stream adds a fresh UUID fence: timestamps are not generations,
+// even when several reconnects and cleanup happen in the same millisecond.
+async function tabLeaseId(sessionId,client){const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(sessionId+':'+client.toLowerCase())));return Array.from(digest.slice(0,16),byte=>byte.toString(16).padStart(2,'0')).join('');}
 function scopeFor(url){
  const conversation=url.searchParams.get('conversation'),channel=url.searchParams.get('channel');
  need(!conversation||!channel,400,'invalid_scope','Choose one conversation or channel.');
@@ -29,14 +34,21 @@ export function createRealtimeService({now=()=>Date.now(),pollMs=2000,ttlMs=4500
    const origin=request.headers.get('origin');need(!origin||origin===url.origin,403,'origin_denied','Open updates from this app.');
    need(!['cross-site','same-site'].includes(request.headers.get('sec-fetch-site')),403,'origin_denied','Open updates from this app.');
    const incoming=request.headers.get('last-event-id')??url.searchParams.get('after');need(incoming===null||(/^\d{1,16}$/.test(incoming)&&Number.isSafeInteger(Number(incoming))),400,'invalid_cursor','Reconnect with the last update position.');
+   const client=url.searchParams.get('client');need(client===null||UUID.test(client),400,'invalid_client','Reconnect live updates from this app.');
    const user=await authenticate(request,env),db=env.DB,scope=scopeFor(url),started=now();
    const initial=await snapshot(db,user,scope,started);need(initial,404,'conversation_unavailable','This conversation or account is unavailable.');
    await authRateLimit(request,db,'realtime-open',30,started,user.id);
-   const id=crypto.randomUUID(),expires=started+ttlMs;
+   const slot=client?await tabLeaseId(user.sessionId,client):null,id=slot?slot+':'+crypto.randomUUID():crypto.randomUUID(),expires=started+ttlMs;
    const result=await db.batch([
     q(db,'DELETE FROM realtime_streams WHERE id IN(SELECT id FROM realtime_streams WHERE expires_at<=? ORDER BY expires_at LIMIT 100)',started),
-    q(db,"INSERT INTO realtime_streams(id,account_id,session_id,expires_at,created_at) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM realtime_streams WHERE account_id=? AND expires_at>?)<3 AND EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND a.id=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.account_status='active')",id,user.id,user.sessionId,expires,started,user.id,started,user.sessionId,user.id,started)
-   ]);need(result[1]?.meta?.changes>0,429,'stream_limit','Too many active update streams. Close another tab or use periodic refresh.');
+    // The same tab reconnecting (new conversation, renewal, network change)
+    // supersedes its earlier lease; other tabs and devices still count.
+    // Remove this session's legacy deterministic row and current fenced row
+    // atomically with admission of the replacement. An old stream can remove
+    // only its exact fenced id, never a newer occupant of the same tab slot.
+    q(db,'DELETE FROM realtime_streams WHERE account_id=? AND session_id=? AND(id=? OR id LIKE ?)',user.id,user.sessionId,slot||id,slot?slot+':%':id),
+    q(db,"INSERT INTO realtime_streams(id,account_id,session_id,expires_at,created_at) SELECT ?,?,?,?,? WHERE (SELECT COUNT(*) FROM realtime_streams WHERE account_id=? AND expires_at>?)<5 AND EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND a.id=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.account_status='active')",id,user.id,user.sessionId,expires,started,user.id,started,user.sessionId,user.id,started)
+   ]);need(result[2]?.meta?.changes>0,429,'stream_limit','Too many active update streams. Close another tab or use periodic refresh.');
    const aborter=new AbortController(),onAbort=()=>aborter.abort();request.signal.addEventListener('abort',onAbort,{once:true});if(request.signal.aborted)aborter.abort();
    const encoder=new TextEncoder();let closed=false;
    const stream=new ReadableStream({
@@ -48,6 +60,9 @@ export function createRealtimeService({now=()=>Date.now(),pollMs=2000,ttlMs=4500
       emit('hello',{...payload(initial),leaseMs:ttlMs,pollFallbackAfterMs:15000,resumeRequired:incoming!==null&&Number(incoming)!==previous},previous);
       while(!aborter.signal.aborted&&now()<expires){
        await wait(Math.min(pollMs,Math.max(0,expires-now())),aborter.signal);if(aborter.signal.aborted)break;if(now()>=expires){emit('renew',{reconnect:true});break;}
+       // A superseded stream stops checking the database as soon as it notices
+       // its lease was replaced, even if the runtime never reported the disconnect.
+       if(client&&!await q(db,'SELECT 1 AS held FROM realtime_streams WHERE id=? AND session_id=?',id,user.sessionId).first())break;
        const row=await snapshot(db,user,scope,now());if(!row){emit('restricted',{reason:'access_changed'});break;}
        if(Number(row.accountRevision)!==previous){previous=Number(row.accountRevision);emit('revision',payload(row),previous);lastHeartbeat=now();}
        else if(now()-lastHeartbeat>=heartbeatMs){emit('heartbeat',{...payload(row),serverTime:now()},previous);lastHeartbeat=now();}

@@ -138,6 +138,8 @@ const messageColumns = `m.seq,m.id,m.channel_id,m.author_id,a.display_name AS au
 const messageJoins = 'FROM live_messages m JOIN live_accounts a ON a.id=m.author_id JOIN live_channels c ON c.id=m.channel_id JOIN live_communities g ON g.id=c.community_id';
 const publicProfile = a => ({id:a.id,displayName:a.display_name,needsProfile:a.display_name==='New resident',bio:a.bio,status:a.status,theme:a.theme,avatar:a.avatar});
 const staff = role => ['owner','moderator'].includes(role);
+// Default rail mark from a community name: "Test Lounge" -> "TL", "Voidline" -> "VO".
+function communityInitials(name) { const words=String(name||'').trim().split(/\s+/).filter(Boolean); const letters=words.length>1?words.slice(0,2).map(word=>Array.from(word)[0]).join(''):Array.from(words[0]||'').slice(0,2).join(''); return letters.toUpperCase()||'#'; }
 const textValue = (v,max,field) => { requireThat(typeof v==='string' && v.length<=max,400,'invalid_'+field,`${field} must contain at most ${max} characters.`); return v.trim(); };
 function paging(url,maximum=100) {
  const limit = Number(url.searchParams.get('limit') ?? 50),offset=Number(url.searchParams.get('offset') ?? 0);
@@ -231,7 +233,7 @@ export async function handleLiveRequest(request,env) {
   }
   if(path.length===1&&path[0]==='communities'){
    if(method==='GET')return json({communities:(await query(db,'SELECT c.id,c.name,c.description,c.icon,c.created_at,c.ownership_repair_required,m.role FROM live_communities c JOIN live_memberships m ON m.community_id=c.id WHERE m.account_id=? ORDER BY c.created_at,c.id',user.id).all()).results});
-   const name=nameValue(body.name),description=textValue(body.description??'',240,'description'),icon=textValue(body.icon??'WL',8,'icon');const communityId=uuid(),channelId=uuid();
+   const name=nameValue(body.name),description=textValue(body.description??'',240,'description'),icon=textValue(body.icon===undefined||body.icon===''?communityInitials(name):body.icon,8,'icon');const communityId=uuid(),channelId=uuid();
    const guard=activeSessionGuard(user,now),created=await db.batch([
     query(db,'INSERT INTO live_communities(id,name,description,icon,created_by,created_at) SELECT ?,?,?,?,?,? WHERE '+guard.sql,communityId,name,description,icon,user.id,now,...guard.args),
     query(db,"INSERT INTO live_memberships(community_id,account_id,role,joined_at) SELECT id,?,'owner',? FROM live_communities WHERE id=? AND created_by=?",user.id,now,communityId,user.id),

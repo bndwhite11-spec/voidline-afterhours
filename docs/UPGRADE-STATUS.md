@@ -1,4 +1,6 @@
-# Owner account moderation update
+# Owner account moderation and merged messaging update
+
+Combines the existing managed Site v24 with GitHub revision c892b62d9f7ead7e85318027aa589a85a0ec0746 and the owner-control implementation.
 
 The existing hosted @xrp identity was verified through the one-time, passkey-backed
 operator bootstrap on 19 November 2026. The immutable platform-owner record remains
@@ -19,6 +21,44 @@ separate from queued Matrix lifecycle decisions. No homeserver or encrypted
 message access is introduced. See OWNER-BOOTSTRAP.md for operation and retention
 details. Existing accounts, memberships, legitimate gifts and applied migrations
 remain intact; no new schema migration is required.
+
+The public install/download page covers iOS/iPadOS, Android, Windows and desktop
+Chrome/Edge, plus Safari's Add to Dock option where supported. The main install
+action remains available when the browser supplies no programmable prompt and
+opens manual instructions instead. Acceptance of a prompt is only an installation
+request; completion is reported only by the browser's installed event or a
+standalone app launch. Live messaging requires internet. Separate source ZIP
+and offline archive/recovery viewer downloads retain truthful scope labels.
+No account API or private conversation content is cached for installation.
+Operating-system installation and physical-device behavior require separate
+device acceptance; controlled UI events and hosted file checks do not prove it.
+
+
+## Included GitHub everyday-use update (Telegram-style chats, Discord-style servers)
+
+Starts at commit d51af5f384bf33a2bc9cbbb1fc1d5cd3f27fb216. No migration, account, ownership, identity/provider or hosting-audience change is added.
+
+- Standard messaging is acknowledged once per account on a device (`localStorage`), not once per conversation per tab. The server still requires `acknowledgeStandard: true` on writes.
+- Chat rows show message text by default for accounts that never saved a preview choice, drop the per-row "Standard · server-stored" label and align the preview under the name. Saved generic/sender choices are kept; push payloads remain generic.
+- The conversation header says "Mark read", the status strip is one line, and phones keep the message input and its actions on one row.
+- "Encrypted messaging options" is listed only when a Matrix service is configured.
+- A new server takes its rail icon from its name instead of the fixed "WL", and opens its first channel. Opening a server from the rail or an invitation opens its first channel on wide layouts.
+- Live updates: each loaded page names itself and replaces its own stream lease, so switching conversations no longer uses up the account's slots (previously a closed stream could hold a slot for the full 45-second lease). The per-account limit is five.
+- `npm run dev` applies the versioned migrations to the local preview database before starting.
+
+Interface and motion pass (no server, schema or data change):
+
+- Direct messages and private groups render as bubbles with own messages on the right, in the same visual language as the encrypted feed. One-to-one chats drop the repeated name and avatar; groups keep them. Channels keep full-width rows.
+- Message actions (reply, react, more) no longer reserve a row under every message. They float beside the message and appear on pointer hover, on keyboard focus of any action, or after a tap on touch screens. The buttons stay in the tab order and keep their accessible names; touch targets remain 44px.
+- Messages show a clock time only (the feed's day separators carry the date; the full timestamp stays in the tooltip). People get one of eight stable avatar tones.
+- The conversation header groups its actions on the right; list filters are one row of tabs and only list filters that apply to the current list; Send is quiet until there is text.
+- Motion: dialogs, their backdrop, menus and toasts settle in; a newly arrived or newly sent message rises into place once; opening a destination plays one short pane entrance that continues, rather than restarts, across the loading re-render. Controls have hover and press transitions.
+- All of it is disabled by the in-app reduced-motion preference and by `prefers-reduced-motion`.
+
+The earlier GitHub revision was checked in headless Chromium at 1280px and 390px against local workerd: animations present in normal mode and absent with reduced motion, action bar by hover, keyboard and tap, and the earlier two-account regression walk-through. Physical devices, iOS Safari and screen readers are not covered by that run.
+
+That earlier GitHub revision was verified with its client and server suites and a headless Chromium walk-through against local workerd/D1 (two accounts: sign-up, friend request, DM both ways, live delivery, server and channel post, 390px layout). Physical phones, hosted transport and the published site are not covered by that run.
+
 
 ## Previous edition4 web-art update
 

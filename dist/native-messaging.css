@@ -18,3 +18,5 @@
 .vh-message-attachment a{display:block;color:var(--vh-accent);overflow-wrap:anywhere;font-size:calc(.8125rem * var(--vl-text-scale,1))}
 .vh-message-attachment small{color:var(--vh-muted);font-size:calc(.75rem * var(--vl-text-scale,1))}
 @media(max-width:520px){.vh-native-composer{flex-wrap:wrap}.vh-native-composer textarea{flex-basis:calc(100% - 52px);min-width:0}.vh-native-composer .vh-primary{margin-inline-start:auto}.vh-message-attachment{padding:8px}}
+/* Phones keep the message input and its actions on one row. */
+@media(max-width:520px){.vh-native-composer{flex-wrap:nowrap}.vh-native-composer textarea{flex:1 1 0;min-width:0}.vh-native-composer .vh-primary{margin-inline-start:0}}
