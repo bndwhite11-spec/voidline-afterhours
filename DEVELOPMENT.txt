@@ -138,10 +138,15 @@ MESSAGE, QUERY AND UI CONTRACTS
 
 PROFILE MEDIA
 Profile > Edit profile > Upload image or GIF opens the selected Avatar/Banner
-flow. Still images retain Canvas cropping and Upload crop; GIFs use Upload GIF
+flow. Still images retain Canvas cropping and Use this crop; GIFs use Use this GIF
 and preserve original bytes/metadata. Centered cover framing changes display,
 not the encoded GIF. Both paths stage media; Save profile is the commit action.
-Keep stable upload IDs on retry and reject obsolete editor/account callbacks.
+Keep stable upload IDs and exact prepared bytes on retry; reject obsolete editor/
+account callbacks. Selection/preparing/error/uploaded states are explicit beside
+the image tools. Pending or failed selections cannot become a saved status when
+generic input/change events run. Keep confirmation and Save actions visible in
+short tablet dialogs as well as narrow phones. Native file-event tests dispatch
+all registered listeners; the DOM harness must not replace earlier callbacks.
 
 All files have an 8 MiB bound. Profile GIF limits combine 1024 pixels per side,
 one megapixel per canvas, 200 frames, 32 megapixels across frame canvases and a

@@ -33,10 +33,12 @@ profiles, privacy and persistent account/ownership rules remain. See
 
 PROFILE IMAGES
 Open your profile > Edit profile. Under Avatar or Banner, choose Upload image or
-GIF. For a still image, adjust the crop and choose Upload crop. For a GIF, choose
-Upload GIF. Then choose Save profile to publish the change; uploading alone does
-not replace your saved profile. Failed uploads can be retried, and Discard changes
-keeps your saved profile.
+GIF. For a still image, adjust the crop and choose Use this crop. For a GIF, choose
+Use this GIF. Then choose Save profile to publish the change; uploading alone does
+not replace your saved profile. The image editor brings its confirmation controls
+into view. Selection, upload and save states appear beside the image tools; a
+failed selection displays an error rather than claiming the image was saved.
+Failed uploads can be retried, and Discard changes keeps your saved profile.
 
 PNG, JPEG, WebP and GIF uploads are limited to 8 MiB. GIFs keep their original
 frames, with centered cover framing rather than an encoded crop. GIFs must fit
