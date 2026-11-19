@@ -120,3 +120,5 @@ html.vh-reduced-motion .vp-banner i{animation:none!important}
 @media(max-width:420px){.vp-editor-toolbar{padding:10px 0}.vp-editor-toolbar .vp-actions button{padding-inline:10px}.vp-crop .vp-crop-actions>.vh-primary{flex:1 1 100%}.vp-crop .vp-crop-actions>.vh-secondary{flex:1 1 auto}.vp-crop-actions>button{scroll-margin-top:136px}#vp-crop-root,.vp-media-state{scroll-margin-top:136px}}
 @media(max-height:600px){.vp-crop{gap:10px;padding:12px}.vp-editor-toolbar{padding-block:8px}.vp-crop-canvas{max-height:clamp(96px,30dvh,180px)}}
 @media(forced-colors:active){.vp-editor-toolbar,.vp-media-state{background:Canvas;color:CanvasText;border-color:CanvasText}.vp-media-state[data-state="error"]{color:CanvasText;border-color:CanvasText}}
+
+.vp-format-help{grid-column:1/-1;font-size:calc(.875rem * var(--vl-text-scale,1));line-height:1.6;color:var(--vh-copy)}.vp-format-help summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;margin-left:18px}.vp-format-help p{margin:6px 0 0}.vp-format-help summary:focus-visible{outline:2px solid var(--vh-accent);outline-offset:3px}

@@ -148,6 +148,12 @@ generic input/change events run. Keep confirmation and Save actions visible in
 short tablet dialogs as well as narrow phones. Native file-event tests dispatch
 all registered listeners; the DOM harness must not replace earlier callbacks.
 
+Only the profile source path opts into allowProfileJpegTrailing. It uses sourceEnd
+to slice a complete primary JPEG before native decoding, including progressive
+scans and length-delimited metadata. Server uploads do not opt in. Extra camera
+data is never uploaded by the still crop; keep strict default validation and
+truncated-source rejection covered separately.
+
 All files have an 8 MiB bound. Profile GIF limits combine 1024 pixels per side,
 one megapixel per canvas, 200 frames, 32 megapixels across frame canvases and a
 30-second loop. Shared validation is browser structural preflight; the server
@@ -235,7 +241,7 @@ separate; isolated tests apply the complete chain in order. Quarantined communit
 ownership requires trusted review rather than a destructive repair guess.
 
 BUILD AND RELEASE
-Use Node >=22.13 (Node 24 here), Python 3 and locked dependencies:
+Use Node22.22.2+ or24.15+ (Node24.22 here), Python3 and locked dependencies:
   npm ci --no-audit --no-fund
   npm run test:server
   npm run test:client

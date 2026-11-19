@@ -13,6 +13,68 @@ const dimensions = (width, height, maxPixels) => {
  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 16384 || height > 16384 || width * height > maxPixels) fail('This image is too large. Choose an image under 16 megapixels.');
  return {width, height};
 };
+/** Profile-source JPEG boundaries only; the maintained browser decoder validates pixels.
+ * APP/COM segments can contain thumbnails/EOI bytes. Entropy scans use FF00 stuffing,
+ * restart markers and fill bytes; progressive JPEGs can contain several scans.
+ */
+function inspectProfileJpeg(bytes,maxPixels){
+ let at=2,size=null,components=null,scans=0,markers=0,entropy=false;
+ const incomplete=()=>fail('This JPEG is incomplete. Choose another copy of the photo.');
+ while(at<bytes.length){
+  let marker;
+  if(entropy){
+   let data=false;
+   for(;;){
+    if(at>=bytes.length)incomplete();
+    if(bytes[at++]!==255){data=true;continue;}
+    while(at<bytes.length&&bytes[at]===255)at++;
+    if(at>=bytes.length)incomplete();marker=bytes[at++];
+    if(marker===0){data=true;continue;}
+    if(marker>=208&&marker<=215)continue;
+    if(!data)incomplete();entropy=false;break;
+   }
+  }else{
+   if(bytes[at++]!==255)fail('This JPEG structure is invalid.');
+   while(at<bytes.length&&bytes[at]===255)at++;
+   if(at>=bytes.length)incomplete();marker=bytes[at++];
+  }
+  if(++markers>4096)fail('This JPEG has too many segments. Choose another copy of the photo.');
+  if(marker===217){
+   if(!size||!scans)fail('This JPEG has no readable image.');
+   return {...size,mime:'image/jpeg',extension:'jpg',sourceEnd:at};
+  }
+  if(marker===216||marker===0||marker===1||(marker>=208&&marker<=215))fail('This JPEG marker is invalid.');
+  if(at+2>bytes.length)incomplete();
+  const length=u16(bytes,at);
+  if(length<2||length>bytes.length-at)incomplete();
+  if([192,193,194].includes(marker)){
+   if(size)fail('Choose a standard JPEG with one image frame.');
+   if(length<8||bytes[at+2]!==8)fail('Use a standard 8-bit JPEG.');
+   size=dimensions(u16(bytes,at+5),u16(bytes,at+3),maxPixels);
+   const count=bytes[at+7];
+   if(count<1||count>4||length!==8+3*count)fail('This JPEG frame is invalid.');
+   components=new Set();
+   for(let n=0;n<count;n++){
+    const id=bytes[at+8+n*3];if(components.has(id))fail('This JPEG frame is invalid.');components.add(id);
+   }
+  }else if(marker>=192&&marker<=207&&![196,204].includes(marker))fail('Use a standard baseline or progressive JPEG.');
+  if(marker===218){
+   if(!size||length<6)fail('This JPEG has no readable image.');
+   const count=bytes[at+2],seen=new Set();
+   if(count<1||count>components.size||length!==6+2*count)fail('This JPEG scan is invalid.');
+   for(let n=0;n<count;n++){
+    const id=bytes[at+3+n*2];if(!components.has(id)||seen.has(id))fail('This JPEG scan is invalid.');seen.add(id);
+   }
+   if(++scans>512)fail('This JPEG has too many scans. Choose another copy of the photo.');
+   entropy=true;
+  }
+  // Height supplied later (DNL) and hierarchical frames are outside the still
+  // formats supported here. Never guess a decoder allocation before dimensions.
+  if(marker===220||marker===222||marker===223)fail('Use a standard baseline or progressive JPEG.');
+  at+=length;
+ }
+ incomplete();
+}
 /** Structural/resource preflight only. The server strictly decodes every LZW frame before storage. */
 export function inspectProfileGif(input, {maxPixels = PROFILE_GIF_LIMITS.maxPixels,includeFrameRanges = false} = {}) {
  const b=input instanceof Uint8Array?input:new Uint8Array(input),limit=PROFILE_GIF_LIMITS;
@@ -57,7 +119,7 @@ export function inspectProfileGif(input, {maxPixels = PROFILE_GIF_LIMITS.maxPixe
  if(!ended||!ranges.length)fail('This GIF has no complete image.');
  return {width,height,mime:'image/gif',extension:'gif',frames:ranges.length,durationMs,animated:ranges.length>1,...(includeFrameRanges?{headerEnd,frameRanges:ranges}:{})};
 }
-export function inspectImage(input, {maxPixels = IMAGE_PIXELS,allowGif = false} = {}) {
+export function inspectImage(input, {maxPixels = IMAGE_PIXELS,allowGif = false,allowProfileJpegTrailing = false} = {}) {
  const b = input instanceof Uint8Array ? input : new Uint8Array(input);
  if (!b.length || b.length > MEDIA_LIMIT) fail('Choose a file smaller than 8 MiB.');
  if(ascii(b,0,3)==='GIF'){
@@ -80,6 +142,7 @@ export function inspectImage(input, {maxPixels = IMAGE_PIXELS,allowGif = false} 
   return {...size, mime:'image/png', extension:'png'};
  }
  if (equal(b, 0, [255,216,255])) {
+  if(allowProfileJpegTrailing)return inspectProfileJpeg(b,maxPixels);
   if (!equal(b, b.length - 2, [255,217])) fail('This JPEG is incomplete.');
   let at = 2, size = null, scanned = false;
   while (at < b.length - 2) {

@@ -21,23 +21,57 @@
   selections.set(container,selection);active.add(selection.dispose);return selection;
  }
  function listen(selection,node,type,handler){node.addEventListener(type,handler);selection.cleanup(()=>node.removeEventListener?.(type,handler));}
+ function boundedDimensions(width,height){
+  if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width<1||height<1)throw Error('The selected image has no usable dimensions. Try another image.');
+  if(width>16384||height>16384||width*height>16*1024*1024)throw Error('Choose an image under 16 megapixels and 16,384 pixels per side.');
+  return{width,height};
+ }
+ function sourceCanvas(width,height,selection){
+  boundedDimensions(width,height);const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;selection.cleanup(()=>{canvas.width=0;canvas.height=0;});
+  const context=canvas.getContext('2d');if(!context)throw Error('This browser could not prepare the selected image. Try Chrome or Safari.');return{canvas,context};
+ }
+ function decodeCodec(bytes,metadata,selection){
+  return new Promise((resolve,reject)=>{
+   let worker,timer,settled=false;const id=crypto.randomUUID();
+   const finish=(error,result)=>{if(settled)return;settled=true;if(timer!==undefined)clearTimeout(timer);if(worker){worker.onmessage=worker.onerror=worker.onmessageerror=null;try{worker.terminate();}catch{}}error?reject(error):resolve(result);};
+   selection.cleanup(()=>finish(null,null));if(settled)return;
+   try{
+    if(typeof Worker!=='function')throw Error('This browser cannot run the local photo converter. Export the image as PNG or JPEG.');
+    worker=new Worker('/pkg/profile-images/worker.js');
+    worker.onmessage=event=>{const result=event.data;if(!result||result.id!==id)return;if(!selection.current()){finish(null,null);return;}try{if(result.error)throw Error(result.error.message||'This image could not be converted. Export it as PNG or JPEG.');boundedDimensions(result.width,result.height);if(!(result.pixels instanceof ArrayBuffer)||result.pixels.byteLength!==result.width*result.height*4)throw Error('The local photo converter returned incomplete pixels. Choose another image.');finish(null,result);}catch(error){finish(error);}};
+    worker.onerror=()=>finish(Error('The local photo converter could not load. Check your connection or export the image as PNG or JPEG.'));
+    worker.onmessageerror=()=>finish(Error('The local photo converter returned unreadable data. Export the image as PNG or JPEG.'));
+    timer=setTimeout(()=>finish(Error('This image took too long to convert. Choose a smaller image or export it as PNG or JPEG.')),30000);
+    const buffer=bytes.slice().buffer;worker.postMessage({id,bytes:buffer,mime:metadata.mime},[buffer]);
+   }catch(error){finish(error);}
+  });
+ }
+ async function codecSource(bytes,metadata,selection){
+  const result=await decodeCodec(bytes,metadata,selection);if(!result||!selection.current())return null;
+  const{canvas,context}=sourceCanvas(result.width,result.height,selection),pixels=new Uint8ClampedArray(result.pixels);
+  const image=typeof ImageData==='function'?new ImageData(pixels,result.width,result.height):context.createImageData(result.width,result.height);if(image.data!==pixels)image.data.set(pixels);context.putImageData(image,0,0);return canvas;
+ }
  async function decodeStill(blob,selection){
   if(typeof createImageBitmap==='function'){
-   try{const bitmap=await createImageBitmap(blob);selection.cleanup(()=>bitmap.close?.());return bitmap;}catch{if(!selection.current())return null;}
+   let bitmap;try{bitmap=await createImageBitmap(blob);}catch{if(!selection.current())return null;}
+   if(bitmap){selection.cleanup(()=>bitmap.close?.());if(!selection.current())return null;boundedDimensions(bitmap.width,bitmap.height);return bitmap;}
   }
   if(!selection.current())return null;
-  let url;try{url=URL.createObjectURL(blob);}catch{throw Error('This browser could not open the selected image. Try another PNG, JPEG or WebP image.');}
+  let url;try{url=URL.createObjectURL(blob);}catch{throw Error('This browser could not open the selected image. Try another image or export it as PNG or JPEG.');}
   selection.cleanup(()=>URL.revokeObjectURL(url));
   const image=await new Promise((resolve,reject)=>{
    const candidate=new Image();let settled=false;
    const clear=()=>{candidate.onload=null;candidate.onerror=null;};
    const finish=value=>{if(settled)return;settled=true;clear();resolve(value);};
    candidate.onload=()=>finish(candidate);
-   candidate.onerror=()=>{if(settled)return;settled=true;clear();reject(Error('The selected image could not be opened. Try another PNG, JPEG or WebP image.'));};
-   selection.cleanup(()=>{if(!settled){finish(null);candidate.src='';}});
+   candidate.onerror=()=>{if(settled)return;settled=true;clear();reject(Error('The selected image could not be opened in this browser. Try another PNG or JPEG, or export the image to one of those formats.'));};
+   selection.cleanup(()=>{if(!settled)finish(null);candidate.src='';});
    candidate.src=url;
   });
-  return image;
+  if(!image||!selection.current())return null;
+  // HTMLImageElement can animate. Capture one frame once so later crop redraws
+  // and retries use the same pixels, then release its detached decoder.
+  const{width,height}=boundedDimensions(image.naturalWidth||image.width,image.naturalHeight||image.height),{canvas,context}=sourceCanvas(width,height,selection);context.drawImage(image,0,0,width,height);image.src='';return canvas;
  }
  async function mountGif({container,bytes,kind,metadata,onApply,onCancel,onError,selection}){
   let applying=false;const blob=new Blob([bytes],{type:'image/gif'}),frames=metadata.frames||1,duration=Number.isFinite(metadata.durationMs)?` · ${(metadata.durationMs/1000).toFixed(1)} s`:'';
@@ -57,13 +91,16 @@
   try{
    if(Number.isFinite(file.size)&&(file.size<=0||file.size>(helpers.MEDIA_LIMIT||8*1024*1024)))throw Error('Choose a file smaller than 8 MiB.');
    const bytes=new Uint8Array(await file.arrayBuffer());if(!selection.current()){selection.dispose();return null;}
-   const metadata=helpers.inspectImage(bytes,{allowGif:true});
+   let metadata=helpers.inspectProfileImage(bytes),sourceBytes=bytes;
    if(metadata.mime==='image/gif')return await mountGif({container,bytes,kind,metadata,onApply,onCancel,onError,selection});
+   if(metadata.decoder==='svg'){metadata=await helpers.prepareProfileSvg(bytes);if(!selection.current()){selection.dispose();return null;}sourceBytes=metadata.bytes;}
    // Android providers may omit or mislabel File.type. Validated bytes define
    // the decoder MIME; a browser Image is a fallback for bitmap-decoder limits.
-   const source=await decodeStill(new Blob([bytes],{type:metadata.mime}),selection);
+   // A phone JPEG may carry a Motion Photo or secondary image after its EOI.
+   // Only the bounded primary image enters the decoder; crop output is PNG.
+   const source=metadata.decoder==='heif'||metadata.decoder==='tiff'?await codecSource(sourceBytes,metadata,selection):await decodeStill(new Blob([sourceBytes.subarray(0,metadata.sourceEnd??sourceBytes.length)],{type:metadata.mime}),selection);
    if(!source||!selection.current()){selection.dispose();return null;}
-   if(!Number.isFinite(source.width)||!Number.isFinite(source.height)||source.width<=0||source.height<=0)throw Error('The selected image has no usable dimensions. Try another image.');
+   boundedDimensions(source.width,source.height);
    const ratio=kind==='avatar'?1:3,outputWidth=kind==='avatar'?512:1536,outputHeight=outputWidth/ratio,viewWidth=600,viewHeight=viewWidth/ratio;
    container.innerHTML=`<div class="vp-crop" data-crop-kind="${kind}"><h3>Crop ${kind}</h3><div class="vp-actions vp-crop-actions"><button type="button" class="vh-primary" data-crop-action="apply">Use this crop</button><button type="button" class="vh-secondary" data-crop-action="reset">Reset crop</button><button type="button" class="vh-secondary" data-crop-action="cancel">Cancel crop</button></div><p class="vp-fine" data-crop-state role="status">Adjust the image, choose Use this crop, then Save profile to publish it.</p><canvas class="vp-crop-canvas" width="${viewWidth}" height="${viewHeight}" tabindex="0" role="img" aria-label="${kind==='avatar'?'Square avatar':'Wide banner'} crop preview. Use arrow keys to move, plus and minus to zoom."></canvas><p>Drag the image or use the controls. Arrow keys move it; + and − adjust zoom.</p><label>Zoom<input data-crop="zoom" type="range" min="1" max="4" step="0.01" value="1"></label><label>Horizontal position<input data-crop="x" type="range" min="-1" max="1" step="0.01" value="0"></label><label>Vertical position<input data-crop="y" type="range" min="-1" max="1" step="0.01" value="0"></label></div>`;
    selection.mounted();

@@ -40,7 +40,12 @@ into view. Selection, upload and save states appear beside the image tools; a
 failed selection displays an error rather than claiming the image was saved.
 Failed uploads can be retried, and Discard changes keeps your saved profile.
 
-PNG, JPEG, WebP and GIF uploads are limited to 8 MiB. GIFs keep their original
+Profile imports include JPEG, PNG/APNG, WebP, GIF, AVIF, HEIC/HEIF, BMP, ICO,
+self-contained SVG and supported uncompressed TIFF variants, up to 8 MiB.
+AVIF uses the browser codec; HEIC and TIFF use local decoder tools. Complete JPEG phone photos
+with appended camera data use their primary still image in the crop editor.
+Extra motion/video data is excluded; incomplete primary images still fail.
+GIFs keep their original
 frames, with centered cover framing rather than an encoded crop. GIFs must fit
 1024 x 1024 pixels, 200 frames, a 30-second loop and the total decoded-pixel
 budget; a large animation may need fewer frames. Invalid or oversized files show

@@ -20,6 +20,7 @@ const verifiedFiles = new Map();
 async function verify(directory, prefix = '') {
   for (const item of await readdir(directory, {withFileTypes:true})) {
     if (item.name.startsWith('.') || (!prefix && !productionRoots.has(item.name))) continue;
+    if(prefix==='/art'&&item.name==='v3')continue; // Historical files are checked as compatibility redirects below.
     const relative = prefix + '/' + item.name;
     if (item.isDirectory()) { await verify(path.join(directory,item.name), relative); continue; }
     assert(item.isFile(), `Unexpected deploy asset ${relative}`);
@@ -56,6 +57,46 @@ function bundledAssetTable() {
   assert.fail('unterminated compiled asset table');
 }
 const compiledAssets=bundledAssetTable(),rasters=new Map();
+// Frozen v3 route names remain reconstructible when generated v3 files are
+// absent from source downloads. Every one must resolve to the current same-ID
+// variant, rather than disappear or retain the old synthetic artwork payload.
+const builderSource=await readFile(path.join(root,'scripts/build-worker.mjs'),'utf8');
+const legacySnapshot=/const legacyV3Filenames = (\[[\s\S]*?\]);/.exec(builderSource);
+assert(legacySnapshot,'historical artwork routes have a source snapshot');
+const legacyNames=JSON.parse(legacySnapshot[1]);
+assert.equal(legacyNames.length,324);
+assert.equal(new Set(legacyNames).size,324);
+assert.equal(createHash('sha256').update(JSON.stringify(legacyNames)).digest('hex'),'e997a65bd91721fcb881d81d0806d7d55ed2cac0e93e53da714f9e7e4064ec0b','historical SVG route snapshot must retain every deployed v3 filename');
+try{
+ const historical=(await readdir(path.join(dist,'art/v3'))).filter(name=>name.endsWith('.svg')).sort();
+ assert.deepEqual(legacyNames,historical,'existing generated historical SVGs all have compatibility routes');
+}catch(error){if(error.code!=='ENOENT')throw error;}
+const currentArt=JSON.parse(await readFile(path.join(dist,'art/v4/manifest.json'),'utf8'));
+const currentById=new Map(currentArt.items.map(item=>[item.id,item]));
+const legacyTargets=new Map([['/art/v3/manifest.json','/art/v4/manifest.json']]);
+for(const filename of legacyNames){
+ const match=/^(.+)-(mini|card|detail|silhouette)\.[a-f0-9]{12,64}\.svg$/.exec(filename);
+ const target=match&&currentById.get(match[1])?.variants?.[match[2]]?.url;
+ assert(target&&verifiedFiles.has(target),'same catalog ID and variant retained for '+filename);
+ legacyTargets.set('/art/v3/'+filename,target);
+}
+for(const [legacy,target]of legacyTargets){
+ assert.equal(compiledAssets[legacy],undefined,'historical pixel payload is omitted: '+legacy);
+ for(const method of ['GET','HEAD']){
+  const response=await fetchAsset(legacy,{method});
+  assert.equal(response.status,302,legacy);
+  assert.equal(response.headers.get('location'),target,legacy);
+  assert.equal(response.headers.get('cache-control'),'no-cache',legacy);
+  assert.equal(response.headers.get('x-content-type-options'),'nosniff',legacy);
+  assert.equal((await response.arrayBuffer()).byteLength,0,legacy);
+ }
+ const actual=await fetchAsset(target);
+ assert.equal(actual.status,200,target);
+ assert.deepEqual(await bytes(actual),verifiedFiles.get(target),legacy+' resolves to current exact source bytes');
+}
+assert.equal((await fetchAsset('/art/v3/unknown-mini.0123456789ab.svg')).status,404);
+assert.equal((await fetchAsset('/art/v3/manifest.json',{method:'POST'})).status,405);
+console.log(`PASS historical artwork compatibility: ${legacyTargets.size} GET/HEAD redirects retain each catalog ID/variant and resolve to current exact artwork; no retired payloads embedded.`);
 let rasterReferences=0,embeddedReferences=0;
 const sha=value=>createHash('sha256').update(value).digest('hex');
 for(const [route,original] of verifiedFiles){
