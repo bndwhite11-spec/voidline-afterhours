@@ -8,6 +8,8 @@ Historical sample app.js is not an executable production fallback.
 
 SOURCE BOUNDARIES
   dist/home.js/.css             navigation, native/Matrix views and composition
+  dist/mobile.js/.css          install/share guidance and visible-viewport layout
+  dist/install.html            public Android/iPhone/account setup instructions
   dist/entry.js/.css            short bounded optional first-entry reveal
   dist/organize.js/.css         search, Saved, Inbox, folders and activity
   dist/social.js/.css           friend consent, blocking and request preferences

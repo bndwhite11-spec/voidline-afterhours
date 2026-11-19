@@ -26,7 +26,7 @@ function client(options={}){
  };
  const stored=options.storage||new Map();const storage={getItem(key){storageReads++;return stored.get(key)??null;},setItem(key,value){stored.set(key,String(value));},removeItem(key){stored.delete(key);},get length(){return stored.size;},key(index){return [...stored.keys()][index]??null;}};
  const location={protocol:'https:',origin:'https://voidline.example',pathname:options.pathname||'/',search:'',hash:options.hash||'',href:'https://voidline.example'+(options.pathname||'/')+(options.hash||'')};
- const window={addEventListener:(name,fn)=>windowListeners.set(name,fn)};
+ const window={addEventListener:(name,fn)=>windowListeners.set(name,fn),matchMedia:query=>({matches:query==='(pointer: coarse)'?!!options.coarsePointer:query==='(hover: none)'?!!options.noHover:false})};
  const context={window,document,indexedDB:options.indexedDB||new IDBFactory(),structuredClone,fetch,location,navigator:{clipboard:{writeText:async()=>{}}},history:{replaceState(_a,_b,url){const parsed=new URL(url,location.origin);Object.assign(location,{pathname:parsed.pathname,search:parsed.search,hash:parsed.hash,href:parsed.href});}},localStorage:storage,sessionStorage:storage,AbortController,URL,URLSearchParams,Blob,crypto:webcrypto,console,setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,clearInterval(){},requestAnimationFrame:fn=>fn(),FormData:class{constructor(form){this.data=form.values||{};}*[Symbol.iterator](){yield*Object.entries(this.data);}}};
  vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/native-outbox.js'),'utf8'),context);vm.runInContext(source.replace(/\}\)\(\);\s*$/,'window.__homeTest={state,init,boot,render,request,lock,view,submit,authView,action,finishRecovery,openCommunity,openChannel,previewInvite,inviteToken,route,checkSession,sendSecure,loadSecure,security,compareDevice,formatText,navigate,passkeyStepUp,enrollPasskey,openSecureRoom,openSecureThread,closeSecureThread,secureDraft,captureSecureDraft,secureAction,refreshSecureRooms,refreshSecureMessages,showDialog,closeDialog,startVoice,voiceDialog,reviewAttachment,sendReviewedAttachment,confirmEmail,retryOutbox,newNativeConversation,openNativeConversation,nativeDraft,captureNativeDraft,sendNative,refreshNativeMessages,nativeAction,mergeNative,nativeRevision,visibleNativeSequence,markNativeRead,syncNativeFeed,nativeTimelineItems,refreshNativeConversations,onConversationFilterChange,nativeConversationPage,autoSizeComposer,nativeParticipants,nativeGroupMutation,searchMentionMembers,connectEncryptedEnrollment,secureConnect,advancedSecureConnect,encryptedInvitations,encryptedInviteAction,secureDevices,setupRecovery,disconnectSecure,secureRoomMembers,providerAuthentication,secureFlow,completeProviderAuthentication,restoreSecureRecovery,verifySecureFingerprint,receiveSecureVerification,verificationDialog,restoreBrowserRoute,resume,clearConversationSelection,receiveAccountActivity,nativeTick,nativeQueue,restoreNativeQueue,drainNativeQueue,nativeOutboxAction,sidebarWidth,saveSidebarWidth,applyPreferences,queueNativeAttachment,receiveWriterHandoff,conversationPreview};})();'),context);
  return {api:window.__homeTest,window,document,server,nodes,calls,scripts,context,response,windowListeners,listeners,get reads(){return storageReads;},form(kind,values={},dataset={}){const n=node('form');n.dataset={homeForm:kind,...dataset};n.values=values;return n;},async start(){window.__homeTest.init();for(let i=0;i<80;i++)await Promise.resolve();}};
@@ -305,6 +305,37 @@ test('conversation next and previous use the same server snapshot instead of shi
 });
 test('IME composition does not submit either composer and standard textarea height stays capped',async()=>{
  const app=client();await app.start();await openConsentedNative(app);const before=app.calls.length;let prevented=false;app.listeners.get('keydown')({target:{id:'home-native-input'},key:'Enter',shiftKey:false,isComposing:true,keyCode:229,preventDefault(){prevented=true;}});assert.equal(prevented,false);assert.equal(app.calls.length,before);const input=app.nodes.get('home-native-input');input.scrollHeight=400;app.api.autoSizeComposer(input);assert.equal(input.style.height,'160px');assert.equal(input.style.overflowY,'auto');
+});
+test('touch Return preserves multiline native drafts while desktop Enter and Ctrl/Cmd+Enter send once through the outbox',async()=>{
+ const cases=[
+  {label:'touch Return',coarsePointer:true,noHover:true,send:false},
+  {label:'touch Ctrl+Enter',coarsePointer:true,noHover:true,ctrlKey:true,send:true},
+  {label:'touch Cmd+Enter',coarsePointer:true,noHover:true,metaKey:true,send:true},
+  {label:'desktop Enter',send:true},
+  {label:'hybrid with hover',coarsePointer:true,noHover:false,send:true},
+  {label:'Shift+Enter',shiftKey:true,send:false},
+  {label:'Alt+Enter',altKey:true,send:false}
+ ];
+ for(const scenario of cases){
+  const app=client(scenario);await app.start();await openConsentedNative(app);const input=app.nodes.get('home-native-input'),value='First line\nSecond line';input.value=value;
+  app.server.replies.set('/api/messages/conversations/'+nativeId+'/messages',app.response({message:{...nativeMessage('keyboard-send',1,value),author_id:'account-a'}},201));
+  let prevented=false;app.listeners.get('keydown')({target:input,key:'Enter',...scenario,preventDefault(){prevented=true;}});
+  if(scenario.send){await until(()=>app.api.state.nativeMessages.some(row=>row.id==='keyboard-send'));const sends=app.calls.filter(call=>call.url==='/api/messages/conversations/'+nativeId+'/messages'&&call.request.method==='POST');assert.equal(sends.length,1,scenario.label);assert.equal(sends[0].body.text,value,scenario.label);assert.equal(prevented,true,scenario.label);}
+  else{await new Promise(resolve=>setImmediate(resolve));assert.equal(prevented,false,scenario.label);assert.equal(input.value,value,scenario.label);assert.ok(!app.calls.some(call=>call.url==='/api/messages/conversations/'+nativeId+'/messages'&&call.request.method==='POST'),scenario.label);}
+ }
+});
+test('touch encrypted composer leaves Return available and sends multiline content only on its explicit keyboard shortcut',async()=>{
+ for(const shortcut of [null,'ctrlKey','metaKey']){
+  const app=client({coarsePointer:true,noHover:true});await app.start();const sends=[];mockEncrypted(app,{sendText:async(room,text,options)=>{sends.push({room,text,options});return{id:'$keyboard-send'};}});Object.assign(app.api.state,{view:'chats',secureRoomId:'!keyboard:example',secureRooms:[{id:'!keyboard:example',name:'Keyboard',encrypted:true}]});app.api.render();const input=app.nodes.get('home-secure-input');input.value='Encrypted first\nEncrypted second';let prevented=false;
+  app.listeners.get('keydown')({target:input,key:'Enter',...(shortcut?{[shortcut]:true}:{}),preventDefault(){prevented=true;}});
+  if(shortcut){await until(()=>sends.length===1);assert.equal(prevented,true);assert.equal(sends[0].room,'!keyboard:example');assert.equal(sends[0].text,'Encrypted first\nEncrypted second');assert.ok(sends[0].options.clientId);}
+  else{await new Promise(resolve=>setImmediate(resolve));assert.equal(prevented,false);assert.equal(sends.length,0);assert.equal(input.value,'Encrypted first\nEncrypted second');}
+ }
+});
+test('handled Enter, Shift+Enter and IME confirmation never send either composer even with a send modifier',async()=>{
+ for(const id of ['home-native-input','home-secure-input'])for(const state of [{defaultPrevented:true},{shiftKey:true},{isComposing:true},{keyCode:229}]){
+  const app=client({coarsePointer:true,noHover:true});await app.start();const before=app.calls.length;let prevented=false;app.listeners.get('keydown')({target:{id},key:'Enter',ctrlKey:true,...state,preventDefault(){prevented=true;}});await new Promise(resolve=>setImmediate(resolve));assert.equal(prevented,false,id+':'+Object.keys(state)[0]);assert.equal(app.calls.length,before,id+':'+Object.keys(state)[0]);
+ }
 });
 test('pending native bubbles never masquerade as server-accepted timeline messages',async()=>{
  const app=client();await app.start();await openConsentedNative(app);const held=deferred();app.server.replies.set('/api/messages/conversations/'+nativeId+'/messages',held.promise);app.nodes.get('home-native-input').value='Waiting in my tab';const sending=app.api.sendNative();await until(()=>app.api.nativeDraft().busy);assert.match(app.nodes.get('home-native-feed').innerHTML,/Pending · waiting for the server/);assert.equal(app.api.state.nativeMessages.length,0);held.resolve(app.response({message:{...nativeMessage('accepted',2,'Waiting in my tab'),revision:2}},201));await sending;assert.equal(app.api.state.nativeMessages.length,1);assert.doesNotMatch(app.nodes.get('home-native-feed').innerHTML,/data-native-pending=/);

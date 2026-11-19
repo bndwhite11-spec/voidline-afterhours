@@ -8,6 +8,16 @@ New accounts have zero communities, conversations, sample contacts, gifts,
 messages or invented activity. Existing legitimate records remain. Save the
 one-time account recovery code in a password manager.
 
+ANDROID, IPHONE AND FRIENDS
+Share https://voidline-afterhours.pipedcactus1.chatgpt.site/ with friends.
+Each person creates their own username/password account; ChatGPT is not needed.
+Phone setup: https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html
+Android: Chrome menu > Install app / Add to Home screen.
+iPhone/iPad: Safari > Share > Add to Home Screen, then open the icon and log in.
+Inside the app: You > Friends & requests > Add a friend > Send request. Once
+accepted, choose Message. An internet connection is required. Home Screen
+installation and physical keyboards still require actual-device acceptance.
+
 CURRENT UPGRADE
 Edition4 uses actual credited web artwork for49 decorative badges,32 gifts and2
 separate earned-award images. Blockchain and Ledger join the crypto selection.
