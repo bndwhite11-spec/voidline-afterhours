@@ -1,9 +1,5 @@
 VOIDLINE Android wrapper / third-party notices
 
-Google Android Browser Helper 2.7.4
-Copyright Google LLC and contributors.
-https://github.com/GoogleChrome/android-browser-helper
-
 AndroidX libraries: Copyright The Android Open Source Project and contributors.
 https://android.googlesource.com/platform/frameworks/support/
 

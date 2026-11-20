@@ -498,7 +498,7 @@ async function serveVoidline(request, env, ctx) {
     location:VOIDLINE_LEGACY_ART[pathname], 'cache-control':'no-cache',
     'x-content-type-options':'nosniff', 'referrer-policy':'strict-origin-when-cross-origin',
   }});
-  const pageRoute = /^\\/(?:users|invite|servers|channels)\\//.test(pathname);
+  const pageRoute = pathname === '/chats' || pathname === '/chats/' || /^\\/(?:users|invite|servers|channels)\\//.test(pathname);
   const asset = VOIDLINE_ASSETS[pathname === '/' || pageRoute ? '/index.html' : pathname];
   if (!asset) return new Response('Not found', {status: 404});
   const headers = {

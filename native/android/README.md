@@ -1,12 +1,20 @@
 # VOIDLINE for Android
 
 This project builds a signed, installable Android APK for the hosted VOIDLINE
-app. The launcher displays native controls before opening a browser. It selects
-a provider with Android Browser Helper and opens the existing HTTPS site using
-an AndroidX Trusted Web Activity when a session is available. If the initial
-session is unavailable or takes too long, it requests the site in an installed
-browser. On returning, the launcher offers retry and browser controls. The web
-runtime and signed-in session belong to the user's browser.
+app. A native launcher asks Android for the user's default visible browser that
+handles generic HTTPS links, falling back to another matching browser or HTTP
+handler as needed. It checks that browser for Trusted Web Activity support and
+opens the site with AndroidX Browser. If the bind fails or times out, it opens
+the same HTTPS page in the chosen browser. **Open in browser** goes straight to
+ordinary browsing even when the Custom Tabs service directory is unavailable.
+On return, the native launcher offers both options again. The user's browser
+supplies the web runtime and signed-in session.
+
+If a main-thread Java exception interrupts launch, the next start can offer
+**Open in browser** and **Copy launch details** before another connection
+attempt. The short report stays on the device until the user chooses to copy
+and share it. It contains build and API numbers, launch phase, exception type
+and a recognized code location. Android's normal crash handling still runs.
 
 The APK needs Android 7.0/API 24 or later and a compatible updated browser.
 It uses the live service, so installing it does not make shared conversations
@@ -19,7 +27,7 @@ been verified in this package.
 
 | Input | Version |
 | --- | --- |
-| Android Browser Helper | 2.7.4, Apache-2.0 |
+| AndroidX Browser | 1.10.0, Apache-2.0 |
 | Android Gradle plugin | 8.11.1 |
 | Gradle | 8.13, checked wrapper SHA-256 |
 | Compile/target SDK | 36 |
@@ -27,7 +35,7 @@ been verified in this package.
 | Minimum SDK | 24 |
 | Java source/target | 17; build with a complete JDK 17 or 21 |
 | Application ID | `app.voidline.afterhours` |
-| Current release | `1.0.2`, version code `3` |
+| Current release | `1.0.3`, version code `4` |
 
 Transitive dependency locks and SHA-256 verification metadata are committed.
 R8 and resource shrinking reduce the installed wrapper; the release is not
@@ -49,7 +57,7 @@ The startup regression suite uses Robolectric 4.18.1 and JUnit 4.13.2:
 
 ```sh
 cd native/android
-./gradlew :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest :app:testReleaseUnitTest
 ```
 
 It executes the Android activity/callback paths with Android API 24, 28, 35 and
@@ -102,12 +110,12 @@ for this package and the exact release certificate SHA-256 fingerprint from
 `release-certificate.json`. Never put a private key or password in that file.
 The app also declares the inverse site association in Android resources.
 
-If association verification fails or a browser lacks TWA support, the browser
-shows its Custom Tab toolbar. Do not disable Digital Asset Links verification
-to hide a failed association. Only the configured HTTPS app root and `/index.html` can be supplied as this
-launcher's starting URL. Root query/hash navigation is retained. Binary download
-links and unknown paths reopen home rather than starting a TWA on an APK file. The wrapper never reads browser
-cookies or local account storage.
+A trusted-capable browser can show its Custom Tab toolbar when site association
+verification fails. A browser without trusted support opens the URL in its
+ordinary browsing interface. The launcher accepts the configured HTTPS app root
+and `/index.html` as starting URLs and preserves root query/hash navigation.
+Binary downloads and unknown paths reopen home. The browser retains its cookies
+and local account storage.
 
 Because the browser supplies the website runtime, Google sign-in and passkeys
 continue through website/browser flows, subject to their existing provider
@@ -125,7 +133,7 @@ Store release.
 
 ## Official references
 
-- [Google Android Browser Helper](https://github.com/GoogleChrome/android-browser-helper)
+- [AndroidX Browser release notes](https://developer.android.com/jetpack/androidx/releases/browser)
 - [TWA setup and signing](https://developer.chrome.com/docs/android/trusted-web-activity/quick-start)
 - [Browser state and TWA behavior](https://developer.chrome.com/docs/android/trusted-web-activity)
 - [Digital Asset Links](https://developers.google.com/digital-asset-links/v1/getting-started)

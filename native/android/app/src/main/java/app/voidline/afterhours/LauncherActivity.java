@@ -1,7 +1,6 @@
 package app.voidline.afterhours;
 
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,10 +17,10 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.browser.customtabs.CustomTabsCallback;
 import androidx.browser.customtabs.CustomTabsClient;
+import androidx.browser.customtabs.CustomTabsService;
 import androidx.browser.customtabs.CustomTabsServiceConnection;
 import androidx.browser.customtabs.CustomTabsSession;
 import androidx.browser.trusted.TrustedWebActivityIntentBuilder;
-import com.google.androidbrowserhelper.trusted.TwaProviderPicker;
 import java.util.List;
 
 /** Foreground entry and recovery for the browser-owned application and its account session. */
@@ -44,8 +43,14 @@ public final class LauncherActivity extends Activity {
     @Override protected void onCreate(Bundle savedState) {
         super.onCreate(savedState);
         autoOpen = savedState == null || savedState.getBoolean(AUTO_OPEN, true);
+        boolean recover = VoidlineApplication.takeRecovery(this);
+        if (recover) autoOpen = false;
         showControls();
-        status.setText(autoOpen ? "Opening VOIDLINE…" : savedState.getString(LAST_STATUS, RETURN_MESSAGE));
+        if (recover) {
+            status.setText("VOIDLINE closed during its last launch. Open it in your browser, or copy the launch details to share.");
+        } else {
+            status.setText(autoOpen ? "Opening VOIDLINE…" : savedState.getString(LAST_STATUS, RETURN_MESSAGE));
+        }
     }
 
     @Override protected void onResume() {
@@ -55,6 +60,7 @@ public final class LauncherActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        VoidlineApplication.endLaunch(this);
         resumed = false;
         if (connection != null && connection.waiting) {
             autoOpen = true;
@@ -98,21 +104,21 @@ public final class LauncherActivity extends Activity {
 
     private void begin(boolean preferTrusted) {
         if (!resumed || isFinishing()) return;
+        VoidlineApplication.arm(this, preferTrusted);
         cancelAttempt();
         autoOpen = false;
         status.setText("Opening VOIDLINE…");
-        try {
-            TwaProviderPicker.Action provider = TwaProviderPicker.pickProvider(getPackageManager());
-            if (preferTrusted && external(provider.provider)
-                    && provider.launchMode == TwaProviderPicker.LaunchMode.TRUSTED_WEB_ACTIVITY) {
-                BrowserConnection next = new BrowserConnection(provider.provider, generation);
-                connection = next;
-                next.bind();
-            } else {
-                openInBrowser(regularBrowser(provider.provider));
-            }
-        } catch (SecurityException unavailable) {
+        String browser = regularBrowser();
+        if (browser == null) {
             status.setText(NO_BROWSER);
+            return;
+        }
+        if (preferTrusted && supportsTrustedTabs(browser)) {
+            BrowserConnection next = new BrowserConnection(browser, generation);
+            connection = next;
+            next.bind();
+        } else {
+            openInBrowser(browser);
         }
     }
 
@@ -120,23 +126,56 @@ public final class LauncherActivity extends Activity {
         return name != null && !name.isEmpty() && !getPackageName().equals(name);
     }
 
-    private String regularBrowser(String preferred) {
-        // Some browsers advertise generic HTTPS handling only. Probing a generic
-        // scheme keeps verified app links from resolving back to this launcher.
-        Intent probe = new Intent(Intent.ACTION_VIEW, Uri.fromParts("https", "", null))
-                .addCategory(Intent.CATEGORY_BROWSABLE);
+    private String regularBrowser() {
+        // Resolve generic browsing, so the verified VOIDLINE app link cannot
+        // select this launcher again. PackageManager owns the returned lists.
         PackageManager packages = getPackageManager();
-        List<ResolveInfo> candidates = packages.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY);
-        ResolveInfo selected = packages.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY);
-        String first = null;
-        for (ResolveInfo candidate : candidates) {
-            if (candidate.activityInfo == null) continue;
-            String name = candidate.activityInfo.packageName;
-            if (!external(name)) continue;
-            if (selected != null && selected.activityInfo != null && name.equals(selected.activityInfo.packageName)) return name;
-            if (first == null) first = name;
+        for (String scheme : new String[] {"https", "http"}) {
+            Intent probe = new Intent(Intent.ACTION_VIEW, Uri.fromParts(scheme, "", null))
+                    .addCategory(Intent.CATEGORY_BROWSABLE);
+            List<ResolveInfo> candidates;
+            try {
+                candidates = packages.queryIntentActivities(probe, PackageManager.MATCH_DEFAULT_ONLY);
+            } catch (RuntimeException unavailable) {
+                continue;
+            }
+            if (candidates == null || candidates.isEmpty()) continue;
+            String preferred = null;
+            try {
+                ResolveInfo selected = packages.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY);
+                if (selected != null && selected.activityInfo != null) preferred = selected.activityInfo.packageName;
+            } catch (RuntimeException unavailable) {
+                // The default can disappear during discovery. An actual visible
+                // candidate still permits an explicitly package-scoped launch.
+            }
+            String first = null;
+            for (ResolveInfo candidate : candidates) {
+                if (candidate == null || candidate.activityInfo == null) continue;
+                String name = candidate.activityInfo.packageName;
+                if (!external(name)) continue;
+                if (name.equals(preferred)) return name;
+                if (first == null) first = name;
+            }
+            if (first != null) return first;
         }
-        return external(preferred) ? preferred : first;
+        return null;
+    }
+
+    private boolean supportsTrustedTabs(String browser) {
+        Intent probe = new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION).setPackage(browser);
+        List<ResolveInfo> services;
+        try {
+            services = getPackageManager().queryIntentServices(probe, PackageManager.GET_RESOLVED_FILTER);
+        } catch (RuntimeException unavailable) {
+            return false;
+        }
+        if (services == null) return false;
+        for (ResolveInfo service : services) {
+            if (service != null && service.serviceInfo != null && service.filter != null
+                    && browser.equals(service.serviceInfo.packageName)
+                    && service.filter.hasCategory(CustomTabsService.TRUSTED_WEB_ACTIVITY_CATEGORY)) return true;
+        }
+        return false;
     }
 
     private void openInBrowser(String browser) {
@@ -149,8 +188,8 @@ public final class LauncherActivity extends Activity {
             startActivity(new Intent(Intent.ACTION_VIEW, getLaunchingUrl())
                     .addCategory(Intent.CATEGORY_BROWSABLE).setPackage(browser));
             status.setText(RETURN_MESSAGE);
-        } catch (ActivityNotFoundException | SecurityException unavailable) {
-            status.setText(NO_BROWSER);
+        } catch (RuntimeException unavailable) {
+            status.setText("Android could not open the selected browser. Enable or update your browser, then choose Continue to VOIDLINE.");
         }
     }
 
@@ -177,7 +216,8 @@ public final class LauncherActivity extends Activity {
             try {
                 bound = CustomTabsClient.bindCustomTabsService(LauncherActivity.this, browser, this);
                 if (!bound) fallback();
-            } catch (SecurityException unavailable) {
+                else if (connection != this) release();
+            } catch (RuntimeException unavailable) {
                 fallback();
             }
         }
@@ -187,7 +227,12 @@ public final class LauncherActivity extends Activity {
             waiting = false;
             if (bound) {
                 bound = false;
-                unbindService(this);
+                try {
+                    unbindService(this);
+                } catch (RuntimeException alreadyDisconnected) {
+                    // A replaced or disabled browser may lose its registration
+                    // before timeout, pause, or disconnect cleanup completes.
+                }
             }
         }
 
@@ -207,7 +252,7 @@ public final class LauncherActivity extends Activity {
 
         @Override public void onCustomTabsServiceConnected(ComponentName name, CustomTabsClient client) {
             if (!canOpen()) return;
-            if (!browser.equals(name.getPackageName())) { fallback(); return; }
+            if (name == null || client == null || !browser.equals(name.getPackageName())) { fallback(); return; }
             try {
                 CustomTabsSession session = client.newSession(new NavigationFeedback(attempt));
                 if (session == null) { fallback(); return; }
@@ -216,7 +261,7 @@ public final class LauncherActivity extends Activity {
                 waiting = false;
                 handler.removeCallbacks(timeout);
                 status.setText(RETURN_MESSAGE);
-            } catch (ActivityNotFoundException | SecurityException unavailable) {
+            } catch (RuntimeException unavailable) {
                 fallback();
             }
         }
@@ -278,6 +323,7 @@ public final class LauncherActivity extends Activity {
         browser.setOnClickListener(v -> begin(false));
         content.addView(retry);
         content.addView(browser);
+        VoidlineApplication.addReportButton(this, content);
         scroll.addView(content);
         setContentView(scroll);
         content.requestApplyInsets();

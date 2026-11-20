@@ -1,3 +1,19 @@
+# Android launcher 1.0.3
+
+The Samsung crash dialog on the 1.0.2 download page gave no exception or
+installed version. In the 1.0.2 release-variant test, six browser discovery
+conditions could crash the launcher. These included a read-only Android query
+result, an incomplete browser or service entry, and a denied service query.
+
+Version 1.0.3 reads the available browsers without modifying Android’s
+results. A failed Custom Tabs lookup falls back to the selected browser.
+The Android download card also offers **Use in browser**, which opens
+`/chats` outside the package’s registered links. Following a recorded startup
+failure on the same build, the native recovery screen offers **Copy launch
+details**. The short record stays on the device until the user chooses to share
+it. See [Android launch verification](../native/android/STARTUP-TESTS.md) for
+the test conditions and device coverage.
+
 # Android update from 1.0.1
 
 The recorded Samsung device completed the 1.0.1 update. Its App info screen

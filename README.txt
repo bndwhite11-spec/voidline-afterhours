@@ -30,8 +30,10 @@ Inside the app: You > Friends & requests > Add a friend > Send request. Once
 accepted, choose Message. An internet connection is required. Home Screen
 installation and physical keyboards still require actual-device acceptance.
 The APK and Windows ZIP are real application packages using the same hosted
-accounts. Android 1.0.2 uses the existing app ID and signing key. Open the
-downloaded APK and choose Update to replace 1.0.0 or 1.0.1 in place.
+accounts. Android 1.0.3 uses the existing app ID and signing key. Open the
+downloaded APK and choose Update to install it over an earlier release.
+If the launcher closes, open https://voidline-afterhours.pipedcactus1.chatgpt.site/chats
+in Chrome or Samsung Internet to use the same account.
 No App Store or Play Store listing is claimed. Native iOS source is prepared in
 native/ios, but an installable IPA still needs an Apple team, Xcode build/signing
 and distribution. The Safari option remains available on iPhone/iPad and Mac.

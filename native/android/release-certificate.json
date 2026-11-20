@@ -4,5 +4,5 @@
   "sha256CertificateFingerprint": "9E:1A:6F:B3:D7:53:55:1A:B7:C6:4D:09:C3:F6:DE:B3:77:00:3A:E6:2F:96:86:D7:27:32:FA:19:2E:D7:5E:19",
   "minSdk": 24,
   "targetSdk": 36,
-  "wrapper": "android-browser-helper:2.7.4"
+  "wrapper": "androidx.browser:browser:1.10.0"
 }

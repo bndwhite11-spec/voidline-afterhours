@@ -58,6 +58,7 @@ public class LauncherRecoveryTest {
         shadowOf(app).clearNextStartedActivities();
         SlowBrowser.connected.clear();
         SlowBrowser.last = null;
+        SlowBrowser.alreadyUnbound = false;
     }
 
     @After public void finish() {
@@ -124,7 +125,7 @@ public class LauncherRecoveryTest {
         service.serviceInfo.exported = true;
         service.filter = new IntentFilter(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION);
         service.filter.addCategory("androidx.browser.trusted.category.TrustedWebActivities");
-        Intent bind = new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION);
+        Intent bind = new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION).setPackage(BROWSER);
         shadowOf(app.getPackageManager()).addResolveInfoForIntent(bind, service);
         browserService = Robolectric.buildService(FixtureBrowserService.class).create();
         shadowOf(app).setComponentNameAndServiceForBindService(SERVICE, browserService.get().onBind(bind));
@@ -287,6 +288,7 @@ public class LauncherRecoveryTest {
     public static class SlowBrowser extends ShadowContextImpl {
         static final Set<ServiceConnection> connected = new HashSet<>();
         static ServiceConnection last;
+        static boolean alreadyUnbound;
 
         @Implementation @Override protected boolean bindService(Intent intent, ServiceConnection c, int flags) {
             if (CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION.equals(intent.getAction()) && BROWSER.equals(intent.getPackage())) {
@@ -298,8 +300,29 @@ public class LauncherRecoveryTest {
         }
 
         @Implementation @Override protected void unbindService(ServiceConnection c) {
-            if (!connected.remove(c)) super.unbindService(c);
+            if (connected.remove(c)) {
+                if (alreadyUnbound) throw new IllegalArgumentException("Service already unregistered");
+                return;
+            }
+            super.unbindService(c);
         }
+    }
+
+    @Test @Config(shadows = SlowBrowser.class)
+    public void serviceAlreadyUnregisteredDuringPauseCanStillResumeAndOpenInBrowser() {
+        installTrustedBrowser();
+        ActivityController<LauncherActivity> c = open(main(), null);
+        assertNotNull("A browser connection was pending", SlowBrowser.last);
+        SlowBrowser.alreadyUnbound = true;
+        c.pause().stop();
+        afterTimeout();
+        assertNull(next());
+        c.restart().start().resume();
+        assertControls(c.get());
+        c.get().findViewById(LauncherActivity.BROWSER_ID).performClick();
+        assertBrowser(next(), LauncherActivity.HOME, false);
+        afterTimeout();
+        assertNull(next());
     }
 
     @Test @Config(shadows = SlowBrowser.class)

@@ -49,6 +49,27 @@ test('the direct install page has a focusable three-platform guide and keeps dem
  const page=fs.readFileSync(path.join(__dirname,'../dist/install.html'),'utf8'),installButton=page.match(/<button\b[^>]*\bid="vm-install-button"[^>]*>/)?.[0];assert.ok(installButton);assert.doesNotMatch(installButton,/\bhidden\b/);assert.match(page,/id="vm-install-instructions"[^>]*tabindex="-1"|tabindex="-1"[^>]*id="vm-install-instructions"/);assert.match(page,/<h[23][^>]*>[^<]*Android/i);assert.match(page,/<h[23][^>]*>[^<]*(?:iPhone|iOS)/i);assert.match(page,/<h[23][^>]*>[^<]*(?:PC|Desktop|Windows)/i);assert.match(page,/Chrome/);assert.match(page,/Safari/);assert.match(page,/Edge/);assert.match(page,/<link[^>]*rel="manifest"[^>]*href="\/manifest\.webmanifest"/);assert.match(page,/Live chats need an internet connection/i);assert.match(page,/offline viewer[^<]*cannot sign in or exchange messages/i);for(const platform of ['ios','android','pc']){assert.ok(page.includes('href="#vm-'+platform+'"'));assert.ok(page.includes('id="vm-'+platform+'"'));}
  const links=[...page.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];const demo=links.find(([,url])=>url==='/downloads/voidline-offline.html'),archive=links.find(([,url])=>url==='/downloads/voidline-source.zip');assert.ok(demo,'the offline demo is a separate downloadable artifact');assert.ok(archive,'the source archive is a separate downloadable artifact');assert.match(demo[2],/offline|demo/i);assert.match(archive[2],/source|archive/i);const release=JSON.parse(fs.readFileSync(path.join(__dirname,'../dist/downloads/voidline-release.json'),'utf8'));const apk=links.find(([,url])=>url===release.android.url+'?v='+release.android.version),windows=links.find(([,url])=>url==='/downloads/VOIDLINE-Windows-x64.zip');assert.ok(apk);assert.match(apk[2],/Download APK/);assert.ok(windows);assert.match(windows[2],/Windows/);assert.doesNotMatch(page,/<a\b[^>]*href="[^"]+\.(?:ipa|dmg)"/i);assert.match(page,/Apple signing/);
 });
+test('Android offers a browser-only messenger link beside the APK before any disclosure opens',()=>{
+ const {JSDOM}=require('jsdom');
+ const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
+ const dom=new JSDOM(read('dist/install.html'),{url:'https://voidline.example/install.html'});
+ const document=dom.window.document;
+ const card=document.querySelector('a[download="VOIDLINE-Android.apk"]').closest('article');
+ const link=card.querySelector('a[href="/chats"]');
+ assert.ok(link);
+ assert.equal(link.textContent.trim(),'Use in browser');
+ assert.equal(link.closest('details, [hidden]'),null);
+ assert.equal(link.hasAttribute('download'),false);
+ assert.equal(link.origin,dom.window.location.origin);
+ const manifest=new JSDOM(read('native/android/app/src/main/AndroidManifest.xml'),{contentType:'text/xml'});
+ const paths=Array.from(manifest.window.document.querySelectorAll('intent-filter')).filter(filter=>
+   Array.from(filter.querySelectorAll('category')).some(el=>el.getAttribute('android:name')==='android.intent.category.BROWSABLE')
+ ).flatMap(filter=>Array.from(filter.querySelectorAll('data')));
+ assert.deepEqual(paths.map(el=>el.getAttribute('android:path')).sort(),['/','/index.html']);
+ assert.ok(paths.every(el=>!Array.from(el.attributes).some(attr=>/^android:path(?:Prefix|Pattern|AdvancedPattern|Suffix)$/.test(attr.name))));
+ dom.window.close();
+ manifest.window.close();
+});
 test('manual browser setup opens its disclosure before focusing the instructions',async()=>{const f=fixture(),disclosure={open:false};f.nodes.get('vm-install-instructions').closest=selector=>selector==='details'?disclosure:null;await f.click('install');assert.equal(disclosure.open,true);assert.equal(f.document.activeElement,f.nodes.get('vm-install-instructions'));});
 test('clipboard success and denied permission produce different truthful results',async()=>{
  const good=fixture();await good.click('copy');assert.deepEqual(good.calls.copy,['https://voidline.example/']);assert.equal(good.nodes.get('vm-status').textContent,'App link copied.');const denied=fixture({clipboardFailure:true});await denied.click('copy');assert.equal(denied.calls.focus,1);assert.equal(denied.calls.select,1);assert.match(denied.nodes.get('vm-status').textContent,/Select and copy/);assert.doesNotMatch(denied.nodes.get('vm-status').textContent,/copied/);

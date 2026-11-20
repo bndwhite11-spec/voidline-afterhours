@@ -72,7 +72,7 @@ def prepare_signing():
                        '-storepass:file', settings['passwordFile'], '-alias', settings['alias']], capture_output=True).stdout
     fingerprint = ':'.join(f'{byte:02X}' for byte in hashlib.sha256(certificate).digest())
     public = {'packageId': APP_ID, 'siteOrigin': ORIGIN, 'sha256CertificateFingerprint': fingerprint,
-              'minSdk': 24, 'targetSdk': 36, 'wrapper': 'android-browser-helper:2.7.4'}
+              'minSdk': 24, 'targetSdk': 36, 'wrapper': 'androidx.browser:browser:1.10.0'}
     (ROOT / 'release-certificate.json').write_text(json.dumps(public, indent=2) + '\n')
     return settings_path, public
 
@@ -93,8 +93,8 @@ def main():
     tools = sdk / 'build-tools/35.0.0'
     if not (tools / 'apksigner').is_file():
         raise RuntimeError('Android SDK build-tools 35.0.0 are required.')
-    version = os.environ.get('VOIDLINE_ANDROID_VERSION_NAME', '1.0.2')
-    code = os.environ.get('VOIDLINE_ANDROID_VERSION_CODE', '3')
+    version = os.environ.get('VOIDLINE_ANDROID_VERSION_NAME', '1.0.3')
+    code = os.environ.get('VOIDLINE_ANDROID_VERSION_CODE', '4')
     if not re.fullmatch(r'[1-9][0-9]{0,8}', code):
         raise RuntimeError('Use a positive Android version code of up to nine digits.')
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-.][A-Za-z0-9.-]+)?', version):
