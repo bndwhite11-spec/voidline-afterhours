@@ -610,3 +610,86 @@ Verify with current backend/client suites, real XML/image checks, actual vector
 rasterization, controlled animation tests and isolated live accounts. Report actual
 browser/device coverage separately. Publish the reviewed source and matching
 artifacts through the existing public Site and GitHub workflow.
+
+PROFILE CUSTOMIZATION AND COLLECTIONS
+
+Start with the working client and its current account, media, award and transfer
+records. Use Telegram's gift gallery as a reference for recognizing individual
+objects and organizing an inventory. Use Discord's profile editor as a reference
+for composing a look and seeing it in conversation. Keep the existing Voidline
+artwork, credits and immutable identifiers. Recheck each behavior against the
+current release before modifying it.
+
+Give a person one place to edit Identity, Artwork, Style, Badges, Showcase and
+Privacy. Keep the draft when switching sections. On desktop, place the controls
+and preview alongside one another. On a small screen, make each usable at full
+width, with explicit Edit and Preview controls and reachable Save and Discard.
+Show the account name and artwork in compact, full, conversation-author and
+member-row contexts. An audience control must distinguish the owner, an accepted
+friend, a shared-community member, an unrelated signed-in person and a blocked
+person. Describe any simulated audience as a preview. Test the real API
+separately with independent accounts.
+
+Basic identity and rich profile details have different audiences. Explain who
+can receive the avatar and who can receive the banner, biography, status, name
+treatment, awards and showcase. Explain the meaning of signed-in public access
+and each gift's original-sender disclosure. Apply visibility again on requests
+for the actual media. Honor the viewer's contrast, motion and simple-profile
+preferences. Keep decorative frames away from names, action buttons and focus
+outlines. Preserve the chat draft, selection and reading position behind the
+editor. Never infer a Matrix account link from a similar username or photograph.
+
+For a still image, show the supported crop before upload. For a GIF, decode the
+first visible frame and show the actual centered fit and background used by the
+saved avatar or banner. Supply an intentional, interruptible playback control.
+An interrupted upload must preserve a usable draft. Uploads remain staged until
+Save. Cancel, replacement, logout and account switching must release local
+resources and prevent a late completion from restoring old media.
+
+Offer visual preset choices that show their effects and selected state.
+Applying a saved look changes only its defined presentation fields in the draft.
+Keep uploaded artwork, biography, privacy, relationships and awards intact.
+Show what is owned, equipped, displayed and grouped as separate properties.
+Use existing owned instances in each showcase slot. Allow replacement,
+reordering, clearing a slot and private-sender controls before publishing.
+Open the exact award or object that a person selected. Show the award
+requirement, permitted issuer label, award date and validity. A named collection
+can reference the same owned gift as another collection. Removing the group
+preserves the item. A completed transfer removes the previous owner's private
+group links. Validate every mutation against current account and item ownership.
+
+Send changed profile fields with the server revision and their base values.
+Merge independent edits. If two clients edit the same field, keep the draft,
+identify the field and let the person choose the saved or draft value. Retrying
+a save with the same desired values should preserve the committed result.
+Include media, display order, equipped decoration and showcase in the commit.
+Account and collection exports use current authorization and stable pagination.
+
+Acceptance should cover these journeys.
+
+1. Edit identity, choose artwork and style a profile. Visit each preview, then
+   discard. Reopen in a second session and confirm the saved profile.
+2. Upload a GIF with transparency and a partial first frame. Compare the draft
+   and stored poster, then test manual Play, reduced motion and backgrounding.
+3. Save a biography on desktop while a phone holds an older draft. Publish an
+   independent avatar change. Repeat with two different biography values and
+   resolve the conflict without losing the rest of either draft.
+4. Inspect another person's displayed award and one specific owned gift. Return
+   to the same context. Reorder and remove a showcase item, then confirm its
+   ownership, group membership and sender disclosure with another viewer.
+5. Apply a saved look after making the account private. Verify all five style
+   fields and the existing privacy choice, first in the draft and then on save.
+6. Check mobile editing, touch reordering, safe-area and keyboard access, picker
+   cancellation, and rotate/background/resume on supported Android and iPhone
+   clients. Report which devices, runtimes, inputs and workflows actually ran.
+
+For later iterations, evaluate optional community-specific profiles, interest
+tags, status expiry and external activity integrations. Each needs an explicit
+visibility rule and a real source of data. Ship the global editor and collection
+journeys independently and document any remaining device verification.
+
+Reference material
+
+https://telegram.org/blog/post-search-story-albums-and-more
+https://support.discord.com/hc/en-us/articles/4409388345495-Custom-Profiles
+https://support.discord.com/hc/en-us/articles/38859942749463-Profile-Privacy-Setting-on-Discord

@@ -1,4 +1,4 @@
-/* Still-image crops and original GIF staging; private upload receipts remain authoritative. */
+/* Local still/GIF previews and original GIF staging; private receipts remain authoritative. */
 (() => {
  'use strict';
  const active=new Set(),selections=new WeakMap();let imageToolsPromise=null;
@@ -88,13 +88,33 @@
   // and retries use the same pixels, then release its detached decoder.
   const{width,height}=boundedDimensions(image.naturalWidth||image.width,image.naturalHeight||image.height),{canvas,context}=sourceCanvas(width,height,selection);context.drawImage(image,0,0,width,height);image.src='';return canvas;
  }
- async function mountGif({container,bytes,kind,metadata,onApply,onCancel,onError,selection}){
-  let applying=false;const blob=new Blob([bytes],{type:'image/gif'}),frames=metadata.frames||1,duration=Number.isFinite(metadata.durationMs)?` · ${(metadata.durationMs/1000).toFixed(1)} s`:'';
-  container.innerHTML=`<div class="vp-crop vp-gif-upload"><h3>${kind==='avatar'?'GIF avatar':'GIF banner'}</h3><div class="vp-actions vp-crop-actions"><button type="button" class="vh-primary" data-gif-action="upload">Use this GIF</button><button type="button" class="vh-secondary" data-gif-action="cancel">Cancel GIF</button></div><p class="vp-fine" data-gif-state role="status">Choose Use this GIF, then Save profile to publish it.</p><p>The original GIF keeps its animation. It is shown from the center to fit your ${kind}; GIFs are not cropped.</p><p>${metadata.width} × ${metadata.height} pixels · ${frames} ${frames===1?'frame':'frames'}${duration}</p><div class="vp-gif-placeholder" aria-hidden="true">GIF</div></div>`;
-  selection.mounted();const status=container.querySelector('[data-gif-state]');
-  const click=async event=>{const action=event.target.closest?.('[data-gif-action]')?.dataset.gifAction;if(!action||applying)return;if(!selection.current()){selection.dispose();return;}if(action==='cancel'){selection.dispose();onCancel?.();return;}if(action!=='upload')return;
-   applying=true;container.querySelectorAll('button').forEach(node=>node.disabled=true);status.textContent='Uploading original GIF…';
-   try{await onApply(blob);selection.dispose();}catch(error){if(selection.current()){status.textContent=error.message||'The upload failed. Retry the same GIF.';onError?.(error);}}finally{applying=false;if(selection.current())container.querySelectorAll('button').forEach(node=>node.disabled=false);}
+ async function mountGif({container,bytes,kind,metadata,formats,onApply,onCancel,onError,selection}){
+  if(typeof formats.prepareProfileGifPoster!=='function')throw Error('The GIF preview tools need refreshing. Refresh and select the GIF again.');
+  const prepared=formats.prepareProfileGifPoster(bytes);if(!selection.current())return null;
+  const posterURL=URL.createObjectURL(new Blob([prepared.poster],{type:'image/png'})),blob=new Blob([bytes],{type:'image/gif'}),frames=metadata.frames||1,duration=Number.isFinite(metadata.durationMs)?` · ${(metadata.durationMs/1000).toFixed(1)} s`:'';
+  let applying=false,playing=false,animationURL=null,playbackFailed=false,motionQuery;
+  selection.cleanup(()=>URL.revokeObjectURL(posterURL));
+  container.innerHTML=`<div class="vp-crop vp-gif-upload" data-gif-kind="${kind}"><h3>${kind==='avatar'?'GIF avatar':'GIF banner'}</h3><div class="vp-actions vp-crop-actions"><button type="button" class="vh-primary" data-gif-action="upload">Use this GIF</button><button type="button" class="vh-secondary" data-gif-action="cancel">Cancel GIF</button></div><p class="vp-fine" data-gif-state role="status">Poster frame · Not uploaded. Choose Use this GIF, then Save profile to publish it.</p><div class="vp-gif-preview"><img data-gif-preview alt="Selected GIF ${kind}, centered ${kind==='avatar'?'square':'3:1 banner'} fit" decoding="async"></div><div class="vp-actions vp-gif-playback"><button type="button" class="vh-secondary" data-gif-action="play" aria-pressed="false">Play GIF</button><span class="vp-fine" data-gif-motion></span></div><p>The original GIF keeps its animation. This ${kind==='avatar'?'1:1 avatar':'3:1 banner'} preview uses the same centered fit as your profile. GIFs are not cropped or repositioned.</p><p>${metadata.width} × ${metadata.height} pixels · ${frames} ${frames===1?'frame':'frames'}${duration}</p></div>`;
+  selection.mounted();const status=container.querySelector('[data-gif-state]'),image=container.querySelector('[data-gif-preview]'),play=container.querySelector('[data-gif-action="play"]'),motion=container.querySelector('[data-gif-motion]');
+  image.src=posterURL;
+  try{motionQuery=window.matchMedia?.('(prefers-reduced-motion: reduce)');}catch{}
+  const reducedMotion=()=>{try{return !!window.VoidTheme?.state?.().effectiveReducedMotion||!!document.documentElement?.classList?.contains('vh-reduced-motion')||!!motionQuery?.matches;}catch{return false;}};
+  const updatePlayback=()=>{play.textContent=playing?'Pause GIF':'Play GIF';play.setAttribute?.('aria-pressed',String(playing));play.disabled=applying||frames<2||playbackFailed||reducedMotion();motion.textContent=reducedMotion()?'Motion is reduced. The poster stays still.':frames<2?'This GIF has one still frame.':playbackFailed?'Playback unavailable. You can still upload the original GIF.':'Playback is local; it does not upload or publish.';};
+  const pause=()=>{if(!selection.current()){selection.dispose();return;}playing=false;image.src=posterURL;if(animationURL){URL.revokeObjectURL(animationURL);animationURL=null;}updatePlayback();};
+  const refreshMotion=()=>{if(!selection.current()){selection.dispose();return;}if(reducedMotion())pause();else updatePlayback();};
+  selection.cleanup(()=>{playing=false;image.removeAttribute?.('src');if(animationURL){URL.revokeObjectURL(animationURL);animationURL=null;}});
+  listen(selection,image,'error',()=>{if(!selection.current()){selection.dispose();return;}if(playing){playbackFailed=true;pause();status.textContent='GIF playback could not start. The still poster and original file are kept; you can upload or cancel.';}else status.textContent='The local poster could not be displayed. Choose another file or retry the selection.';});
+  if(document.addEventListener)listen(selection,document,'visibilitychange',()=>{if(document.hidden)pause();});
+  if(window.addEventListener){listen(selection,window,'pagehide',pause);listen(selection,window,'voidline:theme',refreshMotion);}
+  if(motionQuery?.addEventListener)listen(selection,motionQuery,'change',refreshMotion);
+  else if(motionQuery?.addListener){motionQuery.addListener(refreshMotion);selection.cleanup(()=>motionQuery.removeListener?.(refreshMotion));}
+  if(typeof IntersectionObserver==='function'){const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>!entry.isIntersecting))pause();});observer.observe(image);selection.cleanup(()=>observer.disconnect());}
+  if(typeof MutationObserver==='function'){const observer=new MutationObserver(()=>{if(!selection.current()||image.isConnected===false)selection.dispose();});observer.observe(document.body||document.documentElement,{childList:true,subtree:true});selection.cleanup(()=>observer.disconnect());}
+  updatePlayback();
+  const click=async event=>{const action=event.target.closest?.('[data-gif-action]')?.dataset.gifAction;if(!action||applying)return;if(!selection.current()){selection.dispose();return;}if(action==='cancel'){selection.dispose();onCancel?.();return;}
+   if(action==='play'){if(playing){pause();return;}if(frames<2||playbackFailed||reducedMotion()||document.hidden){updatePlayback();return;}try{animationURL=URL.createObjectURL(blob);playing=true;image.src=animationURL;updatePlayback();}catch{playbackFailed=true;pause();}return;}
+   if(action!=='upload')return;pause();applying=true;container.querySelectorAll('button').forEach(node=>node.disabled=true);status.textContent='Uploading original GIF…';
+   try{await onApply(blob);selection.dispose();}catch(error){if(selection.current()){status.textContent=error.message||'The upload failed. Retry the same GIF.';onError?.(error);}}finally{applying=false;if(selection.current()){container.querySelectorAll('button').forEach(node=>node.disabled=false);updatePlayback();}}
   };
   listen(selection,container,'click',click);return{dispose:selection.dispose};
  }
@@ -108,7 +128,7 @@
    const bytes=new Uint8Array(await file.arrayBuffer());if(!selection.current()){selection.dispose();return null;}
    const formats=await imageTools();if(!selection.current()){selection.dispose();return null;}
    let metadata=formats.inspectProfileImage(bytes),sourceBytes=bytes;
-   if(metadata.mime==='image/gif')return await mountGif({container,bytes,kind,metadata,onApply,onCancel,onError,selection});
+   if(metadata.mime==='image/gif')return await mountGif({container,bytes,kind,metadata,formats,onApply,onCancel,onError,selection});
    if(metadata.decoder==='svg'){metadata=await formats.prepareProfileSvg(bytes);if(!selection.current()){selection.dispose();return null;}sourceBytes=metadata.bytes;}
    // Android providers may omit or mislabel File.type. Validated bytes define
    // the decoder MIME; a browser Image is a fallback for bitmap-decoder limits.

@@ -5573,32 +5573,33 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1555,
+        "duration": 1540,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "web-panel-1",
             "origin": [
-              128,
-              128
+              88.7421875,
+              120.96875
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.14,
+                "rotate": -8
               },
               {
-                "at": 0.41000000000000003,
-                "x": -9,
-                "scaleX": 0.12,
-                "rotate": -3
+                "at": 0.48,
+                "rotate": 95
               },
               {
-                "at": 0.76,
-                "rotate": -1.01,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.7,
+                "rotate": 72
+              },
+              {
+                "at": 0.9,
+                "rotate": 8
               },
               {
                 "at": 1
@@ -5606,29 +5607,30 @@
             ]
           },
           {
-            "name": "web-panel-1",
+            "name": "web-panel-2",
             "origin": [
-              128,
-              128
+              165.3046875,
+              121.1640625
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.125
+                "at": 0.19,
+                "rotate": -5
               },
               {
-                "at": 0.43000000000000005,
-                "x": 9,
-                "scaleX": 0.12,
-                "rotate": 3
+                "at": 0.54,
+                "rotate": 68
               },
               {
-                "at": 0.78,
-                "rotate": 1.01,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.76,
+                "rotate": 54
+              },
+              {
+                "at": 0.93,
+                "rotate": 5
               },
               {
                 "at": 1
@@ -5646,18 +5648,18 @@
           "sha256": "bb70d7a7ec3bdd85c489b66ca8f1d2816749665bd23d246b7fcf197300d46aa1"
         },
         "card": {
-          "url": "/art/v4/gift-cassette-card.36e6120e3ff6.svg",
+          "url": "/art/v4/gift-cassette-card.242b1f6cf11a.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22041,
-          "sha256": "36e6120e3ff686fa84d31659ded449e272f686fb4261faee4dae5607dbd9588b"
+          "bytes": 22462,
+          "sha256": "242b1f6cf11a6934d38bb7cad4d52bb6a02f9af17da773a74850f2361dcd43ac"
         },
         "detail": {
-          "url": "/art/v4/gift-cassette-detail.be18797dc5bf.svg",
+          "url": "/art/v4/gift-cassette-detail.f839fb1b0441.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22065,
-          "sha256": "be18797dc5bff90a9279fbdcd9a16bd037adc6855834601b9980af2f5bd46bca"
+          "bytes": 22492,
+          "sha256": "f839fb1b0441f3270abb850afe71e7b0e9dd6529d2879b42a7c3475f1cc44254"
         },
         "silhouette": {
           "url": "/art/v4/gift-cassette-silhouette.9a0d3fcfe91e.svg",
@@ -5698,7 +5700,7 @@
         }
       },
       "changes": "Original transparent illustration resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "fold",
+      "revealPreset": "cassette-reel-check",
       "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
     },
     {

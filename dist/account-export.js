@@ -2,7 +2,7 @@
  'use strict';
  let app=null,identity='',epoch=0,running=null;
  const state=()=>app?.state||{},MAX_BYTES=10*1024*1024,MAX_RECORDS=10000,PAGE_LIMIT=100,downloads=new Map();
- const scopes=[['profile','My profile'],['memberships','Community memberships'],['gifts','Owned gifts'],['badges','Earned badges'],['organization','Private organization & bookmark references'],['standard-native','Standard direct & group history'],['standard-community','Accessible Standard community history']];
+ const scopes=[['profile','My profile & saved looks'],['memberships','Community memberships'],['gifts','Owned gifts & private collections'],['badges','Earned badges'],['organization','Private organization & bookmark references'],['standard-native','Standard direct & group history'],['standard-community','Accessible Standard community history']];
  function cancel(){if(!running)return;const task=running;task.cancelled=true;running=null;task.release?.();}
  function revokeDownloads(){for(const [url,timer]of downloads){clearTimeout(timer);URL.revokeObjectURL(url);}downloads.clear();}
  function sync(){const id=state().account?.id||'';if(id!==identity){cancel();revokeDownloads();identity=id;epoch++;}}

@@ -30,10 +30,10 @@ test('failed profile persistence rolls back appearance, author invalidations and
 test('unchanged and private-preference saves do not invalidate historical community messages',async()=>{const f=await fixture();try{
  const changes=history(f);
  await f.ok('self','/api/profiles/me',{});await f.ok('self','/api/profiles/me',{});
- await f.ok('self','/api/profiles/me',{bio:'Only the biography changed.',status:'Away',banner:'eclipse',accent:'jade',detailsVisibility:'private',collectionVisibility:'friends',animationEnabled:true,badgeOrder:[]});
+ await f.ok('self','/api/profiles/me',{bio:'Only the biography changed.',status:'Away',banner:'eclipse',accent:'jade',collectionVisibility:'friends',animationEnabled:true,badgeOrder:[]});
  await f.ok('self','/api/profiles/me',{bannerMediaId:stagedImage(f,'banner','b')});
  await f.ok('self','/api/live/profile',{});await f.ok('self','/api/live/profile',{bio:'Another private profile detail.',status:'Writing',theme:'lilac'});
- assert.equal(changes().length,0);const saved=await f.ok('self','/api/profiles/me');assert.equal(saved.profile.bio,'Another private profile detail.');assert.equal(saved.profile.animationEnabled,true);assert.equal(saved.profile.detailsVisibility,'private');
+ assert.equal(changes().length,0);const saved=await f.ok('self','/api/profiles/me');assert.equal(saved.profile.bio,'Another private profile detail.');assert.equal(saved.profile.animationEnabled,true);assert.equal(saved.profile.detailsVisibility,'shared');
 }finally{f.sqlite.close();}});
 test('real author-name and avatar changes preserve one existing profile event per authored message',async()=>{const f=await fixture();try{
  const changes=history(f);await f.ok('self','/api/profiles/me',{displayName:'Changed author',avatar:'ghost'});
@@ -47,8 +47,8 @@ test('uploaded avatar replacement and reset invalidate history while unchanged a
  const messages=(await f.ok('friend','/api/live/channels/history-one/messages')).messages;assert.equal(messages.find(row=>row.id==='self-one').author_avatar_media_id,avatar);
  await f.ok('self','/api/profiles/me',{bannerMediaId:stagedImage(f,'banner','b')});assert.equal(changes().length,3);await f.ok('self','/api/profiles/me',{avatarMediaId:null});assert.equal(changes().length,6);
 }finally{f.sqlite.close();}});
-test('author comparison uses committed fields when a concurrent profile change precedes the batch',async()=>{
- for(const path of ['/api/profiles/me','/api/live/profile']){const f=await fixture();try{const changes=history(f);f.db.beforeBatch=()=>{f.db.beforeBatch=null;f.sqlite.prepare("UPDATE live_accounts SET display_name='Concurrent author' WHERE id='self'").run();};await f.ok('self',path,{bio:'This request preserves its original author snapshot.'});assert.equal(changes().length,3);assert.equal(f.sqlite.prepare("SELECT display_name FROM live_accounts WHERE id='self'").get().display_name,'Profile self');}finally{f.sqlite.close();}}
+test('scoped modern and legacy saves preserve a concurrent author edit without invalidating unchanged history',async()=>{
+ for(const path of ['/api/profiles/me','/api/live/profile']){const f=await fixture();try{const changes=history(f);f.db.beforeBatch=()=>{f.db.beforeBatch=null;f.sqlite.prepare("UPDATE live_accounts SET display_name='Concurrent author' WHERE id='self'").run();};await f.ok('self',path,{bio:'This request changes only its submitted biography.'});assert.equal(changes().length,0);assert.equal(f.sqlite.prepare("SELECT display_name FROM live_accounts WHERE id='self'").get().display_name,'Concurrent author');assert.equal(f.sqlite.prepare("SELECT bio FROM live_accounts WHERE id='self'").get().bio,'This request changes only its submitted biography.');}finally{f.sqlite.close();}}
 });
 test('session revocation or suspension before profile commit writes no author changes or profile updates',async()=>{
  for(const path of ['/api/profiles/me','/api/live/profile'])for(const status of ['revoked','suspended']){const f=await fixture();try{const changes=history(f);f.db.beforeBatch=()=>{f.db.beforeBatch=null;if(status==='revoked')f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').run(Date.now(),f.identities.get('self').session);else f.sqlite.prepare("UPDATE live_accounts SET account_status='suspended' WHERE id='self'").run();};const result=await f.call('self',path,{displayName:'Must not persist',avatar:'ghost'});assert.equal(result.status,409,JSON.stringify(result.data));assert.equal(changes().length,0);const account=f.sqlite.prepare("SELECT display_name,avatar FROM live_accounts WHERE id='self'").get();assert.equal(account.display_name,'Profile self');assert.equal(account.avatar,'moon');}finally{f.sqlite.close();}}

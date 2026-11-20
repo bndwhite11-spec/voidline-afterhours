@@ -1,4 +1,4 @@
-import {profileAvatarMediaForViewer} from './media.mjs';
+import {profileAvatarsForViewer,unavailableAvatar} from './identity.mjs';
 /** Native standard text messaging. Never a Matrix transport or an E2EE fallback. */
 import {authenticate,validateSessionMutation,normalizeUsername,authRateLimit,AuthError} from './auth.mjs';
 import {standardAttachmentIds,stagedAttachmentGuard,claimStandardAttachments,standardAttachmentMetadata} from './attachments.mjs';
@@ -42,8 +42,8 @@ export async function accessibleNativeConversation(db,id,userId){
  const record=await q(db,"SELECT c.*,m.read_seq,m.read_change_seq FROM native_conversations c JOIN native_members m ON m.conversation_id=c.id WHERE c.id=? AND m.account_id=? AND c.security_mode='standard'",id,userId).first();
  need(record,404,'conversation_unavailable','This conversation is unavailable to this account.');return record;
 }
-const columns='m.seq,m.id,m.revision,m.conversation_id,m.author_id,m.client_id,m.text,m.reply_to_id,m.edited_at,m.deleted_at,m.created_at,a.display_name AS author_name,a.username AS author_username,a.avatar AS author_avatar';
-const joins='FROM native_messages m JOIN live_accounts a ON a.id=m.author_id';
+const columns='m.seq,m.id,m.revision,m.conversation_id,m.author_id,m.client_id,m.text,m.reply_to_id,m.edited_at,m.deleted_at,m.created_at,a.display_name AS author_name,a.username AS author_username,a.avatar AS author_avatar,COALESCE(author_profile.revision,0) AS authorRevision';
+const joins='FROM native_messages m JOIN live_accounts a ON a.id=m.author_id LEFT JOIN profile_save_state author_profile ON author_profile.account_id=a.id';
 async function enrich(db,messages,userId){
  if(!messages.length)return [];
  if(messages.length>80){const result=[];for(let i=0;i<messages.length;i+=80)result.push(...await enrich(db,messages.slice(i,i+80),userId));return result;}
@@ -52,10 +52,10 @@ async function enrich(db,messages,userId){
   q(db,`SELECT message_id,emoji,COUNT(*) AS count,MAX(CASE WHEN account_id=? THEN 1 ELSE 0 END) AS mine FROM native_reactions WHERE message_id IN (${slots}) GROUP BY message_id,emoji`,userId,...ids).all(),
   q(db,`SELECT message_id,saved,revision FROM native_bookmarks WHERE account_id=? AND message_id IN (${slots})`,userId,...ids).all(),
   q(db,`SELECT id,native_message_id,kind,content_type,filename,bytes,width,height FROM media_assets WHERE native_message_id IN (${slots}) AND state='attached' ORDER BY message_position,id`,...ids).all(),
-  profileAvatarMediaForViewer(db,userId,messages.map(m=>m.author_id))
+  profileAvatarsForViewer(db,userId,messages.map(m=>m.author_id))
  ]);
  const saved=new Map(savedResult.results.map(row=>[row.message_id,row])),rows=reactionResult.results;
- return messages.map(m=>({...m,author_avatar_media_id:avatars.get(m.author_id)?.id||null,revision:Number(m.revision)||0,securityMode:'standard',attachments:m.deleted_at?[]:mediaResult.results.filter(a=>a.native_message_id===m.id).map(standardAttachmentMetadata),saved:!!saved.get(m.id)?.saved,bookmarkRevision:saved.get(m.id)?.revision||0,reactions:rows.filter(r=>r.message_id===m.id).map(({emoji,count,mine})=>({emoji,count,mine:!!mine}))}));
+ return messages.map(m=>({...m,author_avatar:(avatars.get(m.author_id)||unavailableAvatar).avatar,authorAvatarMedia:avatars.get(m.author_id)?.avatarMedia||null,author_profile_available:avatars.has(m.author_id),author_name_style:avatars.get(m.author_id)?.nameStyle||'plain',author_avatar_media_id:avatars.get(m.author_id)?.avatarMedia?.id||null,revision:Number(m.revision)||0,securityMode:'standard',attachments:m.deleted_at?[]:mediaResult.results.filter(a=>a.native_message_id===m.id).map(standardAttachmentMetadata),saved:!!saved.get(m.id)?.saved,bookmarkRevision:saved.get(m.id)?.revision||0,reactions:rows.filter(r=>r.message_id===m.id).map(({emoji,count,mine})=>({emoji,count,mine:!!mine}))}));
 }
 async function getMessage(db,id,userId){const message=await q(db,`SELECT ${columns} ${joins} JOIN native_members member ON member.conversation_id=m.conversation_id WHERE m.id=? AND member.account_id=?`,id,userId).first();need(message,404,'message_unavailable','This message is unavailable to this account.');return (await enrich(db,[message],userId))[0];}
 async function describeMany(db,records,userId){
@@ -69,10 +69,10 @@ async function describeMany(db,records,userId){
    q(db,`SELECT conversation_id,MAX(seq) AS seq FROM native_changes WHERE conversation_id IN(${slots}) GROUP BY conversation_id`,...ids).all(),
    q(db,`SELECT c.id FROM native_conversations c WHERE c.id IN(${slots}) AND c.kind='dm' AND (EXISTS(SELECT 1 FROM native_members m JOIN live_accounts a ON a.id=m.account_id WHERE m.conversation_id=c.id AND a.account_status<>'active') OR EXISTS(SELECT 1 FROM social_blocks b JOIN native_members x ON x.account_id=b.blocker_id AND x.conversation_id=c.id JOIN native_members y ON y.account_id=b.blocked_id AND y.conversation_id=x.conversation_id))`,...ids).all()
   ]);
-  const participantAvatars=await profileAvatarMediaForViewer(db,userId,members.results.map(m=>m.id));
+  const participantAvatars=await profileAvatarsForViewer(db,userId,members.results.map(m=>m.id));
   const enrichedLast=await enrich(db,lastMessages.results,userId),restrictedIds=new Set(restricted.results.map(c=>c.id));
   for(const record of part){
-   const participants=members.results.filter(m=>m.conversation_id===record.id).map(({conversation_id,...member})=>({...member,avatarMedia:participantAvatars.get(member.id)||null,role:record.kind==='group'&&record.owner_id===member.id?'owner':'member'})),last=enrichedLast.find(m=>m.conversation_id===record.id),counts=totals.results.find(t=>t.conversation_id===record.id);
+   const participants=members.results.filter(m=>m.conversation_id===record.id).map(({conversation_id,...member})=>({...member,...(participantAvatars.get(member.id)||unavailableAvatar),role:record.kind==='group'&&record.owner_id===member.id?'owner':'member'})),last=enrichedLast.find(m=>m.conversation_id===record.id),counts=totals.results.find(t=>t.conversation_id===record.id);
    result.push({ownerId:record.owner_id||null,capabilities:{canManage:record.kind==='group'&&record.owner_id===userId,canAddMembers:record.kind==='group'&&record.owner_id===userId,canRemoveMembers:record.kind==='group'&&record.owner_id===userId,canTransferOwnership:record.kind==='group'&&record.owner_id===userId,canLeave:record.kind==='group'&&(record.owner_id!==userId||participants.length===1),canSend:!restrictedIds.has(record.id)},historyPolicy:'Current joined members can read retained history. New members receive earlier group history.',blockingPolicy:'Blocking stops direct messages and requests. Shared group members can still read and post; leave or remove a member to change membership.',favorite:!!record.favorite,pinned:!!record.pinned,archived:!!record.archived,muted:!!record.muted,folderId:record.folder_id||null,id:record.id,kind:record.kind,name:record.name,title:record.kind==='dm'?(participants.find(a=>a.id!==userId)?.displayName||'Deleted account'):record.name,securityMode:'standard',endToEndEncrypted:false,createdAt:record.created_at,updatedAt:record.updated_at,participants,lastMessage:last?{...last,securityMode:'standard'}:null,lastSeq:counts?.lastSeq||0,unreadCount:counts?.unreadCount||0,changeSeq:highs.results.find(h=>h.conversation_id===record.id)?.seq||0,readSeq:record.read_seq||0,readChangeSeq:record.read_change_seq||0});
   }
  }
@@ -226,9 +226,19 @@ export async function handleMessagesRequest(request,env){
      const limit=page(url),before=cursor(url.searchParams.get('before')),after=cursor(url.searchParams.get('after')),changesAfter=cursor(url.searchParams.get('changesAfter'));
      need(before===null||after===null,400,'invalid_cursor','Use before or after, not both.');const high=(await q(db,'SELECT COALESCE(MAX(seq),0) AS seq FROM native_changes WHERE conversation_id=?',id).first()).seq;
      const records=(await q(db,`SELECT ${columns} ${joins} WHERE m.conversation_id=? ${after!==null?'AND m.seq>?':before!==null?'AND m.seq<?':''} ORDER BY m.seq ${after!==null?'ASC':'DESC'} LIMIT ?`,id,...(after!==null?[after]:before!==null?[before]:[]),limit+1).all()).results;
-     const selected=records.slice(0,limit),messages=after!==null?selected:selected.reverse();let changes=[],changeCursor=high,changesHasMore=false;
-     if(changesAfter!==null){const events=(await q(db,'SELECT seq,message_id FROM native_changes WHERE conversation_id=? AND seq>? AND seq<=? ORDER BY seq LIMIT ?',id,changesAfter,high,limit+1).all()).results,window=events.slice(0,limit),ids=[...new Set(window.map(e=>e.message_id))];changeCursor=window.at(-1)?.seq??changesAfter;changesHasMore=events.length>limit;if(ids.length){const changed=[];for(let n=0;n<ids.length;n+=80){const part=ids.slice(n,n+80);changed.push(...(await q(db,`SELECT ${columns} ${joins} WHERE m.conversation_id=? AND m.id IN(${part.map(()=>'?').join(',')})`,id,...part).all()).results);}changes=await enrich(db,changed,user.id);}}
-     return json({messages:await enrich(db,messages,user.id),changes,hasMore:records.length>limit,cursor:messages[0]?.seq??before??0,changeCursor,changesHasMore,securityMode:'standard',endToEndEncrypted:false,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
+     const selected=records.slice(0,limit),messages=after!==null?selected:selected.reverse();let changes=[],authorProfiles=[],changeCursor=high,changesHasMore=false;
+     if(changesAfter!==null){
+      const events=(await q(db,'SELECT seq,message_id,actor_id,kind FROM native_changes WHERE conversation_id=? AND seq>? AND seq<=? ORDER BY seq LIMIT ?',id,changesAfter,high,limit+1).all()).results,window=events.slice(0,limit),ids=[...new Set(window.map(event=>event.message_id))];
+      changeCursor=window.at(-1)?.seq??changesAfter;changesHasMore=events.length>limit;
+      if(ids.length){const changed=[];for(let n=0;n<ids.length;n+=80){const part=ids.slice(n,n+80);changed.push(...(await q(db,`SELECT ${columns} ${joins} WHERE m.conversation_id=? AND m.id IN(${part.map(()=>'?').join(',')})`,id,...part).all()).results);}
+       const projected=await enrich(db,changed,user.id),normalIds=new Set(window.filter(event=>event.kind!=='profile').map(event=>event.message_id)),profileAuthors=new Set(window.filter(event=>event.kind==='profile').map(event=>event.actor_id));
+       changes=projected.filter(message=>normalIds.has(message.id));
+       // A profile event anchors a real authorized message for its author. It
+       // updates identity on loaded rows without importing unseen history.
+       for(const authorId of profileAuthors){const author=projected.find(message=>message.author_id===authorId);if(author)authorProfiles.push({author_id:author.author_id,author_name:author.author_name,author_username:author.author_username,author_avatar:author.author_avatar,authorAvatarMedia:author.authorAvatarMedia,author_avatar_media_id:author.author_avatar_media_id,author_profile_available:author.author_profile_available,author_name_style:author.author_name_style,authorRevision:author.authorRevision});}
+      }
+     }
+     return json({messages:await enrich(db,messages,user.id),changes,authorProfiles,hasMore:records.length>limit,cursor:messages[0]?.seq??before??0,changeCursor,changesHasMore,securityMode:'standard',endToEndEncrypted:false,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
     }
     acknowledgement(body);retryId(body.clientId);const attachmentIds=standardAttachmentIds(body.attachmentIds);const text=textValue(body.text??'',attachmentIds.length>0),replyToId=body.replyToId||null;need(replyToId===null||(typeof replyToId==='string'&&replyToId.length<=100),400,'invalid_reply','Choose a valid reply source.');
     const guard=await ensureWritable(db,user,id,now),originalHash=await hash(JSON.stringify(attachmentIds.length?[text,replyToId,attachmentIds]:[text,replyToId]));

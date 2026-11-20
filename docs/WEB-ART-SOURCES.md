@@ -4,6 +4,14 @@ Edition4 contains49 decorations,32 gifts and2 earned-award images. Current pixel
 
 The records in `src/art/web-*.mjs`, public `/art/v4/manifest.json`, `/art/sources/ATTRIBUTION.txt` and SVG descriptions carry attribution and changes. Unknown meme/brand reuse licenses are recorded as unknown, rather than an invented grant. Earlier synthetic vector bodies are retained as historical source; strict production builds require all83 web entries. Catalog IDs and ownership remain unchanged.
 
+Midnight Tape now has a specific tape-check reveal: two circular regions from
+its actual cassette artwork turn independently while the case stays intact.
+The original source pixels and credits remain unchanged. This1540ms sequence
+runs once after deliberate preview or an acknowledged gift receipt; it returns
+to the complete static pose. Existing reduced-motion, offscreen, close and
+background cancellation apply. No continuous animation or new image download
+is added.
+
 | Item | Creator | License / rights status | Reference |
 |---|---|---|---|
 | LARP PRO MAX | XxxBaloooxxx | CC BY-SA 3.0; this cropped/resized derivative is offered under the same license. | [Source](https://commons.wikimedia.org/wiki/File:Man_in_LARP_gear.jpg) |

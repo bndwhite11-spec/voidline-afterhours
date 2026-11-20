@@ -42,7 +42,7 @@ export function normalizeUsername(value){requireAuth(typeof value==='string',400
 function passwordValue(value){requireAuth(typeof value==='string'&&value.length>=12&&value.length<=128&&encoder.encode(value).length<=512,400,'invalid_password','Use a password between 12 and 128 characters.');requireAuth(!COMMON_PASSWORDS.has(value.toLowerCase()),400,'weak_password','Choose a less common password.');return value;}
 function displayValue(value){requireAuth(typeof value==='string',400,'invalid_display_name','Choose a display name.');const name=value.trim();requireAuth(name.length>=2&&name.length<=32&&!/[\u0000-\u001f\u007f]/.test(name),400,'invalid_display_name','Use a display name between 2 and 32 characters.');return name;}
 const equalHex=equalHash;
-async function readBody(request){
+export async function readBody(request){
  requireAuth(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');
  requireAuth(Number(request.headers.get('content-length')||0)<=8192,413,'body_too_large','The request is too large.');
  const reader=request.body?.getReader();requireAuth(reader,400,'invalid_body','A request body is required.');let total=0;const chunks=[];

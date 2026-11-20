@@ -1,0 +1,9 @@
+.vp-looks { border-top:1px solid var(--vh-border,#454a51); padding-block:1rem; margin-block:1rem; }
+.vp-looks summary { cursor:pointer; font-weight:650; }
+.vp-looks p,.vp-looks small { color:var(--vh-muted,#bbc1ca); }
+.vp-looks label { display:block; }
+.vp-looks button { min-height:44px; padding:.45rem .8rem; color:inherit; background:#242831; border:1px solid #525965; border-radius:5px; cursor:pointer; }
+.vp-looks [data-look-list]>div { display:flex; gap:.45rem; align-items:center; flex-wrap:wrap; margin-top:.5rem; }
+.vp-looks [data-look-list] strong { flex:1; min-width:4rem; overflow-wrap:anywhere; }
+.vp-looks input { max-width:100%; margin-block:.4rem; }
+.vp-looks [role=status] { display:block; margin-top:.5rem; }

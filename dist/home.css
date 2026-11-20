@@ -687,3 +687,9 @@ img, svg { max-width: 100%; }
 @keyframes vh-message-in { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
 .vh-reduced-motion .vh-dialog::backdrop { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { .vh-dialog::backdrop { animation: none !important; } }
+
+/* Profile type choices stay limited to the actual identity labels. */
+:is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style=serif]{font-family:Georgia,'Times New Roman',serif}
+:is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style=mono]{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+:is(html[data-vh-simple-profiles=true],html.vh-high-contrast) :is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style]{font-family:inherit!important;letter-spacing:normal!important}
+@media(forced-colors:active){:is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style]{font-family:inherit!important;letter-spacing:normal!important}}

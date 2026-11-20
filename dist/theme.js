@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   if (window.VoidTheme) return;
-  const DEFAULTS = Object.freeze({font:'15',highContrast:false,reducedMotion:false});
+  const DEFAULTS = Object.freeze({font:'15',highContrast:false,reducedMotion:false,simpleProfiles:false});
   let preferences = {...DEFAULTS};
   function media(query) {
     try { return window.matchMedia?.(query) || null; } catch (_) { return null; }
@@ -21,6 +21,7 @@
     for (const node of [document.documentElement,document.body]) {
       if (!node) continue;
       node.dataset.vhFont = current.font;
+      node.dataset.vhSimpleProfiles = String(current.simpleProfiles);
       node.dataset.vhMotion = current.effectiveReducedMotion ? 'reduce' : 'standard';
       node.dataset.vhContrast = current.effectiveHighContrast ? 'more' : 'standard';
       node.classList.toggle('vh-reduced-motion',current.effectiveReducedMotion);
@@ -32,7 +33,8 @@
   function apply(value = DEFAULTS) {
     const input = value && typeof value === 'object' ? value : DEFAULTS;
     preferences = {font:['15','17','19'].includes(String(input.font)) ? String(input.font) : '15',
-      highContrast:input.highContrast === true,reducedMotion:input.reducedMotion === true};
+      highContrast:input.highContrast === true,reducedMotion:input.reducedMotion === true,
+      simpleProfiles:input.simpleProfiles === true};
     return sync();
   }
   function reset() { return apply(DEFAULTS); }

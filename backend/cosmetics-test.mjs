@@ -296,5 +296,23 @@ test('researched gift bases become original VOIDLINE gifts without source NFT id
   const inventory=await f.ok('sender','/inventory');assert.equal(inventory.instances.length,1);assert.equal(inventory.instances[0].catalog_id,'gift-chudjak-plush');assert.equal(f.sqlite.prepare('SELECT owner_id FROM gift_instances WHERE id=?').get(inventory.instances[0].id).owner_id,'sender');assert.equal(inventory.owned.length,1);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM badge_awards').get().n,0);
  }finally{f.sqlite.close();}
 });
+
+test('own gift-instance details expose only permitted provenance and public collections omit private sender fields',async()=>{
+ const f=await fixture();try{
+  const gift=(await f.gift()).gift;await f.ok('recipient','/gifts/'+gift.id+'/open',{});const id='gift:'+gift.id;
+  const detail=(await f.ok('recipient','/instances/'+encodeURIComponent(id))).instance;assert.equal(detail.id,id);assert.equal(detail.sender_username,'sender');assert.equal(detail.sender_name,'Resident sender');assert.equal(detail.senderDisclosureAvailable,true);for(const field of ['owner_id','sender_id','email','note','token','password_hash'])assert.equal(Object.hasOwn(detail,field),false);
+  assert.equal((await f.call('sender','/instances/'+encodeURIComponent(id))).status,404);assert.equal((await f.call('stranger','/instances/'+encodeURIComponent(id))).status,404);
+  await f.ok('recipient','/settings',{collectionVisibility:'public'});const publicRows=(await f.ok('stranger','/collections/recipient')).instances;assert.equal(publicRows.length,1);for(const row of publicRows)for(const field of ['sender_username','sender_name','senderDisclosureAvailable'])assert.equal(Object.hasOwn(row,field),false);
+  f.sqlite.prepare('INSERT INTO social_blocks VALUES(?,?,?)').run('sender','recipient',Date.now());const blocked=(await f.ok('recipient','/instances/'+encodeURIComponent(id))).instance;assert.equal(blocked.sender_username,null);assert.equal(blocked.sender_name,null);assert.equal(blocked.senderDisclosureAvailable,false);f.sqlite.prepare('DELETE FROM social_blocks').run();
+  f.sqlite.prepare("UPDATE live_accounts SET account_status='deleted',username=NULL WHERE id='sender'").run();const deleted=(await f.ok('recipient','/instances/'+encodeURIComponent(id))).instance;assert.equal(deleted.sender_username,null);assert.equal(deleted.senderDisclosureAvailable,false);
+ }finally{f.sqlite.close();}
+});
+test('instance inventory paging and exact reads remain bounded to the current owner after transfer and logout',async()=>{
+ const f=await fixture();try{
+  const insert=f.sqlite.prepare("INSERT INTO gift_instances(id,catalog_id,owner_id,origin_kind,created_at) VALUES(?,'gift-cup','recipient','claim',?)");for(let n=0;n<31;n++)insert.run('page-instance-'+n,n+1);
+  const first=await f.ok('recipient','/instances?offset=0'),second=await f.ok('recipient','/instances?offset=30');assert.equal(first.instances.length,30);assert.equal(first.total,31);assert.equal(first.page.hasMore,true);assert.equal(second.instances.length,1);assert.equal(second.page.hasMore,false);assert.equal(new Set([...first.instances,...second.instances].map(row=>row.id)).size,31);assert.equal((await f.ok('sender','/instances')).total,0);
+  const id=first.instances[0].id;f.sqlite.prepare("UPDATE gift_instances SET owner_id='stranger' WHERE id=?").run(id);assert.equal((await f.call('recipient','/instances/'+id)).status,404);assert.equal((await f.ok('stranger','/instances/'+id)).instance.id,id);f.sqlite.prepare("UPDATE auth_sessions SET revoked_at=1 WHERE account_id='stranger'").run();assert.equal((await f.call('stranger','/instances/'+id)).status,401);assert.equal((await f.call('recipient','/instances?offset=-1')).status,400);
+ }finally{f.sqlite.close();}
+});
 let failures=0;for(const [name,fn]of tests){try{await fn();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}
 console.log(`${tests.length-failures}/${tests.length} free cosmetics checks passed against migrated SQLite and real session authorization. No real contacts or payments were used.`);process.exitCode=failures?1:0;

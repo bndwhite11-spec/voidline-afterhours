@@ -5,9 +5,9 @@ import {authenticate,validateSessionMutation,authRateLimit,AuthError} from './au
 import {standardAttachmentMetadata} from './attachments.mjs';
 const q=(db,sql,...args)=>db.prepare(sql).bind(...args),need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
 const SCOPES=Object.freeze([
- {id:'profile',label:'My profile',description:'Your public profile fields and profile privacy preferences.'},
+ {id:'profile',label:'My profile & saved looks',description:'Your profile fields, privacy preferences and privately saved profile looks.'},
  {id:'memberships',label:'Community memberships',description:'Communities you currently belong to and your scoped role.'},
- {id:'gifts',label:'Owned gifts',description:'Your current gift instances and nonfinancial provenance references.'},
+ {id:'gifts',label:'Owned gifts & private collections',description:'Your current gift instances, private named collections and nonfinancial provenance references.'},
  {id:'badges',label:'Earned badges',description:'Your legitimate awards, definitions and current revocation state.'},
  {id:'organization',label:'Organization',description:'Your folders, conversation preferences and accessible bookmark references. No copied message text.'},
  {id:'standard-native',label:'Standard DMs and groups',description:'Currently accessible service-readable native message text, author attribution and attachment metadata.'},
@@ -29,9 +29,20 @@ async function decodeCursor(user,value,scope,now){
 }
 function dataset(scope,userId){
  const row=(time,kind,id,payload,from,where,args=[])=>({sql:`SELECT ${time} AS key_time,'${kind}' AS key_kind,${id} AS key_id,json_object(${payload}) AS payload ${from} WHERE ${where}`,args});
- if(scope==='profile')return row('a.created_at','profile','a.id',"'id',a.id,'username',a.username,'displayName',a.display_name,'bio',a.bio,'status',a.status,'avatar',a.avatar,'theme',a.theme,'createdAt',a.created_at,'updatedAt',a.updated_at,'banner',COALESCE(p.banner,'midnight'),'accent',COALESCE(p.accent,'ice'),'detailsVisibility',COALESCE(p.details_visibility,'shared'),'collectionVisibility',COALESCE(p.collection_visibility,'shared'),'animationEnabled',COALESCE(p.animation_enabled,0),'avatarMediaId',p.avatar_media_id,'bannerMediaId',p.banner_media_id",'FROM live_accounts a LEFT JOIN profile_preferences p ON p.account_id=a.id','a.id=?',[userId]);
+ if(scope==='profile'){
+  const sources=[
+   row('a.created_at','profile','a.id',"'id',a.id,'username',a.username,'displayName',a.display_name,'bio',a.bio,'status',a.status,'avatar',a.avatar,'theme',a.theme,'createdAt',a.created_at,'updatedAt',a.updated_at,'banner',COALESCE(p.banner,'midnight'),'accent',COALESCE(p.accent,'ice'),'nameStyle',COALESCE(p.name_style,'plain'),'profileFrame',COALESCE(p.profile_frame,'none'),'detailsVisibility',COALESCE(p.details_visibility,'shared'),'collectionVisibility',COALESCE(p.collection_visibility,'shared'),'animationEnabled',COALESCE(p.animation_enabled,0),'avatarMediaId',p.avatar_media_id,'bannerMediaId',p.banner_media_id",'FROM live_accounts a LEFT JOIN profile_preferences p ON p.account_id=a.id','a.id=?',[userId]),
+   row('0','profile-look','l.name',"'name',l.name,'avatar',l.avatar,'banner',l.banner,'accent',l.accent,'nameStyle',l.name_style,'profileFrame',l.profile_frame",'FROM profile_saved_looks l','l.account_id=?',[userId])
+  ];return {sql:sources.map(source=>source.sql).join(' UNION ALL '),args:sources.flatMap(source=>source.args)};
+ }
  if(scope==='memberships')return row('m.joined_at','membership','m.community_id',"'communityId',c.id,'name',c.name,'description',c.description,'icon',c.icon,'role',m.role,'ownerId',c.created_by,'joinedAt',m.joined_at",'FROM live_memberships m JOIN live_communities c ON c.id=m.community_id','m.account_id=?',[userId]);
- if(scope==='gifts')return row('g.created_at','gift','g.id',"'id',g.id,'catalogId',g.catalog_id,'originKind',g.origin_kind,'originGiftId',g.origin_gift_id,'createdAt',g.created_at,'pendingTransferId',g.pending_transfer_id",'FROM gift_instances g','g.owner_id=?',[userId]);
+ if(scope==='gifts'){
+  const sources=[
+   row('g.created_at','gift','g.id',"'id',g.id,'catalogId',g.catalog_id,'originKind',g.origin_kind,'originGiftId',g.origin_gift_id,'createdAt',g.created_at,'pendingTransferId',g.pending_transfer_id",'FROM gift_instances g','g.owner_id=?',[userId]),
+   row('c.created_at','gift-collection','c.id',"'id',c.id,'name',c.name,'revision',c.revision,'createdAt',c.created_at,'updatedAt',c.updated_at",'FROM gift_collections c','c.owner_id=?',[userId]),
+   row('i.added_at','gift-collection-item',"i.collection_id||':'||i.instance_id","'collectionId',i.collection_id,'instanceId',i.instance_id,'position',i.position,'addedAt',i.added_at",'FROM gift_collection_items i JOIN gift_collections c ON c.id=i.collection_id JOIN gift_instances g ON g.id=i.instance_id AND g.owner_id=c.owner_id','c.owner_id=? AND g.owner_id=?',[userId,userId])
+  ];return {sql:sources.map(source=>source.sql).join(' UNION ALL '),args:sources.flatMap(source=>source.args)};
+ }
  if(scope==='badges')return row('a.issued_at','badge','a.id',"'id',a.id,'badgeId',a.badge_id,'name',d.name,'meaning',d.description,'requirement',d.requirement,'issuerId',a.issuer_id,'issuedAt',a.issued_at,'reason',a.reason,'revokedAt',a.revoked_at,'definitionActive',d.active",'FROM badge_awards a JOIN badge_definitions d ON d.id=a.badge_id','a.account_id=?',[userId]);
  if(scope==='standard-native')return row('m.seq','native-message','m.id',"'id',m.id,'seq',m.seq,'conversationId',m.conversation_id,'conversationKind',c.kind,'securityMode','standard','endToEndEncrypted',json('false'),'author',json_object('id',a.id,'username',a.username,'displayName',a.display_name),'text',CASE WHEN m.deleted_at IS NULL THEN m.text ELSE '' END,'replyToId',m.reply_to_id,'createdAt',m.created_at,'editedAt',m.edited_at,'deletedAt',m.deleted_at,'revision',m.revision",'FROM native_messages m JOIN native_conversations c ON c.id=m.conversation_id JOIN native_members p ON p.conversation_id=c.id JOIN live_accounts a ON a.id=m.author_id',"p.account_id=? AND c.security_mode='standard'",[userId]);
  if(scope==='standard-community')return row('m.seq','community-message','m.id',"'id',m.id,'seq',m.seq,'communityId',c.community_id,'channelId',m.channel_id,'channelName',c.name,'securityMode','standard','endToEndEncrypted',json('false'),'author',json_object('id',a.id,'username',a.username,'displayName',a.display_name),'text',CASE WHEN m.deleted_at IS NULL THEN m.text ELSE '' END,'replyToId',m.reply_to_id,'threadRootId',m.thread_root_id,'createdAt',m.created_at,'editedAt',m.edited_at,'deletedAt',m.deleted_at,'revision',m.revision",'FROM live_messages m JOIN live_channels c ON c.id=m.channel_id JOIN live_memberships p ON p.community_id=c.community_id JOIN live_accounts a ON a.id=m.author_id','p.account_id=?',[userId]);

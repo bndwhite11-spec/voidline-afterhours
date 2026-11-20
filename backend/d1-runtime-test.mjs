@@ -8,7 +8,7 @@ import {authHash} from '../worker/auth.mjs';
 const require=createRequire(import.meta.url),wranglerRequire=createRequire(require.resolve('wrangler'));
 const {Miniflare}=await import(pathToFileURL(wranglerRequire.resolve('miniflare')).href);
 const root=new URL('../',import.meta.url),origin='https://runtime.voidline.example',now=Date.now();
-const compiled=await build({stdin:{contents:"import {handleMessagesRequest} from './worker/messages.mjs';import {handleLiveRequest} from './worker/index.mjs';import {createRealtimeService} from './worker/realtime.mjs';const realtime=createRealtimeService({pollMs:20,ttlMs:2000,heartbeatMs:200});export default {fetch(request,env){const path=new URL(request.url).pathname;return path==='/api/realtime'?realtime(request,env):path.startsWith('/api/messages')?handleMessagesRequest(request,env):handleLiveRequest(request,env);}}",resolveDir:root.pathname,loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true,write:false});
+const compiled=await build({stdin:{contents:"import {handleMessagesRequest} from './worker/messages.mjs';import {handleProfilesRequest} from './worker/profiles.mjs';import {handleProfileLooks} from './worker/profile-looks.mjs';import {handleLiveRequest} from './worker/index.mjs';import {createRealtimeService} from './worker/realtime.mjs';const realtime=createRealtimeService({pollMs:20,ttlMs:2000,heartbeatMs:200});export default {fetch(request,env){const path=new URL(request.url).pathname;if(path.startsWith('/api/profiles/'))return handleProfilesRequest(request,env);if(path.startsWith('/api/profile-looks'))return handleProfileLooks(request,env);return path==='/api/realtime'?realtime(request,env):path.startsWith('/api/messages')?handleMessagesRequest(request,env):handleLiveRequest(request,env);}}",resolveDir:root.pathname,loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true,write:false});
 const mf=new Miniflare({modules:true,script:compiled.outputFiles[0].text,compatibilityDate:'2026-05-15',d1Databases:{DB:'voidline-d1-runtime-regression'},d1Persist:false});
 let failed=0,passed=0;
 try{
@@ -23,6 +23,42 @@ try{
  await db.prepare("INSERT INTO social_requests(id,sender_id,recipient_id,state,created_at,updated_at) VALUES(?,'alice','bob','accepted',?,?)").bind(crypto.randomUUID(),now,now).run();
  async function call(user,path,body,expected=200){const session=sessions.get(user),headers={accept:'application/json',...(session?{cookie:`__Host-voidline_session=${session.token}; __Host-voidline_csrf=${session.csrf}`}:{})};if(body!==undefined)Object.assign(headers,{origin,'content-type':'application/json','x-voidline-auth':'1','x-voidline-csrf':session?.csrf||''});const response=await mf.dispatchFetch(origin+path,{method:body===undefined?'GET':'POST',headers,...(body===undefined?{}:{body:JSON.stringify({...body,expectedAccountId:user})})}),data=await response.json();assert.equal(response.status,expected,`${path}: ${response.status} ${data.error?.code||''}`);return data;}
  async function test(name,run){try{await run();passed++;console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error.stack);}}
+ await test('D1 preserves concurrent profile drafts, rejects stale same-field edits and acknowledges exact retries', async () => {
+  const path = '/api/profiles/me';
+  const {profile:base} = await call('alice',path);
+  const patch = changes => ({
+   expectedRevision:base.revision,baseValues:Object.fromEntries(Object.keys(changes).map(k => [k,base[k]])),...changes
+  });
+  const bio = patch({bio:'Shared field from the first draft'});
+  const status = patch({status:'Separate field from the second draft'});
+  await Promise.all([call('alice',path,bio),call('alice',path,status)]);
+  const {profile:merged} = await call('alice',path);
+  assert.equal(merged.bio,bio.bio);
+  assert.equal(merged.status,status.status);
+  const conflict = await call('alice',path,patch({bio:'Conflicting value'}),409);
+  assert.deepEqual(conflict.conflicts,['bio']);
+  assert.equal(conflict.profile.bio,bio.bio);
+  const {profile:retry} = await call('alice',path,bio);
+  assert.equal(retry.revision,merged.revision);
+ });
+ await test('D1 private named looks are idempotent, capped, account scoped, and independent of published profile fields', async () => {
+  const path = '/api/profile-looks';
+  const look = {name:'First look',avatar:'moon',banner:'eclipse',accent:'jade',nameStyle:'serif',profileFrame:'halo'};
+  const {profile:before} = await call('alice','/api/profiles/me');
+  await Promise.all([call('alice',path+'/save',look),call('alice',path+'/save',look)]);
+  await call('alice',path+'/save',{...look,accent:'lilac'},409);
+  await call('alice',path+'/save',{...look,profileFrame:'unknown'},400);
+  assert.deepEqual((await call('alice',path)).looks,[look]);
+  assert.deepEqual((await call('outsider',path)).looks,[]);
+  await call('outsider',path+'/remove',{name:look.name});
+  for (let slot=1;slot<12;slot++) await call('alice',path+'/save',{...look,name:'Look '+slot});
+  await call('alice',path+'/save',{...look,name:'Thirteenth'},409);
+  await call('alice',path+'/save',look);
+  assert.equal((await call('alice',path)).looks.length,12);
+  await call('alice',path+'/remove',{name:look.name});
+  assert.equal((await call('alice',path)).looks.length,11);
+  assert.equal((await call('alice','/api/profiles/me')).profile.revision,before.revision);
+ });
  await test('actual D1 trigger-inclusive metadata preserves guarded native leave acknowledgments',async()=>{
   // Confirm the actual binding's semantics using the shipped ownership trigger.
   const proof=crypto.randomUUID();await db.prepare("INSERT INTO native_conversations(id,kind,name,created_by,owner_id,client_id,request_hash,created_at,updated_at) VALUES(?,'group','Metadata proof','alice','alice',?,'proof',?,?)").bind(proof,crypto.randomUUID(),now,now).run();await db.prepare("INSERT INTO native_members(conversation_id,account_id,joined_at) VALUES(?,'alice',?)").bind(proof,now).run();
@@ -49,4 +85,4 @@ try{
   }finally{await reader.cancel();}
  });
 }catch(error){failed++;console.error('FAIL actual D1 runtime setup',error.stack);}finally{await mf.dispose();}
-console.log(`${passed}/3 workerd/D1 integration checks passed. Actual runtime, migrations and handlers; isolated session fixtures, not a browser, production or Matrix exchange.`);process.exitCode=failed?1:0;
+console.log(`${passed}/5 workerd/D1 integration checks passed. Actual runtime, migrations and handlers; isolated session fixtures, not a browser, production or Matrix exchange.`);process.exitCode=failed?1:0;

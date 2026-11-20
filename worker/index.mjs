@@ -1,7 +1,7 @@
-import {profileAvatarMediaForViewer} from './media.mjs';
+import {profileAvatarsForViewer,unavailableAvatar} from './identity.mjs';
 import {authenticate, validateSessionMutation, normalizeUsername, AuthError} from './auth.mjs';
 import {standardAttachmentIds,stagedAttachmentGuard,claimStandardAttachments,standardAttachmentMetadata} from './attachments.mjs';
-import {readProfile,profileAuthorChanges} from './profiles.mjs';
+import {readProfile,profileAuthorChanges,profileNativeAuthorChanges} from './profiles.mjs';
 /**
  * Authenticated standard-text API for Sites Workers + D1.
  * The build embeds this handler alongside the authored browser client.
@@ -159,11 +159,11 @@ async function enriched(db,messages,userId) {
   query(db,`SELECT thread_root_id,COUNT(*) AS count FROM live_messages WHERE thread_root_id IN (${slots}) AND deleted_at IS NULL GROUP BY thread_root_id`,...ids).all(),
   query(db,`SELECT message_id,account_id FROM live_message_mentions WHERE message_id IN (${slots})`,...ids).all(),
   query(db,`SELECT id,live_message_id,kind,content_type,filename,bytes,width,height FROM media_assets WHERE live_message_id IN (${slots}) AND state='attached' ORDER BY message_position,id`,...ids).all(),
-  profileAvatarMediaForViewer(db,userId,messages.map(m=>m.author_id))
+  profileAvatarsForViewer(db,userId,messages.map(m=>m.author_id))
  ]);
  const refs=[...new Set(messages.map(m=>m.reply_to_id).filter(Boolean))];
  const previews=refs.length?(await query(db,`SELECT m.id,m.text,m.deleted_at,m.thread_root_id,a.display_name AS author_name FROM live_messages m JOIN live_accounts a ON a.id=m.author_id WHERE m.id IN (${refs.map(()=>'?').join(',')})`,...refs).all()).results:[];
- return messages.map(m=>({...m,author_avatar_media_id:avatars.get(m.author_id)?.id||null,attachments:m.deleted_at?[]:media.results.filter(a=>a.live_message_id===m.id).map(standardAttachmentMetadata),mention_ids:mentions.results.filter(t=>t.message_id===m.id).map(t=>t.account_id),pinned:!!m.pinned,reactions:reactions.results.filter(r=>r.message_id===m.id).map(r=>({emoji:r.emoji,count:r.count,mine:!!r.mine})),saved:saved.results.some(r=>r.message_id===m.id),thread_count:threads.results.find(t=>t.thread_root_id===m.id)?.count||0,reply_preview:previews.find(p=>p.id===m.reply_to_id)||null}));
+ return messages.map(m=>({...m,author_avatar:(avatars.get(m.author_id)||unavailableAvatar).avatar,authorAvatarMedia:avatars.get(m.author_id)?.avatarMedia||null,author_profile_available:avatars.has(m.author_id),author_name_style:avatars.get(m.author_id)?.nameStyle||'plain',author_avatar_media_id:avatars.get(m.author_id)?.avatarMedia?.id||null,attachments:m.deleted_at?[]:media.results.filter(a=>a.live_message_id===m.id).map(standardAttachmentMetadata),mention_ids:mentions.results.filter(t=>t.message_id===m.id).map(t=>t.account_id),pinned:!!m.pinned,reactions:reactions.results.filter(r=>r.message_id===m.id).map(r=>({emoji:r.emoji,count:r.count,mine:!!r.mine})),saved:saved.results.some(r=>r.message_id===m.id),thread_count:threads.results.find(t=>t.thread_root_id===m.id)?.count||0,reply_preview:previews.find(p=>p.id===m.reply_to_id)||null}));
 }
 async function getMessage(db,id,userId) {
  const message=await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.id=?`,id).first();
@@ -221,15 +221,17 @@ export async function handleLiveRequest(request,env) {
    const theme=body.theme??old.theme,avatar=body.avatar??old.avatar;
    requireThat(['obsidian','lilac','ice'].includes(theme),400,'invalid_theme','Choose an available profile theme.');
    requireThat(['moon','orbit','spark','leaf','ghost'].includes(avatar),400,'invalid_avatar','Choose an available profile avatar.');
+   const values={displayName:{column:'display_name',value:name},bio:{column:'bio',value:bio},status:{column:'status',value:status},theme:{column:'theme',value:theme},avatar:{column:'avatar',value:avatar}},fields=Object.keys(values).filter(key=>body[key]!==undefined);
    const guard=activeSessionGuard(user,now),saved=await db.batch([
-    profileAuthorChanges(db,user,now,{displayName:name,avatar},guard),
-    query(db,'UPDATE live_accounts SET display_name=?,bio=?,status=?,theme=?,avatar=?,updated_at=? WHERE id=? AND '+guard.sql,name,bio,status,theme,avatar,now,user.id,...guard.args)
+    profileAuthorChanges(db,user,now,{...(body.displayName!==undefined?{displayName:name}:{}),...(body.avatar!==undefined?{avatar}:{})},guard),
+    profileNativeAuthorChanges(db,user,now,{...(body.displayName!==undefined?{displayName:name}:{}),...(body.avatar!==undefined?{avatar}:{})},guard),
+    query(db,'UPDATE live_accounts SET '+[...fields.map(key=>values[key].column+'=?'),'updated_at=?'].join(',')+' WHERE id=? AND '+guard.sql,...fields.map(key=>values[key].value),now,user.id,...guard.args)
    ]);
-   requireThat(saved[1]?.meta?.changes>0,409,'profile_changed','Your account access changed before the profile could be saved. Please retry.');
+   requireThat(saved[2]?.meta?.changes>0,409,'profile_changed','Your account access changed before the profile could be saved. Please retry.');
    return json({account:publicProfile(await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first())});
   }
   if(path.length===2&&path[0]==='profiles'&&method==='GET'){
-   return json({profile:await readProfile(db,user.id,path[1])});
+   return json({profile:await readProfile(db,user.id,path[1],0,user.sessionId)});
   }
   if(path.length===1&&path[0]==='communities'){
    if(method==='GET')return json({communities:(await query(db,'SELECT c.id,c.name,c.description,c.icon,c.created_at,c.ownership_repair_required,m.role FROM live_communities c JOIN live_memberships m ON m.community_id=c.id WHERE m.account_id=? ORDER BY c.created_at,c.id',user.id).all()).results});
@@ -247,7 +249,7 @@ export async function handleLiveRequest(request,env) {
     const {limit,offset}=paging(url),term=(url.searchParams.get('query')||'').trim().replace(/^@/,'');requireThat(term.length<=64,400,'invalid_search','Search for a name or username up to 64 characters.');
     const where='m.community_id=?'+(term?" AND (a.username LIKE ? ESCAPE '\\' OR a.display_name LIKE ? ESCAPE '\\')":''),args=[communityId,...(term?[literalLike(term),literalLike(term)]:[])],total=(await query(db,'SELECT COUNT(*) AS n FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE '+where,...args).first()).n;
     const members=(await query(db,'SELECT a.id,a.username,a.display_name,a.avatar,(a.account_status=\'active\' AND a.username IS NOT NULL) AS mentionable,m.role,m.joined_at,(SELECT t.expires_at FROM community_timeouts t WHERE t.community_id=m.community_id AND t.account_id=m.account_id AND t.expires_at>?) AS timeout_until FROM live_memberships m JOIN live_accounts a ON a.id=m.account_id WHERE '+where+' ORDER BY m.joined_at,a.id LIMIT ? OFFSET ?',now,...args,limit,offset).all()).results;
-    const avatars=await profileAvatarMediaForViewer(db,user.id,members.map(m=>m.id));return json({members:members.map(m=>({...m,avatarMedia:avatars.get(m.id)||null})),total,page:pageInfo(limit,offset,total)});
+    const avatars=await profileAvatarsForViewer(db,user.id,members.map(m=>m.id));return json({members:members.map(m=>({...m,...(avatars.get(m.id)||unavailableAvatar)})),total,page:pageInfo(limit,offset,total)});
    }
    if(path.length===4&&path[2]==='timeouts'){
     const target=await membership(db,communityId,path[3]);

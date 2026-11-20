@@ -45,6 +45,16 @@ function choreography(id,type,preset){
  const seed=[...id].reduce((n,c)=>(n*31+c.charCodeAt(0))>>>0,0),small=(seed%9)/100,delay=(seed%7)/100;
  const duration=type==='gift'?1450+(seed%8)*35:1000+(seed%6)*40;
  if(type!=='gift')return{duration,layers:[layer('web-image',[128,128],[{at:0},{at:.22,rotate:-3-small,scaleX:1.025,scaleY:1.025},{at:.64,rotate:1.2+small},{at:1}])]};
+ // The cassette's source has real circular reels. Keep its case intact while
+ // those exact source regions make a short tape-check turn, then settle back.
+ // Centers are measured in the credited 512px source, mapped into its200px view.
+ if(id==='gift-cassette'){
+  const centers=[[155.5,238],[351.5,238.5]].map(([x,y])=>[28+x*200/512,28+y*200/512]),radius=10.75;
+  return {duration:1540,preset:'cassette-reel-check',rects:[[28,28,200,200],...centers.map(([x,y])=>[x-radius,y-radius,radius*2,radius*2])],circles:[null,...centers.map(([cx,cy])=>({cx,cy,r:radius}))],layers:[
+   layer('web-panel-1',centers[0],[{at:0},{at:.14,rotate:-8},{at:.48,rotate:95},{at:.7,rotate:72},{at:.9,rotate:8},{at:1}]),
+   layer('web-panel-2',centers[1],[{at:0},{at:.19,rotate:-5},{at:.54,rotate:68},{at:.76,rotate:54},{at:.93,rotate:5},{at:1}])
+  ]};
+ }
  const modes={
   split:{rects:[[28,28,100,200],[128,28,100,200]],origin:[[128,128],[128,128]],poses:[{x:-15,rotate:-7},{x:15,rotate:7}]},
   fold:{rects:[[28,28,100,200],[128,28,100,200]],origin:[[128,128],[128,128]],poses:[{x:-9,scaleX:.12,rotate:-3},{x:9,scaleX:.12,rotate:3}]},
@@ -74,10 +84,16 @@ export function createWebArt(legacy,source){
  const body=prefix=>{
   const radius=legacy.type==='gift'?10:3,photo=`<image id="${prefix}-web-image" x="28" y="28" width="200" height="200" preserveAspectRatio="xMidYMid meet" href="${image.uri}"/>`,frame=`<rect x="27" y="27" width="202" height="202" rx="${radius}" fill="#11161d" stroke="#37424c" stroke-width="1.5"/>`,clip=`<clipPath id="${prefix}-web-bound"><rect x="28" y="28" width="200" height="200" rx="${radius}"/></clipPath>`;
   if(legacy.type!=='gift')return`<defs>${photo}${clip}</defs>${frame}<g data-part="web-image"><use href="#${prefix}-web-image" clip-path="url(#${prefix}-web-bound)"/></g>`;
-  const panels=motion.rects.map((r,i)=>`<clipPath id="${prefix}-web-panel-${i}"><rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}"/></clipPath>`).join('');
+  const panels=motion.rects.map((r,i)=>{
+   const circle=motion.circles?.[i],holes=motion.circles?.filter(Boolean),cutouts=holes?.map(({cx,cy,r})=>`M${cx-r} ${cy}a${r} ${r} 0 1 0 ${r*2} 0a${r} ${r} 0 1 0 ${-r*2} 0Z`).join('');
+   // Remove the reel regions from the stationary base too. Transparent reel
+   // centers must not reveal a second, unmoving copy of the original teeth.
+   const shape=circle?`<circle cx="${circle.cx}" cy="${circle.cy}" r="${circle.r}"/>`:i===0&&cutouts?`<path clip-rule="evenodd" fill-rule="evenodd" d="M28 28H228V228H28Z${cutouts}"/>`:`<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}"/>`;
+   return`<clipPath id="${prefix}-web-panel-${i}">${shape}</clipPath>`;
+  }).join('');
   return`<defs>${photo}${clip}${panels}</defs>${frame}<g clip-path="url(#${prefix}-web-bound)">${motion.rects.map((_r,i)=>`<g data-part="web-panel-${i}"><use href="#${prefix}-web-image" clip-path="url(#${prefix}-web-panel-${i})"/></g>`).join('')}</g>`;
  };
  const silhouette=prefix=>`<defs><filter id="${prefix}-web-silhouette" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 .063 0 0 0 0 .086 0 0 0 0 .114 0 0 0 1 0"/></filter></defs><image x="28" y="28" width="200" height="200" preserveAspectRatio="xMidYMid meet" filter="url(#${prefix}-web-silhouette)" href="${mini.uri}"/>`;
- const {rects,preset,...publicMotion}=motion;
+ const {rects,circles,preset,...publicMotion}=motion;
  return Object.freeze({...legacy,material:source.material||'Web-sourced '+image.mime.slice(6).toUpperCase()+' artwork',alt:source.alt,mini:`<image x="0" y="0" width="24" height="24" preserveAspectRatio="xMidYMid meet" href="${mini.uri}"/>`,body,silhouette,motion:publicMotion,sourceArt,revealPreset:preset||'badge response'});
 }

@@ -30,7 +30,7 @@ const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // never an executable production fallback or automatically loaded fixture.
 const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','startup.css','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
-  'organize.js','organize.css','profiles-panel.js','profiles-panel.css','admin.js','admin.css','passkey-client.js',
+  'organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
 const release = JSON.parse(await readFile(path.join(output,'downloads/voidline-release.json'),'utf8'));
 if(!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(release.tag)||release.android?.filename!=='VOIDLINE-Android.apk'||!/^app\.voidline\.afterhours$/.test(release.android?.packageId||''))throw Error('Native release metadata is incomplete.');
@@ -376,6 +376,10 @@ async function legacyArtworkAliases() {
     aliases['/art/v3/'+filename]=target;
   }
   aliases['/art/v3/manifest.json']='/art/v4/manifest.json';
+  // Version 28 manifests can remain open while the cassette animation updates.
+  const cassette = byId.get('gift-cassette').variants;
+  aliases['/art/v4/gift-cassette-card.36e6120e3ff6.svg'] = cassette.card.url;
+  aliases['/art/v4/gift-cassette-detail.be18797dc5bf.svg'] = cassette.detail.url;
   return aliases;
 }
 const legacyArtAliases=await legacyArtworkAliases();
@@ -476,6 +480,8 @@ async function serveVoidline(request, env, ctx) {
   if (url.pathname==='/api/admin'||url.pathname.startsWith('/api/admin/')) return apiResponse(request,env,ctx,handleAdminRequest);
   if (url.pathname==='/api/messages'||url.pathname.startsWith('/api/messages/')) return apiResponse(request,env,ctx,handleMessagesRequest);
   if (url.pathname==='/api/organize'||url.pathname.startsWith('/api/organize/')) return apiResponse(request,env,ctx,handleOrganizeRequest);
+  if (url.pathname === '/api/profile-looks' || url.pathname.startsWith('/api/profile-looks/')) return apiResponse(request,env,ctx,handleProfileLooks);
+  if (url.pathname === '/api/gift-collections' || url.pathname.startsWith('/api/gift-collections/')) return apiResponse(request,env,ctx,handleGiftCollectionsRequest);
   if (url.pathname.startsWith('/api/profiles/')) return apiResponse(request,env,ctx,handleProfilesRequest);
   if (url.pathname.startsWith('/api/cosmetics/')) return apiResponse(request,env,ctx,handleCosmeticsRequest);
   if (url.pathname==='/api/social'||url.pathname.startsWith('/api/social/')) return apiResponse(request,env,ctx,handleSocialRequest);
@@ -546,7 +552,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfileLooks} from './worker/profile-looks.mjs';\nimport {handleGiftCollectionsRequest} from './worker/gift-collections.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

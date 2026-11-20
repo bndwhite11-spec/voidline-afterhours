@@ -50,9 +50,15 @@ profiles, privacy and persistent account/ownership rules remain. See
  docs/UPGRADE-STATUS.md and docs/WEB-ART-SOURCES.md for exact evidence and scope.
 
 PROFILE IMAGES
-Open your profile > Edit profile. Under Avatar or Banner, choose Upload image or
-GIF. For a still image, adjust the crop and choose Use this crop. For a GIF, choose
-Use this GIF. Then choose Save profile to publish the change; uploading alone does
+Open your profile > Edit profile. The studio groups controls into Identity,
+Images, Style, Decorations, Showcase and Visibility. Its live preview combines
+your choices; on a narrow screen, use Edit and Preview to switch views.
+Under Images > Avatar or Banner, choose Upload image or GIF. For a still image,
+adjust the crop and choose Use this crop. For a GIF, inspect the real local poster
+and choose Play GIF to preview motion, then Pause GIF to return to its poster.
+The selected preview uses the saved centered fit: square avatar or 3:1 banner.
+Choose Use this GIF to upload the unchanged original. Then Save profile publishes
+the change; uploading alone does
 not replace your saved profile. The image editor brings its confirmation controls
 into view. Selection, upload and save states appear beside the image tools; a
 failed selection displays an error rather than claiming the image was saved.
@@ -77,6 +83,14 @@ Profiles initially show a still first frame. Choose Play GIFs on a profile to
 animate its avatar/banner, or Pause GIFs to stop. Inline message/list avatars
 stay still. Reduced-motion settings take priority. Allow GIF playback on my
 profile appears when a GIF is selected; turning it off removes the Play control.
+Local selection playback also stops when hidden, offscreen, replaced or canceled.
+
+Use Showcase to arrange up to three owned gifts. Removing a showcase slot keeps
+the gift in your inventory. Visibility separates profile details from collection
+and showcase access. An avatar remains basic identity for permitted friends and
+shared-community viewers; the banner follows the profile-details audience.
+Public means signed-in viewers, and blocking takes priority. Audience previews
+illustrate those rules; they do not sign in as another person or publish a draft.
 
 MESSAGING AND PRIVACY
 Standard messages and their private R2 attachments are service-readable. HTTPS,
