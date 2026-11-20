@@ -93,7 +93,10 @@ def main():
     tools = sdk / 'build-tools/35.0.0'
     if not (tools / 'apksigner').is_file():
         raise RuntimeError('Android SDK build-tools 35.0.0 are required.')
-    version = os.environ.get('VOIDLINE_ANDROID_VERSION_NAME', '1.0.1')
+    version = os.environ.get('VOIDLINE_ANDROID_VERSION_NAME', '1.0.2')
+    code = os.environ.get('VOIDLINE_ANDROID_VERSION_CODE', '3')
+    if not re.fullmatch(r'[1-9][0-9]{0,8}', code):
+        raise RuntimeError('Use a positive Android version code of up to nine digits.')
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-.][A-Za-z0-9.-]+)?', version):
         raise RuntimeError('Use a semantic Android version name.')
     environment = {**os.environ, 'VOIDLINE_ANDROID_SIGNING_FILE': str(settings)}
@@ -109,8 +112,12 @@ def main():
     if expected not in verification.lower():
         raise RuntimeError('The APK was not signed by the preserved release key.')
     badging = run([str(tools / 'aapt'), 'dump', 'badging', str(source)], capture_output=True, text=True, env=environment).stdout
-    if f"package: name='{APP_ID}'" not in badging or 'application-debuggable' in badging:
-        raise RuntimeError('Unexpected APK package or debuggable release.')
+    package = next((line for line in badging.splitlines() if line.startswith('package: ')), '')
+    attributes = dict(re.findall(r"([a-zA-Z]+)='([^']*)'", package))
+    if (attributes.get('name'), attributes.get('versionName'), attributes.get('versionCode')) != (APP_ID, version, code):
+        raise RuntimeError('The signed Android package does not match the requested app ID and version.')
+    if 'application-debuggable' in badging:
+        raise RuntimeError('The signed Android release is debuggable.')
     if "sdkVersion:'24'" not in badging or "targetSdkVersion:'36'" not in badging:
         raise RuntimeError('Unexpected Android SDK compatibility.')
     run([str(tools / 'zipalign'), '-c', '-P', '16', '4', str(source)], capture_output=True, env=environment)
@@ -120,7 +127,7 @@ def main():
     shutil.copyfile(source, artifact)
     checksum = hashlib.sha256(artifact.read_bytes()).hexdigest()
     (output / (artifact.name + '.sha256')).write_text(checksum + '  ' + artifact.name + '\n')
-    metadata = {**public, 'versionName': version, 'versionCode': int(os.environ.get('VOIDLINE_ANDROID_VERSION_CODE', '2')),
+    metadata = {**public, 'versionName': version, 'versionCode': int(code),
                 'file': artifact.name, 'bytes': artifact.stat().st_size, 'sha256': checksum,
                 'verified': ['apksigner-signature-and-public-certificate', 'release-not-debuggable', 'package-and-sdk-levels', 'zipalign-16kb'],
                 'deviceTesting': 'not-performed'}

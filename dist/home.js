@@ -143,7 +143,7 @@
     }
     return `<aside class="vh-sidebar" aria-label="${state.view==='servers'?'Community navigation':'Conversations'}"><header><h2>${selected&&state.view==='servers'?esc(selected.name):state.view==='servers'?'Communities':'Messages'}</h2><button class="vh-icon-button" data-home="${state.view==='servers'?'create':'friend'}" aria-label="${state.view==='servers'?'Create a community':'Find someone'}">${icon('plus')}</button></header><div class="vh-sidebar-scroll">${content}<div class="vh-sidebar-tools">${extensions.some(module=>module.id==='organization')?'':`<button class="vh-nav-item" data-home="saved">${icon('bookmark')} Saved</button><button class="vh-nav-item" data-home="inbox">${icon('inbox')} Inbox</button>`}${extensions.map(module=>module.navHTML?.()||'').join('')}</div></div><footer><span class="vh-avatar" data-tone="${avatarTone(state.account.id)}">${avatarHTML(state.account,state.account.displayName)}</span><button data-home="you"><b>${esc(state.account.displayName)}</b><small>@${esc(state.account.username)}</small></button></footer><div class="vh-sidebar-resize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize conversation list" aria-valuemin="260" aria-valuemax="320" aria-valuenow="${sidebarWidth()}"></div></aside>`;
   }
-  function accountPage() {return `<div class="vh-page-content"><header class="vh-page-header"><span class="vh-eyebrow">ACCOUNT</span><h1>Your profile</h1><p>Your identity, preferences, devices and data.</p></header>${profileHTML(state.account)}${extensions.map(module=>module.accountHTML?.()||'').join('')}<div class="vh-settings-list"><button data-home="profile">${icon('you')}<span><b>Profile</b><small>Display name, bio and avatar mark</small></span>${icon('arrow')}</button><button data-home="appearance">${icon('settings')}<span><b>Appearance & accessibility</b><small>Font size, contrast and motion</small></span>${icon('arrow')}</button><button data-home="change-password">${icon('shield')}<span><b>Password</b><small>Change your account password</small></span>${icon('arrow')}</button><button data-home="security">${icon('shield')}<span><b>Devices & security</b><small>Sessions, verification and recovery status</small></span>${icon('arrow')}</button><button data-home="saved">${icon('bookmark')}<span><b>Saved Messages</b><small>Your personal utility, separate from chats</small></span>${icon('arrow')}</button><button data-home="data">${icon('download')}<span><b>Data & previous archive</b><small>Deliberate recovery and export</small></span>${icon('arrow')}</button><button data-home="logout">${icon('signout')}<span><b>Sign out</b><small>Lock account content on this device</small></span></button></div></div>`;}
+  function accountPage() {return `<div class="vh-page-content"><header class="vh-page-header"><span class="vh-eyebrow">ACCOUNT</span><h1>Your profile</h1><p>Your identity, preferences, devices and data.</p></header>${profileHTML(state.account)}${extensions.map(module=>module.accountHTML?.()||'').join('')}<div class="vh-settings-list"><button data-home="profile">${icon('you')}<span><b>Profile</b><small>Display name, bio and avatar mark</small></span>${icon('arrow')}</button><button data-home="appearance">${icon('settings')}<span><b>Appearance & accessibility</b><small>Colors, message spacing, text size and motion</small></span>${icon('arrow')}</button><button data-home="change-password">${icon('shield')}<span><b>Password</b><small>Change your account password</small></span>${icon('arrow')}</button><button data-home="security">${icon('shield')}<span><b>Devices & security</b><small>Sessions, verification and recovery status</small></span>${icon('arrow')}</button><button data-home="saved">${icon('bookmark')}<span><b>Saved Messages</b><small>Your personal utility, separate from chats</small></span>${icon('arrow')}</button><button data-home="data">${icon('download')}<span><b>Data & previous archive</b><small>Deliberate recovery and export</small></span>${icon('arrow')}</button><button data-home="logout">${icon('signout')}<span><b>Sign out</b><small>Lock account content on this device</small></span></button></div></div>`;}
   function conversation(){return nativeConversationView();}
   function destinationEmpty(){if(!state.communities.length&&!state.secureRooms.length&&!state.nativeConversations.length&&!state.nativeListPage.offset)return emptyHome();return `<div class="vh-empty"><span class="vh-empty-mark">${icon(state.view==='servers'?'servers':'chats')}</span><span class="vh-eyebrow">YOUR WORKSPACE</span><h1>${state.view==='servers'?(community()?'Choose a channel.':'Choose a server'):'Select a chat'}</h1><p>${state.view==='servers'?'Open a community and choose a text channel.':'Choose a conversation from your list, or start a message with a friend.'}</p><button class="vh-secondary" data-home="${state.view==='servers'?'join':'new-message'}">${state.view==='servers'?'Join another server':'New message'}</button></div>`;}
   const pageExtension = name => extensions.find(module=>module.pageId===name&&typeof module.pageHTML==='function');
@@ -521,8 +521,111 @@
   function view(name){captureNativeDraft();captureSecureDraft();state.nativeId=null;state.nativeMode=null;state.generation++;setDestinationView(name);state.secureRoomId=null;state.secureMessages=[];state.channelId=null;state.communityId=null;state.channels=[];state.messages=[];state.members=[];state.error='';closeDialog(false);render();remember();pushRoute('#'+name);$('home-main')?.focus();}
   async function security(){const current=guard();const ticket=showDialog('Devices & security.','Account sessions and encryption devices have different purposes.',`<div id="home-security" role="status">Loading your sessions…</div>${formError}`);try{const data=await request('/api/auth/devices');let passkeys={passkeys:[]};try{passkeys=await request('/api/security/passkeys');}catch(error){passkeys.error=error.message;}if(!current()||ticket!==state.dialogGeneration)return;const target=$('home-security');if(!target)return;target.innerHTML=`<div class="vh-note"><b>${secureReady()?'Encrypted messaging connected':'Encrypted messaging not connected'}</b><p>${secureReady()?'Messaging identity: '+esc(state.secureStatus.userId)+' / '+esc(state.secureStatus.deviceId):'No verified messaging keys are enrolled through this account session.'}</p><p>Voidline login sessions are separate from messaging devices. Revoking a session locks this app; it does not revoke a Matrix token used by another client.</p></div><div class="vh-dialog-actions">${secureReady()?'<button class="vh-secondary" data-home="secure-verify">Verify devices</button><button class="vh-secondary" data-home="secure-fingerprint">This device fingerprint</button><button class="vh-secondary" data-home="secure-recovery">Set up recovery</button><button class="vh-secondary" data-home="secure-restore">Restore backup</button><button class="vh-danger" data-home="secure-disconnect-confirm">Disconnect messaging</button>':'<button class="vh-primary" data-home="secure-connect">Connect encrypted messaging</button>'}</div><h3>Passkeys</h3><p>Use a device passkey for sensitive account and owner actions. Your password and message recovery remain separate.</p><div class="vh-dialog-actions"><button class="vh-secondary" data-home="passkey-enroll">Add passkey</button><button class="vh-secondary" data-home="passkey-verify">Verify with passkey</button></div><ul class="vh-passkey-list">${(passkeys.passkeys||[]).map(key=>`<li><b>${esc(key.name||'Passkey')}</b><span>Added ${esc(time(key.createdAt))}</span><button class="vh-danger" data-home="passkey-remove" data-key="${esc(key.id)}">Remove</button></li>`).join('')||(passkeys.error?'<li>'+esc(passkeys.error)+'</li>':'<li>No passkeys registered.</li>')}</ul><h3>Active sessions</h3><div class="vh-result-list">${(data.devices||[]).map(d=>`<article class="vh-list-row"><div><b>${esc(d.deviceName||'Browser session')}${d.current?' · this session':''}</b><p>Last active ${esc(time(d.lastActiveAt))}</p><small>Signed in ${esc(time(d.createdAt))}</small></div><button class="vh-danger" data-home-revoke="${esc(d.id)}">${d.current?'Sign out':'Revoke session'}</button></article>`).join('')}</div><button class="vh-secondary" data-home="email-settings">Private recovery email</button><button class="vh-secondary" data-home="reauthenticate">Confirm ${passwordMethods().includes('password')?'password':'Google identity'}</button><button class="vh-secondary" data-home="change-password">${passwordMethods().includes('password')?'Change password':'Add password'}</button>`;}catch(error){if(current()&&ticket===state.dialogGeneration)errorNode(error);}}
   function profileDialog(){const p=state.account;showDialog('Edit profile','Only the information you choose is visible to other server members.',`<form class="vh-form" data-home-form="profile"><label class="vh-field">Username<input value="${esc(p.username)}" readonly></label><label class="vh-field">Display name<input name="displayName" value="${esc(p.displayName)}" minlength="2" maxlength="32" required></label><label class="vh-field">Bio<textarea name="bio" rows="3" maxlength="240">${esc(p.bio||'')}</textarea></label><label class="vh-field">Status<input name="status" value="${esc(p.status||'')}" maxlength="80"></label><div class="vh-form-grid"><label class="vh-field">Theme<select name="theme">${['obsidian','lilac','ice'].map(v=>`<option ${p.theme===v?'selected':''}>${v}</option>`).join('')}</select></label><label class="vh-field">Avatar mark<select name="avatar">${['moon','orbit','spark','leaf','ghost'].map(v=>`<option ${p.avatar===v?'selected':''}>${v}</option>`).join('')}</select></label></div>${formError}<p class="vh-note">No artifacts are granted for choosing a profile. Cosmetics do not confer staff roles.</p><button class="vh-primary" type="submit">Save profile</button></form>`);}
-  function appearance(){const p=preferences();showDialog('Appearance & accessibility','These reading preferences are saved for this account on this device.',`<form class="vh-form" data-home-form="appearance"><label class="vh-field">Text size<select name="font"><option value="15" ${p.font==='15'?'selected':''}>Comfortable · 15px</option><option value="17" ${p.font==='17'?'selected':''}>Large · 17px</option><option value="19" ${p.font==='19'?'selected':''}>Extra large · 19px</option></select></label><label class="vh-check"><input type="checkbox" name="highContrast" ${p.highContrast?'checked':''}>High contrast</label><label class="vh-check"><input type="checkbox" name="reducedMotion" ${p.reducedMotion?'checked':''}>Reduce motion</label><label class="vh-check"><input type="checkbox" name="simpleProfiles" ${p.simpleProfiles?'checked':''}>Simplify profile styles and decorations</label>${formError}<button class="vh-primary" type="submit">Save preferences</button></form>`);}
-  function preferences(){try{const p=JSON.parse(localStorage.getItem('voidline.preferences.v1.'+state.account.id)||'{}');return {font:['15','17','19'].includes(p.font)?p.font:'15',highContrast:p.highContrast===true,reducedMotion:p.reducedMotion===true,simpleProfiles:p.simpleProfiles===true};}catch(_){return {font:'15',highContrast:false,reducedMotion:false,simpleProfiles:false};}}
+  function normalizeAppearance(value) {
+    if (window.VoidTheme?.normalize) return window.VoidTheme.normalize(value);
+    // The lightweight startup fallback keeps accessibility settings when the theme module is unavailable.
+    const p = value || {};
+    return {font:['15','17','19'].includes(p.font) ? p.font : '15', highContrast:p.highContrast === true,
+      reducedMotion:p.reducedMotion === true, simpleProfiles:p.simpleProfiles === true,
+      palette:'graphite', background:'#0e1013', accent:'#cbef84', density:'comfortable'};
+  }
+  function preferences() {
+    let stored;
+    try { stored=JSON.parse(localStorage.getItem('voidline.preferences.v1.'+state.account.id)); } catch (_) {}
+    return normalizeAppearance(stored);
+  }
+  const openedAppearance = new WeakMap();
+  function appearanceValues(data) {
+    return normalizeAppearance({...data, highContrast:data.highContrast==='on',
+      reducedMotion:data.reducedMotion==='on', simpleProfiles:data.simpleProfiles==='on'});
+  }
+  function colorField(name, label, value) {
+    return `<div class="vh-color-pair"><input type="color" data-vh-picker="${name}" value="${esc(value)}" aria-label="Pick ${label.toLowerCase()}">
+      <input name="${name}" id="vh-color-${name}" aria-label="${label} hex code" type="text" value="${esc(value)}"
+        spellcheck="false" autocomplete="off" autocapitalize="off" maxlength="7" required pattern="#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})"
+        title="Use a color such as #8cabf7 or #abc"></div>`;
+  }
+  function appearance() {
+    const p=preferences(), theme=window.VoidTheme;
+    const palettes={graphite:'Graphite',midnight:'Midnight',forest:'Forest',custom:'Custom'};
+    const accents=[['Lime','#cbef84'],['Ice','#8cabf7'],['Lilac','#c9b5f7'],['Jade','#81cfb4'],['Amber','#edb974']];
+    const selectOptions=(items,value)=>Object.entries(items).map(([key,label])=>`<option value="${key}" ${value===key?'selected':''}>${label}</option>`).join('');
+    showDialog('Appearance & accessibility','Choose how VOIDLINE looks on this device. These settings are private to your account.',`
+      <form class="vh-form vh-appearance" data-home-form="appearance" data-owner-id="${esc(state.account.id)}">
+        <div class="vh-appearance-layout"><div class="vh-appearance-settings">
+          <fieldset class="vh-appearance-section"><legend>Background</legend>
+            <div class="vh-theme-presets">${Object.entries(palettes).map(([key,label])=>`<label class="vh-theme-preset">
+              <input type="radio" name="palette" value="${key}" ${p.palette===key?'checked':''}>
+              <span class="vh-theme-chip" data-palette="${key}" aria-hidden="true"></span><span>${label}</span></label>`).join('')}</div>
+            <div class="vh-custom-background" data-vh-custom ${p.palette==='custom'?'':'hidden'}>
+              <label for="vh-color-background">Custom background</label>${colorField('background','Background',p.background)}</div>
+          </fieldset>
+          <fieldset class="vh-appearance-section"><legend>Accent color</legend>
+            <div class="vh-accent-controls"><div class="vh-accent-presets" role="group" aria-label="Accent presets">${accents.map(([label,color])=>`<button type="button"
+              data-vh-accent="${color}" aria-label="${label} accent" title="${label}" aria-pressed="${p.accent===color}"><span aria-hidden="true"></span></button>`).join('')}</div>
+              ${colorField('accent','Accent',p.accent)}</div>
+            <small>VOIDLINE adjusts colors for readable text and controls.</small>
+          </fieldset>
+          <div class="vh-reading-grid">
+            <label class="vh-field">Text size<select name="font">${selectOptions({'15':'Standard','17':'Large','19':'Extra large'},p.font)}</select></label>
+            <label class="vh-field">Message spacing<select name="density">${selectOptions({comfortable:'Comfortable',compact:'Compact'},p.density)}</select></label>
+          </div>
+          <fieldset class="vh-appearance-section vh-access-options"><legend>Accessibility</legend>
+            <label class="vh-check"><input type="checkbox" name="highContrast" ${p.highContrast?'checked':''}>High contrast</label>
+            <label class="vh-check"><input type="checkbox" name="reducedMotion" ${p.reducedMotion?'checked':''}>Reduce motion</label>
+            <label class="vh-check"><input type="checkbox" name="simpleProfiles" ${p.simpleProfiles?'checked':''}>Simplify profile styles and decorations</label>
+          </fieldset>
+        </div><section class="vh-appearance-sample" aria-label="Conversation preview">
+          <h3>Live preview</h3>
+          <div class="vh-appearance-scene" data-vh-sample>
+            <div class="vh-sample-header">${icon('chats')}<strong>Messages</strong></div>
+            <div class="vh-sample-feed"><div class="vh-sample-message"><strong>${esc(state.account.displayName || state.account.username || 'You')}</strong><p>This is how your messages will look.</p></div>
+              <div class="vh-sample-message"><span class="vh-sample-tag">You</span><p>A second line shows your spacing.</p></div></div>
+          </div>
+        </section></div>
+        ${formError}<div class="vh-appearance-actions"><button type="button" class="vh-link" data-vh-defaults>Restore defaults</button>
+          <button type="button" class="vh-secondary" data-home="close-dialog">Cancel</button><button type="submit" class="vh-primary">Apply appearance</button></div>
+      </form>`);
+    const form=dialog.querySelector('[data-home-form="appearance"]');
+    if (!form) return;
+    openedAppearance.set(form,p);
+    const byName=name=>form.elements.namedItem(name);
+    const picker=name=>form.querySelector('[data-vh-picker="'+name+'"]');
+    const preview=()=>{
+      const custom=byName('palette').value==='custom';
+      form.querySelector('[data-vh-custom]').hidden=!custom;
+      // Keep the last custom color when a preset is selected, and ignore a half-typed hidden value.
+      byName('background').disabled=!custom;
+      const values=Object.fromEntries(new FormData(form));
+      if (!custom) values.background=byName('background').value;
+      if (!byName('accent').validity.valid || (custom && !byName('background').validity.valid)) return;
+      const draft=appearanceValues(values);
+      picker('background').value=draft.background; picker('accent').value=draft.accent;
+      form.querySelectorAll('[data-vh-accent]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.vhAccent===draft.accent)));
+      theme?.preview?.(form.querySelector('[data-vh-sample]'),draft);
+    };
+    const update=event=>{
+      if (event.target.dataset.vhPicker) byName(event.target.dataset.vhPicker).value=event.target.value;
+      preview();
+    };
+    form.addEventListener('input',update);
+    form.addEventListener('change',update);
+    form.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      if (button?.dataset.vhAccent) {
+        byName('accent').value=button.dataset.vhAccent;
+        preview();
+      } else if (button?.hasAttribute('data-vh-defaults')) {
+        for (const [key,value] of Object.entries(normalizeAppearance({}))) {
+          const field=byName(key);
+          if (!field) continue;
+          if (typeof value==='boolean') field.checked=value; else field.value=value;
+        }
+        preview();
+      }
+    });
+    preview();
+  }
   function sidebarWidth(){try{return Math.max(260,Math.min(320,Number(localStorage.getItem('voidline.list-width.v1.'+state.account?.id))||288));}catch(_){return 288;}}
   function applySidebarWidth(value=sidebarWidth()){const width=Math.round(Math.max(260,Math.min(320,value)));document.documentElement.style?.setProperty('--vh-list-width',width+'px');document.querySelector?.('.vh-sidebar-resize')?.setAttribute('aria-valuenow',String(width));return width;}
   function saveSidebarWidth(value){const width=applySidebarWidth(value);try{localStorage.setItem('voidline.list-width.v1.'+state.account.id,String(width));}catch(_){}return width;}
@@ -625,7 +728,17 @@
     if(kind==='preview-invite'){const token=inviteToken(data.token);if(!token)throw Error('Paste a complete Voidline invitation link or its 64-character code.');await previewInvite(token);return;}
     if(kind==='join'){const result=await request('/api/live/invites/claim',{token:form.dataset.token});if(!current()||ticket!==state.dialogGeneration)return;await refreshCommunities();if(!current())return;closeDialog();await openCommunity(result.membership.communityId,null,true);history.replaceState(null,'',location.pathname+location.search+'#servers');return;}
     if(kind==='profile'){const result=await request('/api/live/profile',data);if(!current()||ticket!==state.dialogGeneration)return;state.account={...state.account,...result.account};for(const module of extensions)module.onAccount?.(state.account);closeDialog();render();announce('Profile saved.');return;}
-    if(kind==='appearance'){const p={font:data.font,highContrast:data.highContrast==='on',reducedMotion:data.reducedMotion==='on',simpleProfiles:data.simpleProfiles==='on'};try{localStorage.setItem('voidline.preferences.v1.'+state.account.id,JSON.stringify(p));}catch(_){throw Error('This browser could not save your preferences. No success was recorded.');}closeDialog();applyPreferences();announce('Reading preferences saved.');return;}
+    if(kind==='appearance'){
+      if(!state.account || (form.dataset.ownerId && form.dataset.ownerId!==state.account.id))throw Error('Reopen Appearance for your current account.');
+      if(data.palette!=='custom' && form.elements?.namedItem('background')) data.background=form.elements.namedItem('background').value;
+      const draft=appearanceValues(data), initial=openedAppearance.get(form), next=preferences();
+      for (const [field,value] of Object.entries(draft)) {
+        if (!initial || value!==initial[field]) next[field]=value;
+      }
+      try{localStorage.setItem('voidline.preferences.v1.'+state.account.id,JSON.stringify(next));}
+      catch(_){throw Error('Could not save appearance on this device. Your choices are still here.');}
+      closeDialog();applyPreferences();announce('Appearance saved.');return;
+    }
     if(kind==='community-settings'){await request(`/api/live/communities/${encodeURIComponent(form.dataset.id)}/settings`,data);if(!current()||ticket!==state.dialogGeneration)return;await refreshCommunities();if(current()){closeDialog();render();}return;}
     if(kind==='channel'){const result=await request(`/api/live/communities/${encodeURIComponent(form.dataset.id)}/channels`,data);if(!current()||ticket!==state.dialogGeneration)return;const id=form.dataset.id;closeDialog();await openCommunity(id,result.channel.id);return;}
     if(kind==='invite'){const result=await request(`/api/live/communities/${encodeURIComponent(form.dataset.id)}/invites`,{maxUses:Number(data.maxUses),expiresInHours:Number(data.expiresInHours)});if(!current()||ticket!==state.dialogGeneration)return;const url=location.origin+location.pathname+'#join='+result.invite.token;showDialog('Invitation created','Copy this link and share it yourself. It is shown only once.',`<label class="vh-field">Invitation link<input id="home-invite-copy" value="${esc(url)}" readonly></label><p>Expires ${esc(time(result.invite.expiresAt))} · ${Number(result.invite.maxUses)} uses</p><button class="vh-primary" data-home="copy-invite">${icon('copy')}Copy invitation</button>`);return;}
@@ -937,6 +1050,9 @@
     dialog.addEventListener('cancel',event=>{event.preventDefault();closeDialog();});
     window.addEventListener('voidline:activity',event=>{receiveAccountActivity(event).catch(()=>{});});
     window.addEventListener('hashchange',restoreBrowserRoute);window.addEventListener('popstate',restoreBrowserRoute);
+    window.addEventListener('storage',event=>{
+      if(state.account && (event.key===null || event.key==='voidline.preferences.v1.'+state.account.id)) applyPreferences();
+    });
     let identityPolicy='';window.addEventListener('voidline:theme',()=>{const viewer=window.VoidTheme?.state?.()||{},policy=String(!!viewer.simpleProfiles)+':'+String(!!viewer.effectiveHighContrast);if(policy===identityPolicy)return;identityPolicy=policy;if(state.phase==='ready'){if(nativeKey())paintNative();refreshChrome();}});
     window.addEventListener('pageshow',event=>{if(event.persisted){lock();boot();}else checkSession();});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkSession();});

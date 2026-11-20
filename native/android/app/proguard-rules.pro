@@ -1,3 +1,1 @@
-# Android's default rules keep manifest entrypoints. Keep the explicit URL
-# policy method as a defense against accidental removal across ABH updates.
--keep class app.voidline.afterhours.LauncherActivity { *; }
+# Manifest entrypoints are kept by Android Gradle Plugin's default rules.

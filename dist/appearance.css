@@ -1,0 +1,40 @@
+/* Profiles keep their artwork. Dialogs, native form controls and browser
+   chrome follow the viewer's personal theme. */
+:root, [data-vh-theme-preview] {
+  --vh-profile-readable: initial;
+  --vh-button-bg: var(--vh-accent);
+  --vh-button-ink: var(--vh-accent-ink);
+  --vh-button-edge: var(--vh-accent);
+  --vh-button-hover: var(--vh-accent-hover);
+}
+[data-vh-tone="light"] { color-scheme: light; }
+[data-vh-tone="dark"] { color-scheme: dark; }
+.vh-primary {
+  background: var(--vh-button-bg);
+  color: var(--vh-button-ink);
+  border-color: var(--vh-button-edge);
+}
+.vh-primary:hover {
+  background: var(--vh-button-hover);
+  color: var(--vh-button-ink);
+  border-color: var(--vh-button-edge);
+}
+.vp-card :is(.vp-username,.vp-status,.vp-avatar) { color:var(--vh-profile-readable,var(--vp-accent)); }
+html[data-vh-tone="light"] :is(.vh-sidebar-scroll,.vh-feed,.vh-main,.vh-dialog) {
+  scrollbar-color: var(--vh-control-line) transparent;
+}
+.vp-looks { border-color:var(--vh-line); }
+.vp-looks button {
+  background:var(--vh-surface); color:var(--vh-text); border-color:var(--vh-control-line);
+}
+
+html[data-vh-density="compact"] .vh-nav-item { padding-block:5px; min-height:38px; }
+html[data-vh-density="compact"] .vh-feed .vh-message { padding-block:5px; gap:8px; }
+html[data-vh-density="compact"] .vh-feed-direct .vh-message { padding-block:1px; }
+html[data-vh-density="compact"] .vh-feed-direct .vh-message:not(.vh-message-grouped) { padding-top:4px; }
+html[data-vh-density="compact"] .vh-feed-direct .vh-message>div { padding-block:4px; }
+html[data-vh-density="compact"] #home-secure-feed .vh-message { padding-block:2px; }
+html[data-vh-density="compact"] #home-secure-feed .vh-message>div { padding-block:7px; }
+@media (pointer:coarse) {
+  html[data-vh-density="compact"] .vh-nav-item { min-height:44px; }
+}

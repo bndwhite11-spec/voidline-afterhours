@@ -30,8 +30,8 @@ Inside the app: You > Friends & requests > Add a friend > Send request. Once
 accepted, choose Message. An internet connection is required. Home Screen
 installation and physical keyboards still require actual-device acceptance.
 The APK and Windows ZIP are real application packages using the same hosted
-accounts. Android 1.0.1 updates 1.0.0 with the same signing key; choose
-Update when Android offers it. Browser-load failures have a native retry screen. They are separate from browser installation and the offline viewer.
+accounts. Android 1.0.2 uses the existing app ID and signing key. Open the
+downloaded APK and choose Update to replace 1.0.0 or 1.0.1 in place.
 No App Store or Play Store listing is claimed. Native iOS source is prepared in
 native/ios, but an installable IPA still needs an Apple team, Xcode build/signing
 and distribution. The Safari option remains available on iPhone/iPad and Mac.
@@ -53,6 +53,15 @@ PROFILE IMAGES
 Open your profile > Edit profile. The studio groups controls into Identity,
 Images, Style, Decorations, Showcase and Visibility. Its live preview combines
 your choices; on a narrow screen, use Edit and Preview to switch views.
+Open You > Appearance & accessibility to change your own view. Pick a palette
+or set custom background and accent colors, choose text size and message
+spacing, then select Apply. These settings belong to your signed-in account on
+this device. The preview lets you try a look before saving it.
+
+For the color other people see on your profile, open Edit profile > Style >
+Custom profile color. Save profile publishes the accent to permitted viewers.
+Private saved looks can also remember that color.
+
 Under Images > Avatar or Banner, choose Upload image or GIF. For a still image,
 adjust the crop and choose Use this crop. For a GIF, inspect the real local poster
 and choose Play GIF to preview motion, then Pause GIF to return to its poster.

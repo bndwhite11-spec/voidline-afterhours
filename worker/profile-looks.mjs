@@ -1,5 +1,5 @@
 import {authenticate, validateSessionMutation, authRateLimit, AuthError, readBody} from './auth.mjs';
-import {PROFILE_OPTIONS} from './profiles.mjs';
+import {PROFILE_OPTIONS, normalizeProfileAccent} from './profiles.mjs';
 
 const presetOptions = {
   avatar: PROFILE_OPTIONS.avatars, banner: PROFILE_OPTIONS.banners, accent: PROFILE_OPTIONS.accents,
@@ -47,7 +47,10 @@ export async function handleProfileLooks(request, env) {
       if (!authorization.results.length) throw new AuthError(401,'session_expired','Sign in again to manage saved looks.');
       return privateJson({removed: true});
     }
+    data.accent = normalizeProfileAccent(data.accent);
+    if (!data.accent) throw new AuthError(400,'invalid_style','Choose a profile accent preset or a six-digit hex color.');
     for (const [key, options] of Object.entries(presetOptions)) {
+      if (key === 'accent') continue;
       if (!options.includes(data[key])) throw new AuthError(400,'invalid_style','Choose a current preset.');
     }
     // Named looks capture only these preset values. A repeated save must agree

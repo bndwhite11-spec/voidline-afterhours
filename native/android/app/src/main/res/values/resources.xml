@@ -2,17 +2,10 @@
 <resources>
     <color name="voidline_background">#0E1013</color>
     <string name="asset_statements" translatable="false">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://voidline-afterhours.pipedcactus1.chatgpt.site\"}}]</string>
-    <style name="Theme.Voidline" parent="android:style/Theme.Translucent.NoTitleBar">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">@color/voidline_background</item>
-        <item name="android:navigationBarColor">@color/voidline_background</item>
-        <item name="android:windowLightNavigationBar">false</item>
-    </style>
-    <style name="Theme.Voidline.Recovery" parent="android:style/Theme.Material.NoActionBar">
+    <style name="Theme.Voidline" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/voidline_background</item>
-        <item name="android:colorAccent">#C9BAF0</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:colorAccent">#C4E49C</item>
         <item name="android:statusBarColor">@color/voidline_background</item>
         <item name="android:navigationBarColor">@color/voidline_background</item>
         <item name="android:windowLightStatusBar">false</item>

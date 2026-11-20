@@ -1,4 +1,30 @@
-# Android startup investigation and recovery
+# Android launch verification
+
+## Android 1.0.2
+
+The device recording shows Android completing the 1.0.1 update, then remaining
+on App info when Open is pressed. It does not show the state of an Android
+activity, browser binding or crash stack. For a device regression check, update
+over 1.0.1 and launch from both the installer and App info. Confirm that the
+account page or sign-in screen becomes usable, then return to the launcher and
+open the site again. Record Android version, browser version and the last screen
+visible if either launch fails.
+
+The baseline launcher from commit 799db3e reproduced a silent failure under
+Robolectric on API 35 and 36. With a browser service accepting a bind and
+withholding its reply, the launcher had no content after 45 virtual seconds.
+A subsequent Settings-style MAIN launch finished immediately. The handset
+recording cannot distinguish this path from other browser or OS failures.
+
+The replacement ran 14 scenarios on each of API 24, 28, 35 and 36. All 56
+debug and 56 release-variant JVM cases passed, including stalled binds,
+duplicate Open, explicit browser fallback, loss of foreground, late callbacks
+and recreation. Independent inspection of the signed APK verified its package
+ID, version code 3, release signature, launcher manifest and new control text
+in the optimized DEX. Physical Samsung launch, photo picker and keyboard
+behavior still need on-device verification.
+
+## Historical investigation of Android 1.0.1
 
 Version 1.0.1 (version code 2) preserves the v1.0.0 package and signing
 certificate, so it updates the existing installation. No account, browser

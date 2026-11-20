@@ -74,4 +74,40 @@ test('owner-only sender metadata does not appear on the published card when disc
 
 test('studio styles provide mobile edit/preview layout, true banner framing and viewer style overrides',()=>{const css=fs.readFileSync(path.join(__dirname,'../dist/profiles-panel.css'),'utf8');assert.match(css,/max-width:760px/);assert.match(css,/data-mobile-pane=preview[^}]*vp-edit-pane/);assert.match(css,/aspect-ratio:3\/1/);assert.match(css,/data-vh-simple-profiles=true/);assert.match(css,/vh-high-contrast/);assert.doesNotMatch(css,/vp-studio[^}]*animation\s*:/);});
 
+test('custom accent picker previews arbitrary hex, scopes the save and reloads the saved value',async()=>{
+ const f=await fixture();
+ try{
+  f.input('#vp-accent-picker','#019abe');
+  const card=f.preview.querySelector('.vp-card');
+  assert.equal(card.dataset.accent,'#019abe');
+  assert.equal(card.querySelector('.vp-custom-stripe rect').getAttribute('fill'),'#019abe');
+  assert.equal(card.querySelector('.vp-custom-outline rect').getAttribute('stroke'),'#019abe');
+  assert.equal(f.form.querySelector('#vp-accent-code').textContent,'#019ABE');
+  assert.equal(f.form.querySelectorAll('[data-field="accent"][aria-pressed="true"]').length,0);
+  assert.equal(f.posts().length,0);
+  await f.save();
+  assert.deepEqual(f.posts()[0].body,{baseValues:{accent:'ice'},expectedRevision:1,accent:'#019abe'});
+  await f.module.edit();
+  assert.equal(f.form.querySelector('#vp-accent-picker').value,'#019abe');
+  f.click('[data-field="accent"][data-value="jade"]');
+  assert.equal(f.preview.querySelector('.vp-card').dataset.accent,'jade');
+  assert.equal(f.form.querySelector('#vp-accent-picker').value,'#a5c6b1');
+ }finally{f.close();}
+});
+test('saved looks apply custom color only to the draft and private audiences omit the custom accent',async()=>{
+ const f=await fixture({detailsVisibility:'private',collectionVisibility:'private',bio:'Keep me'});
+ try{
+  f.looks[0].apply({avatar:'ghost',banner:'eclipse',accent:'#Ff0099',nameStyle:'serif',profileFrame:'line'});
+  assert.equal(f.looks[0].read().accent,'#ff0099');
+  assert.equal(f.form.querySelector('[name="bio"]').value,'Keep me');
+  assert.equal(f.posts().length,0);
+  f.input('#vp-preview-audience','friend','change');
+  assert.equal(f.preview.querySelector('.vp-card').dataset.accent,'ice');
+  assert.doesNotMatch(f.preview.innerHTML,/#ff0099/i);
+  const hostile=f.module.profileCard({...f.server,accent:'red" onmouseover="evil()'});
+  assert.doesNotMatch(hostile,/\s(?:onmouseover|style)="/i);
+  assert.match(hostile,/data-accent="ice"/);
+ }finally{f.close();}
+});
+
 (async()=>{let failures=0;for(const[name,run]of cases)try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}console.log(`${cases.length-failures}/${cases.length} profile studio checks passed. Shipped modules, jsdom events and controlled transport; browser layout, decoding, device performance and live multi-account acceptance remain separate.`);process.exitCode=failures?1:0;})();

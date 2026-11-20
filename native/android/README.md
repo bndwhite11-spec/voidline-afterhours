@@ -1,10 +1,12 @@
 # VOIDLINE for Android
 
 This project builds a signed, installable Android APK for the hosted VOIDLINE
-app. Google Android Browser Helper opens the existing HTTPS site as a Trusted
-Web Activity (TWA). The installed package supplies a launcher and verified app
-links; the user's updated browser supplies the web runtime. There is no WebView,
-native JavaScript bridge, copied login form, or embedded account credential.
+app. The launcher displays native controls before opening a browser. It selects
+a provider with Android Browser Helper and opens the existing HTTPS site using
+an AndroidX Trusted Web Activity when a session is available. If the initial
+session is unavailable or takes too long, it requests the site in an installed
+browser. On returning, the launcher offers retry and browser controls. The web
+runtime and signed-in session belong to the user's browser.
 
 The APK needs Android 7.0/API 24 or later and a compatible updated browser.
 It uses the live service, so installing it does not make shared conversations
@@ -25,7 +27,7 @@ been verified in this package.
 | Minimum SDK | 24 |
 | Java source/target | 17; build with a complete JDK 17 or 21 |
 | Application ID | `app.voidline.afterhours` |
-| Current release | `1.0.1`, version code `2` |
+| Current release | `1.0.2`, version code `3` |
 
 Transitive dependency locks and SHA-256 verification metadata are committed.
 R8 and resource shrinking reduce the installed wrapper; the release is not
@@ -65,7 +67,7 @@ selects the release output directory; the default is
 `/workspace/voidline-release/android`, outside the repository.
 
 The build verifies the actual APK with `apksigner`, checks its public signing
-certificate, package name, minimum/target SDK and non-debuggable manifest, then
+certificate, package name, version name/code, minimum/target SDK and release manifest, then
 runs `zipalign` with 16 KB page alignment. It emits the APK, a SHA-256 checksum,
 public release metadata and the signature-verification report. These checks
 establish a signed Android package; they do not replace installing it on a real

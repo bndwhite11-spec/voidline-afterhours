@@ -30,7 +30,7 @@ const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // never an executable production fallback or automatically loaded fixture.
 const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','startup.css','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
-  'organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','admin.js','admin.css','passkey-client.js',
+  'organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
 const release = JSON.parse(await readFile(path.join(output,'downloads/voidline-release.json'),'utf8'));
 if(!/^v[0-9]+\.[0-9]+\.[0-9]+$/.test(release.tag)||release.android?.filename!=='VOIDLINE-Android.apk'||!/^app\.voidline\.afterhours$/.test(release.android?.packageId||''))throw Error('Native release metadata is incomplete.');

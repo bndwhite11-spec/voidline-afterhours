@@ -1,3 +1,16 @@
+# Android update from 1.0.1
+
+The recorded Samsung device completed the 1.0.1 update. Its App info screen
+reported version 1.0.1, and several taps on Open left that screen in view.
+The recording does not include a device crash trace. Android 1.0.2 (version
+code 3) uses the existing application ID and signing certificate. Users can
+choose **Update** over the installed version and keep their browser session.
+The launcher displays its own controls before requesting a Trusted Web Activity.
+If a provider cannot supply the session, the launcher requests the site in an
+installed browser. Someone who returns from the browser can retry from that
+screen. The public installation page also gives a browser address a user can
+type directly if their device still returns them to Settings.
+
 # Android launch recovery and startup reliability
 
 Android 1.0.1 (version code 2) keeps the existing package and signing key so it

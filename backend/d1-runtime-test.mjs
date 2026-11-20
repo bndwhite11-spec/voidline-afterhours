@@ -41,6 +41,26 @@ try{
   const {profile:retry} = await call('alice',path,bio);
   assert.equal(retry.revision,merged.revision);
  });
+ await test('custom profile colors normalize, round-trip through looks, respect audiences and reject malformed color input',async()=>{
+  const profile='/api/profiles/me',looks='/api/profile-looks';
+  const {profile:base}=await call('bob',profile);
+  const {profile:saved}=await call('bob',profile,{expectedRevision:base.revision,baseValues:{accent:base.accent},accent:'#DA12EF'});
+  assert.equal(saved.accent,'#da12ef');
+  assert.equal((await call('bob',profile)).profile.accent,'#da12ef');
+  await call('bob',profile,{detailsVisibility:'public'});
+  assert.equal((await call('outsider','/api/profiles/bob')).profile.accent,'#da12ef');
+  await call('bob',profile,{detailsVisibility:'private'});
+  assert.equal((await call('alice','/api/profiles/bob')).profile.accent,undefined);
+  const look={name:'Color check',avatar:'moon',banner:'blueprint',accent:'#DA12EF',nameStyle:'plain',profileFrame:'line'};
+  assert.equal((await call('bob',looks+'/save',look)).accent,'#da12ef');
+  await call('bob',looks+'/save',{...look,accent:'#da12ef'});
+  assert.equal((await call('bob',looks)).looks[0].accent,'#da12ef');
+  for(const bad of ['#fff','#12345678','red','#012345\n','url(https://example.com)',null,123456]){
+   await call('bob',profile,{accent:bad},400);
+   await call('bob',looks+'/save',{...look,accent:bad},400);
+  }
+  assert.equal((await call('bob',profile)).profile.accent,'#da12ef');
+ });
  await test('D1 private named looks are idempotent, capped, account scoped, and independent of published profile fields', async () => {
   const path = '/api/profile-looks';
   const look = {name:'First look',avatar:'moon',banner:'eclipse',accent:'jade',nameStyle:'serif',profileFrame:'halo'};
@@ -85,4 +105,4 @@ try{
   }finally{await reader.cancel();}
  });
 }catch(error){failed++;console.error('FAIL actual D1 runtime setup',error.stack);}finally{await mf.dispose();}
-console.log(`${passed}/5 workerd/D1 integration checks passed. Actual runtime, migrations and handlers; isolated session fixtures, not a browser, production or Matrix exchange.`);process.exitCode=failed?1:0;
+console.log(`${passed}/6 workerd/D1 integration checks passed. Actual runtime, migrations and handlers; isolated session fixtures, not a browser, production or Matrix exchange.`);process.exitCode=failed?1:0;

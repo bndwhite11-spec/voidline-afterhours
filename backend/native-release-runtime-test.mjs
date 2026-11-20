@@ -9,7 +9,7 @@ const {Miniflare}=await import(pathToFileURL(wranglerRequire.resolve('miniflare'
 const hash=value=>createHash('sha256').update(value).digest('hex'),partBytes=5*1024*1024;
 const windows=Buffer.alloc(partBytes+37,0x61);windows.set(Buffer.from('PK\x03\x04'));const source=Buffer.from('PK\x03\x04source archive fixture');
 const release={tag:'v1.0.1',windows:{bytes:windows.length,sha256:hash(windows)}},token='isolated-native-release-token-'+crypto.randomUUID();
-const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';export default{fetch(request,env){if(request.headers.get('x-fixture-no-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:undefined};if(request.headers.get('x-fixture-disabled-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:'disabled'};return handleNativeReleaseRequest(request,env,${JSON.stringify(release)});}}`,resolveDir:new URL('../',import.meta.url).pathname,loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true});
+const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';export default{fetch(request,env){if(request.headers.get('x-fixture-no-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:undefined};if(request.headers.get('x-fixture-disabled-token'))env={...env,NATIVE_RELEASE_UPLOAD_TOKEN:'disabled'};const release=${JSON.stringify(release)};if(request.headers.has('x-fixture-next-release')){release.windows.reuseTag=release.tag;release.tag='v1.0.2';if(request.headers.has('x-fixture-new-windows'))release.windows.sha256='0'.repeat(64);}return handleNativeReleaseRequest(request,env,release);}}`,resolveDir:new URL('../',import.meta.url).pathname,loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true});
 const mf=new Miniflare({modules:true,script:compiled.outputFiles[0].text,compatibilityDate:'2026-05-15',r2Buckets:{MEDIA:'isolated-native-release-runtime'},r2Persist:false,bindings:{NATIVE_RELEASE_UPLOAD_TOKEN:token}});
 let passed=0,failed=0;
 async function test(name,run){try{await run();passed++;console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error.stack);}}
@@ -69,6 +69,14 @@ try{
   for(const range of ['bytes='+String(windows.length)+'-','bytes=-0','bytes=6-2','bytes=0-1,3-4','bytes=-','items=0-3']){const response=await raw('/downloads/VOIDLINE-Windows-x64.zip',undefined,{headers:{range}});assert.equal(response.status,416);assert.equal(response.headers.get('content-range'),'bytes */'+windows.length);assert.equal((await response.arrayBuffer()).byteLength,0);}
   const matched=await raw('/downloads/VOIDLINE-Windows-x64.zip',undefined,{headers:{range:'bytes=0-3','if-range':globalThis.testETag}});assert.equal(matched.status,206);assert.equal((await matched.arrayBuffer()).byteLength,4);
   const stale=await raw('/downloads/VOIDLINE-Windows-x64.zip',undefined,{headers:{range:'bytes=0-3','if-range':'"old"'}});assert.equal(stale.status,200);assert.equal((await stale.arrayBuffer()).byteLength,windows.length);
+ });
+ await test('web and Android releases can reuse only the exact pinned Windows archive',async()=>{
+  const path='/downloads/VOIDLINE-Windows-x64.zip',headers={'x-fixture-next-release':'1',range:'bytes=0-3'};
+  const reused=await raw(path,undefined,{headers});
+  assert.equal(reused.status,206);
+  assert.deepEqual(Buffer.from(await reused.arrayBuffer()),windows.subarray(0,4));
+  assert.equal((await raw(path,undefined,{headers:{...headers,'x-fixture-new-windows':'1'}})).status,409);
+  assert.equal((await raw('/downloads/voidline-source.zip',undefined,{headers})).status,404);
  });
  await test('concurrent different bytes for one part cannot desynchronize acknowledged metadata from the R2 multipart object',async()=>{
   const id=await start('voidline-source.zip',source),other=Buffer.alloc(source.length,0x62);

@@ -4,200 +4,375 @@ import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Application;
-import android.content.Intent;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.content.res.TypedArray;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
+import android.view.View;
+import android.widget.TextView;
 import androidx.browser.customtabs.CustomTabsCallback;
 import androidx.browser.customtabs.CustomTabsService;
 import androidx.browser.customtabs.CustomTabsSessionToken;
-import com.google.androidbrowserhelper.trusted.QualityEnforcer;
-import org.junit.Before;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implements;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.shadows.ShadowContextImpl;
 import org.robolectric.annotation.LooperMode;
+import org.robolectric.shadows.ShadowPackageManager;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {24, 28, 35, 36})
 @LooperMode(LooperMode.Mode.PAUSED)
 public class LauncherRecoveryTest {
+    private static final String BROWSER = "org.example.trustedbrowser";
+    private static final String TRUSTED = "android.support.customtabs.extra.LAUNCH_AS_TRUSTED_WEB_ACTIVITY";
+    private static final ComponentName SERVICE = new ComponentName(BROWSER, BROWSER + ".Service");
     private Application app;
-    private final java.util.List<org.robolectric.android.controller.ActivityController<?>> activities = new java.util.ArrayList<>();
+    private final List<ActivityController<LauncherActivity>> activities = new ArrayList<>();
+    private ServiceController<FixtureBrowserService> browserService;
 
-    @Before public void reset() {
+    @Before public void begin() {
         app = RuntimeEnvironment.getApplication();
-        LaunchRecovery.clear(app);
-        while (shadowOf(app).getNextStartedActivity() != null) { }
+        shadowOf(app).clearNextStartedActivities();
+        SlowBrowser.connected.clear();
+        SlowBrowser.last = null;
     }
 
-    @After public void destroyActivities() {
-        for (org.robolectric.android.controller.ActivityController<?> controller : activities) controller.destroy();
+    @After public void finish() {
+        for (ActivityController<LauncherActivity> c : activities) {
+            if (!c.get().isDestroyed()) c.destroy();
+        }
+        if (browserService != null) browserService.destroy();
     }
 
-    @Test public void upstreamDefaultCallbackReproducesMainThreadProcessCrash() {
-        Bundle reason = new Bundle(); reason.putString("crash_reason", "Isolated failed navigation fixture");
-        new QualityEnforcer().extraCallbackWithResult("quality_enforcement.crash", reason);
-        RuntimeException failure = assertThrows(RuntimeException.class, () -> shadowOf(Looper.getMainLooper()).idle());
-        assertTrue(failure.getMessage().contains("Isolated failed navigation fixture"));
+    private Intent main() {
+        return new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
     }
 
-    @Test public void ourQualityFailureShowsRecoveryWithoutMainThreadCrashOrFalseSuccess() {
-        LauncherActivity activity = Robolectric.buildActivity(LauncherActivity.class).get();
-        CustomTabsCallback callback = activity.getCustomTabsCallback();
-        assertFalse(callback instanceof QualityEnforcer);
-        Bundle reason = new Bundle(); reason.putString("crash_reason", "Do not persist private URLs from a browser error");
-        assertFalse(callback.extraCallbackWithResult("quality_enforcement.crash", reason).getBoolean("success"));
+    private ActivityController<LauncherActivity> open(Intent intent, Bundle savedState) {
+        ActivityController<LauncherActivity> c = Robolectric.buildActivity(LauncherActivity.class, intent);
+        activities.add(c);
+        c.create(savedState).start().resume();
+        return c;
+    }
+
+    private static void idle() {
         shadowOf(Looper.getMainLooper()).idle();
-        Intent recovery = shadowOf(app).getNextStartedActivity();
-        assertEquals(RecoveryActivity.class.getName(), recovery.getComponent().getClassName());
-        assertNull(recovery.getData()); assertNull(recovery.getExtras());
-        assertTrue(LaunchRecovery.hasPending(app));
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_FAILED, null);
-        shadowOf(Looper.getMainLooper()).idle();
-        assertNull(shadowOf(app).getNextStartedActivity());
     }
 
-    @Test public void ordinaryNavigationFailureRecoversButCancellationDoesNotInventFailure() {
-        RecoverableTabsCallback callback = new RecoverableTabsCallback(app);
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_ABORTED, null);
-        shadowOf(Looper.getMainLooper()).idle(); assertFalse(LaunchRecovery.hasPending(app));
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_FAILED, null);
-        shadowOf(Looper.getMainLooper()).idle(); assertTrue(LaunchRecovery.hasPending(app));
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_FINISHED, null);
-        assertFalse(LaunchRecovery.hasPending(app));
+    private static void afterTimeout() {
+        shadowOf(Looper.getMainLooper()).idleFor(10, TimeUnit.SECONDS);
     }
 
-    @Test public void aLaterSuccessfulNavigationCancelsAlreadyQueuedRecoveryAndAllowsFutureFailures() {
-        RecoverableTabsCallback callback = new RecoverableTabsCallback(app);
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_FAILED, null);
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_FINISHED, null);
-        shadowOf(Looper.getMainLooper()).idle();
-        assertNull(shadowOf(app).getNextStartedActivity()); assertFalse(LaunchRecovery.hasPending(app));
-        callback.onNavigationEvent(CustomTabsCallback.NAVIGATION_FAILED, null);
-        shadowOf(Looper.getMainLooper()).idle();
-        assertEquals(RecoveryActivity.class.getName(), shadowOf(app).getNextStartedActivity().getComponent().getClassName());
+    private static String status(LauncherActivity activity) {
+        TextView text = activity.findViewById(LauncherActivity.STATUS_ID);
+        return text.getText().toString().toLowerCase(Locale.ROOT);
     }
 
-    @Test public void downloadedPackageAndUntrustedIntentsNeverBecomeTheTwaStartPage() {
-        LauncherActivity activity = Robolectric.buildActivity(LauncherActivity.class).get();
-        for (String value : new String[]{"https://" + LauncherActivity.HOST + "/downloads/VOIDLINE-Android.apk", "https://" + LauncherActivity.HOST + "/downloads/voidline-source.zip", "https://" + LauncherActivity.HOST + "/api/native-release-upload/start", "https://other.example/", "http://" + LauncherActivity.HOST + "/", "https://user@" + LauncherActivity.HOST + "/"}) {
-            activity.setIntent(new Intent(Intent.ACTION_VIEW, Uri.parse(value)));
+    private void assertControls(LauncherActivity activity) {
+        assertFalse("A failed launch must leave an activity with controls", activity.isFinishing());
+        for (int id : new int[]{LauncherActivity.RETRY_ID, LauncherActivity.BROWSER_ID}) {
+            View v = activity.findViewById(id);
+            assertNotNull("Missing launcher control", v);
+            assertEquals(View.VISIBLE, v.getVisibility());
+        }
+        assertFalse("Explain the current launch state", status(activity).isEmpty());
+    }
+
+    private void installBrowser(String pkg) {
+        ResolveInfo browser = new ResolveInfo();
+        browser.activityInfo = new ActivityInfo();
+        browser.activityInfo.packageName = pkg;
+        browser.activityInfo.name = pkg + ".Main";
+        browser.activityInfo.exported = true;
+        browser.isDefault = true;
+        ShadowPackageManager packages = shadowOf(app.getPackageManager());
+        for (String scheme : new String[]{"http", "https"}) {
+            packages.addResolveInfoForIntent(new Intent(Intent.ACTION_VIEW, Uri.fromParts(scheme, "", null))
+                    .addCategory(Intent.CATEGORY_BROWSABLE), browser);
+        }
+    }
+
+    private void installTrustedBrowser() {
+        installBrowser(BROWSER);
+        ResolveInfo service = new ResolveInfo();
+        service.serviceInfo = new ServiceInfo();
+        service.serviceInfo.packageName = BROWSER;
+        service.serviceInfo.name = SERVICE.getClassName();
+        service.serviceInfo.exported = true;
+        service.filter = new IntentFilter(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION);
+        service.filter.addCategory("androidx.browser.trusted.category.TrustedWebActivities");
+        Intent bind = new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION);
+        shadowOf(app.getPackageManager()).addResolveInfoForIntent(bind, service);
+        browserService = Robolectric.buildService(FixtureBrowserService.class).create();
+        shadowOf(app).setComponentNameAndServiceForBindService(SERVICE, browserService.get().onBind(bind));
+    }
+
+    private Intent next() {
+        return shadowOf(app).getNextStartedActivity();
+    }
+
+    private void assertBrowser(Intent sent, Uri url, boolean trusted) {
+        assertNotNull("The external browser should receive the page", sent);
+        assertEquals(Intent.ACTION_VIEW, sent.getAction());
+        assertEquals(url, sent.getData());
+        assertEquals(BROWSER, sent.getPackage());
+        assertEquals(trusted, sent.getBooleanExtra(TRUSTED, false));
+        if (!trusted) assertTrue(sent.hasCategory(Intent.CATEGORY_BROWSABLE));
+    }
+
+    @Test public void settingsAndInstallerMainLaunchWithoutTaskFlagsShowAnOpaqueForeground() {
+        LauncherActivity activity = open(main(), null).get();
+        idle();
+        assertControls(activity);
+        assertTrue(status(activity).contains("browser"));
+        TypedArray theme = activity.obtainStyledAttributes(new int[]{android.R.attr.windowIsTranslucent});
+        try { assertFalse(theme.getBoolean(0, false)); } finally { theme.recycle(); }
+        assertNull("No silent activity bounce on the first MAIN", next());
+    }
+
+    @Test public void repeatedMainWhileAnEarlierLauncherExistsNeverFinishesTheNewEntry() {
+        LauncherActivity previous = open(main().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), null).get();
+        idle();
+        LauncherActivity again = open(main(), null).get();
+        idle();
+        assertControls(previous);
+        assertControls(again);
+        assertNull(next());
+    }
+
+    @Test public void stateSavedByOlderBrowserHelperRemainsRecoverableAfterAnUpgrade() {
+        Bundle oldState = new Bundle();
+        oldState.putBoolean("android.support.customtabs.trusted.BROWSER_WAS_LAUNCHED_KEY", true);
+        LauncherActivity activity = open(main(), oldState).get();
+        idle();
+        assertControls(activity);
+        assertNull(next());
+        installBrowser(BROWSER);
+        activity.findViewById(LauncherActivity.RETRY_ID).performClick();
+        idle();
+        assertBrowser(next(), LauncherActivity.HOME, false);
+        assertNull(next());
+    }
+
+    @Test public void unrelatedOrDownloadUrlsAreNeverUsedAsTrustedStartPages() {
+        LauncherActivity activity = open(main(), null).get();
+        for (String url : new String[]{
+                "https://" + LauncherActivity.HOST + "/downloads/VOIDLINE-Android.apk?v=1.0.1",
+                "https://" + LauncherActivity.HOST + "/downloads/voidline-source.zip",
+                "https://" + LauncherActivity.HOST + "/api/native-release-upload/start",
+                "https://" + LauncherActivity.HOST + ":444/", "http://" + LauncherActivity.HOST + "/",
+                "https://user@" + LauncherActivity.HOST + "/", "https://other.example/"}) {
+            activity.setIntent(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
             assertEquals(LauncherActivity.HOME, activity.getLaunchingUrl());
         }
-        Uri invite = Uri.parse("https://" + LauncherActivity.HOST + "/?login=1#join=retained");
-        activity.setIntent(new Intent(Intent.ACTION_VIEW, invite)); assertEquals(invite, activity.getLaunchingUrl());
+        Uri appLink = Uri.parse("https://" + LauncherActivity.HOST + "/?invitation=example#you");
+        activity.setIntent(new Intent(Intent.ACTION_VIEW, appLink));
+        assertEquals(appLink, activity.getLaunchingUrl());
     }
 
-    @Test public void actualActivityCreationWithNoBrowserOffersNativeRecoveryInsteadOfThrowing() {
-        Intent intent = new Intent(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        org.robolectric.android.controller.ActivityController<LauncherActivity> controller = Robolectric.buildActivity(LauncherActivity.class, intent).create();
-        activities.add(controller); LauncherActivity activity = controller.get();
-        shadowOf(Looper.getMainLooper()).idle();
-        Intent recovery = shadowOf(app).getNextStartedActivity();
-        assertNotNull(recovery); assertEquals(RecoveryActivity.class.getName(), recovery.getComponent().getClassName());
-        assertTrue(activity.isFinishing());
+    @Test public void explicitBrowserControlReusesAnExternalBrowserAndCannotReenterVoidline() {
+        LauncherActivity activity = open(main(), null).get();
+        idle();
+        installBrowser(app.getPackageName());
+        activity.findViewById(LauncherActivity.BROWSER_ID).performClick();
+        idle();
+        assertNull(next());
+        assertControls(activity);
+        installBrowser(BROWSER);
+        activity.findViewById(LauncherActivity.BROWSER_ID).performClick();
+        idle();
+        assertBrowser(next(), LauncherActivity.HOME, false);
     }
 
-    @Test public void recoveryRetryClearsOnlyFailureStateAndExplicitlyReturnsToHome() {
-        LaunchRecovery.show(app); shadowOf(Looper.getMainLooper()).idle(); shadowOf(app).getNextStartedActivity();
-        org.robolectric.android.controller.ActivityController<RecoveryActivity> controller = Robolectric.buildActivity(RecoveryActivity.class).setup();
-        activities.add(controller); RecoveryActivity recovery = controller.get();
-        recovery.findViewById(RecoveryActivity.RETRY_ID).performClick();
-        Intent retry = shadowOf(recovery).getNextStartedActivity();
-        assertEquals(LauncherActivity.class.getName(), retry.getComponent().getClassName());
-        assertEquals(LauncherActivity.HOME, retry.getData()); assertFalse(LaunchRecovery.hasPending(app));
+    @Test public void currentPageOpensOnceAndReturningFromTheBrowserNeedsAnExplicitRetry() {
+        installBrowser(BROWSER);
+        Uri link = Uri.parse("https://" + LauncherActivity.HOST + "/index.html#you");
+        ActivityController<LauncherActivity> c = open(new Intent(Intent.ACTION_VIEW, link), null);
+        idle();
+        assertBrowser(next(), link, false);
+        c.pause().stop().restart().start().resume();
+        afterTimeout();
+        assertNull("Background/resume must not loop between browser and launcher", next());
+        assertControls(c.get());
+        c.get().findViewById(LauncherActivity.RETRY_ID).performClick();
+        idle();
+        assertBrowser(next(), link, false);
+        assertNull(next());
     }
 
-    @Test public void aPreviousFailureRemainsRecoverableOnNextLaunchWithoutAutomaticRetryLoop() {
-        LaunchRecovery.show(app); shadowOf(Looper.getMainLooper()).idle(); shadowOf(app).getNextStartedActivity();
-        Intent intent = new Intent(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        org.robolectric.android.controller.ActivityController<LauncherActivity> controller = Robolectric.buildActivity(LauncherActivity.class, intent).create();
-        activities.add(controller); LauncherActivity activity = controller.get();
-        shadowOf(Looper.getMainLooper()).idle();
-        Intent recovery = shadowOf(app).getNextStartedActivity();
-        assertEquals(RecoveryActivity.class.getName(), recovery.getComponent().getClassName());
-        assertNull(shadowOf(app).getNextStartedActivity()); assertTrue(activity.isFinishing());
-        assertTrue(LaunchRecovery.hasPending(app));
+    @Test public void approvedBrowserServiceGetsARealAndroidXSessionAndTheCanonicalHome() {
+        installTrustedBrowser();
+        LauncherActivity activity = open(main().setData(Uri.parse("https://" + LauncherActivity.HOST
+                + "/downloads/VOIDLINE-Android.apk")), null).get();
+        idle();
+        assertNotNull(browserService.get().session);
+        assertTrue(browserService.get().session.hasCallback());
+        assertBrowser(next(), LauncherActivity.HOME, true);
+        afterTimeout();
+        assertNull("A completed handoff must cancel the timer", next());
+        assertControls(activity);
     }
 
-    @Test public void openingBrowserUsesExplicitProviderAndNeverLoopsBackThroughAppLinks() {
-        ResolveInfo browser = new ResolveInfo(); browser.activityInfo = new ActivityInfo();
-        browser.activityInfo.packageName = "com.android.chrome"; browser.activityInfo.name = "com.android.chrome.Main";
-        browser.isDefault = true;
-        shadowOf(app.getPackageManager()).addResolveInfoForIntent(new Intent(Intent.ACTION_VIEW,
-                Uri.fromParts("http", "", null)).addCategory(Intent.CATEGORY_BROWSABLE), browser);
-        LaunchRecovery.show(app); shadowOf(Looper.getMainLooper()).idle(); shadowOf(app).getNextStartedActivity();
-        org.robolectric.android.controller.ActivityController<RecoveryActivity> controller = Robolectric.buildActivity(RecoveryActivity.class).setup();
-        activities.add(controller); RecoveryActivity recovery = controller.get();
-        recovery.findViewById(RecoveryActivity.BROWSER_ID).performClick();
-        Intent launch = shadowOf(recovery).getNextStartedActivity();
-        assertNotNull(launch); assertEquals("com.android.chrome", launch.getPackage());
-        assertEquals(LauncherActivity.HOME, launch.getData()); assertEquals(Intent.ACTION_VIEW, launch.getAction());
-        assertFalse(LaunchRecovery.hasPending(app));
+    @Test public void rejectedCustomTabsBindingOpensTheSamePageInTheExternalBrowser() {
+        installTrustedBrowser();
+        shadowOf(app).setThrowInBindService(new SecurityException("Isolated provider rejection"));
+        LauncherActivity activity = open(main(), null).get();
+        idle();
+        assertBrowser(next(), LauncherActivity.HOME, false);
+        afterTimeout();
+        assertNull(next());
+        assertControls(activity);
     }
 
-    @Test public void actualBrowserPresentStartupHandsHomeToBrowserAndSurvivesActivityLifecycle() {
-        ResolveInfo browser = new ResolveInfo(); browser.activityInfo = new ActivityInfo();
-        browser.activityInfo.packageName = "com.android.chrome"; browser.activityInfo.name = "com.android.chrome.Main";
-        browser.isDefault = true;
-        shadowOf(app.getPackageManager()).addResolveInfoForIntent(new Intent(Intent.ACTION_VIEW,
-                Uri.fromParts("http", "", null)).addCategory(Intent.CATEGORY_BROWSABLE), browser);
-        Intent intent = new Intent(Intent.ACTION_MAIN).setData(Uri.parse("https://" + LauncherActivity.HOST + "/downloads/VOIDLINE-Android.apk"))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        org.robolectric.android.controller.ActivityController<LauncherActivity> controller = Robolectric.buildActivity(LauncherActivity.class, intent).create().start().resume();
-        activities.add(controller);
-        shadowOf(Looper.getMainLooper()).idle();
-        Intent launch = shadowOf(controller.get()).getNextStartedActivity();
-        assertNotNull(launch); assertEquals(LauncherActivity.HOME, launch.getData());
-        assertEquals("com.android.chrome", launch.getPackage()); assertFalse(LaunchRecovery.hasPending(app));
-        Bundle state = new Bundle(); controller.saveInstanceState(state).pause().stop();
-        assertNotNull(state);
+    @Test public void aPausedPendingConnectionCannotOpenAnotherActivityBehindTheUser() {
+        installTrustedBrowser();
+        ActivityController<LauncherActivity> c = open(main(), null);
+        c.pause().stop();
+        afterTimeout();
+        assertNull("A stale bind or timer must not start a browser after leaving", next());
+        c.restart().start().resume();
+        idle();
+        assertControls(c.get());
     }
 
-    @Test public void trustedBrowserServiceBindingRoutesQualityFailureToRecoveryThroughTheActualSession() {
-        ResolveInfo browser = new ResolveInfo(); browser.activityInfo = new ActivityInfo(); browser.isDefault = true;
-        browser.activityInfo.packageName = "org.example.trustedbrowser"; browser.activityInfo.name = "org.example.trustedbrowser.Main";
-        shadowOf(app.getPackageManager()).addResolveInfoForIntent(new Intent(Intent.ACTION_VIEW,
-                Uri.fromParts("http", "", null)).addCategory(Intent.CATEGORY_BROWSABLE), browser);
-        ResolveInfo serviceInfo = new ResolveInfo(); serviceInfo.serviceInfo = new ServiceInfo();
-        serviceInfo.serviceInfo.packageName = browser.activityInfo.packageName; serviceInfo.serviceInfo.name = "org.example.trustedbrowser.Service";
-        serviceInfo.filter = new IntentFilter(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION);
-        serviceInfo.filter.addCategory("androidx.browser.trusted.category.TrustedWebActivities");
-        shadowOf(app.getPackageManager()).addResolveInfoForIntent(new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION), serviceInfo);
-        org.robolectric.android.controller.ServiceController<FixtureBrowserService> service = Robolectric.buildService(FixtureBrowserService.class).create();
-        shadowOf(app).setComponentNameAndServiceForBindService(new ComponentName(serviceInfo.serviceInfo.packageName, serviceInfo.serviceInfo.name),
-                service.get().onBind(new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION)));
-        Intent intent = new Intent(Intent.ACTION_MAIN).setData(LauncherActivity.HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        org.robolectric.android.controller.ActivityController<LauncherActivity> controller = Robolectric.buildActivity(LauncherActivity.class, intent).create();
-        activities.add(controller);
-        shadowOf(Looper.getMainLooper()).idle();
-        assertNotNull(service.get().session); assertTrue(service.get().session.hasCallback());
-        Intent browserLaunch = shadowOf(controller.get()).getNextStartedActivity();
-        assertNotNull(browserLaunch); assertEquals(LauncherActivity.HOME, browserLaunch.getData());
-        assertTrue(browserLaunch.getBooleanExtra("android.support.customtabs.extra.LAUNCH_AS_TRUSTED_WEB_ACTIVITY", false));
-        Bundle failure = new Bundle(); failure.putString("crash_reason", "Isolated fixture browser callback");
-        service.get().session.getCallback().extraCallbackWithResult("quality_enforcement.crash", failure);
-        shadowOf(Looper.getMainLooper()).idle();
-        Intent recovery = shadowOf(app).getNextStartedActivity();
-        assertNotNull(recovery); assertEquals(RecoveryActivity.class.getName(), recovery.getComponent().getClassName());
-        service.destroy();
+    @Test public void returnFromFailedBrowserNavigationShowsControlsWithoutBackgroundActivityLaunch() {
+        installTrustedBrowser();
+        ActivityController<LauncherActivity> c = open(main(), null);
+        idle();
+        assertBrowser(next(), LauncherActivity.HOME, true);
+        c.pause().stop();
+        CustomTabsCallback cb = browserService.get().session.getCallback();
+        Bundle reason = new Bundle();
+        reason.putString("crash_reason", "Isolated test failure");
+        cb.extraCallbackWithResult("quality_enforcement.crash", reason);
+        cb.onNavigationEvent(CustomTabsCallback.NAVIGATION_FAILED, null);
+        idle();
+        assertNull(next());
+        c.restart().start().resume();
+        idle();
+        assertControls(c.get());
+        assertTrue("Failed navigation needs visible feedback", status(c.get()).contains("could not load"));
+        assertFalse(status(c.get()).contains("isolated test failure"));
+        assertNull(next());
+        cb.onNavigationEvent(CustomTabsCallback.NAVIGATION_FINISHED, null);
+        idle();
+        assertFalse("A later successful navigation clears the old error", status(c.get()).contains("could not load"));
+    }
+
+    /** Models an installed browser whose service binding is accepted but still pending. */
+    @Implements(className = "android.app.ContextImpl", isInAndroidSdk = false)
+    public static class SlowBrowser extends ShadowContextImpl {
+        static final Set<ServiceConnection> connected = new HashSet<>();
+        static ServiceConnection last;
+
+        @Implementation @Override protected boolean bindService(Intent intent, ServiceConnection c, int flags) {
+            if (CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION.equals(intent.getAction()) && BROWSER.equals(intent.getPackage())) {
+                last = c;
+                connected.add(c);
+                return true;
+            }
+            return super.bindService(intent, c, flags);
+        }
+
+        @Implementation @Override protected void unbindService(ServiceConnection c) {
+            if (!connected.remove(c)) super.unbindService(c);
+        }
+    }
+
+    @Test @Config(shadows = SlowBrowser.class)
+    public void acceptedBindWithoutAReplyHandsOffAtDeadlineAndDiscardsLateCompletion() {
+        installTrustedBrowser();
+        LauncherActivity activity = open(main().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), null).get();
+        idle();
+        assertControls(activity);
+        ServiceConnection stale = SlowBrowser.last;
+        assertNotNull("A TWA connection was attempted", stale);
+        shadowOf(Looper.getMainLooper()).idleFor(LauncherActivity.BIND_TIMEOUT_MS - 1, TimeUnit.MILLISECONDS);
+        assertNull(next());
+        shadowOf(Looper.getMainLooper()).idleFor(1, TimeUnit.MILLISECONDS);
+        assertBrowser(next(), LauncherActivity.HOME, false);
+        assertFalse(SlowBrowser.connected.contains(stale));
+        stale.onServiceConnected(SERVICE, browserService.get().onBind(new Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION)));
+        afterTimeout();
+        assertNull("A late callback must not launch a second browser", next());
+        assertControls(activity);
+    }
+
+    @Test @Config(shadows = SlowBrowser.class)
+    public void disconnectedBindingFallsBackOnceWhileExplicitRetrySupersedesEarlierRequests() {
+        installTrustedBrowser();
+        LauncherActivity activity = open(main(), null).get();
+        ServiceConnection first = SlowBrowser.last;
+        assertNotNull(first);
+        activity.findViewById(LauncherActivity.RETRY_ID).performClick();
+        ServiceConnection second = SlowBrowser.last;
+        assertNotSame(first, second);
+        first.onServiceDisconnected(SERVICE);
+        idle();
+        assertNull(next());
+        second.onServiceDisconnected(SERVICE);
+        idle();
+        assertBrowser(next(), LauncherActivity.HOME, false);
+        assertTrue(SlowBrowser.connected.isEmpty());
+        afterTimeout();
+        assertNull(next());
+    }
+
+    @Test @Config(shadows = SlowBrowser.class)
+    public void newIntentWhileWaitingOnlyLaunchesTheMostRecentPermittedLink() {
+        installTrustedBrowser();
+        ActivityController<LauncherActivity> c = open(main(), null);
+        Uri route = Uri.parse("https://" + LauncherActivity.HOST + "/#you");
+        ServiceConnection old = SlowBrowser.last;
+        c.newIntent(new Intent(Intent.ACTION_VIEW, route));
+        assertNotSame(old, SlowBrowser.last);
+        assertFalse(SlowBrowser.connected.contains(old));
+        afterTimeout();
+        assertBrowser(next(), route, false);
+        assertNull(next());
+    }
+
+    @Test public void recreationAfterExternalHandoffKeepsControlsWithoutOpeningAnotherBrowser() {
+        installBrowser(BROWSER);
+        ActivityController<LauncherActivity> c = open(main(), null);
+        idle();
+        assertBrowser(next(), LauncherActivity.HOME, false);
+        Bundle saved = new Bundle();
+        c.saveInstanceState(saved).pause().stop().destroy();
+        LauncherActivity recreated = open(main(), saved).get();
+        afterTimeout();
+        assertNull(next());
+        assertControls(recreated);
     }
 
     public static final class FixtureBrowserService extends CustomTabsService {
-        CustomTabsSessionToken session; int warmups;
-        @Override protected boolean warmup(long flags) { warmups++; return true; }
+        CustomTabsSessionToken session;
+        @Override protected boolean warmup(long flags) { return true; }
         @Override protected boolean newSession(CustomTabsSessionToken token) { session = token; return true; }
-        @Override protected boolean mayLaunchUrl(CustomTabsSessionToken token, Uri url, Bundle extras, java.util.List<Bundle> bundles) { return true; }
+        @Override protected boolean mayLaunchUrl(CustomTabsSessionToken token, Uri url, Bundle extras, List<Bundle> bundles) { return true; }
         @Override protected Bundle extraCommand(String command, Bundle extras) { return Bundle.EMPTY; }
         @Override protected boolean updateVisuals(CustomTabsSessionToken token, Bundle extras) { return true; }
         @Override protected boolean requestPostMessageChannel(CustomTabsSessionToken token, Uri origin) { return true; }

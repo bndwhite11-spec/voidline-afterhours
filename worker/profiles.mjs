@@ -6,6 +6,11 @@ const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const need=(value,status,code,message)=>{if(!value)throw new AuthError(status,code,message);};
 export const PROFILE_OPTIONS=Object.freeze({banners:['midnight','blueprint','eclipse','noise','orchid'],accents:['ice','lilac','jade','oxide','gold'],avatars:['moon','orbit','spark','leaf','ghost'],visibilities:['public','shared','friends','private'],nameStyles:['plain','serif','mono'],profileFrames:['none','line','halo']});
+export function normalizeProfileAccent(value){
+ if(PROFILE_OPTIONS.accents.includes(value))return value;
+ if(typeof value==='string'&&value.length===7&&/^#[0-9a-f]{6}$/i.test(value))return value.toLowerCase();
+ return null;
+}
 async function bodyJSON(request){
  need(request.headers.get('content-type')?.split(';')[0].trim()==='application/json',415,'json_required','Use a JSON request.');
  const reader=request.body?.getReader();need(reader,400,'invalid_body','A request body is required.');let total=0;const chunks=[];
@@ -65,7 +70,8 @@ async function editableState(db,id){
 function normalized(key,value){
  if(key==='displayName'){const name=bounded(value,32,'Display name');need(name.length>=2,400,'invalid_profile','Use a display name of 2–32 characters.');return name;}
  if(key==='bio'||key==='status')return bounded(value,key==='bio'?240:80,key==='bio'?'Bio':'Status');
- const options={avatar:'avatars',banner:'banners',accent:'accents',detailsVisibility:'visibilities',collectionVisibility:'visibilities',nameStyle:'nameStyles',profileFrame:'profileFrames'};
+ if(key==='accent'){const accent=normalizeProfileAccent(value);need(accent,400,'invalid_profile','Choose a preset or a six-digit hex color.');return accent;}
+ const options={avatar:'avatars',banner:'banners',detailsVisibility:'visibilities',collectionVisibility:'visibilities',nameStyle:'nameStyles',profileFrame:'profileFrames'};
  if(options[key])return choice(value,PROFILE_OPTIONS[options[key]],undefined);
  if(key==='animationEnabled'){need(typeof value==='boolean',400,'invalid_profile','Choose whether profile animation is enabled.');return value;}
  if(key==='avatarMediaId'||key==='bannerMediaId'){need(value===null||typeof value==='string'&&/^[a-f0-9]{64}$/.test(value),400,'invalid_media','Choose an uploaded profile image or reset it.');return value;}

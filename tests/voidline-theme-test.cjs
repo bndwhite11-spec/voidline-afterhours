@@ -7,7 +7,8 @@ const entryCSS=fs.readFileSync(path.join(__dirname,'../dist/entry.css'),'utf8');
 const tests=[],test=(name,fn)=>tests.push([name,fn]);
 function client({systemReduced=false,systemContrast=false,noBody=false,legacy=false,noMedia=false}={}){
   const nodes=[],listeners=new Map(),events=[],media=new Map();
-  function node(parent=null){const classes=new Set(),value={parent,dataset:{},classList:{toggle(n,on){if(on)classes.add(n);else classes.delete(n);},contains:n=>classes.has(n)}};nodes.push(value);return value;}
+  function node(parent=null){const classes=new Set(),properties=new Map(),value={parent,isConnected:true,dataset:{},
+    style:{setProperty:(k,v)=>properties.set(k,v),removeProperty:k=>properties.delete(k),getPropertyValue:k=>properties.get(k)||''},classList:{toggle(n,on){if(on)classes.add(n);else classes.delete(n);},contains:n=>classes.has(n)}};nodes.push(value);return value;}
   const html=node(),body=node(html),home=node(body),dialog=node(body),toast=node(body),profile=node(dialog),collection=node(dialog),viewer=node(body),menu=node(body);
   const document={documentElement:html,body:noBody?null:body,addEventListener:(name,fn)=>listeners.set(name,fn)};
   const window={dispatchEvent:e=>events.push(e),matchMedia:noMedia?undefined:query=>{const q={matches:query.includes('motion')?systemReduced:systemContrast,change:null};q[legacy?'addListener':'addEventListener']=legacy?fn=>q.change=fn:(_name,fn)=>q.change=fn;media.set(query,q);return q;}};
@@ -94,6 +95,94 @@ test('narrow layouts choose one pane and bound dialogs; desktop sidebar is expli
  assert.match(css,/\.vh-conversation-header[^}]*flex-wrap:\s*wrap/);assert.match(css,/\.vh-form-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
  // Arithmetic only: these bounds leave positive interior width at target CSS-pixel sizes.
  for(const width of [320,375,390,768,859,860,861,1024,1199,1200,1201,1440]){const modal=Math.min(550,width-(width<=860?24:40));assert(modal>0&&modal<=width);if(width>860)assert(width-68-320>0);}
+});
+test('presets, user colors and density normalize independently while older preferences retain defaults',()=>{
+ const {api}=client();
+ assert.deepEqual({...api.normalize({palette:'custom',background:' #aBc ',accent:'#F3D40a',density:'compact',font:17})},{
+  ...api.defaults,palette:'custom',background:'#aabbcc',accent:'#f3d40a',density:'compact',font:'17'
+ });
+ for(const payload of [{palette:['midnight']},{background:'url(https://example.invalid)'},{accent:'var(--any)'},{density:'tight'},{palette:'__proto__'},{font:{toString:0,valueOf:0}}]) {
+  assert.deepEqual({...api.normalize(payload)},{...api.defaults});
+ }
+ assert.deepEqual({...api.normalize({font:'19',reducedMotion:true})},{...api.defaults,font:'19',reducedMotion:true});
+});
+test('custom surfaces, exact chosen fills, corrected text and control edges retain contrast at color extremes',()=>{
+ const app=client(),value=k=>app.html.style.getPropertyValue(k)||tokens[k];
+ const backgrounds=['#000000','#ffffff','#777777','#757575','#8a638c','#ff0088','#00ff00','#0000ff','#303040','#d0b4a3'];
+ const accents=['#000000','#ffffff','#777777','#770011','#00ffee','#c5b5b0','#0000ff','#242424'];
+ for(const bg of backgrounds)for(const accent of accents){
+  app.api.apply({palette:'custom',background:bg,accent});
+  assert.equal(value('--vh-bg'),bg); assert.equal(value('--vh-button-bg'),accent);
+  const surfaces=['--vh-bg','--vh-rail','--vh-side','--vh-surface','--vh-raised','--vh-selected','--vh-own-message','--vh-danger-surface'].map(value);
+  for(const surface of surfaces){
+   for(const key of ['--vh-text','--vh-copy','--vh-muted','--vh-accent','--vh-danger','--vh-success']){
+    assert(ratio(value(key),surface)>=4.5,`${key} / ${surface} for ${bg}, ${accent}`);
+   }
+   assert(ratio(value('--vh-control-line'),surface)>=3);
+   // Either the fill itself or its visible edge distinguishes the control.
+   assert(Math.max(ratio(value('--vh-button-bg'),surface),ratio(value('--vh-button-edge'),surface))>=3);
+  }
+  for(const [label,fills] of [['--vh-button-ink',['--vh-button-bg','--vh-button-hover']],['--vh-accent-ink',['--vh-accent','--vh-accent-hover']]]){
+   for(const fill of fills) assert(ratio(value(label),value(fill))>=4.5,`${label}/${fill} for ${bg}, ${accent}`);
+  }
+ }
+});
+test('the dialog preview renders draft-only colors, font and density and can show original defaults over a customized app',()=>{
+ const app=client();app.api.apply({palette:'midnight',accent:'#2377cc',font:'19',density:'compact'});
+ const count=app.events.length,prior=app.html.style.getPropertyValue('--vh-bg');
+ const result=app.api.preview(app.profile,{palette:'custom',background:'#fafafa',accent:'#712a7a',font:'17'});
+ assert.equal(result.accent,'#712a7a');assert.equal(app.profile.dataset.vhDensity,'comfortable');
+ assert.equal(app.profile.dataset.vhTone,'light');assert.equal(app.profile.style.getPropertyValue('--vh-bg'),'#fafafa');
+ assert.equal(app.profile.style.getPropertyValue('--vl-text-scale'),String(17/15));
+ assert.equal(app.events.length,count);assert.equal(app.html.style.getPropertyValue('--vh-bg'),prior);
+ app.api.preview(app.profile,{});assert.equal(app.profile.style.getPropertyValue('--vh-bg'),'');assert.equal(app.profile.dataset.vhThemePreview,'');
+ assert.match(css,/\[data-vh-theme-preview\], :root \{/);
+ assert.equal(app.api.state().palette,'midnight');assert.equal(app.api.state().font,'19');
+ app.api.preview(app.html,{accent:'#000000'});assert.equal(app.html.style.getPropertyValue('--vh-bg'),prior);
+});
+test('high contrast supersedes personal colors in the app and an open draft, then restores each independently',()=>{
+ const app=client();
+ app.api.apply({palette:'forest',accent:'#f7a',density:'compact'});
+ app.api.preview(app.profile,{palette:'custom',accent:'#000',background:'#eee'});
+ app.system('contrast',true);
+ for(const node of [app.html,app.profile]){
+  assert.equal(node.style.getPropertyValue('--vh-bg'),'');assert.equal(node.style.getPropertyValue('--vh-button-bg'),'');
+  assert.equal(node.dataset.vhContrast,'more');assert.equal(node.dataset.vhTone,'dark');
+ }
+ app.system('contrast',false);
+ assert.equal(app.html.style.getPropertyValue('--vh-bg'),app.api.palettes.forest);
+ assert.equal(app.profile.style.getPropertyValue('--vh-bg'),'#eeeeee');
+ app.api.reset();assert.equal(app.html.style.getPropertyValue('--vh-button-bg'),'');assert.equal(app.body.dataset.vhDensity,'comfortable');
+ assert.equal(app.api.state().accent,app.api.defaults.accent);
+});
+test('compact density covers both actual message feeds and keeps coarse-pointer navigation at 44px',()=>{
+ const density=fs.readFileSync(path.join(__dirname,'../dist/appearance.css'),'utf8');
+ for(const selector of ['.vh-feed .vh-message','.vh-feed-direct .vh-message>div','#home-secure-feed .vh-message>div','.vh-nav-item']) assert(density.includes(selector),selector);
+ assert.match(density,/@media \(pointer:coarse\)\s*\{[^}]*min-height:44px/);
+ assert.match(density,/\.vh-primary \{[^}]*var\(--vh-button-bg\)/);
+});
+test('app controls and draft previews resolve independent published CSS values and update the browser theme color',()=>{
+ const {JSDOM,VirtualConsole}=require('jsdom');
+ const logs=[],vc=new VirtualConsole();vc.on('jsdomError',error=>logs.push(error.message));
+ const dom=new JSDOM('<!doctype html><meta name="theme-color" content="#0e1013"><button class="vh-primary" id="outside">Send</button><section id="sample"><button class="vh-primary">Preview</button></section>',{runScripts:'outside-only',virtualConsole:vc});
+ try{
+  const w=dom.window,d=w.document,contrastListeners=new Map();
+  w.matchMedia=query=>({matches:false,addEventListener:(_name,fn)=>contrastListeners.set(query,fn)});
+  for(const text of [css,fs.readFileSync(path.join(__dirname,'../dist/appearance.css'),'utf8')]){const sheet=d.createElement('style');sheet.textContent=text;d.head.append(sheet);}
+  w.eval(source);w.VoidTheme.apply({palette:'custom',background:'#ededef',accent:'#2030a0',density:'compact'});
+  const sample=d.getElementById('sample'),applied=d.getElementById('outside'),draft=sample.firstElementChild;
+  w.VoidTheme.preview(sample,{});
+  assert.equal(d.querySelector('meta').content,'#ededef');
+  assert.equal(w.getComputedStyle(applied).backgroundColor,'rgb(32, 48, 160)');
+  assert.equal(w.getComputedStyle(draft).backgroundColor,'rgb(203, 239, 132)');
+  assert.equal(w.getComputedStyle(draft).color,'rgb(23, 32, 14)');
+  w.VoidTheme.apply({palette:'custom',background:'#ededef',accent:'#2030a0',highContrast:true});
+  assert.equal(w.getComputedStyle(applied).backgroundColor,'rgb(221, 247, 173)');
+  assert.equal(w.getComputedStyle(draft).backgroundColor,'rgb(203, 239, 132)');
+  w.VoidTheme.reset();
+  assert.equal(w.getComputedStyle(applied).backgroundColor,'rgb(203, 239, 132)');
+  assert.equal(d.querySelector('meta').content,'#0e1013');assert.deepEqual(logs,[]);
+ }finally{dom.window.close();}
 });
 let failed=0;for(const[name,run]of tests){try{run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error);}}
 const lowest=Math.min(...['--vh-text','--vh-copy','--vh-muted','--vh-accent'].flatMap(fg=>['--vh-bg','--vh-side','--vh-surface','--vh-raised','--vh-selected','--vh-own-message'].map(bg=>ratio(tokens[fg],tokens[bg]))));

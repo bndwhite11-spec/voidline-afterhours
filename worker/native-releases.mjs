@@ -46,7 +46,14 @@ const receipt=value=>({completed:true,name:value.name,bytes:value.bytes,sha256:v
 async function persist(bucket,record,etag){const saved=await bucket.put(operationKey(record.operationId),JSON.stringify(record),{httpMetadata:{contentType:'application/json'},onlyIf:etag?{etagMatches:etag}:{etagDoesNotMatch:'*'}});need(saved,409,'upload_changed','This upload changed. Restart the same operation to resume.');return saved.etag;}
 function byteRange(value,size){const match=/^bytes=(\d*)-(\d*)$/.exec(value);need(match&&(match[1]||match[2]),416,'range_unavailable','This byte range is unavailable.');let start=0,end=size-1;if(!match[1]){const suffix=Number(match[2]);need(Number.isSafeInteger(suffix)&&suffix>0,416,'range_unavailable','This byte range is unavailable.');start=Math.max(0,size-suffix);}else{start=Number(match[1]);const requested=match[2]?Number(match[2]):end;need(Number.isSafeInteger(start)&&Number.isSafeInteger(requested),416,'range_unavailable','This byte range is unavailable.');end=Math.min(requested,end);}need(start>=0&&start<=end&&start<size,416,'range_unavailable','This byte range is unavailable.');return {offset:start,length:end-start+1,end};}
 async function serve(request,bucket,release,name){
- const value=await ready(bucket,release,name);need(value,404,'release_unavailable','This application download is not available yet.');const object=await bucket.head(value.objectKey);need(object&&object.size===value.bytes,503,'release_unavailable','This application download is temporarily unavailable.');
+ let value=await ready(bucket,release,name);
+ // A web or Android update may reuse the exact signed-off Windows archive.
+ // ready() checks the current build's size and hash against the older manifest.
+ if (!value && name==='VOIDLINE-Windows-x64.zip' && release.windows?.reuseTag) {
+  const previous=configuration({...release,tag:release.windows.reuseTag});
+  value=await ready(bucket,previous,name);
+ }
+ need(value,404,'release_unavailable','This application download is not available yet.');const object=await bucket.head(value.objectKey);need(object&&object.size===value.bytes,503,'release_unavailable','This application download is temporarily unavailable.');
  const etag='"sha256-'+value.sha256+'"',headers={'content-type':'application/zip','content-disposition':'attachment; filename="'+name+'"','content-length':String(value.bytes),'cache-control':'no-cache','etag':etag,'accept-ranges':'bytes','x-content-type-options':'nosniff','referrer-policy':'no-referrer'};
  if((request.headers.get('if-none-match')||'').split(',').map(item=>item.trim().replace(/^W\//,'')).some(item=>item===etag||item==='*'))return new Response(null,{status:304,headers});
  if(request.method==='HEAD')return new Response(null,{headers});

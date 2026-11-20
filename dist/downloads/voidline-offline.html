@@ -76,7 +76,7 @@ html.vh-reduced-motion .ve-glint { display:none;animation:none!important; }
 </style>
 <style data-source="home.css">
 /* VOIDLINE — account forms and messenger. One shared scale, no fixture styles. */
-:root {
+[data-vh-theme-preview], :root {
   color-scheme: dark;
   /* One semantic palette. Artwork may use its own material colors. */
   --vh-bg: #0E1013;
@@ -376,7 +376,7 @@ img, svg { max-width: 100%; }
 .vh-verification-emoji small { color: var(--vh-muted); font-size: calc(0.75rem * var(--vl-text-scale)); }
 .vh-toast { position: fixed; z-index: 200; bottom: 22px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(520px, calc(100vw - 32px)); padding: 12px 17px; color: var(--vh-text); border: 1px solid var(--vh-control-line); border-radius: 9px; background: var(--vh-raised); box-shadow: 0 8px 28px #0006; font-size: calc(0.8125rem * var(--vl-text-scale)); line-height: 1.5; overflow-wrap: anywhere; }
 .vh-bottom-nav, .vh-mobile-back { display: none; }
-:root.vh-high-contrast { --vh-text: #FFFFFF; --vh-copy: #F1F0EC; --vh-muted: #D4D9DC; --vh-line: #7B8791; --vh-line-soft: #6B7781; --vh-control-line: #A5ABB4; --vh-accent: #DDF7AD; --vh-accent-hover: #E8FFD0; }
+[data-vh-theme-preview].vh-high-contrast, :root.vh-high-contrast { --vh-text: #FFFFFF; --vh-copy: #F1F0EC; --vh-muted: #D4D9DC; --vh-line: #7B8791; --vh-line-soft: #6B7781; --vh-control-line: #A5ABB4; --vh-accent: #DDF7AD; --vh-accent-hover: #E8FFD0; }
 .vh-reduced-motion *, .vh-reduced-motion *:before, .vh-reduced-motion *:after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 
 @media (max-width: 1200px) {
@@ -475,7 +475,7 @@ img, svg { max-width: 100%; }
   *, *:before, *:after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
 }
 @media (prefers-contrast: more) {
-  :root { --vh-text: #FFFFFF; --vh-copy: #F1F0EC; --vh-muted: #D4D9DC; --vh-line: #7B8791; --vh-line-soft: #6B7781; --vh-control-line: #A5ABB4; --vh-accent: #DDF7AD; --vh-accent-hover: #E8FFD0; }
+  [data-vh-theme-preview], :root { --vh-text: #FFFFFF; --vh-copy: #F1F0EC; --vh-muted: #D4D9DC; --vh-line: #7B8791; --vh-line-soft: #6B7781; --vh-control-line: #A5ABB4; --vh-accent: #DDF7AD; --vh-accent-hover: #E8FFD0; }
   .vh-secondary { border-color: var(--vh-control-line); }
 }
 @media (forced-colors: active) {
@@ -770,6 +770,75 @@ img, svg { max-width: 100%; }
 :is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style=mono]{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 :is(html[data-vh-simple-profiles=true],html.vh-high-contrast) :is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style]{font-family:inherit!important;letter-spacing:normal!important}
 @media(forced-colors:active){:is(.vh-author-button,.vh-conversation-title>b,.vh-list-row>div>b,.vh-search-result>b)[data-name-style]{font-family:inherit!important;letter-spacing:normal!important}}
+
+/* Private Appearance editor */
+.vh-dialog:has(.vh-appearance) { width: min(760px,calc(100vw - 40px)); }
+.vh-appearance { min-width: 0; }
+.vh-appearance-layout { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); align-items: start; gap: 24px; }
+.vh-appearance-layout > *, .vh-appearance-settings, .vh-appearance-section { min-width: 0; }
+.vh-appearance-section { margin: 0 0 20px; padding: 0; border: 0; }
+.vh-appearance-section legend, .vh-appearance-sample h3 { margin: 0 0 9px; padding: 0; color: var(--vh-text); font-size: .91rem; font-weight: 640; }
+.vh-theme-presets { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
+.vh-theme-preset { display: flex; flex-direction: column; align-items: center; position: relative; cursor: pointer; gap: 6px; padding: 7px 3px; color: var(--vh-copy); font-size: .875rem; border-radius: 5px; }
+.vh-theme-preset input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.vh-theme-chip { display: block; width: 100%; height: 28px; border-radius: 4px; outline: 1px solid var(--vh-control-line); outline-offset: -1px; }
+.vh-theme-chip[data-palette="graphite"] { background: #0e1013; }
+.vh-theme-chip[data-palette="midnight"] { background: #121b2c; }
+.vh-theme-chip[data-palette="forest"] { background: #14221f; }
+.vh-theme-chip[data-palette="custom"] { border: 1px dashed var(--vh-control-line); outline: none; }
+.vh-theme-preset input:checked + .vh-theme-chip { outline: 2px solid var(--vh-accent); outline-offset: 1px; }
+.vh-theme-preset input:checked + .vh-theme-chip::after { content: '✓'; display: grid; place-items: center; height: 100%; color: white; text-shadow: 0 1px 2px black; font-weight: bold; }
+.vh-theme-preset input:checked + .vh-theme-chip[data-palette="custom"]::after { color: var(--vh-text); text-shadow: none; }
+.vh-theme-preset:has(:focus-visible), .vh-appearance button:focus-visible { outline: 2px solid var(--vh-accent); outline-offset: 2px; }
+.vh-custom-background { margin-top: 9px; }
+.vh-custom-background > label { display: block; color: var(--vh-copy); font-size: .875rem; margin-bottom: 5px; }
+.vh-accent-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.vh-accent-presets { display: flex; gap: 2px; }
+.vh-accent-presets button { display: grid; place-items: center; color: var(--vh-copy); width: 32px; min-height: 44px; background: transparent; border: 0; padding: 4px; border-radius: 4px; cursor: pointer; }
+.vh-accent-presets button span { display: block; width: 21px; height: 21px; border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px var(--vh-control-line); }
+.vh-accent-presets button[aria-pressed="true"] span { outline: 2px solid var(--vh-text); outline-offset: 3px; }
+.vh-accent-presets [data-vh-accent="#cbef84"] { --swatch: #cbef84; }
+.vh-accent-presets [data-vh-accent="#8cabf7"] { --swatch: #8cabf7; }
+.vh-accent-presets [data-vh-accent="#c9b5f7"] { --swatch: #c9b5f7; }
+.vh-accent-presets [data-vh-accent="#81cfb4"] { --swatch: #81cfb4; }
+.vh-accent-presets [data-vh-accent="#edb974"] { --swatch: #edb974; }
+.vh-color-pair { display: flex; align-items: stretch; gap: 5px; max-width: 100%; }
+.vh-dialog .vh-color-pair input[type="color"] { width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 3px; cursor: pointer; }
+.vh-dialog .vh-color-pair input[type="text"] { width: 9ch; padding: 5px; min-height: 44px; margin: 0; font-family: ui-monospace,monospace; font-size: 1rem; }
+.vh-appearance-section > small { display: block; margin-top: 7px; color: var(--vh-muted); font-size: .81rem; line-height: 1.5; }
+.vh-reading-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vh-reading-grid .vh-field { margin: 0 0 20px; }
+.vh-access-options { margin: 0; }
+.vh-access-options .vh-check { min-height: 42px; margin: 0; }
+.vh-appearance-sample { position: sticky; top: 6px; }
+.vh-appearance-scene { overflow: hidden; background: var(--vh-bg); color: var(--vh-text); border: 1px solid var(--vh-control-line); border-radius: var(--vh-radius); }
+.vh-sample-header { display: flex; align-items: center; gap: 8px; background: var(--vh-side); color: var(--vh-copy); padding: 11px 13px; border-bottom: 1px solid var(--vh-line); }
+.vh-sample-header .vh-icon { color: var(--vh-accent); }
+.vh-sample-feed { display: grid; gap: 12px; padding: 14px; }
+.vh-sample-message { min-width: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.vh-sample-message strong { font-size: calc(.9rem * var(--vl-text-scale)); }
+.vh-sample-message p { margin: 3px 0 0; color: var(--vh-copy); font-size: calc(1rem * var(--vl-text-scale)); }
+.vh-sample-message:last-child { padding: 8px 12px; background: var(--vh-own-message); border-radius: 6px; }
+.vh-sample-tag { color: var(--vh-accent); font-weight: 650; font-size: calc(.85rem * var(--vl-text-scale)); }
+.vh-appearance-scene[data-vh-density="compact"] .vh-sample-feed { gap: 4px; padding: 9px; }
+.vh-appearance-scene[data-vh-density="compact"] .vh-sample-message:last-child { padding-block: 4px; }
+.vh-appearance-actions { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; padding: 14px 0 0; border-top: 1px solid var(--vh-line); margin-top: 14px; }
+.vh-appearance-actions > button { min-height: 44px; }
+.vh-appearance-actions .vh-link { margin-inline-end: auto; }
+@media(max-width:650px){
+  .vh-dialog:has(.vh-appearance) { width: min(100%,calc(100vw - 16px)); max-height: calc(100dvh - 16px); }
+  .vh-dialog:has(.vh-appearance) .vh-dialog-body { padding: 24px 15px max(16px,env(safe-area-inset-bottom)); }
+  .vh-appearance-layout { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .vh-appearance-sample { position: static; grid-row: 1; }
+  .vh-sample-feed { gap: 7px; padding: 9px 12px; }
+  .vh-sample-header { padding: 7px 12px; }
+  .vh-appearance-actions { position: sticky; bottom: -1px; background: var(--vh-side); padding-block: 5px max(5px,env(safe-area-inset-bottom)); }
+  .vh-accent-presets button { width: 44px; }
+}
+@media(max-width:365px){
+  .vh-theme-presets { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .vh-appearance-actions .vh-link { flex-basis: 100%; }
+}
 
 </style>
 <style data-source="mobile.css">
@@ -1251,6 +1320,23 @@ html[data-vh-simple-profiles=true] .vp-name-line h2,html[data-vh-simple-profiles
 
 .vp-choice[data-field=nameStyle][data-value=serif]>span:first-child{font-family:Georgia,serif;font-size:.9375rem}.vp-choice[data-field=nameStyle][data-value=mono]>span:first-child{font-family:ui-monospace,Consolas,monospace}
 
+/* Custom accents decorate the banner edge and frame; reading colors stay with the viewer's theme. */
+.vp-card { position:relative; }
+.vp-custom-stripe,.vp-custom-outline { display:none; pointer-events:none; }
+.vp-card[data-accent^="#"] > .vp-custom-stripe { display:block; width:100%; height:4px; }
+.vp-card[data-accent^="#"]:is([data-frame=line],[data-frame=halo]) > .vp-custom-outline {
+ display:block; position:absolute; inset:0; width:100%; height:100%; z-index:1; stroke-width:4px;
+}
+.vp-card[data-accent^="#"][data-frame=halo] > .vp-custom-outline { stroke-width:7px; }
+.vp-custom-accent { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-top:12px; }
+.vp-custom-accent input { width:48px; height:44px; padding:3px; cursor:pointer; }
+.vp-custom-accent output { font-family:ui-monospace,monospace; color:var(--vh-copy); }
+html[data-vh-simple-profiles=true] .vp-card > :is(.vp-custom-stripe,.vp-custom-outline),
+html.vh-high-contrast .vp-card > :is(.vp-custom-stripe,.vp-custom-outline) { display:none!important; }
+@media(forced-colors:active),(prefers-contrast:more) {
+ .vp-card[data-accent^="#"] > :is(.vp-custom-stripe,.vp-custom-outline) { display:none!important; }
+}
+
 </style>
 <style data-source="profile-showcase.css">
 /* Draft composition uses the profile studio's tokens and readable type scale. */
@@ -1456,6 +1542,49 @@ html.vh-reduced-motion .ps-editor *{scroll-behavior:auto!important;animation:non
 .vc-mini{width:20px;height:20px;flex:0 0 auto;vertical-align:-3px;overflow:visible}
 html.vh-reduced-motion .va-playing [data-part]{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){.va-playing [data-part]{animation:none!important;transition:none!important}}
+
+</style>
+<style data-source="appearance.css">
+/* Profiles keep their artwork. Dialogs, native form controls and browser
+   chrome follow the viewer's personal theme. */
+:root, [data-vh-theme-preview] {
+  --vh-profile-readable: initial;
+  --vh-button-bg: var(--vh-accent);
+  --vh-button-ink: var(--vh-accent-ink);
+  --vh-button-edge: var(--vh-accent);
+  --vh-button-hover: var(--vh-accent-hover);
+}
+[data-vh-tone="light"] { color-scheme: light; }
+[data-vh-tone="dark"] { color-scheme: dark; }
+.vh-primary {
+  background: var(--vh-button-bg);
+  color: var(--vh-button-ink);
+  border-color: var(--vh-button-edge);
+}
+.vh-primary:hover {
+  background: var(--vh-button-hover);
+  color: var(--vh-button-ink);
+  border-color: var(--vh-button-edge);
+}
+.vp-card :is(.vp-username,.vp-status,.vp-avatar) { color:var(--vh-profile-readable,var(--vp-accent)); }
+html[data-vh-tone="light"] :is(.vh-sidebar-scroll,.vh-feed,.vh-main,.vh-dialog) {
+  scrollbar-color: var(--vh-control-line) transparent;
+}
+.vp-looks { border-color:var(--vh-line); }
+.vp-looks button {
+  background:var(--vh-surface); color:var(--vh-text); border-color:var(--vh-control-line);
+}
+
+html[data-vh-density="compact"] .vh-nav-item { padding-block:5px; min-height:38px; }
+html[data-vh-density="compact"] .vh-feed .vh-message { padding-block:5px; gap:8px; }
+html[data-vh-density="compact"] .vh-feed-direct .vh-message { padding-block:1px; }
+html[data-vh-density="compact"] .vh-feed-direct .vh-message:not(.vh-message-grouped) { padding-top:4px; }
+html[data-vh-density="compact"] .vh-feed-direct .vh-message>div { padding-block:4px; }
+html[data-vh-density="compact"] #home-secure-feed .vh-message { padding-block:2px; }
+html[data-vh-density="compact"] #home-secure-feed .vh-message>div { padding-block:7px; }
+@media (pointer:coarse) {
+  html[data-vh-density="compact"] .vh-nav-item { min-height:44px; }
+}
 
 </style>
 </head>
@@ -2101,51 +2230,168 @@ html.vh-reduced-motion .va-playing [data-part]{animation:none!important;transiti
 
 </script>
 <script data-source="theme.js">
-/* Account appearance state belongs above every dialog, toast and portal.
- * This module contains no account data and never restores another account's settings. */
+/* Account preferences live in the home controller. Theme rendering also serves
+ * the private draft preview inside its appearance dialog. */
 (() => {
   'use strict';
   if (window.VoidTheme) return;
-  const DEFAULTS = Object.freeze({font:'15',highContrast:false,reducedMotion:false,simpleProfiles:false});
-  let preferences = {...DEFAULTS};
+  const palettes = Object.freeze({graphite:'#0e1013',midnight:'#121b2c',forest:'#14221f'});
+  const defaults = Object.freeze({
+    font:'15',highContrast:false,reducedMotion:false,simpleProfiles:false,
+    palette:'graphite',background:palettes.graphite,accent:'#cbef84',density:'comfortable'
+  });
+  const darkInk = '#000000', lightInk = '#ffffff';
+  let preferences = defaults, activePreview = null;
+  const previousStyles = new WeakMap();
+
   function media(query) {
     try { return window.matchMedia?.(query) || null; } catch (_) { return null; }
   }
   const reduced = media('(prefers-reduced-motion: reduce)');
   const contrast = media('(prefers-contrast: more)');
-  function state() {
-    return Object.freeze({...preferences,systemReducedMotion:!!reduced?.matches,systemHighContrast:!!contrast?.matches,
-      effectiveReducedMotion:preferences.reducedMotion || !!reduced?.matches,
-      effectiveHighContrast:preferences.highContrast || !!contrast?.matches});
+  function color(value, fallback) {
+    if (typeof value !== 'string') return fallback;
+    const input = value.trim().toLowerCase();
+    if (/^#[0-9a-f]{6}$/.test(input)) return input;
+    return /^#[0-9a-f]{3}$/.test(input) ? input.replace(/[0-9a-f]/g, ch => ch + ch) : fallback;
+  }
+  function normalize(value) {
+    const v = value && typeof value === 'object' ? value : defaults;
+    return {
+      font:[15,17,19,'15','17','19'].includes(v.font) ? String(v.font) : defaults.font,
+      highContrast:v.highContrast === true,reducedMotion:v.reducedMotion === true,simpleProfiles:v.simpleProfiles === true,
+      palette:typeof v.palette==='string' && (v.palette==='custom' || Object.hasOwn(palettes,v.palette)) ? v.palette : defaults.palette,
+      background:color(v.background,defaults.background),accent:color(v.accent,defaults.accent),
+      density:v.density === 'compact' ? 'compact' : defaults.density
+    };
+  }
+  function effective(v) {
+    return Object.freeze({...v,systemReducedMotion:!!reduced?.matches,systemHighContrast:!!contrast?.matches,
+      effectiveReducedMotion:v.reducedMotion || !!reduced?.matches,
+      effectiveHighContrast:v.highContrast || !!contrast?.matches});
+  }
+  const state = () => effective(preferences);
+  const channels = hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
+  function mix(a,b,amount) {
+    const other = channels(b);
+    return '#' + channels(a).map((v,i) =>
+      Math.round(v + (other[i]-v)*amount).toString(16).padStart(2,'0')).join('');
+  }
+  function luminance(hex) {
+    const linear = channels(hex).map(n => {
+      const x = n/255;
+      return x <= .04045 ? x/12.92 : ((x+.055)/1.055)**2.4;
+    });
+    return .2126*linear[0] + .7152*linear[1] + .0722*linear[2];
+  }
+  function ratio(a,b) { return (Math.max(a,b)+.05)/(Math.min(a,b)+.05); }
+  function labelOn(fill) { return luminance(fill) > .17913 ? darkInk : lightInk; }
+  // Find the nearest mix toward the chosen text color that is readable on the
+  // hardest surface. All the surface colors stay on the same side of that ink.
+  function readable(color, surfaceLuminance, ink, minimum = 4.5) {
+    const ok = candidate => {
+      const lum = luminance(candidate);
+      return ratio(lum,surfaceLuminance) >= minimum && (ink===lightInk ? lum>surfaceLuminance : lum<surfaceLuminance);
+    };
+    if (ok(color)) return color;
+    let low=0, high=1;
+    for (let i=0;i<10;i++) {
+      const trial=(low+high)/2;
+      if (ok(mix(color,ink,trial))) high=trial;
+      else low=trial;
+    }
+    return mix(color,ink,high);
+  }
+
+  function colorRoles(v) {
+    // An empty override restores the original stylesheet, including its OS and
+    // app high-contrast variants. Draft previews establish their own CSS scope.
+    if (v.effectiveHighContrast || (v.palette==='graphite' && v.accent===defaults.accent)) return {};
+    const base = v.palette==='custom' ? v.background : palettes[v.palette];
+    const lum = luminance(base), ink=labelOn(base), light=ink===darkInk;
+    const vars = {};
+    // Near middle gray keep surfaces on the readable side of the background.
+    const depth = (light && lum>.45) || (!light && lum>=.095) ? darkInk : lightInk;
+    const surface = (tone,amount) => {
+      const candidate = mix(base,tone,amount);
+      return ratio(luminance(ink),luminance(candidate)) >= 4.55 ? candidate : base;
+    };
+    const coloredBase = v.palette !== 'graphite';
+    const selected = surface(v.accent,.14), own = surface(v.accent,.09);
+    const danger = light ? '#a02b37' : '#f3a8ad';
+    const dangerSurface = coloredBase ? surface(danger,.13) : '#342326';
+    const raised = coloredBase ? surface(depth,.13) : '#252c34';
+    const backgrounds = [base,raised,selected,own,dangerSurface];
+    const hardest = (light ? Math.min : Math.max)(...backgrounds.map(luminance));
+    if (coloredBase) Object.assign(vars,{
+      '--vh-bg':base,'--vh-rail':surface(depth,.025),'--vh-side':surface(depth,.045),
+      '--vh-surface':surface(depth,.08),'--vh-raised':raised,
+      '--vh-line-soft':mix(base,ink,.14),'--vh-line':mix(base,ink,.24),
+      '--vh-control-line':readable(mix(base,ink,.52),hardest,ink,3),
+      '--vh-text':readable(mix(base,ink,.95),hardest,ink),
+      '--vh-copy':readable(mix(base,ink,.82),hardest,ink),
+      '--vh-muted':readable(mix(base,ink,.64),hardest,ink),
+      '--vh-danger':readable(danger,hardest,ink),'--vh-danger-surface':dangerSurface,
+      '--vh-success':readable(light?'#285d40':'#b7d7ba',hardest,ink)
+    });
+    const accent=readable(v.accent,hardest,ink), accentInk=labelOn(accent), buttonInk=labelOn(v.accent);
+    if (lum > .065) vars['--vh-profile-readable']='var(--vh-copy)';
+    Object.assign(vars,{
+      '--vh-selected':selected,'--vh-own-message':own,'--vh-accent':accent,
+      '--vh-accent-hover':mix(accent,accentInk===darkInk?lightInk:darkInk,.16),'--vh-accent-ink':accentInk,
+      '--vh-button-bg':v.accent,'--vh-button-ink':buttonInk,
+      '--vh-button-hover':mix(v.accent,buttonInk===darkInk?lightInk:darkInk,.14),
+      '--vh-button-edge':accent
+    });
+    return vars;
+  }
+
+  function setFlags(node,v) {
+    node.dataset.vhFont=v.font;
+    node.dataset.vhDensity=v.density;
+    const base=v.palette==='custom'?v.background:palettes[v.palette];
+    node.dataset.vhTone=!v.effectiveHighContrast && labelOn(base)===darkInk ? 'light' : 'dark';
+    node.dataset.vhSimpleProfiles=String(v.simpleProfiles);
+    node.dataset.vhMotion=v.effectiveReducedMotion?'reduce':'standard';
+    node.dataset.vhContrast=v.effectiveHighContrast?'more':'standard';
+    node.classList.toggle('vh-reduced-motion',v.effectiveReducedMotion);
+    node.classList.toggle('vh-high-contrast',v.effectiveHighContrast);
+  }
+  function writeColors(node,v) {
+    if (!node?.style) return;
+    const next=colorRoles(v), last=previousStyles.get(node)||{};
+    for (const key of Object.keys(last)) if (!(key in next)) node.style.removeProperty(key);
+    for (const [key,value] of Object.entries(next)) if (last[key]!==value) node.style.setProperty(key,value);
+    previousStyles.set(node,next);
+  }
+  function preview(node,value) {
+    if (!node || node===document.body || node===document.documentElement) return;
+    const draft=normalize(value),v=effective(draft);
+    activePreview={node,draft};
+    node.dataset.vhThemePreview='';
+    setFlags(node,v);
+    writeColors(node,v);
+    node.style?.setProperty('--vl-text-scale',String(Number(v.font)/15));
+    return v;
   }
   function sync() {
-    const current = state();
-    // Both roots keep portals compatible; the CSS variables are defined once on html.
-    for (const node of [document.documentElement,document.body]) {
-      if (!node) continue;
-      node.dataset.vhFont = current.font;
-      node.dataset.vhSimpleProfiles = String(current.simpleProfiles);
-      node.dataset.vhMotion = current.effectiveReducedMotion ? 'reduce' : 'standard';
-      node.dataset.vhContrast = current.effectiveHighContrast ? 'more' : 'standard';
-      node.classList.toggle('vh-reduced-motion',current.effectiveReducedMotion);
-      node.classList.toggle('vh-high-contrast',current.effectiveHighContrast);
-    }
-    if (typeof CustomEvent === 'function') window.dispatchEvent(new CustomEvent('voidline:theme',{detail:current}));
-    return current;
+    const v=state();
+    for (const node of [document.documentElement,document.body]) if (node) setFlags(node,v);
+    writeColors(document.documentElement,v);
+    const meta=document.querySelector?.('meta[name="theme-color"]');
+    if (meta) meta.content=v.effectiveHighContrast?defaults.background:(v.palette==='custom'?v.background:palettes[v.palette]);
+    if (activePreview?.node.isConnected) preview(activePreview.node,activePreview.draft);
+    else activePreview=null;
+    if (typeof CustomEvent==='function') window.dispatchEvent(new CustomEvent('voidline:theme',{detail:v}));
+    return v;
   }
-  function apply(value = DEFAULTS) {
-    const input = value && typeof value === 'object' ? value : DEFAULTS;
-    preferences = {font:['15','17','19'].includes(String(input.font)) ? String(input.font) : '15',
-      highContrast:input.highContrast === true,reducedMotion:input.reducedMotion === true,
-      simpleProfiles:input.simpleProfiles === true};
-    return sync();
-  }
-  function reset() { return apply(DEFAULTS); }
+  function apply(value) { preferences=normalize(value); return sync(); }
+  function reset() { activePreview=null; return apply(defaults); }
   for (const query of [reduced,contrast]) {
     if (query?.addEventListener) query.addEventListener('change',sync);
     else if (query?.addListener) query.addListener(sync);
   }
-  window.VoidTheme = Object.freeze({apply,reset,state});
+  window.VoidTheme=Object.freeze({apply,reset,state,preview,normalize,defaults,palettes});
   reset();
   if (!document.body) document.addEventListener('DOMContentLoaded',sync,{once:true});
 })();
@@ -2651,7 +2897,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     }
     return `<aside class="vh-sidebar" aria-label="${state.view==='servers'?'Community navigation':'Conversations'}"><header><h2>${selected&&state.view==='servers'?esc(selected.name):state.view==='servers'?'Communities':'Messages'}</h2><button class="vh-icon-button" data-home="${state.view==='servers'?'create':'friend'}" aria-label="${state.view==='servers'?'Create a community':'Find someone'}">${icon('plus')}</button></header><div class="vh-sidebar-scroll">${content}<div class="vh-sidebar-tools">${extensions.some(module=>module.id==='organization')?'':`<button class="vh-nav-item" data-home="saved">${icon('bookmark')} Saved</button><button class="vh-nav-item" data-home="inbox">${icon('inbox')} Inbox</button>`}${extensions.map(module=>module.navHTML?.()||'').join('')}</div></div><footer><span class="vh-avatar" data-tone="${avatarTone(state.account.id)}">${avatarHTML(state.account,state.account.displayName)}</span><button data-home="you"><b>${esc(state.account.displayName)}</b><small>@${esc(state.account.username)}</small></button></footer><div class="vh-sidebar-resize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize conversation list" aria-valuemin="260" aria-valuemax="320" aria-valuenow="${sidebarWidth()}"></div></aside>`;
   }
-  function accountPage() {return `<div class="vh-page-content"><header class="vh-page-header"><span class="vh-eyebrow">ACCOUNT</span><h1>Your profile</h1><p>Your identity, preferences, devices and data.</p></header>${profileHTML(state.account)}${extensions.map(module=>module.accountHTML?.()||'').join('')}<div class="vh-settings-list"><button data-home="profile">${icon('you')}<span><b>Profile</b><small>Display name, bio and avatar mark</small></span>${icon('arrow')}</button><button data-home="appearance">${icon('settings')}<span><b>Appearance & accessibility</b><small>Font size, contrast and motion</small></span>${icon('arrow')}</button><button data-home="change-password">${icon('shield')}<span><b>Password</b><small>Change your account password</small></span>${icon('arrow')}</button><button data-home="security">${icon('shield')}<span><b>Devices & security</b><small>Sessions, verification and recovery status</small></span>${icon('arrow')}</button><button data-home="saved">${icon('bookmark')}<span><b>Saved Messages</b><small>Your personal utility, separate from chats</small></span>${icon('arrow')}</button><button data-home="data">${icon('download')}<span><b>Data & previous archive</b><small>Deliberate recovery and export</small></span>${icon('arrow')}</button><button data-home="logout">${icon('signout')}<span><b>Sign out</b><small>Lock account content on this device</small></span></button></div></div>`;}
+  function accountPage() {return `<div class="vh-page-content"><header class="vh-page-header"><span class="vh-eyebrow">ACCOUNT</span><h1>Your profile</h1><p>Your identity, preferences, devices and data.</p></header>${profileHTML(state.account)}${extensions.map(module=>module.accountHTML?.()||'').join('')}<div class="vh-settings-list"><button data-home="profile">${icon('you')}<span><b>Profile</b><small>Display name, bio and avatar mark</small></span>${icon('arrow')}</button><button data-home="appearance">${icon('settings')}<span><b>Appearance & accessibility</b><small>Colors, message spacing, text size and motion</small></span>${icon('arrow')}</button><button data-home="change-password">${icon('shield')}<span><b>Password</b><small>Change your account password</small></span>${icon('arrow')}</button><button data-home="security">${icon('shield')}<span><b>Devices & security</b><small>Sessions, verification and recovery status</small></span>${icon('arrow')}</button><button data-home="saved">${icon('bookmark')}<span><b>Saved Messages</b><small>Your personal utility, separate from chats</small></span>${icon('arrow')}</button><button data-home="data">${icon('download')}<span><b>Data & previous archive</b><small>Deliberate recovery and export</small></span>${icon('arrow')}</button><button data-home="logout">${icon('signout')}<span><b>Sign out</b><small>Lock account content on this device</small></span></button></div></div>`;}
   function conversation(){return nativeConversationView();}
   function destinationEmpty(){if(!state.communities.length&&!state.secureRooms.length&&!state.nativeConversations.length&&!state.nativeListPage.offset)return emptyHome();return `<div class="vh-empty"><span class="vh-empty-mark">${icon(state.view==='servers'?'servers':'chats')}</span><span class="vh-eyebrow">YOUR WORKSPACE</span><h1>${state.view==='servers'?(community()?'Choose a channel.':'Choose a server'):'Select a chat'}</h1><p>${state.view==='servers'?'Open a community and choose a text channel.':'Choose a conversation from your list, or start a message with a friend.'}</p><button class="vh-secondary" data-home="${state.view==='servers'?'join':'new-message'}">${state.view==='servers'?'Join another server':'New message'}</button></div>`;}
   const pageExtension = name => extensions.find(module=>module.pageId===name&&typeof module.pageHTML==='function');
@@ -3029,8 +3275,111 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   function view(name){captureNativeDraft();captureSecureDraft();state.nativeId=null;state.nativeMode=null;state.generation++;setDestinationView(name);state.secureRoomId=null;state.secureMessages=[];state.channelId=null;state.communityId=null;state.channels=[];state.messages=[];state.members=[];state.error='';closeDialog(false);render();remember();pushRoute('#'+name);$('home-main')?.focus();}
   async function security(){const current=guard();const ticket=showDialog('Devices & security.','Account sessions and encryption devices have different purposes.',`<div id="home-security" role="status">Loading your sessions…</div>${formError}`);try{const data=await request('/api/auth/devices');let passkeys={passkeys:[]};try{passkeys=await request('/api/security/passkeys');}catch(error){passkeys.error=error.message;}if(!current()||ticket!==state.dialogGeneration)return;const target=$('home-security');if(!target)return;target.innerHTML=`<div class="vh-note"><b>${secureReady()?'Encrypted messaging connected':'Encrypted messaging not connected'}</b><p>${secureReady()?'Messaging identity: '+esc(state.secureStatus.userId)+' / '+esc(state.secureStatus.deviceId):'No verified messaging keys are enrolled through this account session.'}</p><p>Voidline login sessions are separate from messaging devices. Revoking a session locks this app; it does not revoke a Matrix token used by another client.</p></div><div class="vh-dialog-actions">${secureReady()?'<button class="vh-secondary" data-home="secure-verify">Verify devices</button><button class="vh-secondary" data-home="secure-fingerprint">This device fingerprint</button><button class="vh-secondary" data-home="secure-recovery">Set up recovery</button><button class="vh-secondary" data-home="secure-restore">Restore backup</button><button class="vh-danger" data-home="secure-disconnect-confirm">Disconnect messaging</button>':'<button class="vh-primary" data-home="secure-connect">Connect encrypted messaging</button>'}</div><h3>Passkeys</h3><p>Use a device passkey for sensitive account and owner actions. Your password and message recovery remain separate.</p><div class="vh-dialog-actions"><button class="vh-secondary" data-home="passkey-enroll">Add passkey</button><button class="vh-secondary" data-home="passkey-verify">Verify with passkey</button></div><ul class="vh-passkey-list">${(passkeys.passkeys||[]).map(key=>`<li><b>${esc(key.name||'Passkey')}</b><span>Added ${esc(time(key.createdAt))}</span><button class="vh-danger" data-home="passkey-remove" data-key="${esc(key.id)}">Remove</button></li>`).join('')||(passkeys.error?'<li>'+esc(passkeys.error)+'</li>':'<li>No passkeys registered.</li>')}</ul><h3>Active sessions</h3><div class="vh-result-list">${(data.devices||[]).map(d=>`<article class="vh-list-row"><div><b>${esc(d.deviceName||'Browser session')}${d.current?' · this session':''}</b><p>Last active ${esc(time(d.lastActiveAt))}</p><small>Signed in ${esc(time(d.createdAt))}</small></div><button class="vh-danger" data-home-revoke="${esc(d.id)}">${d.current?'Sign out':'Revoke session'}</button></article>`).join('')}</div><button class="vh-secondary" data-home="email-settings">Private recovery email</button><button class="vh-secondary" data-home="reauthenticate">Confirm ${passwordMethods().includes('password')?'password':'Google identity'}</button><button class="vh-secondary" data-home="change-password">${passwordMethods().includes('password')?'Change password':'Add password'}</button>`;}catch(error){if(current()&&ticket===state.dialogGeneration)errorNode(error);}}
   function profileDialog(){const p=state.account;showDialog('Edit profile','Only the information you choose is visible to other server members.',`<form class="vh-form" data-home-form="profile"><label class="vh-field">Username<input value="${esc(p.username)}" readonly></label><label class="vh-field">Display name<input name="displayName" value="${esc(p.displayName)}" minlength="2" maxlength="32" required></label><label class="vh-field">Bio<textarea name="bio" rows="3" maxlength="240">${esc(p.bio||'')}</textarea></label><label class="vh-field">Status<input name="status" value="${esc(p.status||'')}" maxlength="80"></label><div class="vh-form-grid"><label class="vh-field">Theme<select name="theme">${['obsidian','lilac','ice'].map(v=>`<option ${p.theme===v?'selected':''}>${v}</option>`).join('')}</select></label><label class="vh-field">Avatar mark<select name="avatar">${['moon','orbit','spark','leaf','ghost'].map(v=>`<option ${p.avatar===v?'selected':''}>${v}</option>`).join('')}</select></label></div>${formError}<p class="vh-note">No artifacts are granted for choosing a profile. Cosmetics do not confer staff roles.</p><button class="vh-primary" type="submit">Save profile</button></form>`);}
-  function appearance(){const p=preferences();showDialog('Appearance & accessibility','These reading preferences are saved for this account on this device.',`<form class="vh-form" data-home-form="appearance"><label class="vh-field">Text size<select name="font"><option value="15" ${p.font==='15'?'selected':''}>Comfortable · 15px</option><option value="17" ${p.font==='17'?'selected':''}>Large · 17px</option><option value="19" ${p.font==='19'?'selected':''}>Extra large · 19px</option></select></label><label class="vh-check"><input type="checkbox" name="highContrast" ${p.highContrast?'checked':''}>High contrast</label><label class="vh-check"><input type="checkbox" name="reducedMotion" ${p.reducedMotion?'checked':''}>Reduce motion</label><label class="vh-check"><input type="checkbox" name="simpleProfiles" ${p.simpleProfiles?'checked':''}>Simplify profile styles and decorations</label>${formError}<button class="vh-primary" type="submit">Save preferences</button></form>`);}
-  function preferences(){try{const p=JSON.parse(localStorage.getItem('voidline.preferences.v1.'+state.account.id)||'{}');return {font:['15','17','19'].includes(p.font)?p.font:'15',highContrast:p.highContrast===true,reducedMotion:p.reducedMotion===true,simpleProfiles:p.simpleProfiles===true};}catch(_){return {font:'15',highContrast:false,reducedMotion:false,simpleProfiles:false};}}
+  function normalizeAppearance(value) {
+    if (window.VoidTheme?.normalize) return window.VoidTheme.normalize(value);
+    // The lightweight startup fallback keeps accessibility settings when the theme module is unavailable.
+    const p = value || {};
+    return {font:['15','17','19'].includes(p.font) ? p.font : '15', highContrast:p.highContrast === true,
+      reducedMotion:p.reducedMotion === true, simpleProfiles:p.simpleProfiles === true,
+      palette:'graphite', background:'#0e1013', accent:'#cbef84', density:'comfortable'};
+  }
+  function preferences() {
+    let stored;
+    try { stored=JSON.parse(localStorage.getItem('voidline.preferences.v1.'+state.account.id)); } catch (_) {}
+    return normalizeAppearance(stored);
+  }
+  const openedAppearance = new WeakMap();
+  function appearanceValues(data) {
+    return normalizeAppearance({...data, highContrast:data.highContrast==='on',
+      reducedMotion:data.reducedMotion==='on', simpleProfiles:data.simpleProfiles==='on'});
+  }
+  function colorField(name, label, value) {
+    return `<div class="vh-color-pair"><input type="color" data-vh-picker="${name}" value="${esc(value)}" aria-label="Pick ${label.toLowerCase()}">
+      <input name="${name}" id="vh-color-${name}" aria-label="${label} hex code" type="text" value="${esc(value)}"
+        spellcheck="false" autocomplete="off" autocapitalize="off" maxlength="7" required pattern="#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})"
+        title="Use a color such as #8cabf7 or #abc"></div>`;
+  }
+  function appearance() {
+    const p=preferences(), theme=window.VoidTheme;
+    const palettes={graphite:'Graphite',midnight:'Midnight',forest:'Forest',custom:'Custom'};
+    const accents=[['Lime','#cbef84'],['Ice','#8cabf7'],['Lilac','#c9b5f7'],['Jade','#81cfb4'],['Amber','#edb974']];
+    const selectOptions=(items,value)=>Object.entries(items).map(([key,label])=>`<option value="${key}" ${value===key?'selected':''}>${label}</option>`).join('');
+    showDialog('Appearance & accessibility','Choose how VOIDLINE looks on this device. These settings are private to your account.',`
+      <form class="vh-form vh-appearance" data-home-form="appearance" data-owner-id="${esc(state.account.id)}">
+        <div class="vh-appearance-layout"><div class="vh-appearance-settings">
+          <fieldset class="vh-appearance-section"><legend>Background</legend>
+            <div class="vh-theme-presets">${Object.entries(palettes).map(([key,label])=>`<label class="vh-theme-preset">
+              <input type="radio" name="palette" value="${key}" ${p.palette===key?'checked':''}>
+              <span class="vh-theme-chip" data-palette="${key}" aria-hidden="true"></span><span>${label}</span></label>`).join('')}</div>
+            <div class="vh-custom-background" data-vh-custom ${p.palette==='custom'?'':'hidden'}>
+              <label for="vh-color-background">Custom background</label>${colorField('background','Background',p.background)}</div>
+          </fieldset>
+          <fieldset class="vh-appearance-section"><legend>Accent color</legend>
+            <div class="vh-accent-controls"><div class="vh-accent-presets" role="group" aria-label="Accent presets">${accents.map(([label,color])=>`<button type="button"
+              data-vh-accent="${color}" aria-label="${label} accent" title="${label}" aria-pressed="${p.accent===color}"><span aria-hidden="true"></span></button>`).join('')}</div>
+              ${colorField('accent','Accent',p.accent)}</div>
+            <small>VOIDLINE adjusts colors for readable text and controls.</small>
+          </fieldset>
+          <div class="vh-reading-grid">
+            <label class="vh-field">Text size<select name="font">${selectOptions({'15':'Standard','17':'Large','19':'Extra large'},p.font)}</select></label>
+            <label class="vh-field">Message spacing<select name="density">${selectOptions({comfortable:'Comfortable',compact:'Compact'},p.density)}</select></label>
+          </div>
+          <fieldset class="vh-appearance-section vh-access-options"><legend>Accessibility</legend>
+            <label class="vh-check"><input type="checkbox" name="highContrast" ${p.highContrast?'checked':''}>High contrast</label>
+            <label class="vh-check"><input type="checkbox" name="reducedMotion" ${p.reducedMotion?'checked':''}>Reduce motion</label>
+            <label class="vh-check"><input type="checkbox" name="simpleProfiles" ${p.simpleProfiles?'checked':''}>Simplify profile styles and decorations</label>
+          </fieldset>
+        </div><section class="vh-appearance-sample" aria-label="Conversation preview">
+          <h3>Live preview</h3>
+          <div class="vh-appearance-scene" data-vh-sample>
+            <div class="vh-sample-header">${icon('chats')}<strong>Messages</strong></div>
+            <div class="vh-sample-feed"><div class="vh-sample-message"><strong>${esc(state.account.displayName || state.account.username || 'You')}</strong><p>This is how your messages will look.</p></div>
+              <div class="vh-sample-message"><span class="vh-sample-tag">You</span><p>A second line shows your spacing.</p></div></div>
+          </div>
+        </section></div>
+        ${formError}<div class="vh-appearance-actions"><button type="button" class="vh-link" data-vh-defaults>Restore defaults</button>
+          <button type="button" class="vh-secondary" data-home="close-dialog">Cancel</button><button type="submit" class="vh-primary">Apply appearance</button></div>
+      </form>`);
+    const form=dialog.querySelector('[data-home-form="appearance"]');
+    if (!form) return;
+    openedAppearance.set(form,p);
+    const byName=name=>form.elements.namedItem(name);
+    const picker=name=>form.querySelector('[data-vh-picker="'+name+'"]');
+    const preview=()=>{
+      const custom=byName('palette').value==='custom';
+      form.querySelector('[data-vh-custom]').hidden=!custom;
+      // Keep the last custom color when a preset is selected, and ignore a half-typed hidden value.
+      byName('background').disabled=!custom;
+      const values=Object.fromEntries(new FormData(form));
+      if (!custom) values.background=byName('background').value;
+      if (!byName('accent').validity.valid || (custom && !byName('background').validity.valid)) return;
+      const draft=appearanceValues(values);
+      picker('background').value=draft.background; picker('accent').value=draft.accent;
+      form.querySelectorAll('[data-vh-accent]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.vhAccent===draft.accent)));
+      theme?.preview?.(form.querySelector('[data-vh-sample]'),draft);
+    };
+    const update=event=>{
+      if (event.target.dataset.vhPicker) byName(event.target.dataset.vhPicker).value=event.target.value;
+      preview();
+    };
+    form.addEventListener('input',update);
+    form.addEventListener('change',update);
+    form.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      if (button?.dataset.vhAccent) {
+        byName('accent').value=button.dataset.vhAccent;
+        preview();
+      } else if (button?.hasAttribute('data-vh-defaults')) {
+        for (const [key,value] of Object.entries(normalizeAppearance({}))) {
+          const field=byName(key);
+          if (!field) continue;
+          if (typeof value==='boolean') field.checked=value; else field.value=value;
+        }
+        preview();
+      }
+    });
+    preview();
+  }
   function sidebarWidth(){try{return Math.max(260,Math.min(320,Number(localStorage.getItem('voidline.list-width.v1.'+state.account?.id))||288));}catch(_){return 288;}}
   function applySidebarWidth(value=sidebarWidth()){const width=Math.round(Math.max(260,Math.min(320,value)));document.documentElement.style?.setProperty('--vh-list-width',width+'px');document.querySelector?.('.vh-sidebar-resize')?.setAttribute('aria-valuenow',String(width));return width;}
   function saveSidebarWidth(value){const width=applySidebarWidth(value);try{localStorage.setItem('voidline.list-width.v1.'+state.account.id,String(width));}catch(_){}return width;}
@@ -3133,7 +3482,17 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     if(kind==='preview-invite'){const token=inviteToken(data.token);if(!token)throw Error('Paste a complete Voidline invitation link or its 64-character code.');await previewInvite(token);return;}
     if(kind==='join'){const result=await request('/api/live/invites/claim',{token:form.dataset.token});if(!current()||ticket!==state.dialogGeneration)return;await refreshCommunities();if(!current())return;closeDialog();await openCommunity(result.membership.communityId,null,true);history.replaceState(null,'',location.pathname+location.search+'#servers');return;}
     if(kind==='profile'){const result=await request('/api/live/profile',data);if(!current()||ticket!==state.dialogGeneration)return;state.account={...state.account,...result.account};for(const module of extensions)module.onAccount?.(state.account);closeDialog();render();announce('Profile saved.');return;}
-    if(kind==='appearance'){const p={font:data.font,highContrast:data.highContrast==='on',reducedMotion:data.reducedMotion==='on',simpleProfiles:data.simpleProfiles==='on'};try{localStorage.setItem('voidline.preferences.v1.'+state.account.id,JSON.stringify(p));}catch(_){throw Error('This browser could not save your preferences. No success was recorded.');}closeDialog();applyPreferences();announce('Reading preferences saved.');return;}
+    if(kind==='appearance'){
+      if(!state.account || (form.dataset.ownerId && form.dataset.ownerId!==state.account.id))throw Error('Reopen Appearance for your current account.');
+      if(data.palette!=='custom' && form.elements?.namedItem('background')) data.background=form.elements.namedItem('background').value;
+      const draft=appearanceValues(data), initial=openedAppearance.get(form), next=preferences();
+      for (const [field,value] of Object.entries(draft)) {
+        if (!initial || value!==initial[field]) next[field]=value;
+      }
+      try{localStorage.setItem('voidline.preferences.v1.'+state.account.id,JSON.stringify(next));}
+      catch(_){throw Error('Could not save appearance on this device. Your choices are still here.');}
+      closeDialog();applyPreferences();announce('Appearance saved.');return;
+    }
     if(kind==='community-settings'){await request(`/api/live/communities/${encodeURIComponent(form.dataset.id)}/settings`,data);if(!current()||ticket!==state.dialogGeneration)return;await refreshCommunities();if(current()){closeDialog();render();}return;}
     if(kind==='channel'){const result=await request(`/api/live/communities/${encodeURIComponent(form.dataset.id)}/channels`,data);if(!current()||ticket!==state.dialogGeneration)return;const id=form.dataset.id;closeDialog();await openCommunity(id,result.channel.id);return;}
     if(kind==='invite'){const result=await request(`/api/live/communities/${encodeURIComponent(form.dataset.id)}/invites`,{maxUses:Number(data.maxUses),expiresInHours:Number(data.expiresInHours)});if(!current()||ticket!==state.dialogGeneration)return;const url=location.origin+location.pathname+'#join='+result.invite.token;showDialog('Invitation created','Copy this link and share it yourself. It is shown only once.',`<label class="vh-field">Invitation link<input id="home-invite-copy" value="${esc(url)}" readonly></label><p>Expires ${esc(time(result.invite.expiresAt))} · ${Number(result.invite.maxUses)} uses</p><button class="vh-primary" data-home="copy-invite">${icon('copy')}Copy invitation</button>`);return;}
@@ -3445,6 +3804,9 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     dialog.addEventListener('cancel',event=>{event.preventDefault();closeDialog();});
     window.addEventListener('voidline:activity',event=>{receiveAccountActivity(event).catch(()=>{});});
     window.addEventListener('hashchange',restoreBrowserRoute);window.addEventListener('popstate',restoreBrowserRoute);
+    window.addEventListener('storage',event=>{
+      if(state.account && (event.key===null || event.key==='voidline.preferences.v1.'+state.account.id)) applyPreferences();
+    });
     let identityPolicy='';window.addEventListener('voidline:theme',()=>{const viewer=window.VoidTheme?.state?.()||{},policy=String(!!viewer.simpleProfiles)+':'+String(!!viewer.effectiveHighContrast);if(policy===identityPolicy)return;identityPolicy=policy;if(state.phase==='ready'){if(nativeKey())paintNative();refreshChrome();}});
     window.addEventListener('pageshow',event=>{if(event.persisted){lock();boot();}else checkSession();});
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkSession();});
@@ -4187,6 +4549,13 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
  const SECTIONS=[['identity','Identity'],['images','Images'],['style','Style'],['decorations','Decorations'],['showcase','Showcase'],['visibility','Visibility']];
  const PREVIEWS=[['full','Full profile'],['compact','Compact'],['message','Message row'],['member','Member list'],['mobile','Mobile'],['audience','Audience view']];
  const FIELD_LABELS={displayName:'Display name',bio:'Bio',status:'Status',avatar:'Avatar preset',banner:'Banner preset',accent:'Accent',detailsVisibility:'Profile details audience',collectionVisibility:'Gift audience',animationEnabled:'GIF playback',badgeOrder:'Earned badges',avatarMediaId:'Avatar image',bannerMediaId:'Banner image',equippedId:'Name decoration',nameStyle:'Name style',profileFrame:'Profile frame',showcaseSlots:'Gift showcase'};
+ const ACCENT_COLORS=Object.freeze({ice:'#c5cdd1',lilac:'#bba8d0',jade:'#a5c6b1',oxide:'#d4a09a',gold:'#d1bf8f'});
+ function validProfileAccent(value){
+  if(typeof value!=='string')return null;
+  if(Object.hasOwn(ACCENT_COLORS,value))return value;
+  return value.length===7&&/^#[a-f0-9]{6}$/i.test(value)?value.toLowerCase():null;
+ }
+ function accentColor(value){const valid=validProfileAccent(value);return valid ? (ACCENT_COLORS[valid]||valid) : ACCENT_COLORS.ice;}
  const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
  const savedMatches=(name,saved,wanted)=>['displayName','bio','status'].includes(name)?String(saved||'').trim()===String(wanted||'').trim():equal(saved,wanted);
  const slots=p=>(Array.isArray(p.showcaseSlots)?p.showcaseSlots:(p.showcase||[]).filter(g=>g.instance_id||g.instanceId).map((g,i)=>({slot:Number(g.slot)||i+1,instanceId:g.instance_id||g.instanceId,showSender:!!(g.show_sender??g.showSender)}))).map(g=>({slot:Number(g.slot),instanceId:g.instanceId,showSender:!!g.showSender})).sort((a,b)=>a.slot-b.slot);
@@ -4204,7 +4573,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
  const art=(id,mini=false)=>window.VoidCosmetics?.art?.(id,mini)||avatar('spark');
  function sync(){const id=state().account?.id||'';if(id!==identity){editor?.showcase?.dispose?.();editor?.toolbarObserver?.disconnect?.();stopGIFs();window.VoidProfileMedia?.disposeAll();identity=id;epoch++;writeVersion++;writeSerial++;cached=null;editor=null;dirty=false;busy=false;discardPrompt=false;}}
  function guard(){sync();const id=identity,version=epoch,parent=app.guard();return ()=>version===epoch&&id===state().account?.id&&parent();}
- const clean=p=>({displayName:p.displayName||'',bio:p.bio||'',status:p.status||'',avatar:p.avatar||'moon',banner:p.banner||'midnight',accent:p.accent||'ice',detailsVisibility:p.detailsVisibility||'shared',collectionVisibility:p.collectionVisibility||'shared',animationEnabled:!!p.animationEnabled,badgeOrder:p.badgeOrder||[],avatarMediaId:p.avatarMediaId||p.avatarMedia?.id||null,bannerMediaId:p.bannerMediaId||p.bannerMedia?.id||null,equippedId:p.equippedId||null,nameStyle:p.nameStyle||'plain',profileFrame:p.profileFrame||'none',showcaseSlots:slots(p)});
+ const clean=p=>({displayName:p.displayName||'',bio:p.bio||'',status:p.status||'',avatar:p.avatar||'moon',banner:p.banner||'midnight',accent:validProfileAccent(p.accent)||'ice',detailsVisibility:p.detailsVisibility||'shared',collectionVisibility:p.collectionVisibility||'shared',animationEnabled:!!p.animationEnabled,badgeOrder:p.badgeOrder||[],avatarMediaId:p.avatarMediaId||p.avatarMedia?.id||null,bannerMediaId:p.bannerMediaId||p.bannerMedia?.id||null,equippedId:p.equippedId||null,nameStyle:p.nameStyle||'plain',profileFrame:p.profileFrame||'none',showcaseSlots:slots(p)});
  function projection(value){
   const profile=editor?.profile||{},known=new Map([...(profile.showcase||[]),...(editor?.showcase?.project?.()||[])].map(g=>[g.instance_id||g.instanceId,g]));
   const showcase=slots(value).map(slot=>{const gift=known.get(slot.instanceId);if(!gift)return null;const shown={...gift,slot:slot.slot,instance_id:slot.instanceId,show_sender:slot.showSender};if(!slot.showSender){delete shown.sender_name;delete shown.sender_username;}return shown;}).filter(Boolean);
@@ -4227,8 +4596,8 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
  }
  function cancelStaged(keep=[]){if(!editor?.uploads)return;for(const [id]of editor.uploads){if(!keep.includes(id))app.request('/api/media/'+id+'/cancel',{}).catch(()=>{});}}
  function profileCard(profile,{compact=false,editing=false}={}){
-  const p=profile||state().account||{},gifAllowed=p.animationEnabled===true,gifCount=gifAllowed?Number(!!animationURL(p.avatarMedia))+Number(!!animationURL(p.bannerMedia)):0,safeBanner=['midnight','blueprint','eclipse','noise','orchid'].includes(p.banner)?p.banner:'midnight',safeAccent=['ice','lilac','jade','oxide','gold'].includes(p.accent)?p.accent:'ice',awards=shownAwards(p);
-  return `<section class="vp-card ${compact?'vp-compact':''}" data-accent="${safeAccent}" data-banner="${safeBanner}" data-animated="${p.animationEnabled===true}" data-name-style="${['plain','serif','mono'].includes(p.nameStyle)?p.nameStyle:'plain'}" data-frame="${['none','line','halo'].includes(p.profileFrame)?p.profileFrame:'none'}"><div class="vp-banner" aria-hidden="true">${posterURL(p.bannerMedia)?`<img class="vp-banner-image" src="${posterURL(p.bannerMedia)}" alt="" loading="lazy" decoding="async" data-vp-photo${gifAllowed&&animationURL(p.bannerMedia)?` data-vp-animation="${animationURL(p.bannerMedia)}" data-vp-poster="${posterURL(p.bannerMedia)}"`:''}>`:'<i></i><b></b>'}</div><div class="vp-content"><span class="vp-avatar">${avatar(p,{playable:gifAllowed})}</span><header class="vp-identity"><div><div class="vp-name-line"><h2>${esc(p.displayName||'Profile')}</h2>${p.equippedId||editing?`<span class="vp-equipped" title="Equipped decoration" ${p.equippedId?'':'hidden'}>${p.equippedId?art(p.equippedId,true):''}</span>`:''}</div><p class="vp-username">@${esc(p.username||state().account?.username||'')}</p></div>${p.role==='platform-owner'?'<p class="vp-official"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></svg>Platform owner <span>Verified server role</span></p>':''}</header>${gifCount||editing?`<div class="vp-gif-controls" ${gifCount?'':'hidden'}><span>GIF profile images</span><button type="button" class="vh-secondary" data-vp-action="toggle-gifs" aria-pressed="false" ${reducedMotion()?'disabled':''}>Play GIFs</button></div>`:''}${p.detailsVisible===false?'<p class="vp-private">This person keeps richer profile details private.</p>':`${p.status||editing?`<p class="vp-status" ${p.status?'':'hidden'}>${esc(p.status||'')}</p>`:''}<p class="vp-bio">${esc(p.bio||'No bio added.')}</p>`}${awards.length||editing?`<div class="vp-awards" aria-label="Earned badges" ${awards.length?'':'hidden'}>${awardMarkup(awards,editing,p.id||identity)}</div>`:''}${!compact&&p.collectionVisible!==false&&p.showcase?.length?`<div class="vp-showcase"><header><h3>Gift showcase</h3><span>${p.showcase.length} on display</span></header><div>${p.showcase.map(g=>`<article><button class="vp-showcase-object" type="button" data-vp-action="inspect-gift" data-item="${esc(g.catalog_id)}" data-instance="${esc(g.instance_id||g.instanceId||'')}" data-account="${esc(p.id||identity)}" aria-label="Inspect ${esc(g.name||'gift')}">${typeof g.catalog_id==='string'?art(g.catalog_id):avatar('spark')}<span>${esc(g.name||String(g.catalog_id||'Owned gift').replace(/^gift-/,'').replaceAll('-',' '))}</span></button>${g.sender_username&&(g.show_sender===undefined?g.showSender!==false:!!g.show_sender)?`<small>From @${esc(g.sender_username)}</small>`:''}</article>`).join('')}</div></div>`:''}${!compact&&p.collectionVisible===false?'<p class="vp-private">This collection is private.</p>':''}${editing?'':'<div class="vp-card-actions">'+(p.id===identity?'<button class="vh-secondary" data-vp-action="edit">Edit profile</button><button class="vh-secondary" data-vp-action="popover">Compact preview</button>':`<button class="vh-secondary" data-vp-action="full" data-account="${esc(p.id)}">Full profile</button>`)+(p.collectionVisible!==false?`<button class="vh-secondary" data-vp-action="collection" data-account="${esc(p.id||identity)}">View gifts</button>`:'')+'</div>'}</div></section>`;
+  const p=profile||state().account||{},gifAllowed=p.animationEnabled===true,gifCount=gifAllowed?Number(!!animationURL(p.avatarMedia))+Number(!!animationURL(p.bannerMedia)):0,safeBanner=['midnight','blueprint','eclipse','noise','orchid'].includes(p.banner)?p.banner:'midnight',safeAccent=validProfileAccent(p.accent)||'ice',awards=shownAwards(p);
+  return `<section class="vp-card ${compact?'vp-compact':''}" data-accent="${safeAccent}" data-banner="${safeBanner}" data-animated="${p.animationEnabled===true}" data-name-style="${['plain','serif','mono'].includes(p.nameStyle)?p.nameStyle:'plain'}" data-frame="${['none','line','halo'].includes(p.profileFrame)?p.profileFrame:'none'}"><svg class="vp-custom-outline" aria-hidden="true" focusable="false"><rect width="100%" height="100%" rx="10" fill="none" stroke="${accentColor(safeAccent)}"/></svg><div class="vp-banner" aria-hidden="true">${posterURL(p.bannerMedia)?`<img class="vp-banner-image" src="${posterURL(p.bannerMedia)}" alt="" loading="lazy" decoding="async" data-vp-photo${gifAllowed&&animationURL(p.bannerMedia)?` data-vp-animation="${animationURL(p.bannerMedia)}" data-vp-poster="${posterURL(p.bannerMedia)}"`:''}>`:'<i></i><b></b>'}</div><svg class="vp-custom-stripe" aria-hidden="true" focusable="false"><rect width="100%" height="100%" fill="${accentColor(safeAccent)}"/></svg><div class="vp-content"><span class="vp-avatar">${avatar(p,{playable:gifAllowed})}</span><header class="vp-identity"><div><div class="vp-name-line"><h2>${esc(p.displayName||'Profile')}</h2>${p.equippedId||editing?`<span class="vp-equipped" title="Equipped decoration" ${p.equippedId?'':'hidden'}>${p.equippedId?art(p.equippedId,true):''}</span>`:''}</div><p class="vp-username">@${esc(p.username||state().account?.username||'')}</p></div>${p.role==='platform-owner'?'<p class="vp-official"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></svg>Platform owner <span>Verified server role</span></p>':''}</header>${gifCount||editing?`<div class="vp-gif-controls" ${gifCount?'':'hidden'}><span>GIF profile images</span><button type="button" class="vh-secondary" data-vp-action="toggle-gifs" aria-pressed="false" ${reducedMotion()?'disabled':''}>Play GIFs</button></div>`:''}${p.detailsVisible===false?'<p class="vp-private">This person keeps richer profile details private.</p>':`${p.status||editing?`<p class="vp-status" ${p.status?'':'hidden'}>${esc(p.status||'')}</p>`:''}<p class="vp-bio">${esc(p.bio||'No bio added.')}</p>`}${awards.length||editing?`<div class="vp-awards" aria-label="Earned badges" ${awards.length?'':'hidden'}>${awardMarkup(awards,editing,p.id||identity)}</div>`:''}${!compact&&p.collectionVisible!==false&&p.showcase?.length?`<div class="vp-showcase"><header><h3>Gift showcase</h3><span>${p.showcase.length} on display</span></header><div>${p.showcase.map(g=>`<article><button class="vp-showcase-object" type="button" data-vp-action="inspect-gift" data-item="${esc(g.catalog_id)}" data-instance="${esc(g.instance_id||g.instanceId||'')}" data-account="${esc(p.id||identity)}" aria-label="Inspect ${esc(g.name||'gift')}">${typeof g.catalog_id==='string'?art(g.catalog_id):avatar('spark')}<span>${esc(g.name||String(g.catalog_id||'Owned gift').replace(/^gift-/,'').replaceAll('-',' '))}</span></button>${g.sender_username&&(g.show_sender===undefined?g.showSender!==false:!!g.show_sender)?`<small>From @${esc(g.sender_username)}</small>`:''}</article>`).join('')}</div></div>`:''}${!compact&&p.collectionVisible===false?'<p class="vp-private">This collection is private.</p>':''}${editing?'':'<div class="vp-card-actions">'+(p.id===identity?'<button class="vh-secondary" data-vp-action="edit">Edit profile</button><button class="vh-secondary" data-vp-action="popover">Compact preview</button>':`<button class="vh-secondary" data-vp-action="full" data-account="${esc(p.id)}">Full profile</button>`)+(p.collectionVisible!==false?`<button class="vh-secondary" data-vp-action="collection" data-account="${esc(p.id||identity)}">View gifts</button>`:'')+'</div>'}</div></section>`;
  }
  function profileHTML(account){sync();return profileCard(cached||{...account,id:account.id,detailsVisible:true,collectionVisible:true});}
  function error(error){const node=$('vp-error');if(node)node.textContent=error.message||'The profile could not be saved. Your edits are still here.';else app.announce(error.message||'The profile is unavailable.');}
@@ -4255,7 +4624,12 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   if(!card||editor.previewMode==='message'||editor.previewMode==='member'||previous?.previewAvailable!==next.previewAvailable||previous?.detailsVisible!==next.detailsVisible||previous?.collectionVisible!==next.collectionVisible){stopGIFs(preview);preview.innerHTML=previewHTML(value);editor.preview=next;return;}
   const text=(selector,value)=>{const node=card.querySelector(selector);if(node&&node.textContent!==value)node.textContent=value;};
   text('.vp-name-line h2',next.displayName||'Profile');text('.vp-bio',next.bio||'No bio added.');text('.vp-status',next.status||'');const status=card.querySelector('.vp-status');if(status)status.hidden=!next.status;
-  card.dataset.accent=next.accent;card.dataset.banner=next.banner;card.dataset.nameStyle=next.nameStyle;card.dataset.frame=next.profileFrame;card.dataset.animated=String(next.animationEnabled===true);
+  const accent=validProfileAccent(next.accent)||'ice';
+  if(card.dataset.accent!==accent){
+   card.querySelector('.vp-custom-stripe rect')?.setAttribute('fill',accentColor(accent));
+   card.querySelector('.vp-custom-outline rect')?.setAttribute('stroke',accentColor(accent));
+  }
+  card.dataset.accent=accent;card.dataset.banner=next.banner;card.dataset.nameStyle=next.nameStyle;card.dataset.frame=next.profileFrame;card.dataset.animated=String(next.animationEnabled===true);
   if(!previous||previous.equippedId!==next.equippedId){const mark=card.querySelector('.vp-equipped');if(mark){mark.innerHTML=next.equippedId?art(next.equippedId,true):'';mark.hidden=!next.equippedId;}}
   if(mediaChanged){const allow=next.animationEnabled===true,avatarNode=card.querySelector('.vp-avatar'),bannerNode=card.querySelector('.vp-banner');if(!previous||JSON.stringify([previous.avatar,previous.avatarMedia,previous.animationEnabled])!==JSON.stringify([next.avatar,next.avatarMedia,next.animationEnabled]))if(avatarNode)avatarNode.innerHTML=avatar(next,{playable:allow});if(!previous||JSON.stringify([previous.bannerMedia,previous.animationEnabled])!==JSON.stringify([next.bannerMedia,next.animationEnabled]))if(bannerNode)bannerNode.innerHTML=posterURL(next.bannerMedia)?`<img class="vp-banner-image" src="${posterURL(next.bannerMedia)}" alt="" loading="lazy" decoding="async" data-vp-photo${allow&&animationURL(next.bannerMedia)?` data-vp-animation="${animationURL(next.bannerMedia)}" data-vp-poster="${posterURL(next.bannerMedia)}"`:''}>`:'<i></i><b></b>';const controls=card.querySelector('.vp-gif-controls');if(controls)controls.hidden=!allow||!animationURL(next.avatarMedia)&&!animationURL(next.bannerMedia);}
   if(!previous||JSON.stringify(shownAwards(previous))!==JSON.stringify(shownAwards(next))){const node=card.querySelector('.vp-awards'),awards=shownAwards(next);if(node){node.innerHTML=awardMarkup(awards,true,next.id||identity);node.hidden=!awards.length;}}
@@ -4286,14 +4660,18 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
  function visualChoices(field,values,value,type='label'){
   return `<div class="vp-choices vp-choices-${type}" role="group" aria-label="${esc(FIELD_LABELS[field]||field)}">${values.map(([id,label])=>`<button type="button" class="vp-choice" data-vp-action="preset" data-field="${field}" data-value="${id}" aria-pressed="${value===id}">${type==='avatar'?`<span class="vp-choice-art">${avatar(id)}</span>`:type==='banner'?`<span class="vp-choice-banner vp-card" data-banner="${id}"><span class="vp-banner"><i></i><b></b></span></span>`:type==='accent'?`<span class="vp-choice-swatch" data-accent="${id}"></span>`:''}<span>${esc(label)}</span><span class="vp-choice-check" aria-hidden="true">✓</span></button>`).join('')}</div>`;
  }
- function syncStudioChoices(){if(!editor)return;const form=$('vp-editor');for(const button of form?.querySelectorAll?.('[data-vp-action="preset"]')||[])button.setAttribute('aria-pressed',String(editor.draft[button.dataset.field]===button.dataset.value&&!(['avatar','banner'].includes(button.dataset.field)&&editor.draft[button.dataset.field+'MediaId'])));for(const button of form?.querySelectorAll?.('[data-vp-action="equip"]')||[])button.setAttribute('aria-pressed',String((editor.draft.equippedId||'')===(button.dataset.item||'')));}
+ function syncStudioChoices(){if(!editor)return;
+  const picker=$('vp-accent-picker'),code=$('vp-accent-code'),color=accentColor(editor.draft.accent);
+  if(picker&&picker.value!==color)picker.value=color;
+  if(code)code.textContent=color.toUpperCase();
+  const form=$('vp-editor');for(const button of form?.querySelectorAll?.('[data-vp-action="preset"]')||[])button.setAttribute('aria-pressed',String(editor.draft[button.dataset.field]===button.dataset.value&&!(['avatar','banner'].includes(button.dataset.field)&&editor.draft[button.dataset.field+'MediaId'])));for(const button of form?.querySelectorAll?.('[data-vp-action="equip"]')||[])button.setAttribute('aria-pressed',String((editor.draft.equippedId||'')===(button.dataset.item||'')));}
  function previewSummary(){if(!editor)return;const node=$('vp-preview-summary'),audience=editor.audience||'self',labels={self:'Your own view',friend:'An accepted friend',community:'A shared-community member',other:'An unrelated signed-in viewer',blocked:'A blocked viewer'};if(node)node.textContent=labels[audience]+'. Preview only; changes publish after Save profile.';}
  function renderStudioPreview(){if(!editor)return;const root=$('vp-live-preview');if(root){stopGIFs(root);root.innerHTML=previewHTML(editor.draft);editor.preview=audienceProjection(projection(editor.draft),editor.audience||'self');}for(const button of $('vp-editor')?.querySelectorAll?.('[data-vp-action="preview"]')||[])button.setAttribute('aria-pressed',String(button.dataset.mode===editor.previewMode));previewSummary();}
  function selectSection(section){if(!editor||!SECTIONS.some(([id])=>id===section))return;const form=$('vp-editor');if(form)updatePreview(form);editor.section=section;if(form)form.dataset.section=section;for(const [id]of SECTIONS){const panel=$('vp-section-'+id);if(panel)panel.hidden=id!==section;}for(const button of form?.querySelectorAll?.('[data-vp-action="section"]')||[]){const selected=button.dataset.section===section;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;}}
  function selectPreview(mode){if(!editor||!PREVIEWS.some(([id])=>id===mode))return;updatePreview($('vp-editor'));editor.previewMode=mode;if(mode==='audience'&&editor.audience==='self'){editor.audience='friend';const select=$('vp-preview-audience');if(select)select.value='friend';}renderStudioPreview();}
  function setMobilePane(pane){if(!editor)return;editor.mobilePane=pane==='preview'?'preview':'edit';const form=$('vp-editor');if(form)form.dataset.mobilePane=editor.mobilePane;for(const button of form?.querySelectorAll?.('[data-vp-action="mobile-pane"]')||[])button.setAttribute('aria-pressed',String(button.dataset.pane===editor.mobilePane));}
- function preset(field,value){if(!editor)return;const allowed={avatar:['moon','orbit','spark','leaf','ghost'],banner:['midnight','blueprint','eclipse','noise','orchid'],accent:['ice','lilac','jade','oxide','gold'],nameStyle:['plain','serif','mono'],profileFrame:['none','line','halo']};if(!allowed[field]?.includes(value))return;const form=$('vp-editor');if(form)updatePreview(form);if(field==='avatar'||field==='banner')usePreset(field);editor.draft[field]=value;const input=form?.querySelector(`[name="${field}"]`);if(input)input.value=value;updatePreview(form);syncStudioChoices();}
- function applyLook(look,snapshot){if(editor!==snapshot||identity!==snapshot.profile.id)return;const form=$('vp-editor');if(form)updatePreview(form);for(const field of ['avatar','banner','accent','nameStyle','profileFrame']){const allowed={nameStyle:['plain','serif','mono'],profileFrame:['none','line','halo'],avatar:['moon','orbit','spark','leaf','ghost'],banner:['midnight','blueprint','eclipse','noise','orchid'],accent:['ice','lilac','jade','oxide','gold']}[field];if(!allowed.includes(look[field]))continue;editor.draft[field]=look[field];const input=form?.querySelector(`[name="${field}"]`);if(input)input.value=['avatar','banner'].includes(field)&&editor.draft[field+'MediaId']?'':look[field];}updatePreview(form);syncStudioChoices();}
+ function preset(field,value){if(!editor)return;const allowed={avatar:['moon','orbit','spark','leaf','ghost'],banner:['midnight','blueprint','eclipse','noise','orchid'],accent:['ice','lilac','jade','oxide','gold'],nameStyle:['plain','serif','mono'],profileFrame:['none','line','halo']};if(field==='accent'){value=validProfileAccent(value);if(!value)return;}else if(!allowed[field]?.includes(value))return;const form=$('vp-editor');if(form)updatePreview(form);if(field==='avatar'||field==='banner')usePreset(field);editor.draft[field]=value;const input=form?.querySelector(`[name="${field}"]`);if(input)input.value=value;updatePreview(form);syncStudioChoices();}
+ function applyLook(look,snapshot){if(editor!==snapshot||identity!==snapshot.profile.id)return;const form=$('vp-editor');if(form)updatePreview(form);for(const field of ['avatar','banner','accent','nameStyle','profileFrame']){const allowed={nameStyle:['plain','serif','mono'],profileFrame:['none','line','halo'],avatar:['moon','orbit','spark','leaf','ghost'],banner:['midnight','blueprint','eclipse','noise','orchid'],accent:['ice','lilac','jade','oxide','gold']}[field];const value=field==='accent'?validProfileAccent(look[field]):allowed.includes(look[field])?look[field]:null;if(!value)continue;editor.draft[field]=value;const input=form?.querySelector(`[name="${field}"]`);if(input)input.value=['avatar','banner'].includes(field)&&editor.draft[field+'MediaId']?'':value;}updatePreview(form);syncStudioChoices();}
  function decorationChoices(){if(!editor)return;const root=$('vp-decoration-options');if(!root)return;const owned=editor.decorations||[];root.innerHTML=`<div class="vp-choices vp-decoration-choices" role="group" aria-label="Name decoration"><button type="button" class="vp-choice" data-vp-action="equip" data-item="" aria-pressed="${!editor.draft.equippedId}"><span>None</span></button>${owned.map(item=>`<button type="button" class="vp-choice" data-vp-action="equip" data-item="${esc(item.id)}" aria-pressed="${editor.draft.equippedId===item.id}"><span class="vp-choice-art">${art(item.id,true)}</span><span>${esc(item.name)}</span></button>`).join('')}</div>${owned.length?'':'<p class="vp-fine">No name decorations collected yet. You can collect free decorations in Collection; earned badges below have separate requirements.</p>'}`;}
  function observeStudioToolbar(snapshot){const form=$('vp-editor'),bar=form?.querySelector('.vp-editor-toolbar');if(!bar)return;const apply=()=>{if(editor!==snapshot||!form.isConnected)return;const height=Math.ceil(bar.getBoundingClientRect?.().height||0);if(height>0&&height!==snapshot.toolbarHeight){snapshot.toolbarHeight=height;form.style?.setProperty?.('--vp-toolbar-height',height+'px');}};apply();if(typeof ResizeObserver==='function'){snapshot.toolbarObserver=new ResizeObserver(apply);snapshot.toolbarObserver.observe(bar);}}
  function mountStudioExtras(snapshot){
@@ -4309,7 +4687,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   const avatarOptions=[['moon','Moon'],['orbit','Orbit'],['spark','Spark'],['leaf','Leaf'],['ghost','Ghost']],bannerOptions=[['midnight','Midnight'],['blueprint','Blueprint'],['eclipse','Eclipse'],['noise','Noise'],['orchid','Orchid']],accentOptions=[['ice','Ice'],['lilac','Lilac'],['jade','Jade'],['oxide','Oxide'],['gold','Gold']];
   const imageFields=kind=>`<div><h3>${kind==='avatar'?'Avatar':'Banner'}</h3><label class="vh-secondary vp-file-label">Upload image or GIF<input type="file" data-vp-file="${kind}" aria-label="Upload ${kind} image or GIF" accept="image/*,.heic,.heif,.avif,.tif,.tiff,.bmp,.ico,.svg"></label><span id="vp-source-${kind}" class="vp-source-state">${draft[kind+'MediaId']?'Uploaded image':'Preset'}</span><label class="vh-field vp-select-fallback" hidden>Preset ${kind}<select name="${kind}"><option value="" data-vp-custom ${draft[kind+'MediaId']?'selected':'hidden'} disabled>Uploaded image</option>${options((kind==='avatar'?avatarOptions:bannerOptions).map(([id])=>id),draft[kind+'MediaId']?'':draft[kind])}</select></label>${kind==='avatar'?visualChoices('avatar',avatarOptions,draft.avatarMediaId?'':draft.avatar,'avatar'):''}<button id="vp-remove-${kind}" type="button" class="vh-text-button" data-vp-action="reset-${kind}" ${draft[kind+'MediaId']?'':'hidden'}>Remove uploaded ${kind}</button></div>`;
   const section=(id,label,body)=>`<section class="vp-studio-section" id="vp-section-${id}" role="tabpanel" aria-labelledby="vp-tab-${id}" ${editor.section===id?'':'hidden'}><header><h3>${label}</h3></header>${body}</section>`;
-  app.showDialog('Edit profile','Build your global profile. Preview changes before publishing them.',`<form class="vp-editor vp-studio" id="vp-editor" data-vp-form="profile" data-section="${editor.section}" data-mobile-pane="${editor.mobilePane}"><div class="vp-editor-toolbar"><div><p id="vp-save-state" class="vp-save-state" role="status">${dirty?'Unsaved changes':'All changes saved'}</p><p class="vp-error" id="vp-error" role="alert"></p></div><div class="vp-actions"><button class="vh-primary" type="submit" ${!dirty||busy?'disabled':''}>Save profile</button><button class="vh-secondary" type="button" data-vp-action="discard">Discard changes</button></div></div><div id="vp-conflict" hidden></div><div class="vp-mobile-panes" role="group" aria-label="Profile editor view"><button type="button" data-vp-action="mobile-pane" data-pane="edit" aria-pressed="${editor.mobilePane==='edit'}">Edit</button><button type="button" data-vp-action="mobile-pane" data-pane="preview" aria-pressed="${editor.mobilePane==='preview'}">Preview</button></div><div class="vp-studio-layout"><div class="vp-edit-pane"><nav class="vp-section-tabs" role="tablist" aria-label="Profile sections">${SECTIONS.map(([id,label])=>`<button type="button" id="vp-tab-${id}" data-vp-action="section" data-section="${id}" role="tab" aria-controls="vp-section-${id}" aria-selected="${editor.section===id}" tabindex="${editor.section===id?'0':'-1'}">${label}</button>`).join('')}</nav><div class="vp-section-stack">${section('identity','Your identity',`<p class="vp-fine">Your actual username stays readable and searchable. Account email and sign-in details never appear on your profile.</p><label class="vh-field">Display name<input name="displayName" value="${esc(draft.displayName)}" minlength="2" maxlength="32" required autocomplete="nickname"></label><label class="vh-field">Bio<textarea name="bio" rows="4" maxlength="240">${esc(draft.bio)}</textarea></label><label class="vh-field">Status<input name="status" value="${esc(draft.status)}" maxlength="80"></label><p class="vp-fine">Username: @${esc(profile.username||'')}</p>`)}${section('images','Avatar & banner',`<div class="vp-media-fields" aria-label="Profile images">${imageFields('avatar')}${imageFields('banner')}<p class="vp-fine">Images up to 8 MiB. Avatars use a square crop; banners use a 3:1 crop. Your avatar is basic identity for permitted friends and shared-community viewers. Your banner follows Profile details audience.</p><details class="vp-format-help"><summary>Supported image formats</summary><p>JPEG, PNG/APNG, GIF, WebP, AVIF, HEIC/HEIF, BMP, ICO, SVG and uncompressed TIFF. GIFs retain animation; other animated images become still photos. Still AVIF requires a compatible browser; animated AVIF is unsupported. SVG supports self-contained vector artwork. Larger or unsupported image variants show a clear error.</p></details></div><p id="vp-media-state" class="vp-media-state" role="status" tabindex="-1" hidden></p><button id="vp-cancel-image" type="button" class="vh-text-button" data-vp-action="cancel-image" hidden>Cancel image</button><div id="vp-crop-root" tabindex="-1"></div><div id="vp-gif-setting" ${gifMedia(projection(draft).avatarMedia)||gifMedia(projection(draft).bannerMedia)?'':'hidden'}><label class="vp-check"><input type="checkbox" name="animationEnabled" ${draft.animationEnabled?'checked':''}>Allow GIF playback on my profile</label><p class="vp-fine">GIFs start only when a viewer chooses Play. Reduced motion takes priority.</p></div>`)}${section('style','Compose your look',`<h4>Accent</h4><select class="vp-select-fallback" hidden tabindex="-1" aria-hidden="true" name="accent" aria-label="Accent">${options(accentOptions.map(([id])=>id),draft.accent)}</select>${visualChoices('accent',accentOptions,draft.accent,'accent')}<h4>Banner preset</h4>${visualChoices('banner',bannerOptions,draft.bannerMediaId?'':draft.banner,'banner')}<p class="vp-fine">Choosing a banner preset removes your uploaded banner from the draft. Your saved profile changes only after Save.</p><h4>Name style</h4><select class="vp-select-fallback" hidden tabindex="-1" aria-hidden="true" name="nameStyle" aria-label="Name style">${options(['plain','serif','mono'],draft.nameStyle)}</select>${visualChoices('nameStyle',[['plain','Plain'],['serif','Serif'],['mono','Mono']],draft.nameStyle)}<h4>Profile frame</h4><select class="vp-select-fallback" hidden tabindex="-1" aria-hidden="true" name="profileFrame" aria-label="Profile frame">${options(['none','line','halo'],draft.profileFrame)}</select>${visualChoices('profileFrame',[['none','None'],['line','Line'],['halo','Halo']],draft.profileFrame)}<p class="vp-fine">Name treatments preserve your actual name. Frames appear on profile cards. Viewer readability and reduced-motion choices take priority.</p><div id="vp-saved-looks"></div>`)}${section('decorations','Decorations & earned badges',`<h4>Beside your name</h4><p class="vp-fine">Choose a collected free decoration. This is cosmetic and does not grant a role or achievement.</p><div id="vp-decoration-options" role="status">Loading your collected decorations…</div><div id="vp-badge-fields">${badgeFields(profile,draft.badgeOrder)}</div><p class="vp-fine">Earned badges record real published requirements. Inspect a badge to read its criteria and issuer.</p>`)}${section('showcase','Arrange your gifts','<p class="vp-fine">Choose up to three owned gift instances. Removing a showcase item keeps it in your inventory. Sender identity appears only when you choose to show it.</p><div id="vp-showcase-editor" role="region" aria-label="Gift showcase editor"></div>')}${section('visibility','Choose your audience',`<label class="vh-field">Profile details<select name="detailsVisibility">${options(['shared','friends','private','public'],draft.detailsVisibility)}</select></label><p class="vp-fine">Controls your bio, status, banner, accent, name style, frame and earned badges. Basic name, username and permitted avatar can still appear to people who interact with you.</p><label class="vh-field">Gift collection & showcase<select name="collectionVisibility">${options(['shared','friends','private','public'],draft.collectionVisibility)}</select></label><dl class="vp-audience-help"><dt>Private</dt><dd>Only you can see this category.</dd><dt>Friends</dt><dd>Accepted friends.</dd><dt>Shared</dt><dd>Accepted friends and people in a shared community.</dd><dt>Public</dt><dd>Any signed-in viewer; this does not create an anonymous public page.</dd></dl><p class="vp-fine">Blocking always takes priority. Full profiles require an accepted friendship, shared community or Public details. A Public collection can be available separately. Use Audience view to check the result.</p><button type="button" class="vh-secondary" data-vp-action="preview-audience">Preview an audience</button>`)}</div></div><aside class="vp-preview-pane" aria-label="Live profile preview"><header><h3>Live preview</h3><label for="vp-preview-audience">View as</label><select id="vp-preview-audience" data-vp-audience aria-label="Preview audience">${[['self','Yourself'],['friend','Accepted friend'],['community','Community member'],['other','Other signed-in viewer'],['blocked','Blocked viewer']].map(([id,label])=>`<option value="${id}" ${editor.audience===id?'selected':''}>${label}</option>`).join('')}</select></header><nav class="vp-preview-tabs" role="group" aria-label="Preview context">${PREVIEWS.map(([id,label])=>`<button type="button" data-vp-action="preview" data-mode="${id}" aria-pressed="${editor.previewMode===id}">${label}</button>`).join('')}</nav><p id="vp-preview-summary" class="vp-fine"></p><div id="vp-live-preview">${previewHTML(draft)}</div></aside></div></form>`);
+  app.showDialog('Edit profile','Build your global profile. Preview changes before publishing them.',`<form class="vp-editor vp-studio" id="vp-editor" data-vp-form="profile" data-section="${editor.section}" data-mobile-pane="${editor.mobilePane}"><div class="vp-editor-toolbar"><div><p id="vp-save-state" class="vp-save-state" role="status">${dirty?'Unsaved changes':'All changes saved'}</p><p class="vp-error" id="vp-error" role="alert"></p></div><div class="vp-actions"><button class="vh-primary" type="submit" ${!dirty||busy?'disabled':''}>Save profile</button><button class="vh-secondary" type="button" data-vp-action="discard">Discard changes</button></div></div><div id="vp-conflict" hidden></div><div class="vp-mobile-panes" role="group" aria-label="Profile editor view"><button type="button" data-vp-action="mobile-pane" data-pane="edit" aria-pressed="${editor.mobilePane==='edit'}">Edit</button><button type="button" data-vp-action="mobile-pane" data-pane="preview" aria-pressed="${editor.mobilePane==='preview'}">Preview</button></div><div class="vp-studio-layout"><div class="vp-edit-pane"><nav class="vp-section-tabs" role="tablist" aria-label="Profile sections">${SECTIONS.map(([id,label])=>`<button type="button" id="vp-tab-${id}" data-vp-action="section" data-section="${id}" role="tab" aria-controls="vp-section-${id}" aria-selected="${editor.section===id}" tabindex="${editor.section===id?'0':'-1'}">${label}</button>`).join('')}</nav><div class="vp-section-stack">${section('identity','Your identity',`<p class="vp-fine">Your actual username stays readable and searchable. Account email and sign-in details never appear on your profile.</p><label class="vh-field">Display name<input name="displayName" value="${esc(draft.displayName)}" minlength="2" maxlength="32" required autocomplete="nickname"></label><label class="vh-field">Bio<textarea name="bio" rows="4" maxlength="240">${esc(draft.bio)}</textarea></label><label class="vh-field">Status<input name="status" value="${esc(draft.status)}" maxlength="80"></label><p class="vp-fine">Username: @${esc(profile.username||'')}</p>`)}${section('images','Avatar & banner',`<div class="vp-media-fields" aria-label="Profile images">${imageFields('avatar')}${imageFields('banner')}<p class="vp-fine">Images up to 8 MiB. Avatars use a square crop; banners use a 3:1 crop. Your avatar is basic identity for permitted friends and shared-community viewers. Your banner follows Profile details audience.</p><details class="vp-format-help"><summary>Supported image formats</summary><p>JPEG, PNG/APNG, GIF, WebP, AVIF, HEIC/HEIF, BMP, ICO, SVG and uncompressed TIFF. GIFs retain animation; other animated images become still photos. Still AVIF requires a compatible browser; animated AVIF is unsupported. SVG supports self-contained vector artwork. Larger or unsupported image variants show a clear error.</p></details></div><p id="vp-media-state" class="vp-media-state" role="status" tabindex="-1" hidden></p><button id="vp-cancel-image" type="button" class="vh-text-button" data-vp-action="cancel-image" hidden>Cancel image</button><div id="vp-crop-root" tabindex="-1"></div><div id="vp-gif-setting" ${gifMedia(projection(draft).avatarMedia)||gifMedia(projection(draft).bannerMedia)?'':'hidden'}><label class="vp-check"><input type="checkbox" name="animationEnabled" ${draft.animationEnabled?'checked':''}>Allow GIF playback on my profile</label><p class="vp-fine">GIFs start only when a viewer chooses Play. Reduced motion takes priority.</p></div>`)}${section('style','Compose your look',`<h4>Accent</h4><input type="hidden" name="accent" value="${validProfileAccent(draft.accent)||'ice'}">${visualChoices('accent',accentOptions,draft.accent,'accent')}<label class="vp-custom-accent" for="vp-accent-picker"><span>Custom profile color</span><input type="color" id="vp-accent-picker" value="${accentColor(draft.accent)}" aria-describedby="vp-accent-code"><output id="vp-accent-code" for="vp-accent-picker">${accentColor(draft.accent).toUpperCase()}</output></label><h4>Banner preset</h4>${visualChoices('banner',bannerOptions,draft.bannerMediaId?'':draft.banner,'banner')}<p class="vp-fine">Choosing a banner preset removes your uploaded banner from the draft. Your saved profile changes only after Save.</p><h4>Name style</h4><select class="vp-select-fallback" hidden tabindex="-1" aria-hidden="true" name="nameStyle" aria-label="Name style">${options(['plain','serif','mono'],draft.nameStyle)}</select>${visualChoices('nameStyle',[['plain','Plain'],['serif','Serif'],['mono','Mono']],draft.nameStyle)}<h4>Profile frame</h4><select class="vp-select-fallback" hidden tabindex="-1" aria-hidden="true" name="profileFrame" aria-label="Profile frame">${options(['none','line','halo'],draft.profileFrame)}</select>${visualChoices('profileFrame',[['none','None'],['line','Line'],['halo','Halo']],draft.profileFrame)}<p class="vp-fine">Name treatments preserve your actual name. Frames appear on profile cards. Viewer readability and reduced-motion choices take priority.</p><div id="vp-saved-looks"></div>`)}${section('decorations','Decorations & earned badges',`<h4>Beside your name</h4><p class="vp-fine">Choose a collected free decoration. This is cosmetic and does not grant a role or achievement.</p><div id="vp-decoration-options" role="status">Loading your collected decorations…</div><div id="vp-badge-fields">${badgeFields(profile,draft.badgeOrder)}</div><p class="vp-fine">Earned badges record real published requirements. Inspect a badge to read its criteria and issuer.</p>`)}${section('showcase','Arrange your gifts','<p class="vp-fine">Choose up to three owned gift instances. Removing a showcase item keeps it in your inventory. Sender identity appears only when you choose to show it.</p><div id="vp-showcase-editor" role="region" aria-label="Gift showcase editor"></div>')}${section('visibility','Choose your audience',`<label class="vh-field">Profile details<select name="detailsVisibility">${options(['shared','friends','private','public'],draft.detailsVisibility)}</select></label><p class="vp-fine">Controls your bio, status, banner, accent, name style, frame and earned badges. Basic name, username and permitted avatar can still appear to people who interact with you.</p><label class="vh-field">Gift collection & showcase<select name="collectionVisibility">${options(['shared','friends','private','public'],draft.collectionVisibility)}</select></label><dl class="vp-audience-help"><dt>Private</dt><dd>Only you can see this category.</dd><dt>Friends</dt><dd>Accepted friends.</dd><dt>Shared</dt><dd>Accepted friends and people in a shared community.</dd><dt>Public</dt><dd>Any signed-in viewer; this does not create an anonymous public page.</dd></dl><p class="vp-fine">Blocking always takes priority. Full profiles require an accepted friendship, shared community or Public details. A Public collection can be available separately. Use Audience view to check the result.</p><button type="button" class="vh-secondary" data-vp-action="preview-audience">Preview an audience</button>`)}</div></div><aside class="vp-preview-pane" aria-label="Live profile preview"><header><h3>Live preview</h3><label for="vp-preview-audience">View as</label><select id="vp-preview-audience" data-vp-audience aria-label="Preview audience">${[['self','Yourself'],['friend','Accepted friend'],['community','Community member'],['other','Other signed-in viewer'],['blocked','Blocked viewer']].map(([id,label])=>`<option value="${id}" ${editor.audience===id?'selected':''}>${label}</option>`).join('')}</select></header><nav class="vp-preview-tabs" role="group" aria-label="Preview context">${PREVIEWS.map(([id,label])=>`<button type="button" data-vp-action="preview" data-mode="${id}" aria-pressed="${editor.previewMode===id}">${label}</button>`).join('')}</nav><p id="vp-preview-summary" class="vp-fine"></p><div id="vp-live-preview">${previewHTML(draft)}</div></aside></div></form>`);
   editor.preview=audienceProjection(projection(draft),editor.audience||'self');syncImageControls();syncBadgeChoices($('vp-editor'));syncStudioChoices();previewSummary();editorStatus();mountStudioExtras(editor);observeStudioToolbar(editor);renderConflict();if(editor.cropFile)mountCrop(editor.cropFile,editor.cropKind,editor.cropClientId);
  }
  function focusShowcaseInstance(instanceId){if(!editor||typeof instanceId!=='string'||!instanceId||instanceId.length>200)return;selectSection('showcase');const snapshot=editor;if(typeof snapshot.showcase?.focusInstance==='function')Promise.resolve(snapshot.showcase.focusInstance(instanceId)).catch(reason=>{if(editor===snapshot)error(reason);});}
@@ -4372,7 +4750,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   if(name==='discard'){if(beforeCloseDialog()){editor?.showcase?.dispose?.();window.VoidProfileMedia?.disposeAll();editor=null;app.closeDialog();}return;}if(name==='keep-editing'&&editor)return showEditor(editor.profile,editor.pending||editor.draft||clean(editor.profile));if((name==='reset-avatar'||name==='reset-banner')&&editor){usePreset(name.slice(6));updatePreview($('vp-editor'));return;}if(name==='badge-directory')return inspectProfileItem('badge','profile-authored',identity);
   if(name==='confirm-discard'){cancelStaged();editor?.showcase?.dispose?.();editor?.toolbarObserver?.disconnect?.();stopGIFs();window.VoidProfileMedia?.disposeAll();dirty=false;editor=null;discardPrompt=false;app.closeDialog();}
  }
- function init(bridge){if(app)return;app=bridge;sync();document.addEventListener('visibilitychange',()=>{if(document.hidden)stopGIFs();});document.addEventListener('close',event=>{if(event.target.id==='home-dialog')stopGIFs();},true);window.addEventListener('voidline:theme',updateGIFControls);window.addEventListener('pagehide',()=>{stopGIFs();editor?.showcase?.dispose?.();window.VoidProfileMedia?.disposeAll();});document.addEventListener('error',photoError,true);document.addEventListener('click',event=>{const button=event.target.closest('[data-vp-action],[data-vp-award]');if(!button||!state().account)return;event.preventDefault();if(button.dataset.vpAward)return Promise.resolve(inspectProfileItem('badge',button.dataset.vpAward,button.dataset.account||identity)).catch(error);Promise.resolve(action(button.dataset.vpAction,button)).catch(error);});document.addEventListener('submit',event=>{if(event.target.dataset.vpForm!=='profile'||!state().account)return;event.preventDefault();save(event.target);});document.addEventListener('change',event=>{if(event.target.hasAttribute?.('data-vp-audience')&&editor){updatePreview($('vp-editor'));editor.audience=['self','friend','community','other','blocked'].includes(event.target.value)?event.target.value:'self';renderStudioPreview();return;}if(event.target.dataset.vpFile&&state().account&&editor){const file=event.target.files?.[0];if(file)mountCrop(file,event.target.dataset.vpFile);event.target.value='';}});for(const type of ['input','change'])document.addEventListener(type,event=>{const target=event.target;if(target.dataset.vpFile||target.dataset.crop||!target.name)return;const form=target.closest('[data-vp-form="profile"]');if(form&&state().account)updatePreview(form,['avatar','banner'].includes(target.name)?target.name:undefined);});window.addEventListener('voidline:cosmetics-changed',event=>{sync();const editing=()=>!!$('vp-editor')?.isConnected;if(!identity||event.detail?.accountId!==identity||editing()||dirty)return;const current=guard(),version=writeVersion;app.request('/api/profiles/me').then(result=>{if(!current()||version!==writeVersion||editing()||dirty)return;cached=result.profile;Object.assign(state().account,{avatarMedia:cached.avatarMedia,bannerMedia:cached.bannerMedia});if(state().view==='you')app.render();}).catch(()=>{});});document.addEventListener('keydown',event=>{const button=event.target.closest?.('[data-vp-action="section"]');if(!button||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const index=SECTIONS.findIndex(([id])=>id===button.dataset.section),next=event.key==='Home'?0:event.key==='End'?SECTIONS.length-1:(index+(event.key==='ArrowRight'?1:-1)+SECTIONS.length)%SECTIONS.length;selectSection(SECTIONS[next][0]);$('vp-tab-'+SECTIONS[next][0])?.focus?.({preventScroll:true});});window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});}
+ function init(bridge){if(app)return;app=bridge;sync();document.addEventListener('visibilitychange',()=>{if(document.hidden)stopGIFs();});document.addEventListener('close',event=>{if(event.target.id==='home-dialog')stopGIFs();},true);window.addEventListener('voidline:theme',updateGIFControls);window.addEventListener('pagehide',()=>{stopGIFs();editor?.showcase?.dispose?.();window.VoidProfileMedia?.disposeAll();});document.addEventListener('error',photoError,true);document.addEventListener('click',event=>{const button=event.target.closest('[data-vp-action],[data-vp-award]');if(!button||!state().account)return;event.preventDefault();if(button.dataset.vpAward)return Promise.resolve(inspectProfileItem('badge',button.dataset.vpAward,button.dataset.account||identity)).catch(error);Promise.resolve(action(button.dataset.vpAction,button)).catch(error);});document.addEventListener('submit',event=>{if(event.target.dataset.vpForm!=='profile'||!state().account)return;event.preventDefault();save(event.target);});document.addEventListener('change',event=>{if(event.target.hasAttribute?.('data-vp-audience')&&editor){updatePreview($('vp-editor'));editor.audience=['self','friend','community','other','blocked'].includes(event.target.value)?event.target.value:'self';renderStudioPreview();return;}if(event.target.dataset.vpFile&&state().account&&editor){const file=event.target.files?.[0];if(file)mountCrop(file,event.target.dataset.vpFile);event.target.value='';}});for(const type of ['input','change'])document.addEventListener(type,event=>{const target=event.target;if(target.id==='vp-accent-picker'&&editor&&state().account){preset('accent',target.value);return;}if(target.dataset.vpFile||target.dataset.crop||!target.name)return;const form=target.closest('[data-vp-form="profile"]');if(form&&state().account)updatePreview(form,['avatar','banner'].includes(target.name)?target.name:undefined);});window.addEventListener('voidline:cosmetics-changed',event=>{sync();const editing=()=>!!$('vp-editor')?.isConnected;if(!identity||event.detail?.accountId!==identity||editing()||dirty)return;const current=guard(),version=writeVersion;app.request('/api/profiles/me').then(result=>{if(!current()||version!==writeVersion||editing()||dirty)return;cached=result.profile;Object.assign(state().account,{avatarMedia:cached.avatarMedia,bannerMedia:cached.bannerMedia});if(state().view==='you')app.render();}).catch(()=>{});});document.addEventListener('keydown',event=>{const button=event.target.closest?.('[data-vp-action="section"]');if(!button||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const index=SECTIONS.findIndex(([id])=>id===button.dataset.section),next=event.key==='Home'?0:event.key==='End'?SECTIONS.length-1:(index+(event.key==='ArrowRight'?1:-1)+SECTIONS.length)%SECTIONS.length;selectSection(SECTIONS[next][0]);$('vp-tab-'+SECTIONS[next][0])?.focus?.({preventScroll:true});});window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});}
  const extension={id:'profiles',init,profileHTML,openProfile,openPopover:id=>openProfile(id,true),hasUnsavedChanges:()=>dirty,beforeCloseDialog,handles:name=>name==='profile'||name==='profile-view',handleAction:name=>{if(name==='profile'){edit();return true;}if(name==='profile-view'){openProfile(identity);return true;}return false;},onAccount:refresh,onLock(){editor?.showcase?.dispose?.();editor?.toolbarObserver?.disconnect?.();stopGIFs();identity='';epoch++;writeVersion++;writeSerial++;cached=null;editor=null;dirty=false;busy=false;discardPrompt=false;window.VoidProfileMedia?.disposeAll();}};
  window.VoidProfilesPanel=Object.freeze({extension,openProfile,edit,profileCard,avatar,audienceProjection});
  function register(){if(window.VoidHome?.registerExtension)window.VoidHome.registerExtension(extension);}

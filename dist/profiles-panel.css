@@ -195,3 +195,20 @@ html[data-vh-simple-profiles=true] .vp-name-line h2,html[data-vh-simple-profiles
 @media(forced-colors:active){.vp-choice,.vp-preview-tabs,.vp-audience-help,.vp-context-preview,.vp-audience-unavailable,.vp-conflict-panel,.vp-conflict-panel fieldset{border-color:CanvasText;background:Canvas;color:CanvasText}.vp-choice[aria-pressed=true],.vp-section-tabs [aria-selected=true]{border-color:Highlight}.vp-choice-check{color:Highlight}.vp-choice-swatch{forced-color-adjust:none}.vp-card[data-frame]{box-shadow:none;outline:none}}
 
 .vp-choice[data-field=nameStyle][data-value=serif]>span:first-child{font-family:Georgia,serif;font-size:.9375rem}.vp-choice[data-field=nameStyle][data-value=mono]>span:first-child{font-family:ui-monospace,Consolas,monospace}
+
+/* Custom accents decorate the banner edge and frame; reading colors stay with the viewer's theme. */
+.vp-card { position:relative; }
+.vp-custom-stripe,.vp-custom-outline { display:none; pointer-events:none; }
+.vp-card[data-accent^="#"] > .vp-custom-stripe { display:block; width:100%; height:4px; }
+.vp-card[data-accent^="#"]:is([data-frame=line],[data-frame=halo]) > .vp-custom-outline {
+ display:block; position:absolute; inset:0; width:100%; height:100%; z-index:1; stroke-width:4px;
+}
+.vp-card[data-accent^="#"][data-frame=halo] > .vp-custom-outline { stroke-width:7px; }
+.vp-custom-accent { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-top:12px; }
+.vp-custom-accent input { width:48px; height:44px; padding:3px; cursor:pointer; }
+.vp-custom-accent output { font-family:ui-monospace,monospace; color:var(--vh-copy); }
+html[data-vh-simple-profiles=true] .vp-card > :is(.vp-custom-stripe,.vp-custom-outline),
+html.vh-high-contrast .vp-card > :is(.vp-custom-stripe,.vp-custom-outline) { display:none!important; }
+@media(forced-colors:active),(prefers-contrast:more) {
+ .vp-card[data-accent^="#"] > :is(.vp-custom-stripe,.vp-custom-outline) { display:none!important; }
+}
