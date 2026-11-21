@@ -1,1 +1,45 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>VOIDLINE — The object collection</title><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/home.css"><link rel="stylesheet" href="/art-motion.css"><link rel="stylesheet" href="/art-review.css"></head><body><header class="ar-top"><a class="ar-brand" href="/">VOIDLINE <span>AFTERHOURS</span></a><a class="ar-open" href="/">Open messenger</a></header><main class="ar-main"><header class="ar-heading"><p class="ar-kicker">THE OBJECT COLLECTION</p><h1>Internet culture, made tangible.</h1><p>Inspect the web-sourced artwork, compare small sizes, or play an object’s animation. Collect and send them inside VOIDLINE.</p></header><div class="ar-tools"><label>Find an object<input type="search" id="ar-search" placeholder="Stirner, LARP, XRP, curtains…" maxlength="100"></label><label>Collection<select id="ar-series"><option value="all">All collections</option></select></label><label class="ar-motion"><input type="checkbox" id="ar-reduce">Reduce motion</label></div><p id="ar-count" class="ar-count" role="status">Loading objects…</p><div id="ar-grid" class="ar-grid"></div><p id="ar-error" role="alert"></p><footer class="ar-footer"><p>Artwork, credits and motion previews are public. Account ownership and gifting stay inside the authenticated messenger.</p><a href="/art/v4/manifest.json">Artwork credits and source references</a></footer></main><dialog id="ar-dialog" aria-labelledby="ar-title"><button class="ar-close" id="ar-close" aria-label="Close artwork">×</button><div class="ar-inspect"><div class="ar-stage" id="ar-stage"></div><section><p class="ar-kicker" id="ar-detail-series"></p><h2 id="ar-title"></h2><p id="ar-alt"></p><p class="ar-material" id="ar-material"></p><p class="ar-source" id="ar-source"></p><div class="ar-inline" id="ar-inline"></div><div class="ar-actions"><button id="ar-play" type="button">Preview animation</button><a id="ar-download" download>Download artwork SVG</a></div><p id="ar-status" class="ar-status" role="status"></p></section></div></dialog><script src="/theme.js"></script><script src="/collectible-art.js"></script><script src="/art-review.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+ <title>Objects · VOIDLINE</title>
+ <link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/home.css"><link rel="stylesheet" href="/art-motion.css"><link rel="stylesheet" href="/art-review.css">
+</head>
+<body>
+ <header class="ar-top"><a class="ar-brand" href="/">VOIDLINE <span>AFTERHOURS</span></a><a class="ar-open" href="/chats">Open messenger</a></header>
+ <main class="ar-main">
+  <header class="ar-heading"><h1>The object collection</h1><p>Explore gifts, name decorations and earned badges. Select an object to inspect its artwork and motion.</p></header>
+  <div class="ar-tools">
+   <label>Find an object<input type="search" id="ar-search" placeholder="Name, material or reference" maxlength="100"></label>
+   <label>Type<select id="ar-type"><option value="all">All objects</option><option value="gift">Gifts</option><option value="badge">Decorations</option><option value="earned">Earned badges</option></select></label>
+   <label>Collection<select id="ar-series"><option value="all">All collections</option></select></label>
+   <label class="ar-motion"><input type="checkbox" id="ar-reduce">Reduce motion</label>
+  </div>
+  <p id="ar-count" class="ar-count" role="status">Loading collection…</p>
+  <div id="ar-grid" class="ar-grid"></div>
+  <p id="ar-empty" hidden>No matching objects. Try a different name, type or collection.</p>
+  <p id="ar-error" role="alert"></p>
+  <footer class="ar-footer"><a href="/art/v4/manifest.json" id="ar-credits">Artwork credits and sources</a></footer>
+ </main>
+ <dialog id="ar-dialog" aria-labelledby="ar-title">
+  <button class="ar-close" id="ar-close" type="button" aria-label="Close artwork" autofocus>×</button>
+  <div class="ar-inspect">
+   <div class="ar-plate" id="ar-plate">
+    <div class="ar-stage" id="ar-stage"></div>
+    <div class="ar-inline" id="ar-inline" aria-label="Miniatures at actual display sizes"></div>
+   </div>
+   <section>
+    <p class="ar-kicker" id="ar-detail-series"></p><h2 id="ar-title"></h2><p id="ar-alt"></p><p class="ar-material" id="ar-material"></p>
+    <div class="ar-actions"><button id="ar-play" type="button" aria-describedby="ar-status">Play animation</button><button id="ar-pause" class="ar-secondary" type="button" hidden>Pause</button></div>
+    <p id="ar-status" class="ar-status" role="status"></p>
+    <details class="ar-inspection-tools"><summary>Inspect artwork</summary>
+     <label>Backdrop<select id="ar-background"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+     <label>Motion frame <output for="ar-frame" id="ar-frame-value">0%</output><input id="ar-frame" type="range" min="0" max="100" step="1" value="0"></label>
+     <label>Test detail loading<select id="ar-loading"><option value="normal">Normal</option><option value="delayed">Simulate slow detail</option><option value="missing">Simulate missing detail</option></select></label>
+     <p id="ar-version"></p><p class="ar-source" id="ar-source"></p><a id="ar-download" download>Download artwork SVG</a>
+    </details>
+   </section>
+  </div>
+ </dialog>
+ <script src="/theme.js"></script><script src="/collectible-art.js"></script><script src="/art-review.js"></script>
+</body></html>

@@ -96,12 +96,29 @@ async function requireOwner(db, communityId, userId) {
   requireThat(member.role === 'owner'&&member.owner_id===userId&&!member.ownership_repair_required, 403, 'owner_required', 'Only the community owner can perform this action.');
 }
 
+const channelMembership = `FROM live_channels c
+  JOIN live_memberships m ON m.community_id = c.community_id
+  JOIN live_communities g ON g.id = c.community_id
+  WHERE c.id = ? AND m.account_id = ?`;
+
 async function accessibleChannel(db, channelId, userId) {
   requireThat(typeof channelId==='string'&&channelId.length>0&&channelId.length<=100,400,'invalid_channel','Choose a valid shared channel.');
   const channel = await query(db,
-    `SELECT c.id, c.community_id, c.name, c.kind, m.role,g.ownership_repair_required
-       FROM live_channels c JOIN live_memberships m ON m.community_id = c.community_id JOIN live_communities g ON g.id=c.community_id
-      WHERE c.id = ? AND m.account_id = ?`, channelId, userId).first();
+    `SELECT c.id, c.community_id, c.name, c.kind, m.role,g.ownership_repair_required ${channelMembership}`,
+    channelId, userId).first();
+  requireThat(channel, 403, 'channel_access_denied', 'You do not have access to this channel.');
+  return channel;
+}
+
+// Check the viewer again after loading history and its related profile/media records.
+async function currentChannelReadAccess(db, channelId, user) {
+  const now = Date.now(), session = activeSessionGuard(user, now);
+  const channel = await query(db,
+    `SELECT c.kind, m.role, g.ownership_repair_required,
+       EXISTS(SELECT 1 FROM community_timeouts t WHERE t.community_id=c.community_id
+              AND t.account_id=m.account_id AND t.expires_at>?) AS timed_out
+       ${channelMembership} AND ${session.sql}`,
+    now, channelId, user.id, ...session.args).first();
   requireThat(channel, 403, 'channel_access_denied', 'You do not have access to this channel.');
   return channel;
 }
@@ -344,10 +361,15 @@ export async function handleLiveRequest(request,env) {
     const changes=(await query(db,'SELECT seq,message_id FROM live_changes WHERE channel_id=? AND seq>? ORDER BY seq LIMIT ?',channelId,after,limit+1).all()).results;
     const window=changes.slice(0,limit),ids=[...new Set(window.map(c=>c.message_id))];
     const messages=ids.length?(await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.id IN (${ids.map(()=>'?').join(',')})`,...ids).all()).results:[];
-    return json({messages:await enriched(db,messages,user.id),cursor:window.at(-1)?.seq??after,hasMore:changes.length>limit});
+    const page=await enriched(db,messages,user.id);
+    await currentChannelReadAccess(db,channelId,user);
+    return json({messages:page,cursor:window.at(-1)?.seq??after,hasMore:changes.length>limit});
    }
    if(path[2]==='pins'&&method==='GET'){
-    const messages=(await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.channel_id=? AND m.pinned=1 AND m.deleted_at IS NULL ORDER BY m.seq DESC`,channelId).all()).results;return json({messages:await enriched(db,messages,user.id)});
+    const messages=(await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.channel_id=? AND m.pinned=1 AND m.deleted_at IS NULL ORDER BY m.seq DESC`,channelId).all()).results;
+    const page=await enriched(db,messages,user.id);
+    await currentChannelReadAccess(db,channelId,user);
+    return json({messages:page});
    }
    if(path[2]==='messages'){
     if(method==='GET'){
@@ -360,8 +382,9 @@ export async function handleLiveRequest(request,env) {
      const binds=[channelId,...(thread?[thread]:[]),...(after!==null?[after]:before!==null?[before]:[]),limit+1];
      const records=(await query(db,`SELECT ${messageColumns} ${messageJoins} WHERE m.channel_id=? AND ${threadWhere} ${condition} ORDER BY m.seq ${ascending?'ASC':'DESC'} LIMIT ?`,...binds).all()).results;
      const selected=records.slice(0,limit),messages=ascending?selected:selected.reverse();
-     const timeout=await query(db,'SELECT 1 AS active FROM community_timeouts WHERE community_id=? AND account_id=? AND expires_at>?',channel.community_id,user.id,now).first();
-     return json({messages:await enriched(db,messages,user.id),securityMode:'standard',endToEndEncrypted:false,ownershipRepairRequired:!!channel.ownership_repair_required,permissions:{canSend:!channel.ownership_repair_required&&!timeout&&(channel.kind!=='announcement'||staff(channel.role)),canManageMessages:!channel.ownership_repair_required&&staff(channel.role)},changeCursor:high,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
+     const page=await enriched(db,messages,user.id);
+     const access=await currentChannelReadAccess(db,channelId,user);
+     return json({messages:page,securityMode:'standard',endToEndEncrypted:false,ownershipRepairRequired:!!access.ownership_repair_required,permissions:{canSend:!access.ownership_repair_required&&!access.timed_out&&(access.kind!=='announcement'||staff(access.role)),canManageMessages:!access.ownership_repair_required&&staff(access.role)},changeCursor:high,page:{hasMore:records.length>limit,before:messages[0]?.seq??before??null,after:messages.at(-1)?.seq??after??0}});
     }
     requireThat(channel.kind!=='announcement'||staff(channel.role),403,'posting_denied','Only community staff can post announcements.');
     const writeGuard=await requireChannelWrite(db,user,channelId,now,{staffOnly:channel.kind==='announcement'});
@@ -388,8 +411,12 @@ export async function handleLiveRequest(request,env) {
   if(path[0]==='messages'&&(path.length===2||path.length===3)){
    // A private bookmark can be removed even after losing its source membership.
    if(path.length===3&&path[2]==='save'&&method==='POST'&&body.active===false){await query(db,'DELETE FROM live_bookmarks WHERE message_id=? AND account_id=?',path[1],user.id).run();try{return json({saved:false,message:await getMessage(db,path[1],user.id),acknowledged:true});}catch(error){if(!(error instanceof ApiError))throw error;return json({saved:false,unavailable:true});}}
-   const message=await getMessage(db,path[1],user.id),channel=await accessibleChannel(db,message.channel_id,user.id);
-   if(path.length===2&&method==='GET')return json({message,securityMode:'standard',endToEndEncrypted:false});
+   const message=await getMessage(db,path[1],user.id);
+   if(path.length===2&&method==='GET'){
+    await currentChannelReadAccess(db,message.channel_id,user);
+    return json({message,securityMode:'standard',endToEndEncrypted:false});
+   }
+   const channel=await accessibleChannel(db,message.channel_id,user.id);
    if(method==='POST'&&path.length===3){
     const action=path[2];requireThat(['save','edit','delete','reaction','pin'].includes(action),404,'not_found','This message action does not exist.');
     if(action==='edit'||action==='delete')requireThat(message.author_id===user.id||(action==='delete'&&staff(channel.role)),403,'ownership_required','Only the author or authorized community staff can change this message.');

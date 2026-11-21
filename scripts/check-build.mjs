@@ -13,7 +13,7 @@ const dist = path.join(root, 'dist');
 const worker = (await import(pathToFileURL(path.join(dist, 'server/index.js')))).default;
 const origin = 'https://voidline-build.example';
 const fetchAsset = (name, options) => worker.fetch(new Request(origin + name, options), {}, {});
-const productionRoots=new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','startup.css','entry.js','entry.css','home.js','home.css','organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css','admin.js','admin.css','passkey-client.js','cosmetics.js','cosmetics.css','social.js','social.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
+const productionRoots=new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','feature-loader.js','startup.css','entry.js','entry.css','home.js','home.css','organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css','admin.js','admin.css','passkey-client.js','cosmetics.js','cosmetics.css','social.js','social.css','store.js','legacy-import.js','icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
 const publicDownloads=new Set(['voidline-offline.html','voidline-improvement-prompt.txt','voidline-release.json','VOIDLINE-Android.apk']);
 async function bytes(response){assert.equal(response.headers.get('content-encoding'),null,'The Sites proxy owns HTTP compression; Worker responses must contain original bytes.');return Buffer.from(await response.arrayBuffer());}
 let count = 0;
@@ -42,6 +42,16 @@ async function verify(directory, prefix = '') {
   }
 }
 await verify(dist);
+// Production compression returns a weak validator to the browser.
+const entryETag=(await fetchAsset('/home.js',{method:'HEAD'})).headers.get('etag');
+for(const method of ['GET','HEAD']){
+  for(const incoming of ['W/'+entryETag,'"older", W/'+entryETag,'*']){
+    const unchanged=await fetchAsset('/home.js',{method,headers:{'if-none-match':incoming}});
+    assert.equal(unchanged.status,304);assert.equal((await unchanged.arrayBuffer()).byteLength,0);
+  }
+  assert.equal((await fetchAsset('/home.js',{method,headers:{'if-none-match':'W/"older"'}})).status,200);
+}
+
 // Inspect the real bundled static table, not a second implementation of its
 // response router. esbuild preserves literal route keys but minifies bindings
 // and booleans, so isolate its trusted object literal with string-aware braces.
@@ -64,7 +74,7 @@ const compiledAssets=bundledAssetTable(),rasters=new Map();
 // and desktop packages stream verified R2 objects instead of duplicating them
 // inside the constrained Worker bundle.
 const release=JSON.parse(await readFile(path.join(dist,'downloads/voidline-release.json'),'utf8'));
-assert.equal(release.tag,'v1.0.4');
+assert.equal(release.tag,'v1.0.5');
 assert.equal(release.android.version,'1.0.3');
 assert.equal(release.android.versionCode,4);
 assert.equal(release.android.filename,'VOIDLINE-Android.apk');

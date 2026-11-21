@@ -2,7 +2,7 @@
 import {mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
-import {artCatalog,artSVG,artVersion} from '../src/art/catalog.mjs';
+import {artCatalog,artSVG,artVersion,priorArtSVG} from '../src/art/catalog.mjs';
 import {giftBases} from '../src/art/gift-bases.mjs';
 import {telegramReferences} from '../src/art/telegram-references.mjs';
 import {research,RESEARCH_REVIEWED_AT} from '../src/art/research.mjs';
@@ -13,19 +13,31 @@ if(!partial){for(const id of [...catalogIds,...earnedIds])if(!artCatalog[id])thr
 if(requireWeb)for(const id of ids)if(!artCatalog[id].sourceArt)throw Error('Missing downloaded web artwork '+id);
 const hash=value=>createHash('sha256').update(value).digest('hex');
 await mkdir(folder,{recursive:true});await rm(folder,{recursive:true,force:true});await mkdir(folder,{recursive:true});
-const manifest={artVersion,researchReviewedAt:RESEARCH_REVIEWED_AT,generatedFrom:'Credited downloaded raster sources and src/art/*.mjs presentation geometry',counts:{decorations:ids.filter(id=>artCatalog[id].type==='badge').length,gifts:ids.filter(id=>artCatalog[id].type==='gift').length,earned:ids.filter(id=>artCatalog[id].type==='earned').length,webSources:ids.filter(id=>artCatalog[id].sourceArt).length},items:[]};
+const manifest={artVersion,researchReviewedAt:RESEARCH_REVIEWED_AT,generatedFrom:'Credited web sources, optical miniatures and object-specific presentation geometry in src/art',counts:{decorations:ids.filter(id=>artCatalog[id].type==='badge').length,gifts:ids.filter(id=>artCatalog[id].type==='gift').length,earned:ids.filter(id=>artCatalog[id].type==='earned').length,webSources:ids.filter(id=>artCatalog[id].sourceArt).length},items:[]};
 for(const id of ids){
  const a=artCatalog[id];if(!/^[a-z][a-z0-9-]{1,64}$/.test(id)||!a.name||!a.alt||!a.material||typeof a.body!=='function'||!a.mini||!a.silhouette)throw Error('Incomplete editable master '+id);
  if(!a.motion||a.motion.duration<900||a.motion.duration>1800||!a.motion.layers?.length)throw Error('Missing authored choreography '+id);
  const body=a.body('validation');
  for(const layer of a.motion.layers){if(!/^[a-z][a-z0-9-]*$/.test(layer.name)||!body.includes('data-part="'+layer.name+'"')||layer.frames.length<2)throw Error('Unbound moving part '+id+':'+layer.name);let previous=-1;for(const frame of layer.frames){if(!Number.isFinite(frame.at)||frame.at<0||frame.at>1||frame.at<previous)throw Error('Invalid choreography time '+id);previous=frame.at;for(const [key,value]of Object.entries(frame))if(!['at','x','y','rotate','scaleX','scaleY','opacity'].includes(key)||!Number.isFinite(value))throw Error('Invalid motion field '+id+':'+key);}if(layer.frames[0].at!==0||layer.frames.at(-1).at!==1)throw Error('Incomplete choreography endpoints '+id);}
  const variants={};for(const variant of ['mini','card','detail','silhouette']){const svg=artSVG(id,variant),digest=hash(svg),file=id+'-'+variant+'.'+digest.slice(0,12)+'.svg';await writeFile(new URL(file,folder),svg);variants[variant]={url:'/art/v'+artVersion+'/'+file,width:variant==='mini'?24:256,height:variant==='mini'?24:256,bytes:Buffer.byteLength(svg),sha256:digest};}
+ if(a.edition){
+  for(const variant of Object.keys(variants)){
+   const previous=priorArtSVG(id,variant),digest=hash(previous),file=id+'-'+variant+'.'+digest.slice(0,12)+'.svg';
+   if(variants[variant].sha256!==digest)await writeFile(new URL(file,folder),previous);
+  }
+ }
  const basis=giftBases[id],studied=basis?telegramReferences[basis.referenceKey]:null,reference=studied?{kind:'Motion and material reference only',base:basis.base,url:studied.sourceURL}:null;
  const provenance=research[id]||{sources:studied?.sources||[],credits:'Original VOIDLINE illustration and choreography; Telegram collectible research informed only the material and motion base.',rights:'Original VOIDLINE object, not an official Telegram asset or NFT. No downloaded reference artwork is redistributed and no source NFT ownership or affiliation is claimed.',newlyDrawn:[...a.motion.layers.map(layer=>layer.name),'optical miniature','silhouette']};
  const web=a.sourceArt;if(web&&web.id!==id)throw Error('Downloaded source identity mismatch '+id);
  const record={id,reference,name:a.name,type:a.type,series:a.series,material:a.material,alt:a.alt,artVersion,restingState:web?'Complete static web-sourced image':'Complete static illustration',animationStates:['rest','hover/focus response','explicit preview','inspection',...(a.type==='gift'?['acknowledged receipt reveal']:[]),'reduced-motion still','unavailable/retired'],motion:a.motion,variants,sources:web?[...new Set([web.sourceURL,web.licenseURL,web.usageURL,...(web.components||[]).flatMap(x=>[x.sourceURL,x.licenseURL,x.usageURL])].filter(Boolean))]:provenance.sources||[],credits:web?web.creator+' · '+web.license:provenance.credits||provenance.credit,rights:web?[web.license,web.licenseURL].filter(Boolean).join('; '):provenance.rights,newlyDrawn:web?[]:provenance.newlyDrawn,...(web?{sourceArt:web,changes:web.changes,revealPreset:a.revealPreset,presentation:'Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn.'}:{}),...(!web&&provenance.constructionBasis?{constructionBasis:provenance.constructionBasis}:{})};
+ if(a.edition){
+  record.edition=a.edition;record.storyboard=a.storyboard;
+  record.restingState='Complete static web-sourced image composed within an object-specific illustration';
+  record.presentation='Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.';
+  record.newlyDrawn=['optical miniature','object setting and material details'];
+ }
  record.credits=record.credits||'Original VOIDLINE vector drawing';record.newlyDrawn=record.newlyDrawn||[...a.motion.layers.map(layer=>layer.name),'optical miniature','silhouette'];
- manifest.items.push(record);client[id]={id,reference,name:a.name,type:a.type,series:a.series,material:a.material,alt:a.alt,motion:a.motion,cardURL:variants.card.url,detailURL:variants.detail.url,silhouetteURL:variants.silhouette.url,detailBytes:variants.detail.bytes,...(web?{sourceArt:web}:{mini:a.mini})};
+ manifest.items.push(record);client[id]={id,...(a.edition?{edition:a.edition}:{}),reference,name:a.name,type:a.type,series:a.series,material:a.material,alt:a.alt,motion:a.motion,cardURL:variants.card.url,detailURL:variants.detail.url,silhouetteURL:variants.silhouette.url,detailBytes:variants.detail.bytes,...(web?{sourceArt:web}:{mini:a.mini})};
 }
 await writeFile(new URL('manifest.json',folder),JSON.stringify(manifest,null,2)+'\n');
 const compiled=await build({stdin:{contents:`import {installArt} from './src/art/client.mjs';installArt(${JSON.stringify(client)},${artVersion});`,resolveDir:root.pathname,sourcefile:'collectible-art-entry.mjs',loader:'js'},bundle:true,format:'iife',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'none'});

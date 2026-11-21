@@ -53,7 +53,27 @@ test('a test notification reports queued status without claiming device delivery
 
 test('service-worker push discards private payload text and never installs a fetch/cache handler',async()=>{const f=worker();await f.push({title:'PRIVATE_TITLE',body:'PRIVATE_MESSAGE_CANARY',path:'https://outside.example',tag:'x'.repeat(150),extra:'PRIVATE_EXTRA'});assert.equal(f.shown.length,1);assert.equal(f.shown[0].title,'VOIDLINE');assert.equal(f.shown[0].body,'You have new activity in VOIDLINE.');assert.equal(f.shown[0].data.path,'#chats');assert.equal(f.shown[0].tag.length,100);assert.equal(JSON.stringify(f.shown).includes('PRIVATE_'),false);assert.equal(f.events.has('fetch'),false);});
 test('malformed push falls back to a generic notification and connected tests use fixed copy',async()=>{const f=worker();await f.push(null,{malformed:true});assert.equal(f.shown[0].body,'You have new activity in VOIDLINE.');await f.push({body:'Notifications are connected.',path:'#inbox'});assert.equal(f.shown[1].body,'Notifications are connected.');assert.equal(f.shown[1].data.path,'#inbox');});
-test('notification click focuses only a same-origin app window and keeps the route inside that app',async()=>{const f=worker({windows:['https://outside.example/','https://voidline.example/#you']});await f.click({path:'#messages/conversation'});assert.equal(f.closes,1);assert.equal(f.navigations.length,1);assert.equal(f.navigations[0].client,'https://voidline.example/#you');assert.equal(f.navigations[0].resolved,'https://voidline.example/#messages/conversation');assert.equal(f.focused.length,1);assert.equal(f.opened.length,0);});
+test('a notification prefers an exact open conversation without replacing another app page',async()=>{
+ const matching='https://voidline.example/chats#messages/conversation';
+ const f=worker({windows:['https://voidline.example/install.html','https://voidline.example/#messages/draft',matching]});
+ await f.click({path:'#messages/conversation'});
+ assert.deepEqual(f.navigations,[]);
+ assert.deepEqual(f.focused,[matching]);
+ assert.deepEqual(f.opened,[]);
+ assert.equal(f.closes,1);
+});
+test('a different notification destination preserves open drafts, uploads and account recovery',async()=>{
+ const f=worker({windows:['https://voidline.example/#messages/draft','https://voidline.example/?reset=private#inbox','https://outside.example/#inbox']});
+ await f.click({path:'#inbox'});
+ assert.deepEqual(f.navigations,[]);
+ assert.deepEqual(f.focused,[]);
+ assert.deepEqual(f.opened,['https://voidline.example/#inbox']);
+});
+test('previously denied permission explains how to change it without requesting it again',async()=>{
+ const f=client({permission:'denied'});await f.api.settings();
+ assert.match(f.nodes.get('vn-settings').innerHTML,/data-vn="enable" disabled/);
+ await f.seam.action('enable');assert.equal(f.permissionRequests,0);assert.equal(f.registrations.length,0);
+});
 test('untrusted notification-click paths cannot navigate to another origin',async()=>{for(const candidate of ['//outside.example/path','///outside.example/path','https://outside.example/','javascript:alert(1)','\\\\outside.example/path']){const f=worker();await f.click({path:candidate});assert.equal(new URL(f.opened[0]).origin,'https://voidline.example');assert.equal(f.opened[0],'https://voidline.example/#chats');}});
 
 (async()=>{let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error);}}console.log(`${tests.length-failed}/${tests.length} notification client/service-worker checks passed. Controlled DOM/permissions/transport, not a browser subscription or provider/device delivery test.`);process.exitCode=failed?1:0;})();

@@ -212,3 +212,28 @@ html.vh-high-contrast .vp-card > :is(.vp-custom-stripe,.vp-custom-outline) { dis
 @media(forced-colors:active),(prefers-contrast:more) {
  .vp-card[data-accent^="#"] > :is(.vp-custom-stripe,.vp-custom-outline) { display:none!important; }
 }
+
+.vp-studio-section > header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap; }
+.vp-section-reset { min-height:44px; color:var(--vh-copy); }
+.vp-look-picker { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(7rem,100%),1fr)); gap:.5rem; }
+.vp-look { display:grid; grid-template-rows:auto auto; gap:.5rem; padding:.4rem .4rem .55rem; background:var(--vh-bg); border:1px solid var(--vh-control-line); border-radius:8px; color:var(--vh-text); text-align:start; font:inherit; cursor:pointer; }
+.vp-look > span:last-child { padding-inline:.3rem; font-weight:600; font-size:.875rem; }
+.vp-look[aria-pressed=true] { border-color:var(--vh-accent); box-shadow:inset 0 0 0 1px var(--vh-accent); }
+.vp-look[aria-pressed=true] > span:last-child::after { content:'✓'; margin-inline-start:.3rem; color:var(--vh-accent); }
+.vp-look:focus-visible,.vp-badge-move button:focus-visible { outline:2px solid var(--vh-accent); outline-offset:2px; }
+.vp-look > .vp-card { isolation:isolate; display:block; width:100%; height:3.5rem; min-height:0; border-radius:4px; }
+.vp-look .vp-banner { display:block; height:100%; aspect-ratio:auto; }
+.vp-look-initial { position:absolute; inset:auto auto .25rem .4rem; padding:.08rem .23rem; background:#151922; color:#eceff4; border-radius:3px; font-size:1.05rem; line-height:1.15; }
+.vp-look [data-name-style=serif] .vp-look-initial { font-family:Georgia,serif; }
+.vp-look [data-name-style=mono] .vp-look-initial { font-family:ui-monospace,Consolas,monospace; }
+.vp-studio .vp-badge-order { grid-template-columns:minmax(0,1fr); }
+.vp-badge-slot { display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:.6rem; align-items:center; }
+.vp-badge-slot label,.vp-badge-slot select { min-width:0; width:100%; }
+.vp-badge-sample { display:grid; place-items:center; width:28px; height:32px; }
+.vp-badge-sample img,.vp-badge-sample svg,.vp-badge-sample .vc-art { width:24px; height:24px; }
+.vp-badge-move { display:flex; gap:.25rem; flex-wrap:wrap; }
+.vp-badge-move button { min-height:44px; min-width:44px; padding-inline:.35rem; }
+@media(max-width:520px) {
+ .vp-badge-slot { grid-template-columns:28px minmax(0,1fr); }
+ .vp-badge-move { grid-column:2; }
+}

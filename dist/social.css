@@ -19,3 +19,11 @@
 .vs-person-name>b[data-name-style=mono]{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 :is(html[data-vh-simple-profiles=true],html.vh-high-contrast) .vs-person-name>b[data-name-style]{font-family:inherit!important;letter-spacing:normal!important}
 @media(forced-colors:active){.vs-person-name>b[data-name-style]{font-family:inherit!important;letter-spacing:normal!important}}
+.vs-add-form { margin: 8px 0 16px; }
+.vs-add-form > small { font-size: calc(.8125rem * var(--vl-text-scale,1)); line-height: 1.5; color: var(--vh-muted); }
+.vs-add-form select,.vs-add-form input { font: inherit; }
+.vs-match { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; margin-bottom: 18px; border: 1px solid var(--vh-line); border-inline-start: 3px solid var(--vh-accent); border-radius: var(--vh-radius); background: var(--vh-bg); }
+.vs-match > div { display: grid; min-width: 0; gap: 4px; overflow-wrap: anywhere; }
+.vs-match small { color: var(--vh-muted); font-size: calc(.8125rem * var(--vl-text-scale,1)); }
+.vs-panel .vs-privacy { margin-top: 12px; border-top: 1px solid var(--vh-line); padding-top: 10px; }
+@media (max-width:520px) { .vs-add-form > div { flex-direction: row; } .vs-tabs { column-gap: 14px; } }

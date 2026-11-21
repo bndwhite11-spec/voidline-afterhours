@@ -1,0 +1,176 @@
+{
+  "node": "v24.22.1",
+  "baseline": "985e4400c4d1db3b377148a55969f5558a67dabe",
+  "warmupPairs": 1,
+  "samplePairs": 8,
+  "order": "AB/BA alternating across pairs; same baseline transport+DOM fixtures",
+  "limitations": "Main controller timings use the source test DOM with in-memory HTTP and IndexedDB; long history uses explicitly computed row geometry; gallery uses jsdom with real XML parsing and raster hashing, no rendering, simulated WAAPI and modal methods. No network, browser frames, device latency or field percentiles.",
+  "results": {
+    "switchChats": {
+      "checks": {
+        "baseline": {
+          "switches": 10,
+          "rowsPerVisit": 50,
+          "requests": 20
+        },
+        "candidate": {
+          "switches": 10,
+          "rowsPerVisit": 50,
+          "requests": 20
+        }
+      },
+      "medianMs": {
+        "baseline": 82.1,
+        "candidate": 81.2
+      },
+      "samplesMs": {
+        "baseline": [
+          135.21,
+          49.25,
+          72.05,
+          48.57,
+          158.84,
+          145.58,
+          49.76,
+          92.15
+        ],
+        "candidate": [
+          56.1,
+          87.76,
+          96.74,
+          48.54,
+          74.65,
+          145.59,
+          49.05,
+          96.92
+        ]
+      }
+    },
+    "liveTyping": {
+      "checks": {
+        "baseline": {
+          "keystrokes": 48,
+          "incomingPages": 8,
+          "draftLength": 48,
+          "identicalComposer": true
+        },
+        "candidate": {
+          "keystrokes": 48,
+          "incomingPages": 8,
+          "draftLength": 48,
+          "identicalComposer": true
+        }
+      },
+      "medianMs": {
+        "baseline": 9.59,
+        "candidate": 9.64
+      },
+      "samplesMs": {
+        "baseline": [
+          9.33,
+          9.56,
+          9.02,
+          9.55,
+          10.35,
+          10.78,
+          11.33,
+          9.61
+        ],
+        "candidate": [
+          9.65,
+          9.63,
+          9.44,
+          8.76,
+          10.47,
+          10.94,
+          9.47,
+          9.82
+        ]
+      }
+    },
+    "longHistory": {
+      "checks": {
+        "baseline": {
+          "historyRows": 10000,
+          "positions": 24,
+          "maxMounted": 24,
+          "viewportHeight": 600
+        },
+        "candidate": {
+          "historyRows": 10000,
+          "positions": 24,
+          "maxMounted": 24,
+          "viewportHeight": 600
+        }
+      },
+      "medianMs": {
+        "baseline": 100.5,
+        "candidate": 94.06
+      },
+      "samplesMs": {
+        "baseline": [
+          103.45,
+          101.91,
+          101.46,
+          105.26,
+          99.55,
+          96.53,
+          87.64,
+          99.5
+        ],
+        "candidate": [
+          109.06,
+          89.82,
+          98.29,
+          107.2,
+          84.88,
+          112.19,
+          86.85,
+          87.46
+        ]
+      }
+    },
+    "gallery": {
+      "checks": {
+        "baseline": {
+          "inspections": 8,
+          "detailFetchesIncludingWarmUp": 2,
+          "activeEffectsAfterClose": 0,
+          "restoredFocus": true
+        },
+        "candidate": {
+          "inspections": 8,
+          "detailFetchesIncludingWarmUp": 2,
+          "activeEffectsAfterClose": 0,
+          "restoredFocus": true
+        }
+      },
+      "medianMs": {
+        "baseline": 83.79,
+        "candidate": 95.26
+      },
+      "samplesMs": {
+        "baseline": [
+          108.42,
+          84.9,
+          86.31,
+          82.68,
+          104.51,
+          73.43,
+          78.63,
+          72.86
+        ],
+        "candidate": [
+          112.57,
+          89.08,
+          94.39,
+          92.78,
+          115.57,
+          96.13,
+          98.15,
+          82.12
+        ]
+      }
+    }
+  }
+}

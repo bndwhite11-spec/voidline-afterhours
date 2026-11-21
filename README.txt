@@ -3,6 +3,13 @@ VOIDLINE: AFTERHOURS
 APP
 https://voidline-afterhours.pipedcactus1.chatgpt.site/
 
+WEB RELEASE v1.0.5
+The messenger now loads optional tools when needed, confirms friend requests
+before sending, and preserves the open conversation during profile and search
+navigation. Eight collectibles have revised artwork and motion. See
+docs/QUALITY-RELEASE.md for measured results, known limits and rollback.
+Android 1.0.3 and Windows 1.0.0 use the updated web interface.
+
 Create a native account with a unique username and a 12–128-character password.
 New accounts have zero communities, conversations, sample contacts, gifts,
 messages or invented activity. Existing legitimate records remain. Save the
@@ -26,8 +33,8 @@ Mac: Chrome/Edge installation or Safari > File > Add to Dock when available.
 The install page's button opens a browser prompt only when the browser supplies
 one; otherwise it shows device instructions. The installed state is reported
 only after an installed event or a standalone app launch, never from a click.
-Inside the app: You > Friends & requests > Add a friend > Send request. Once
-accepted, choose Message. An internet connection is required. Home Screen
+Open Friends, enter an exact username and choose Find. Review the matching
+handle, then select Send request. Once accepted, choose Message. An internet connection is required. Home Screen
 installation and physical keyboards still require actual-device acceptance.
 The APK and Windows ZIP are real application packages using the same hosted
 accounts. Android 1.0.3 uses the existing app ID and signing key. Open the

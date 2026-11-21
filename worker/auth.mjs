@@ -71,14 +71,15 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
   return {id:session.account_id,sessionId:session.id,csrfHash:session.csrf_hash,reauthenticatedAt:session.reauthenticated_at,session};
  }
  async function sessionPlan(request,db,accountId,time,{revokeAll=false,credentialGuard=null,reauthenticatedAt=time}={}){
+  const expiresAt=time+SESSION_SECONDS*1000;
   const token=random(),csrf=random(),id=crypto.randomUUID(),deviceName=deviceLabel(request.headers.get('user-agent')||'');
   const accountGuard="EXISTS(SELECT 1 FROM live_accounts WHERE id=? AND account_status='active')";
   const guard=' AND '+accountGuard+(credentialGuard?' AND EXISTS(SELECT 1 FROM auth_credentials WHERE account_id=? AND password_hash=? AND change_marker=?)':'');
   const binds=[accountId,...(credentialGuard?[accountId,credentialGuard.password_hash,credentialGuard.change_marker]:[])],writes=[];
   if(revokeAll)writes.push(query(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL'+guard,time,accountId,...binds));
   const previous=readCookie(request,SESSION_COOKIE);if(/^[a-f0-9]{64}$/.test(previous))writes.push(query(db,'UPDATE auth_sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL'+guard,time,await authHash(previous),...binds));
-  writes.push(query(db,'INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) SELECT ?,?,?,?,?,?,?,?,? WHERE '+accountGuard+(credentialGuard?' AND EXISTS(SELECT 1 FROM auth_credentials WHERE account_id=? AND password_hash=? AND change_marker=?)':''),id,accountId,await authHash(token),await authHash(csrf),deviceName,time,time,reauthenticatedAt,time+SESSION_SECONDS*1000,...binds));
-  return {writes,cookies:[cookie(SESSION_COOKIE,token),cookie(CSRF_COOKIE,csrf,false),cookie('__Host-voidline_oauth','',true,0)],session:{id,deviceName,createdAt:time,lastActiveAt:time,reauthenticatedAt,mfaVerifiedAt:0},csrfToken:csrf};
+  writes.push(query(db,'INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) SELECT ?,?,?,?,?,?,?,?,? WHERE '+accountGuard+(credentialGuard?' AND EXISTS(SELECT 1 FROM auth_credentials WHERE account_id=? AND password_hash=? AND change_marker=?)':''),id,accountId,await authHash(token),await authHash(csrf),deviceName,time,time,reauthenticatedAt,expiresAt,...binds));
+  return {writes,cookies:[cookie(SESSION_COOKIE,token),cookie(CSRF_COOKIE,csrf,false),cookie('__Host-voidline_oauth','',true,0)],session:{id,deviceName,createdAt:time,lastActiveAt:time,reauthenticatedAt,expiresAt,mfaVerifiedAt:0},csrfToken:csrf};
  }
  async function authSuccess(db,accountId,plan,{status=200,recoveryCode}={}){const account=await query(db,'SELECT * FROM live_accounts WHERE id=?',accountId).first();return responseCookies(json({account:publicAccount(account),session:plan.session,csrfToken:plan.csrfToken,...(recoveryCode?{recoveryCode}:{})},status),plan.cookies);}
  async function verifyGoogleToken(token,env,nonce){
@@ -250,7 +251,7 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
     const account=await query(db,'SELECT * FROM live_accounts WHERE id=?',user.id).first();requireAuth(account,401,'sign_in_required','Log in again.');let csrf=readCookie(request,CSRF_COOKIE);const cookies=[];
     if(!/^[a-f0-9]{64}$/.test(csrf)||await authHash(csrf)!==user.csrfHash){csrf=random();await query(db,'UPDATE auth_sessions SET csrf_hash=? WHERE id=?',await authHash(csrf),user.sessionId).run();cookies.push(cookie(CSRF_COOKIE,csrf,false));}
     const methods=(await query(db,'SELECT provider FROM auth_identities WHERE account_id=?',user.id).all()).results.map(row=>row.provider);if(await query(db,'SELECT 1 AS found FROM auth_credentials WHERE account_id=?',user.id).first())methods.unshift('password');
-    return responseCookies(json({account:publicAccount(account),authentication:{methods},session:{id:user.sessionId,deviceName:user.session.device_name,createdAt:user.session.created_at,lastActiveAt:user.session.last_active_at,reauthenticatedAt:user.reauthenticatedAt,mfaVerifiedAt:user.session.mfa_verified_at||0},csrfToken:csrf}),cookies);
+    return responseCookies(json({account:publicAccount(account),authentication:{methods},session:{id:user.sessionId,deviceName:user.session.device_name,createdAt:user.session.created_at,lastActiveAt:user.session.last_active_at,expiresAt:user.session.expires_at,reauthenticatedAt:user.reauthenticatedAt,mfaVerifiedAt:user.session.mfa_verified_at||0},csrfToken:csrf}),cookies);
    }
    if(path==='/api/auth/email'&&request.method==='GET'){const email=await query(db,'SELECT email,verified_at FROM account_emails WHERE account_id=?',user.id).first();return json({email:email?.email||null,verifiedAt:email?.verified_at||null,deliveryConfigured:emailConfigured(env)});}
    if(path==='/api/auth/devices'&&request.method==='GET'){

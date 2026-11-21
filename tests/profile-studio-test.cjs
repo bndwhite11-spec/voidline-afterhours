@@ -36,7 +36,7 @@ test('unrelated and blocked previews follow the profile access gate without inve
 
 test('uploaded images remain selected when a saved look changes preset values and styles',async()=>{const id='c'.repeat(64),f=await fixture({avatarMediaId:id,avatarMedia:asset(id)});try{assert.equal(f.looks.length,1);assert.deepEqual(clone(f.looks[0].read()),{accent:'ice',avatar:'moon',banner:'midnight',nameStyle:'plain',profileFrame:'none'});f.looks[0].apply({accent:'gold',avatar:'ghost',banner:'orchid',nameStyle:'serif',profileFrame:'line'});const draft=f.seam.formValue(f.form);assert.equal(draft.avatarMediaId,id);assert.equal(draft.avatar,'ghost');assert.equal(draft.nameStyle,'serif');assert.equal(draft.profileFrame,'line');assert.match(f.preview.innerHTML,new RegExp(id));assert.equal(f.posts().length,0);f.click('[data-field="avatar"][data-value="moon"]');assert.equal(f.seam.formValue(f.form).avatarMediaId,null);assert.equal(f.preview.querySelector('.vp-avatar img'),null);}finally{f.close();}});
 
-test('owned decoration selection is a cosmetic draft until one atomic profile save',async()=>{const f=await fixture();try{f.click('[data-vp-action="equip"][data-item="larp"]');assert.equal(f.seam.summary().editor.draft.equippedId,'larp');assert.equal(f.state.account.equippedId,undefined);assert.match(f.preview.querySelector('.vp-equipped').innerHTML,/larp/);assert.equal(f.posts().length,0);await f.save();assert.equal(f.posts()[0].body.equippedId,'larp');assert.equal(f.requests.some(request=>request.route==='/api/cosmetics/equip'),false);assert.doesNotMatch(f.preview.textContent,/Platform owner/);}finally{f.close();}});
+test('owned decoration selection is a cosmetic draft until one atomic profile save',async()=>{const f=await fixture();try{assert.equal(f.requests.filter(r=>r.route==='/api/cosmetics/inventory').length,0);f.click('[data-vp-action="section"][data-section="decorations"]');await settle();f.click('[data-vp-action="equip"][data-item="larp"]');assert.equal(f.seam.summary().editor.draft.equippedId,'larp');assert.equal(f.state.account.equippedId,undefined);assert.match(f.preview.querySelector('.vp-equipped').innerHTML,/larp/);assert.equal(f.posts().length,0);await f.save();assert.equal(f.posts()[0].body.equippedId,'larp');assert.equal(f.requests.some(request=>request.route==='/api/cosmetics/equip'),false);assert.doesNotMatch(f.preview.textContent,/Platform owner/);}finally{f.close();}});
 
 test('showcase choosing, ordering, removal and sender disclosure remain draft-only',async()=>{const f=await fixture();try{f.click('[data-vp-action="section"][data-section="showcase"]');f.click('[data-ps-action="choose"][data-slot="1"]');await until(()=>f.document.querySelector('[data-ps-action="pick"][data-instance="instance-rose"]'));f.click('[data-ps-action="pick"][data-instance="instance-rose"]');f.click('[data-ps-action="choose"][data-slot="2"]');await until(()=>f.document.querySelector('[data-ps-action="pick"][data-instance="instance-star"]'));f.click('[data-ps-action="pick"][data-instance="instance-star"]');assert.match(f.preview.innerHTML,/Chrome Rose|Pocket Star/);f.input('[data-ps-sender="1"]',true,'change');assert.match(f.preview.textContent,/From @gift_friend/);f.click('[data-ps-action="move"][data-slot="1"][data-target="2"]');assert.equal(f.seam.formValue(f.form).showcaseSlots[1].instanceId,'instance-rose');f.click('[data-ps-action="remove"][data-slot="1"]');assert.equal(f.seam.formValue(f.form).showcaseSlots.length,1);assert.equal(f.posts().length,0);assert.equal(f.requests.some(request=>request.body),false);await f.save();assert.deepEqual(f.posts()[0].body.showcaseSlots,[{slot:2,instanceId:'instance-rose',showSender:true}]);assert.equal(f.requests.some(request=>/claim|transfer|\/showcase$/.test(request.route)),false);}finally{f.close();}});
 
@@ -47,6 +47,81 @@ test('discard confirmation retains section, audience and full draft when editing
 test('same-field conflicts preserve local edits, rebase untouched remote fields and require an explicit resolution',async()=>{const f=await fixture();try{f.input('[name="bio"]','My local biography');const remote={...f.server,bio:'Biography from another device',status:'Remote status',revision:2};f.setPost(()=>Promise.reject(Object.assign(Error('Profile changed'),{code:'profile_conflict',status:409,response:{conflicts:['bio'],profile:remote}})));await f.save();assert.equal(f.form.elements.namedItem('bio').value,'My local biography');assert.equal(f.form.elements.namedItem('status').value,'Remote status');assert.equal(f.form.querySelector('[type="submit"]').disabled,true);assert.match(f.document.getElementById('vp-conflict').textContent,/My local biography|Biography from another device/);const count=f.posts().length;await f.save();assert.equal(f.posts().length,count);f.click('[data-vp-action="conflict-mine"][data-field="bio"]');assert.equal(f.form.querySelector('[type="submit"]').disabled,false);f.server=remote;f.setPost(null);await f.save();const body=f.posts().at(-1).body;assert.equal(body.expectedRevision,2);assert.equal(body.baseValues.bio,'Biography from another device');assert.equal(body.bio,'My local biography');assert.equal(body.status,undefined);assert.equal(f.seam.summary().dirty,false);}finally{f.close();}});
 
 test('choosing the saved conflict value changes only that field and keeps other local work',async()=>{const f=await fixture();try{f.input('[name="bio"]','My draft');f.input('[name="status"]','My unsaved status');const remote={...f.server,bio:'Saved elsewhere',revision:2};f.setPost(()=>Promise.reject(Object.assign(Error('Conflict'),{code:'profile_conflict',status:409,response:{conflicts:['bio'],profile:remote}})));await f.save();f.click('[data-vp-action="conflict-saved"][data-field="bio"]');assert.equal(f.form.elements.namedItem('bio').value,'Saved elsewhere');assert.equal(f.form.elements.namedItem('status').value,'My unsaved status');assert.equal(f.seam.summary().dirty,true);}finally{f.close();}});
+
+test('conflict choices are reversible before save and preserve keyboard focus',async()=>{
+ const f=await fixture();
+ try{
+  f.input('[name="bio"]','My Armenian biography — բարեւ');
+  f.input('[name="status"]','Other unsaved work');
+  const remote={...f.server,bio:'Edited elsewhere',revision:2};
+  f.setPost(()=>Promise.reject(Object.assign(Error('Conflict'),{code:'profile_conflict',status:409,response:{conflicts:['bio'],profile:remote}})));
+  await f.save();
+  f.click('[data-vp-action="conflict-saved"]');
+  assert.equal(f.form.elements.namedItem('bio').value,'Edited elsewhere');
+  f.click('[data-vp-action="conflict-mine"]');
+  assert.equal(f.form.elements.namedItem('bio').value,'My Armenian biography — բարեւ');
+  assert.equal(f.document.activeElement.dataset.vpAction,'conflict-mine');
+  assert.equal(f.form.elements.namedItem('status').value,'Other unsaved work');
+  assert.equal(f.posts().length,1);
+  f.setPost(null);
+  await f.save();
+  assert.equal(f.posts()[1].body.baseValues.bio,'Edited elsewhere');
+  assert.equal(f.server.bio,'My Armenian biography — բարեւ');
+ }finally{f.close();}
+});
+
+test('coordinated looks and section reset preserve uploaded art and unrelated edits',async()=>{
+ const id='a'.repeat(64),f=await fixture({bannerMediaId:id,bannerMedia:asset(id)});
+ try{
+  f.input('[name="bio"]','Իմ էջը • مرحبا');
+  f.click('[data-vp-action="section"][data-section="style"]');
+  const choose='[data-vp-action="choose-look"][data-look="orchid"]';
+  f.click(choose);
+  let draft=f.seam.formValue(f.form);
+  assert.equal(draft.accent,'lilac');assert.equal(draft.nameStyle,'serif');
+  assert.equal(draft.bannerMediaId,id);
+  assert.equal(f.form.querySelector(choose).getAttribute('aria-pressed'),'true');
+  const reset=f.form.querySelector('[data-vp-action="reset-section"][data-section="style"]');
+  assert.equal(reset.hidden,false);
+  f.click(reset);
+  draft=f.seam.formValue(f.form);assert.equal(draft.accent,'ice');assert.equal(draft.banner,'midnight');
+  assert.equal(draft.bio,'Իմ էջը • مرحبا');assert.equal(draft.bannerMediaId,id);
+  assert.equal(f.preview.querySelector('.vp-banner-image').getAttribute('src'),asset(id).url);
+  assert.equal(reset.hidden,true);assert.equal(f.document.activeElement.id,'vp-tab-style');
+  f.click('[data-field="banner"][data-value="eclipse"]');
+  assert.equal(f.seam.formValue(f.form).bannerMediaId,null);
+  f.click(reset);assert.equal(f.seam.formValue(f.form).bannerMediaId,id);
+  assert.equal(f.posts().length,0);await f.save();
+  assert.deepEqual(Object.keys(f.posts()[0].body).sort(),['baseValues','bio','expectedRevision']);
+ }finally{f.close();}
+});
+
+test('owned badge buttons reorder the preview and save only display order',async()=>{
+ const awards=[{badge_id:'profile-authored',name:'Profile Authored'},{badge_id:'invitation-guide',name:'Invitation Guide'}];
+ const ids=awards.map(award=>award.badge_id),f=await fixture({earnedBadges:awards,badgeOrder:ids});
+ try{
+  f.click('[data-vp-action="section"][data-section="decorations"]');
+  const later=f.form.querySelector('[data-index="0"][data-direction="later"]');
+  assert.equal(later.getAttribute('aria-label'),'Move Profile Authored later');
+  f.click(later);
+  assert.deepEqual([...f.preview.querySelectorAll('[data-vp-award]')].map(el=>el.dataset.vpAward),[ids[1],ids[0]]);
+  assert.equal(f.document.activeElement.getAttribute('aria-label'),'Move Profile Authored earlier');
+  assert.equal(f.posts().length,0);await f.save();
+  assert.deepEqual(f.posts()[0].body,{baseValues:{badgeOrder:ids},expectedRevision:1,badgeOrder:[ids[1],ids[0]]});
+ }finally{f.close();}
+});
+
+test('an editor load failure replaces the loading state; retry opens the requested section',async()=>{
+ const f=await fixture();
+ try{
+  f.bridge.loadFeature=async name=>{assert.equal(name,'collection');throw Error('Offline');};
+  await f.module.edit({section:'visibility'});
+  assert.doesNotMatch(f.dialog.textContent,/Loading saved profile/);
+  const retry=f.dialog.querySelector('[data-vp-action="retry-editor"]');assert.ok(retry);
+  f.bridge.loadFeature=async()=>{};f.click(retry);
+  await until(()=>f.form?.dataset.section==='visibility');assert.equal(f.posts().length,0);
+ }finally{f.close();}
+});
 
 test('a timeout reconciles an already-committed save without a duplicate mutation',async()=>{const f=await fixture();try{f.input('[name="bio"]','Saved despite a lost response');f.setPost(body=>{f.server={...f.server,bio:body.bio,revision:2};throw Object.assign(Error('Connection timed out'),{status:503});});await f.save();assert.equal(f.posts().length,1);assert.equal(f.seam.summary().dirty,false);assert.equal(f.form.elements.namedItem('bio').value,'Saved despite a lost response');assert.ok(f.announcements.includes('Profile saved.'));}finally{f.close();}});
 

@@ -91,7 +91,13 @@ failed head pauses later items until deliberate retry/cancellation. Several
 messages can queue without waiting for a network roundtrip. The queue contains
 readable Standard text; it is separate from the protected Matrix vault. Drafts
 remain tab-scoped readable sessionStorage. Lock stops account workers; sign-out
-clears the account's local drafts/outbox according to the explicit lifecycle.
+clears that account’s local drafts and outbox. Returning from the browser’s
+back/forward cache hides the account during validation. A matching session
+keeps the queue and drafts. A replaced or revoked session clears its records.
+When a running tab reaches the server-issued session expiry, it can retain the
+current unqueued Standard text in memory until the same account signs back in.
+Closing the tab or signing into a different account discards that text.
+Replies, attachments and queued sends are excluded from this recovery.
 Cancellation cannot retract a server-accepted send. Never store passwords,
 sessions or encryption keys in this queue or restore another account's draft.
 

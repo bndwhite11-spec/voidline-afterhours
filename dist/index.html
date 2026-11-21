@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-feature-manifest="true">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -16,48 +16,49 @@
 <link rel="stylesheet" href="/entry.css">
 <link rel="stylesheet" href="/home.css">
 <link rel="stylesheet" href="/mobile.css">
-<link rel="stylesheet" href="/native-messaging.css">
-<link rel="stylesheet" href="/native-media.css">
-<link rel="stylesheet" href="/cosmetics.css">
-<link rel="stylesheet" href="/social.css">
-<link rel="stylesheet" href="/organize.css">
-<link rel="stylesheet" href="/profiles-panel.css">
-<link rel="stylesheet" href="/profile-showcase.css">
-<link rel="stylesheet" href="/profile-media.css">
-<link rel="stylesheet" href="/gift-collections.css">
-<link rel="stylesheet" href="/profile-looks.css">
-<link rel="stylesheet" href="/admin.css">
-<link rel="stylesheet" href="/art-motion.css">
+<template data-feature="workspace"><link rel="stylesheet" href="/native-messaging.css"></template>
+<template data-feature="media"><link rel="stylesheet" href="/native-media.css"></template>
+<template data-feature="collection"><link rel="stylesheet" href="/cosmetics.css"></template>
+<template data-feature="workspace"><link rel="stylesheet" href="/social.css"></template>
+<template data-feature="workspace"><link rel="stylesheet" href="/organize.css"></template>
+<template data-feature="workspace"><link rel="stylesheet" href="/profiles-panel.css"></template>
+<template data-feature="collection"><link rel="stylesheet" href="/profile-showcase.css"></template>
+<template data-feature="media"><link rel="stylesheet" href="/profile-media.css"></template>
+<template data-feature="collection"><link rel="stylesheet" href="/gift-collections.css"></template>
+<template data-feature="collection"><link rel="stylesheet" href="/profile-looks.css"></template>
+<template data-feature="admin"><link rel="stylesheet" href="/admin.css"></template>
+<template data-feature="collection"><link rel="stylesheet" href="/art-motion.css"></template>
 <link rel="stylesheet" href="/appearance.css">
 </head>
 <body>
 <a class="vh-skip-link" href="#home-main">Skip to content</a>
 <div id="home-root" class="vh-app" aria-busy="true"><main id="home-main"><p>Opening Voidline…</p></main></div>
-<section id="home-startup-recovery" class="vh-startup-recovery" aria-labelledby="home-startup-title" role="alert" hidden><div><h1 id="home-startup-title">Still opening VOIDLINE</h1><p id="home-startup-copy">This is taking longer than usual. Keep this page open to continue waiting, or check your connection and try again.</p><nav aria-label="Loading recovery"><button id="home-startup-retry" type="button">Try again</button><a href="/" target="_blank" rel="noopener noreferrer">Open in browser</a></nav></div></section>
+<section id="home-startup-recovery" class="vh-startup-recovery" aria-labelledby="home-startup-title" role="alert" hidden><div><h1 id="home-startup-title">Still opening VOIDLINE</h1><p id="home-startup-copy">This is taking longer than usual. Keep this page open to continue waiting, or check your connection and try again.</p><nav aria-label="Loading recovery"><button id="home-startup-retry" type="button">Try again</button><a href="/chats" target="_blank" rel="noopener noreferrer">Open in browser</a></nav></div></section>
 <noscript>Voidline needs JavaScript for sign-in and messaging. Your saved data has not been changed.</noscript>
 <script src="/startup.js"></script>
+<script src="/feature-loader.js"></script>
 <script src="/entry.js"></script>
-<script src="/store.js"></script>
-<script src="/legacy-import.js"></script>
+<template data-feature="archive"><script src="/store.js"></script></template>
+<template data-feature="archive"><script src="/legacy-import.js"></script></template>
 <script src="/theme.js"></script>
-<script src="/media-validation.js"></script>
-<script src="/profile-media.js"></script>
-<script src="/native-media.js"></script>
-<script src="/native-outbox.js"></script>
-<script src="/native-timeline.js"></script>
-<script src="/realtime.js"></script>
+<template data-feature="media"><script src="/media-validation.js"></script></template>
+<template data-feature="media"><script src="/profile-media.js"></script></template>
+<template data-feature="media"><script src="/native-media.js"></script></template>
+<template data-feature="workspace"><script src="/native-outbox.js"></script></template>
+<template data-feature="workspace"><script src="/native-timeline.js"></script></template>
+<template data-feature="workspace"><script src="/realtime.js"></script></template>
 <script src="/home.js"></script>
 <script src="/mobile.js"></script>
-<script src="/collectible-art.js"></script>
-<script src="/gift-collections.js"></script>
-<script src="/cosmetics.js"></script>
-<script src="/social.js"></script>
-<script src="/organize.js"></script>
-<script src="/profile-looks.js"></script>
-<script src="/profile-showcase.js"></script>
-<script src="/profiles-panel.js"></script>
-<script src="/admin.js"></script>
-<script src="/notifications.js"></script>
-<script src="/account-export.js"></script>
+<template data-feature="collection"><script src="/collectible-art.js"></script></template>
+<template data-feature="collection"><script src="/gift-collections.js"></script></template>
+<template data-feature="workspace"><script src="/cosmetics.js"></script></template>
+<template data-feature="workspace"><script src="/social.js"></script></template>
+<template data-feature="workspace"><script src="/organize.js"></script></template>
+<template data-feature="collection"><script src="/profile-looks.js"></script></template>
+<template data-feature="collection"><script src="/profile-showcase.js"></script></template>
+<template data-feature="workspace"><script src="/profiles-panel.js"></script></template>
+<template data-feature="admin"><script src="/admin.js"></script></template>
+<template data-feature="workspace"><script src="/notifications.js"></script></template>
+<template data-feature="export"><script src="/account-export.js"></script></template>
 </body>
 </html>

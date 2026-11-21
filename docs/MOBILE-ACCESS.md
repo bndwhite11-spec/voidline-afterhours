@@ -2,7 +2,9 @@
 
 The existing public Site uses native username/password accounts. Friends can open the HTTPS app directly in current Android Chrome or iPhone/iPad Safari and choose Create account. They do not need ChatGPT, a Matrix account, an invitation to the Site, or the owner’s credentials. Communities can still require explicit invitations. Existing account IDs, server histories and legitimate ownership stay unchanged.
 
-`/install.html` provides public setup instructions, a canonical app-link copy field, explicit native sharing and the browser install prompt where available. Android users can install from Chrome’s menu; iPhone/iPad users use Safari Share → Add to Home Screen and Open as Web App when shown. Each installed window/device signs in separately. This release does not distribute an APK or publish App Store/Play Store listings, and does not claim offline messaging.
+Choose a platform on the public install page. On Android 7.0 or later, download the signed APK, open it from Downloads and choose **Install** or **Update**. Launch requires a compatible browser and internet access. On Windows 10 or later, download the unsigned x64 portable ZIP, extract it and open VOIDLINE from the extracted folder. Both platforms also support browser installation.
+
+On iPhone or iPad, open VOIDLINE in Safari and choose **Share → Add to Home Screen**. Leave **Open as Web App** enabled when shown. On macOS Sonoma or later, use Safari’s **File → Add to Dock**. Friends can use the same HTTPS link in a browser and sign in on each device. Live chats need internet. The separate downloadable offline viewer opens a local archive. [Download and installation instructions](https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html)
 
 The root manifest has a stable root id/start/scope and separate192/512 PNG icons,512 maskable and180 Apple touch icon. Existing logo pixels are rasterized conventionally; no new collectible artwork is generated. `scripts/build-app-icons.mjs --check` validates real static PNG dimensions and source-SVG hashes during builds. Regeneration uses installed Inkscape/Pillow; normal deployment builds need only Node for the check.
 

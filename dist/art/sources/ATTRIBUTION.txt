@@ -1,6 +1,12 @@
 VOIDLINE / SOURCE ARTWORK ATTRIBUTION
 Current edition4 / 19 November2026
 
+Studio 01 reuses the listed sources for Chrome Rose, Pocket Star, Midnight Tape,
+Paper Ghost, Sealed Signal, Block Zero, Last Tab Open and the Genesis Block
+decoration. VOIDLINE added optical miniatures, object settings and individually
+moving parts. The public manifest records each item's source and modifications.
+Derivative settings and miniatures retain the source's applicable license.
+
 Actual web photographs, illustrations, marks and meme images.
 Conventional cropping, rasterization, recoloring and composites are described per item.
 No AI image generation or generative fill is used for current collectible art.

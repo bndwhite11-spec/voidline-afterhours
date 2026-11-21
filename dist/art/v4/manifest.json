@@ -1,7 +1,7 @@
 {
   "artVersion": 4,
   "researchReviewedAt": "2026-11-19",
-  "generatedFrom": "Credited downloaded raster sources and src/art/*.mjs presentation geometry",
+  "generatedFrom": "Credited web sources, optical miniatures and object-specific presentation geometry in src/art",
   "counts": {
     "decorations": 49,
     "gifts": 32,
@@ -4012,10 +4012,10 @@
       "name": "Genesis Block",
       "type": "badge",
       "series": "Chain Signals",
-      "material": "Web-sourced PNG artwork",
-      "alt": "A cluster of fitted cubes with clear negative space, from Lorc’s original Cubeforce illustration.",
+      "material": "Brushed nickel lapel pin with enamel inlay",
+      "alt": "A hexagonal blue-green enamel pin carrying three interlinked cube outlines in a silver rim.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -4025,13 +4025,13 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1000,
+        "duration": 1210,
         "layers": [
           {
-            "name": "web-image",
+            "name": "pin",
             "origin": [
-              128,
-              128
+              127,
+              126
             ],
             "frames": [
               {
@@ -4039,13 +4039,16 @@
               },
               {
                 "at": 0.22,
-                "rotate": -3,
-                "scaleX": 1.025,
-                "scaleY": 1.025
+                "rotate": -3
               },
               {
-                "at": 0.64,
-                "rotate": 1.2
+                "at": 0.52,
+                "rotate": 6,
+                "scaleX": 0.88
+              },
+              {
+                "at": 0.78,
+                "rotate": -1
               },
               {
                 "at": 1
@@ -4056,32 +4059,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/coin-genesis-block-mini.d411b1bbf311.svg",
+          "url": "/art/v4/coin-genesis-block-mini.8d52111d17e0.svg",
           "width": 24,
           "height": 24,
-          "bytes": 9331,
-          "sha256": "d411b1bbf3113441defda45a0f037498100ce3460cd05896d626c7571b06c0ac"
+          "bytes": 1975,
+          "sha256": "8d52111d17e06d847720ed384c6f9e546c8c9e0dd75487177330cb5eb067a37e"
         },
         "card": {
-          "url": "/art/v4/coin-genesis-block-card.9817f73f7450.svg",
+          "url": "/art/v4/coin-genesis-block-card.ee9b29ecab4e.svg",
           "width": 256,
           "height": 256,
-          "bytes": 24649,
-          "sha256": "9817f73f74503d7f19e58db93b31dd5b14900ad2c7016d401bdd41eddea39250"
+          "bytes": 26249,
+          "sha256": "ee9b29ecab4ecf5257df43bd09da4e1eefa059f6f02e8ec86e1e084ce473d625"
         },
         "detail": {
-          "url": "/art/v4/coin-genesis-block-detail.359b7981f50b.svg",
+          "url": "/art/v4/coin-genesis-block-detail.a969bb72e6ad.svg",
           "width": 256,
           "height": 256,
-          "bytes": 24663,
-          "sha256": "359b7981f50ba79f5bb307fa6732ec65cdbc0a0f5030f463dac538c4d1b83252"
+          "bytes": 26406,
+          "sha256": "a969bb72e6ada719d5f98335ef0ef6440ee68564126928aa068e0c517d87fbac"
         },
         "silhouette": {
-          "url": "/art/v4/coin-genesis-block-silhouette.5e33caa755e4.svg",
+          "url": "/art/v4/coin-genesis-block-silhouette.cbf8eedb6da7.svg",
           "width": 256,
           "height": 256,
-          "bytes": 9670,
-          "sha256": "5e33caa755e45d3586aba6bc4da2af8e3f9df4146a06fa58bfa5ac8d739fd55f"
+          "bytes": 2314,
+          "sha256": "cbf8eedb6da7acc1e16c24e263fba86ecf7413a0b2c493905c18e0ee75662fd1"
         }
       },
       "sources": [
@@ -4090,7 +4093,10 @@
       ],
       "credits": "Lorc · CC BY 3.0",
       "rights": "CC BY 3.0; https://creativecommons.org/licenses/by/3.0/",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "coin-genesis-block",
         "kind": "Downloaded web image",
@@ -4099,7 +4105,7 @@
         "creator": "Lorc",
         "license": "CC BY 3.0",
         "licenseURL": "https://creativecommons.org/licenses/by/3.0/",
-        "changes": "Removed the original square background, conventionally recolored the existing paths #bdd2cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Removed the original square background, conventionally recolored the existing paths #bdd2cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "originalSha256": "cddb487fde4133b670d2a14bf5e0395018ddcba759652a8f86deb421e4dee534",
         "sha256": "1e5178de3267ebf049fddb439024d9cbdb435036d47c8303fe0a98494f748265",
         "mime": "image/png",
@@ -4107,17 +4113,19 @@
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/objects-coin-genesis-block-mini.57e9b6ea2c5e8738.png",
-          "sha256": "57e9b6ea2c5e8738945992a0a1c69afc79c52055185efd5308e6a205a9f5f92b",
+          "path": "/art/sources/studio-01-coin-genesis-block-mini.df2ff1dc12e8.png",
+          "sha256": "df2ff1dc12e835a676aa8562ca53681aafbdd5e6713fae90c98ab083eed12656",
           "mime": "image/png",
-          "bytes": 6532,
-          "width": 64,
-          "height": 64
+          "bytes": 1022,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Removed the original square background, conventionally recolored the existing paths #bdd2cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "badge response",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Removed the original square background, conventionally recolored the existing paths #bdd2cf, resized and centered to512px WebP. Original human-authored path geometry retained; no AI-generated drawing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "coin-genesis-block-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The lapel pin pitches toward the light and returns face-on with the three cube outlines intact."
     },
     {
       "id": "coin-moon-pending",
@@ -5351,10 +5359,10 @@
       "name": "Chrome Rose",
       "type": "gift",
       "series": "Afterhours Objects",
-      "material": "Web-sourced PNG artwork",
-      "alt": "Photograph of a real silver-plated copper rose with engraved leaves, made and photographed by Mauro Cateb.",
+      "material": "Plated botanical silver, etched leaf and brass binding",
+      "alt": "A silver rose on a curved, wire-bound stem. Its photographed bloom sits inside two polished outer petals.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -5365,32 +5373,29 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1590,
+        "duration": 1720,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "stem",
             "origin": [
-              128,
-              128
+              80,
+              224
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.2,
+                "rotate": -4
               },
               {
-                "at": 0.41000000000000003,
-                "x": -7,
-                "y": -7,
-                "rotate": -11
+                "at": 0.49,
+                "rotate": 4.8
               },
               {
-                "at": 0.76,
-                "rotate": -1.05,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.74,
+                "rotate": -1.6
               },
               {
                 "at": 1
@@ -5398,29 +5403,22 @@
             ]
           },
           {
-            "name": "web-panel-1",
+            "name": "bloom",
             "origin": [
-              128,
-              128
+              130,
+              123
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.125
+                "at": 0.22,
+                "rotate": -3
               },
               {
-                "at": 0.43000000000000005,
-                "x": 7,
-                "y": -7,
-                "rotate": 11
-              },
-              {
-                "at": 0.78,
-                "rotate": 1.05,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.55,
+                "rotate": 2
               },
               {
                 "at": 1
@@ -5428,29 +5426,26 @@
             ]
           },
           {
-            "name": "web-panel-2",
+            "name": "outer-petal-left",
             "origin": [
-              128,
-              128
+              123,
+              104
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.15000000000000002
+                "at": 0.19,
+                "rotate": 3
               },
               {
-                "at": 0.45,
-                "x": -7,
-                "y": 7,
-                "rotate": 11
+                "at": 0.55,
+                "rotate": -17
               },
               {
-                "at": 0.8,
-                "rotate": -1.05,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.77,
+                "rotate": -7
               },
               {
                 "at": 1
@@ -5458,29 +5453,56 @@
             ]
           },
           {
-            "name": "web-panel-3",
+            "name": "outer-petal-right",
             "origin": [
-              128,
-              128
+              151,
+              104
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.17500000000000002
+                "at": 0.23,
+                "rotate": -3
               },
               {
-                "at": 0.47000000000000003,
-                "x": 7,
-                "y": 7,
-                "rotate": -11
+                "at": 0.58,
+                "rotate": 16
               },
               {
-                "at": 0.8200000000000001,
-                "rotate": 1.05,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.79,
+                "rotate": 5
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "petal-light",
+            "origin": [
+              131,
+              66
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.27,
+                "opacity": 0,
+                "x": -4
+              },
+              {
+                "at": 0.52,
+                "opacity": 0.91,
+                "x": 3
+              },
+              {
+                "at": 0.72,
+                "opacity": 0,
+                "x": 7
               },
               {
                 "at": 1
@@ -5491,32 +5513,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-rose-mini.187073b2f9cb.svg",
+          "url": "/art/v4/gift-rose-mini.5d70aaaa12ee.svg",
           "width": 24,
           "height": 24,
-          "bytes": 14422,
-          "sha256": "187073b2f9cb4c0c6b8b0ca15cf631939bbaf865d080a310ec6ddbaca2d113b0"
+          "bytes": 2297,
+          "sha256": "5d70aaaa12ee79a40c4e1912f699abf6fe6c04c27b1f7a24b6e389841fba7881"
         },
         "card": {
-          "url": "/art/v4/gift-rose-card.6b9cb56f6a09.svg",
+          "url": "/art/v4/gift-rose-card.14c17b8d1f30.svg",
           "width": 256,
           "height": 256,
-          "bytes": 46329,
-          "sha256": "6b9cb56f6a099da06f45b2a08328d8a1636ad13049782bdb3a37264173241016"
+          "bytes": 48600,
+          "sha256": "14c17b8d1f3003bd1c2eb385b78c69a9677a49207103d20c7064da133532e290"
         },
         "detail": {
-          "url": "/art/v4/gift-rose-detail.fbe6ee126f61.svg",
+          "url": "/art/v4/gift-rose-detail.d338f330f036.svg",
           "width": 256,
           "height": 256,
-          "bytes": 46365,
-          "sha256": "fbe6ee126f6192c0089f60fb0149e4063a4b7f69390d41e6ba118fd9be4b15ba"
+          "bytes": 48831,
+          "sha256": "d338f330f03628aae47ac970d88d7e7f3b4f35aebade0cc2b39359ce55553ab5"
         },
         "silhouette": {
-          "url": "/art/v4/gift-rose-silhouette.b548800045fd.svg",
+          "url": "/art/v4/gift-rose-silhouette.ce55a8442338.svg",
           "width": 256,
           "height": 256,
-          "bytes": 14743,
-          "sha256": "b548800045fd8b022645a69fd2eff5edeb1a7b7f4e175face826919d40c9ccd8"
+          "bytes": 2618,
+          "sha256": "ce55a8442338cce2f82c06bcf01e2d382f56e0ffa34009939da05da84bf97b1f"
         }
       },
       "sources": [
@@ -5525,7 +5547,10 @@
       ],
       "credits": "Mauro Cateb · CC BY-SA 4.0",
       "rights": "CC BY-SA 4.0; https://creativecommons.org/licenses/by-sa/4.0",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-rose",
         "kind": "Downloaded web image",
@@ -5534,24 +5559,26 @@
         "creator": "Mauro Cateb",
         "license": "CC BY-SA 4.0",
         "licenseURL": "https://creativecommons.org/licenses/by-sa/4.0",
-        "changes": "Hand-masked original photographic pixels around the rose, stem and leaves; cropped, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Hand-masked original photographic pixels around the rose, stem and leaves; cropped, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "sha256": "04fa3d7c19603cebe3ea4a389f214725af5ac26835c1f9ca61695749325eaf1c",
         "mime": "image/png",
         "bytes": 33350,
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-rose-mini.4070ab1cb99c23c7.png",
-          "sha256": "4070ab1cb99c23c72aadb97e682a79be17bd7dc0839ea3a4b2d39e0e6ffa70bd",
+          "path": "/art/sources/studio-01-gift-rose-mini.9e788f2debc4.png",
+          "sha256": "9e788f2debc4947dbfe3b2161e3eb8e203fae5024f6b556e069a60e04ba4688a",
           "mime": "image/png",
-          "bytes": 10342,
-          "width": 64,
-          "height": 64
+          "bytes": 1249,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Hand-masked original photographic pixels around the rose, stem and leaves; cropped, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "fan",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Hand-masked original photographic pixels around the rose, stem and leaves; cropped, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Palette quantization retained transparency within the static-image size limit. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "gift-rose-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The stem draws back, the two outer petals unfold at their sockets, a highlight catches the bloom, and the leaf settles."
     },
     {
       "id": "gift-cassette",
@@ -5559,10 +5586,10 @@
       "name": "Midnight Tape",
       "type": "gift",
       "series": "Afterhours Objects",
-      "material": "Web-sourced PNG artwork",
-      "alt": "Fyrsten’s 2012 illustration of a black and ice-blue audio cassette with two visible reels.",
+      "material": "Graphite cassette shell, ferric tape and ice-blue label",
+      "alt": "A black Side A cassette with an ice-blue Afterhours label and two visible tape reels.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -5578,8 +5605,8 @@
           {
             "name": "web-panel-1",
             "origin": [
-              88.7421875,
-              120.96875
+              77.75,
+              119
             ],
             "frames": [
               {
@@ -5609,8 +5636,8 @@
           {
             "name": "web-panel-2",
             "origin": [
-              165.3046875,
-              121.1640625
+              175.75,
+              119.25
             ],
             "frames": [
               {
@@ -5641,32 +5668,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-cassette-mini.bb70d7a7ec3b.svg",
+          "url": "/art/v4/gift-cassette-mini.5bbfc62879f3.svg",
           "width": 24,
           "height": 24,
-          "bytes": 7373,
-          "sha256": "bb70d7a7ec3bdd85c489b66ca8f1d2816749665bd23d246b7fcf197300d46aa1"
+          "bytes": 1130,
+          "sha256": "5bbfc62879f3b73b50ccb9e2dc060c37fd1d8650270fce1f32bd58eb3d3703da"
         },
         "card": {
-          "url": "/art/v4/gift-cassette-card.242b1f6cf11a.svg",
+          "url": "/art/v4/gift-cassette-card.792d888688e5.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22462,
-          "sha256": "242b1f6cf11a6934d38bb7cad4d52bb6a02f9af17da773a74850f2361dcd43ac"
+          "bytes": 24083,
+          "sha256": "792d888688e5e692309554fbd13257ceb906a161c05180d5bf1dc2d9bfbb7449"
         },
         "detail": {
-          "url": "/art/v4/gift-cassette-detail.f839fb1b0441.svg",
+          "url": "/art/v4/gift-cassette-detail.afc55eb73b62.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22492,
-          "sha256": "f839fb1b0441f3270abb850afe71e7b0e9dd6529d2879b42a7c3475f1cc44254"
+          "bytes": 24288,
+          "sha256": "afc55eb73b62e07df6e42232aabe6b808354c668343a12950ae74ec69232c3c5"
         },
         "silhouette": {
-          "url": "/art/v4/gift-cassette-silhouette.9a0d3fcfe91e.svg",
+          "url": "/art/v4/gift-cassette-silhouette.6be3ac059cf5.svg",
           "width": 256,
           "height": 256,
-          "bytes": 7702,
-          "sha256": "9a0d3fcfe91e8293410cbeb58d24b43d9c915e0600994c9b12ed695d53c0d3aa"
+          "bytes": 1459,
+          "sha256": "6be3ac059cf5caea130c5a7be5276308fdb8bf6bd0635b63d12e1eea13ee32c0"
         }
       },
       "sources": [
@@ -5675,7 +5702,10 @@
       ],
       "credits": "Fyrsten · CC BY-SA 3.0",
       "rights": "CC BY-SA 3.0; https://creativecommons.org/licenses/by-sa/3.0",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-cassette",
         "kind": "Downloaded web image",
@@ -5684,24 +5714,26 @@
         "creator": "Fyrsten",
         "license": "CC BY-SA 3.0",
         "licenseURL": "https://creativecommons.org/licenses/by-sa/3.0",
-        "changes": "Original transparent illustration resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Original transparent illustration resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "sha256": "170f8d78897a1c9f54af160e1be598d047d721c1f0b7821540b061d85b6a474a",
         "mime": "image/png",
         "bytes": 15457,
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-cassette-mini.2b8403aa22c5ad25.png",
-          "sha256": "2b8403aa22c5ad258c86c23fefccf270419df1de990f828167ec6d65dde0aa53",
+          "path": "/art/sources/studio-01-gift-cassette-mini.3f02a474ea76.png",
+          "sha256": "3f02a474ea76964d4c4461fad305b1c448b85049d6c185d8dee5d75565e91877",
           "mime": "image/png",
-          "bytes": 5065,
-          "width": 64,
-          "height": 64
+          "bytes": 390,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Original transparent illustration resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+      "changes": "Original transparent illustration resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
       "revealPreset": "cassette-reel-check",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The fixed recorder shell holds its position. The two hubs take up slack, turn at different rates, and settle with the teeth aligned."
     },
     {
       "id": "gift-star",
@@ -5709,10 +5741,10 @@
       "name": "Pocket Star",
       "type": "gift",
       "series": "Afterhours Objects",
-      "material": "Web-sourced PNG artwork",
-      "alt": "A gold five-pointed faceted star, manually drawn by Perhelion and released into the public domain.",
+      "material": "Faceted gilt brass with a satin edge",
+      "alt": "A five-point gold star with raised facets, a beveled edge and one traveling reflection.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -5723,32 +5755,33 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1695,
+        "duration": 1430,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "star",
             "origin": [
-              128,
-              128
+              127,
+              134
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.2,
+                "rotate": -5,
+                "scaleX": 0.96
               },
               {
-                "at": 0.44,
-                "x": -7,
-                "y": -7,
-                "rotate": -11
+                "at": 0.52,
+                "rotate": 9,
+                "scaleX": 0.89,
+                "y": -5
               },
               {
                 "at": 0.76,
-                "rotate": -1,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "rotate": -2,
+                "y": 1
               },
               {
                 "at": 1
@@ -5756,89 +5789,29 @@
             ]
           },
           {
-            "name": "web-panel-1",
+            "name": "polish",
             "origin": [
               128,
-              128
+              130
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.125
+                "at": 0.23,
+                "opacity": 0,
+                "x": -55
               },
               {
-                "at": 0.46,
-                "x": 7,
-                "y": -7,
-                "rotate": 11
+                "at": 0.47,
+                "opacity": 0.64,
+                "x": 4
               },
               {
-                "at": 0.78,
-                "rotate": 1,
-                "scaleX": 1.01,
-                "scaleY": 1.01
-              },
-              {
-                "at": 1
-              }
-            ]
-          },
-          {
-            "name": "web-panel-2",
-            "origin": [
-              128,
-              128
-            ],
-            "frames": [
-              {
-                "at": 0
-              },
-              {
-                "at": 0.15000000000000002
-              },
-              {
-                "at": 0.48,
-                "x": -7,
-                "y": 7,
-                "rotate": 11
-              },
-              {
-                "at": 0.8,
-                "rotate": -1,
-                "scaleX": 1.01,
-                "scaleY": 1.01
-              },
-              {
-                "at": 1
-              }
-            ]
-          },
-          {
-            "name": "web-panel-3",
-            "origin": [
-              128,
-              128
-            ],
-            "frames": [
-              {
-                "at": 0
-              },
-              {
-                "at": 0.17500000000000002
-              },
-              {
-                "at": 0.5,
-                "x": 7,
-                "y": 7,
-                "rotate": -11
-              },
-              {
-                "at": 0.8200000000000001,
-                "rotate": 1,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.7,
+                "opacity": 0,
+                "x": 83
               },
               {
                 "at": 1
@@ -5849,32 +5822,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-star-mini.0d468fc32ec5.svg",
+          "url": "/art/v4/gift-star-mini.dd796a715735.svg",
           "width": 24,
           "height": 24,
-          "bytes": 10341,
-          "sha256": "0d468fc32ec5aa297a2587ef0ab8ea3be31166f94d372ff0c6255dc340e064b8"
+          "bytes": 2166,
+          "sha256": "dd796a715735bd81429f867702c38592ce24c5b6de168bc566387f5d1fccaf3f"
         },
         "card": {
-          "url": "/art/v4/gift-star-card.e7115ffb8fa8.svg",
+          "url": "/art/v4/gift-star-card.97ae2e9742f3.svg",
           "width": 256,
           "height": 256,
-          "bytes": 24052,
-          "sha256": "e7115ffb8fa860af4363216575b2c88dc6824e4b1d3129202800569cdab37c3a"
+          "bytes": 25161,
+          "sha256": "97ae2e9742f3b9740aeba2f8269ced7295d52b5bdb73afa6e6d41b3b8c193963"
         },
         "detail": {
-          "url": "/art/v4/gift-star-detail.e1514c36a8b0.svg",
+          "url": "/art/v4/gift-star-detail.135d5934baba.svg",
           "width": 256,
           "height": 256,
-          "bytes": 24088,
-          "sha256": "e1514c36a8b0d946733e54aca21f06d6686bf12ee70f6eadc4cef152392b7c11"
+          "bytes": 25333,
+          "sha256": "135d5934baba10caf36cfa3a452e737301d540e9e7f2ee5c3c0331f87576d050"
         },
         "silhouette": {
-          "url": "/art/v4/gift-star-silhouette.54bfd66e6e77.svg",
+          "url": "/art/v4/gift-star-silhouette.65dd82337b34.svg",
           "width": 256,
           "height": 256,
-          "bytes": 10662,
-          "sha256": "54bfd66e6e778c2601b9ffde6784f83b6c5b44a98bad872a0d81f4266ad80097"
+          "bytes": 2487,
+          "sha256": "65dd82337b346382a554049f25c69783a8256973cb74fb3ac905d46a5edddef7"
         }
       },
       "sources": [
@@ -5883,7 +5856,10 @@
       ],
       "credits": "Perhelion · Public domain",
       "rights": "Public domain; https://creativecommons.org/publicdomain/mark/1.0/",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-star",
         "kind": "Downloaded web image",
@@ -5892,24 +5868,26 @@
         "creator": "Perhelion",
         "license": "Public domain",
         "licenseURL": "https://creativecommons.org/publicdomain/mark/1.0/",
-        "changes": "Original human-created SVG rasterization resized and encoded as WebP; no replacement drawing or generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Original human-created SVG rasterization resized and encoded as WebP; no replacement drawing or generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "sha256": "a7e458fa48079213de534b450113ed0dd85ed609ad331870ddd769fbe985b58b",
         "mime": "image/png",
         "bytes": 16651,
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-star-mini.4d6f12b8b231aaa2.png",
-          "sha256": "4d6f12b8b231aaa21e37ad978ada41e98a70592ae4585b70a3b2db191ccc2269",
+          "path": "/art/sources/studio-01-gift-star-mini.3ae51d8338fe.png",
+          "sha256": "3ae51d8338fe18c53f7b329b46bd5c2bccc550d13f2ee359f7c9a460e75aba65",
           "mime": "image/png",
-          "bytes": 7292,
-          "width": 64,
-          "height": 64
+          "bytes": 1169,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Original human-created SVG rasterization resized and encoded as WebP; no replacement drawing or generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "fan",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Original human-created SVG rasterization resized and encoded as WebP; no replacement drawing or generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "gift-star-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The star tilts back, rolls across its bevel and catches a narrow glint before settling on the same five points."
     },
     {
       "id": "gift-cup",
@@ -6034,10 +6012,10 @@
       "name": "Paper Ghost",
       "type": "gift",
       "series": "Afterhours Objects",
-      "material": "Web-sourced PNG artwork",
-      "alt": "Douglas P. Perkins’s photograph of an actual folded gold-paper ghost with a hand-drawn unhappy face.",
+      "material": "Folded gold foil and ink",
+      "alt": "A gold-paper ghost with a broad folded hood, an ink frown and a little trailing paper tail.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -6048,32 +6026,59 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1520,
+        "duration": 1620,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "paper-body",
             "origin": [
-              128,
-              228
+              124,
+              171
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.19,
+                "rotate": -4,
+                "y": 3
               },
               {
-                "at": 0.46,
-                "scaleX": 1.07,
-                "scaleY": 0.9,
-                "rotate": -4
+                "at": 0.48,
+                "rotate": 7,
+                "y": -10
               },
               {
-                "at": 0.76,
-                "rotate": -1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.74,
+                "rotate": -2,
+                "y": 1
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "paper-tail",
+            "origin": [
+              126,
+              151
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.27,
+                "rotate": 4
+              },
+              {
+                "at": 0.54,
+                "rotate": -13
+              },
+              {
+                "at": 0.78,
+                "rotate": 6
               },
               {
                 "at": 1
@@ -6084,32 +6089,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-ghost-mini.3ee9ea37302d.svg",
+          "url": "/art/v4/gift-ghost-mini.f8bc12195f74.svg",
           "width": 24,
           "height": 24,
-          "bytes": 9365,
-          "sha256": "3ee9ea37302dcbb1a209c911ef749a7546acff087be9ecca8cb78c937ea23edc"
+          "bytes": 2070,
+          "sha256": "f8bc12195f740a715893a65b1ac4b539dd67f90562fb9f27ac17df16f4de4e2b"
         },
         "card": {
-          "url": "/art/v4/gift-ghost-card.648c76779d5b.svg",
+          "url": "/art/v4/gift-ghost-card.4839fa6f2e1f.svg",
           "width": 256,
           "height": 256,
-          "bytes": 36036,
-          "sha256": "648c76779d5bb09da27d15a5b8845fdd39c0ea9fe8f0d5ecd999123a77eb977a"
+          "bytes": 38605,
+          "sha256": "4839fa6f2e1f296afa16c22c9959508527c530d507922cff5fb7bc409a366092"
         },
         "detail": {
-          "url": "/art/v4/gift-ghost-detail.f6a6f017ce50.svg",
+          "url": "/art/v4/gift-ghost-detail.a637334cb719.svg",
           "width": 256,
           "height": 256,
-          "bytes": 36054,
-          "sha256": "f6a6f017ce50331adca623d9cf0e30a331dc99ada5c0a9271ea0bcb123f4e663"
+          "bytes": 38765,
+          "sha256": "a637334cb719372cb544ed9a0b23f9263735e0172f54a31ee38988938aa86444"
         },
         "silhouette": {
-          "url": "/art/v4/gift-ghost-silhouette.1bb1e83ca66d.svg",
+          "url": "/art/v4/gift-ghost-silhouette.aad7987917e8.svg",
           "width": 256,
           "height": 256,
-          "bytes": 9688,
-          "sha256": "1bb1e83ca66da40a9affc86fa8342420119ccafa049719c1be203077879d1145"
+          "bytes": 2393,
+          "sha256": "aad7987917e8c4c9bc2fba612ed171c1d83f2c6a72fcbcf35e9ef79eb8343b15"
         }
       },
       "sources": [
@@ -6118,7 +6123,10 @@
       ],
       "credits": "Douglas P. Perkins · CC BY-SA 3.0",
       "rights": "CC BY-SA 3.0; https://creativecommons.org/licenses/by-sa/3.0",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-ghost",
         "kind": "Downloaded web image",
@@ -6127,24 +6135,26 @@
         "creator": "Douglas P. Perkins",
         "license": "CC BY-SA 3.0",
         "licenseURL": "https://creativecommons.org/licenses/by-sa/3.0",
-        "changes": "Conventional color-threshold background removal with enclosed-mask filling; original paper/ink pixels retained, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Conventional color-threshold background removal with enclosed-mask filling; original paper/ink pixels retained, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "sha256": "9cc7867cf0713c8c4cd016a92c1fc547de5060495552b2df1c5e0e6b7615ba44",
         "mime": "image/png",
         "bytes": 26134,
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-ghost-mini.b208502dbd73a580.png",
-          "sha256": "b208502dbd73a5809e385a36cad9ca56349c4a1db9f188e087a31f8c06114123",
+          "path": "/art/sources/studio-01-gift-ghost-mini.49e6ea006942.png",
+          "sha256": "49e6ea006942714c4752d0b7eeb9ad46ede222f26ae9ff2233ddb5d21971e3a2",
           "mime": "image/png",
-          "bytes": 6548,
-          "width": 64,
-          "height": 64
+          "bytes": 1086,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Conventional color-threshold background removal with enclosed-mask filling; original paper/ink pixels retained, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "wobble",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Conventional color-threshold background removal with enclosed-mask filling; original paper/ink pixels retained, resized and encoded as WebP. No generative editing. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "gift-ghost-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The hood draws down, the ghost leans into a small upward drift, then the loose tail follows the body back to rest."
     },
     {
       "id": "gift-parcel",
@@ -6979,10 +6989,10 @@
       "name": "Sealed Signal",
       "type": "gift",
       "series": "Afterhours Objects",
-      "material": "Web-sourced PNG artwork",
-      "alt": "A cream envelope sealed with a red wax imprint, cropped from a human-photographed sealing-wax still life.",
+      "material": "Cotton paper, crimson wax and a folded insert",
+      "alt": "A cream envelope with a photographed red wax seal. A pale note sits behind its folded lip.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -6993,31 +7003,29 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1625,
+        "duration": 1760,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "letter-flap",
             "origin": [
-              128,
-              128
+              123,
+              92
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.16,
+                "scaleY": 0.82
               },
               {
-                "at": 0.4,
-                "x": -15,
-                "rotate": -7
+                "at": 0.49,
+                "scaleY": 4.25
               },
               {
-                "at": 0.76,
-                "rotate": -1.07,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.75,
+                "scaleY": 2.75
               },
               {
                 "at": 1
@@ -7025,28 +7033,53 @@
             ]
           },
           {
-            "name": "web-panel-1",
+            "name": "letter-insert",
             "origin": [
-              128,
-              128
+              123,
+              101
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.125
+                "at": 0.2,
+                "y": 2
               },
               {
-                "at": 0.42000000000000004,
-                "x": 15,
-                "rotate": 7
+                "at": 0.53,
+                "y": -22
               },
               {
-                "at": 0.78,
-                "rotate": 1.07,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.73,
+                "y": -15
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "seal-flap",
+            "origin": [
+              123,
+              90
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.2,
+                "scaleY": 1.04
+              },
+              {
+                "at": 0.55,
+                "scaleY": 0.79
+              },
+              {
+                "at": 0.79,
+                "scaleY": 0.97
               },
               {
                 "at": 1
@@ -7057,32 +7090,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-signal-mini.87d4edcb4bbe.svg",
+          "url": "/art/v4/gift-signal-mini.2fa041b5cd91.svg",
           "width": 24,
           "height": 24,
-          "bytes": 6553,
-          "sha256": "87d4edcb4bbe070e9f587d467a2b085ccb0a4cd01f04e1eb369f691eddaaab6c"
+          "bytes": 1898,
+          "sha256": "2fa041b5cd9162f81ce47bb6765b01fd0214dc756d4ca782b441e6d0bc2a1d18"
         },
         "card": {
-          "url": "/art/v4/gift-signal-card.6b32d10ee947.svg",
+          "url": "/art/v4/gift-signal-card.ee14d2bd5397.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22927,
-          "sha256": "6b32d10ee94745fbdf1ab3438579119132eb8375f828d3b1160a62475578b57e"
+          "bytes": 25362,
+          "sha256": "ee14d2bd5397764ac2e50dbf8381b3c636bae4fe3ce5234218c372aa0a689a34"
         },
         "detail": {
-          "url": "/art/v4/gift-signal-detail.f6e3adf40daf.svg",
+          "url": "/art/v4/gift-signal-detail.2f75ed78abe3.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22951,
-          "sha256": "f6e3adf40daf0e25bf275b71e0b7307ce026115ff9c36a9a68b8a59d4c0632b7"
+          "bytes": 26026,
+          "sha256": "2f75ed78abe3a6739f7fbe497294adef08cc48c5d601b3aeb6c6c0efc453b71f"
         },
         "silhouette": {
-          "url": "/art/v4/gift-signal-silhouette.dbefc7b39839.svg",
+          "url": "/art/v4/gift-signal-silhouette.179356baadfc.svg",
           "width": 256,
           "height": 256,
-          "bytes": 6878,
-          "sha256": "dbefc7b3983946aa46cb889fa71707fd80961a210a9ea599eaa0f165724395ba"
+          "bytes": 2223,
+          "sha256": "179356baadfc597a45f3721b9b662171cef5e107320536f278b3a52d0fa9cbfb"
         }
       },
       "sources": [
@@ -7091,7 +7124,10 @@
       ],
       "credits": "Simon A. Eugster · CC BY-SA 3.0",
       "rights": "CC BY-SA 3.0; https://creativecommons.org/licenses/by-sa/3.0",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-signal",
         "kind": "Downloaded web image",
@@ -7100,24 +7136,26 @@
         "creator": "Simon A. Eugster",
         "license": "CC BY-SA 3.0",
         "licenseURL": "https://creativecommons.org/licenses/by-sa/3.0",
-        "changes": "Manual mask isolates the original top envelope; crop, transparent canvas and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Manual mask isolates the original top envelope; crop, transparent canvas and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "sha256": "9552675e0349aabbf2c690c551895356bcf93e3a0c1f982df17cd1ab1929670f",
         "mime": "image/png",
         "bytes": 16117,
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-signal-mini.8ecfa14c10ea2892.png",
-          "sha256": "8ecfa14c10ea28922a342271a58eb3852f11391216cc15b68623ace33466af18",
+          "path": "/art/sources/studio-01-gift-signal-mini.55faf7bbd436.png",
+          "sha256": "55faf7bbd4366a7efe042e3260e7b0aae46b34c874f65ffa81ebf0e72aa49a9f",
           "mime": "image/png",
-          "bytes": 4434,
-          "width": 64,
-          "height": 64
+          "bytes": 953,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Manual mask isolates the original top envelope; crop, transparent canvas and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "split",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Manual mask isolates the original top envelope; crop, transparent canvas and512px WebP conversion. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "gift-signal-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The back hinge rises and the insert peeks above the stationary envelope. The sealed front lifts slightly and the letter folds closed."
     },
     {
       "id": "gift-ticket",
@@ -8979,10 +9017,10 @@
       "name": "Block Zero",
       "type": "gift",
       "series": "Chain Signals",
-      "material": "Credited human-drawn web icon; flat tint",
-      "alt": "A human-drawn cracked stone-block icon with a conventional zero printed on its front.",
+      "material": "Antique gilt rim and petrol enamel",
+      "alt": "An enamel medallion with the Block Zero cube, a milled brass rim and a visible metal edge.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -8993,60 +9031,36 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1625,
+        "duration": 1510,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "medal",
             "origin": [
-              61,
-              128
+              126,
+              131
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.16,
+                "rotate": -4
               },
               {
                 "at": 0.45,
-                "x": -11,
-                "y": -8,
-                "rotate": -6
+                "rotate": 10,
+                "scaleX": 0.73,
+                "y": -5
               },
               {
-                "at": 0.76,
-                "rotate": -1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.67,
+                "rotate": 3,
+                "scaleX": 0.9
               },
               {
-                "at": 1
-              }
-            ]
-          },
-          {
-            "name": "web-panel-1",
-            "origin": [
-              128,
-              128
-            ],
-            "frames": [
-              {
-                "at": 0
-              },
-              {
-                "at": 0.125
-              },
-              {
-                "at": 0.47000000000000003,
-                "y": -18
-              },
-              {
-                "at": 0.78,
-                "rotate": 1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.82,
+                "rotate": -1
               },
               {
                 "at": 1
@@ -9054,29 +9068,28 @@
             ]
           },
           {
-            "name": "web-panel-2",
+            "name": "rim-light",
             "origin": [
-              195,
-              128
+              126,
+              127
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.15000000000000002
+                "at": 0.25,
+                "opacity": 0
               },
               {
                 "at": 0.49,
-                "x": 11,
-                "y": -8,
-                "rotate": 6
+                "opacity": 0.88,
+                "rotate": 22
               },
               {
-                "at": 0.8,
-                "rotate": -1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.72,
+                "opacity": 0,
+                "rotate": 47
               },
               {
                 "at": 1
@@ -9087,32 +9100,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-block-zero-mini.3692215104ec.svg",
+          "url": "/art/v4/gift-block-zero-mini.369f4a6f03b2.svg",
           "width": 24,
           "height": 24,
-          "bytes": 8351,
-          "sha256": "3692215104ecebbfebbb33aeafb47e93261464b06788cac9b3177ec988d428b5"
+          "bytes": 2180,
+          "sha256": "369f4a6f03b239c2cb67407c2cff28ce1c3c1e247a26c310f89b0a22df3c49e7"
         },
         "card": {
-          "url": "/art/v4/gift-block-zero-card.41f28aa72190.svg",
+          "url": "/art/v4/gift-block-zero-card.e31176b893fb.svg",
           "width": 256,
           "height": 256,
-          "bytes": 13670,
-          "sha256": "41f28aa72190543ef8620fd39ede1aad0338095564adca6fca2fa53d1df0b176"
+          "bytes": 21002,
+          "sha256": "e31176b893fba15713825c140a8dc74a52ebe4010bd2577ac99eb1ecdcd54b6e"
         },
         "detail": {
-          "url": "/art/v4/gift-block-zero-detail.c6b13a4d8850.svg",
+          "url": "/art/v4/gift-block-zero-detail.f13b92423818.svg",
           "width": 256,
           "height": 256,
-          "bytes": 13700,
-          "sha256": "c6b13a4d88503016264eb5b5f205ed8219354c135fd25d79aa29719b31e14611"
+          "bytes": 21184,
+          "sha256": "f13b92423818bd44973f47aaba20dbc5cf7813e4bd6c450c1a045f3572282f10"
         },
         "silhouette": {
-          "url": "/art/v4/gift-block-zero-silhouette.7ae0ff24efef.svg",
+          "url": "/art/v4/gift-block-zero-silhouette.34f14ca9f4dc.svg",
           "width": 256,
           "height": 256,
-          "bytes": 8684,
-          "sha256": "7ae0ff24efef74a4e3769ee8573a160c401b8eb61044b3f12d73a098124c12ed"
+          "bytes": 2513,
+          "sha256": "34f14ca9f4dc5c2f2759bfca80c978ed4738b6efeb2c5b2c7bf4e74e31242fca"
         }
       },
       "sources": [
@@ -9121,7 +9134,10 @@
       ],
       "credits": "Lorc · CC BY 3.0",
       "rights": "CC BY 3.0; https://creativecommons.org/licenses/by/3.0/",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-block-zero",
         "kind": "Downloaded web image",
@@ -9130,7 +9146,7 @@
         "creator": "Lorc",
         "license": "CC BY 3.0",
         "licenseURL": "https://creativecommons.org/licenses/by/3.0/",
-        "changes": "Icons made by Lorc. Source background removed, block flat-tinted gray, and a plain zero added conventionally. No blockchain asset is represented. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Icons made by Lorc. Source background removed, block flat-tinted gray, and a plain zero added conventionally. No blockchain asset is represented. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "components": [
           {
             "sourceURL": "https://game-icons.net/1x1/lorc/stone-block.html",
@@ -9146,17 +9162,19 @@
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-b-block-zero-mini.159e378b4b6f2c54.png",
-          "sha256": "159e378b4b6f2c5424916f5b5f3b7f742e3803914126a9a5f720cf7030ba9689",
+          "path": "/art/sources/studio-01-gift-block-zero-mini.53e8bc2c553e.png",
+          "sha256": "53e8bc2c553e4d2075350eafc8bb042bf644e1e165b044e97f0f89bba381a19a",
           "mime": "image/png",
-          "bytes": 5723,
-          "width": 64,
-          "height": 64
+          "bytes": 1090,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Icons made by Lorc. Source background removed, block flat-tinted gray, and a plain zero added conventionally. No blockchain asset is represented. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "slide",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Icons made by Lorc. Source background removed, block flat-tinted gray, and a plain zero added conventionally. No blockchain asset is represented. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "gift-block-zero-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "A slight counterturn reveals a thicker far edge. The minted cube stays legible as light runs along the rim and the medal settles."
     },
     {
       "id": "gift-last-tab",
@@ -9164,10 +9182,10 @@
       "name": "Last Tab Open",
       "type": "gift",
       "series": "Internet Relics",
-      "material": "Real credited photograph; conventional manual crop",
-      "alt": "A real pale keyboard Tab key with two opposing tabulation arrows, isolated from a public-domain photograph.",
+      "material": "Worn keycap, amber switch and gunmetal plate",
+      "alt": "A worn Tab key above an amber mechanical switch in a low metal socket.",
       "artVersion": 4,
-      "restingState": "Complete static web-sourced image",
+      "restingState": "Complete static web-sourced image composed within an object-specific illustration",
       "animationStates": [
         "rest",
         "hover/focus response",
@@ -9178,32 +9196,37 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1555,
+        "duration": 1280,
         "layers": [
           {
-            "name": "web-panel-0",
+            "name": "keycap",
             "origin": [
-              61,
-              128
+              126,
+              152
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.1
+                "at": 0.17,
+                "y": -3
               },
               {
-                "at": 0.43000000000000005,
-                "x": -11,
-                "y": -8,
-                "rotate": -6
+                "at": 0.43,
+                "y": 12
               },
               {
-                "at": 0.76,
-                "rotate": -1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.55,
+                "y": 12
+              },
+              {
+                "at": 0.74,
+                "y": -4
+              },
+              {
+                "at": 0.88,
+                "y": 1
               },
               {
                 "at": 1
@@ -9211,57 +9234,30 @@
             ]
           },
           {
-            "name": "web-panel-1",
+            "name": "switch",
             "origin": [
-              128,
-              128
+              131,
+              166
             ],
             "frames": [
               {
                 "at": 0
               },
               {
-                "at": 0.125
+                "at": 0.17,
+                "scaleY": 1.07
               },
               {
-                "at": 0.45000000000000007,
-                "y": -18
+                "at": 0.45,
+                "scaleY": 0.49
               },
               {
-                "at": 0.78,
-                "rotate": 1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.55,
+                "scaleY": 0.49
               },
               {
-                "at": 1
-              }
-            ]
-          },
-          {
-            "name": "web-panel-2",
-            "origin": [
-              195,
-              128
-            ],
-            "frames": [
-              {
-                "at": 0
-              },
-              {
-                "at": 0.15000000000000002
-              },
-              {
-                "at": 0.47000000000000003,
-                "x": 11,
-                "y": -8,
-                "rotate": 6
-              },
-              {
-                "at": 0.8,
-                "rotate": -1.02,
-                "scaleX": 1.01,
-                "scaleY": 1.01
+                "at": 0.74,
+                "scaleY": 1.12
               },
               {
                 "at": 1
@@ -9272,32 +9268,32 @@
       },
       "variants": {
         "mini": {
-          "url": "/art/v4/gift-last-tab-mini.30c4405c8fa3.svg",
+          "url": "/art/v4/gift-last-tab-mini.e0c017f9dd1f.svg",
           "width": 24,
           "height": 24,
-          "bytes": 7691,
-          "sha256": "30c4405c8fa33415b54cf4916fa93b9b5545589cc3728a2f69ef58fa8042f09c"
+          "bytes": 2050,
+          "sha256": "e0c017f9dd1f33987773b0a17c99d183fed1c318e04d0e481732b8c14d9737fe"
         },
         "card": {
-          "url": "/art/v4/gift-last-tab-card.5cde10e69810.svg",
+          "url": "/art/v4/gift-last-tab-card.faa9ee35e135.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22034,
-          "sha256": "5cde10e698100a8601d18681f0777fe545d6dc3f400ae055e301b1512bcaa88e"
+          "bytes": 23490,
+          "sha256": "faa9ee35e13544ae859f3a9cb171fb7f3ef34711d206aab1dec3f90653ce7358"
         },
         "detail": {
-          "url": "/art/v4/gift-last-tab-detail.86163e16fe28.svg",
+          "url": "/art/v4/gift-last-tab-detail.0ee15a53ada9.svg",
           "width": 256,
           "height": 256,
-          "bytes": 22064,
-          "sha256": "86163e16fe28801119288f024d3a3c1deefe9e2fd000bea8acc99c895744dc43"
+          "bytes": 23815,
+          "sha256": "0ee15a53ada90b7e18541a82dc203f7b13923b911edef2b8b03e48ba12e8d29b"
         },
         "silhouette": {
-          "url": "/art/v4/gift-last-tab-silhouette.3ef16e11c080.svg",
+          "url": "/art/v4/gift-last-tab-silhouette.bc6079030a40.svg",
           "width": 256,
           "height": 256,
-          "bytes": 8020,
-          "sha256": "3ef16e11c080158617cf0e7e588a59862fbae0da040e8718d2d01bb0143d62b2"
+          "bytes": 2379,
+          "sha256": "bc6079030a405da8386c037a169e87ca36396070f8f3080e8b84f5288de029fc"
         }
       },
       "sources": [
@@ -9306,7 +9302,10 @@
       ],
       "credits": "No machine-readable author provided. Amtiss assumed (based on copyright claims). · Public domain",
       "rights": "Public domain; https://commons.wikimedia.org/wiki/Commons:Licensing",
-      "newlyDrawn": [],
+      "newlyDrawn": [
+        "optical miniature",
+        "object setting and material details"
+      ],
       "sourceArt": {
         "id": "gift-last-tab",
         "kind": "Downloaded web image",
@@ -9315,7 +9314,7 @@
         "creator": "No machine-readable author provided. Amtiss assumed (based on copyright claims).",
         "license": "Public domain",
         "licenseURL": "https://commons.wikimedia.org/wiki/Commons:Licensing",
-        "changes": "Manual polygon mask isolates the photographed physical Tab key; resized without generative enhancement. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
+        "changes": "Manual polygon mask isolates the photographed physical Tab key; resized without generative enhancement. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
         "components": [
           {
             "sourceURL": "https://commons.wikimedia.org/wiki/File:Tabulatortaste.jpg",
@@ -9331,17 +9330,19 @@
         "width": 512,
         "height": 512,
         "mini": {
-          "path": "/art/sources/web-gift-b-last-tab-mini.ae65d245a967e706.png",
-          "sha256": "ae65d245a967e70686fbcd3ac5057d4daeaeadba9c720ee8dc730f5d0f6dda51",
+          "path": "/art/sources/studio-01-gift-last-tab-mini.e9e1b302b61b.png",
+          "sha256": "e9e1b302b61b7a62e76e75be091c9a44b8cb62aa465837f04acef3772fe252ff",
           "mime": "image/png",
-          "bytes": 5070,
-          "width": 64,
-          "height": 64
+          "bytes": 865,
+          "width": 96,
+          "height": 96
         }
       },
-      "changes": "Manual polygon mask isolates the photographed physical Tab key; resized without generative enhancement. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source.",
-      "revealPreset": "slide",
-      "presentation": "Geometric image framing and explicit one-shot image reveal; source artwork is not redrawn."
+      "changes": "Manual polygon mask isolates the photographed physical Tab key; resized without generative enhancement. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source. Studio 01 retains the credited image in an object-specific composition and adds an optically drawn miniature and named-part motion.",
+      "revealPreset": "gift-last-tab-studio",
+      "presentation": "Credited source image combined with a drawn setting, optical miniature, and motion attached to moving parts.",
+      "edition": "Studio 01",
+      "storyboard": "The key lifts a fraction, presses straight into its switch, bottoms out, then rebounds on the spring."
     },
     {
       "id": "gift-chudjak-plush",

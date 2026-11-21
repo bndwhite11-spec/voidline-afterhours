@@ -45,7 +45,26 @@ test('offline entry performs no authentication or shared-data request',async()=>
 });
 test('invitation preview does not join and both path and hash links preserve the token',async()=>{
  const token='a'.repeat(64),app=client();await app.start();app.server.replies.set('/api/live/invites/'+token,app.response({invite:{name:'Chosen server',state:'active',communityId:'chosen'}}));await app.api.previewInvite(token);
- assert.equal(app.calls.filter(c=>c.request.method==='POST').length,0);assert.match(app.nodes.get('home-dialog').innerHTML,/Join this server/);assert.equal(app.api.inviteToken('https://voidline.example/invite/'+token),token);assert.equal(app.api.inviteToken('https://voidline.example/#join='+token),token);
+ assert.equal(app.calls.filter(c=>c.request.method==='POST').length,0);assert.match(app.nodes.get('home-dialog').innerHTML,/Join this community/);assert.equal(app.api.inviteToken('https://voidline.example/invite/'+token),token);assert.equal(app.api.inviteToken('https://voidline.example/#join='+token),token);
+});
+test('mobile empty communities and filtered chat lists keep their own destinations and controls',async()=>{
+ const app=client();await app.start();app.api.view('servers');let html=app.nodes.get('home-root').innerHTML;
+ assert.match(html,/No communities yet/);assert.doesNotMatch(html,/No conversations yet/);
+ app.api.view('chats');app.api.state.listFilter='unread';app.api.render();html=app.nodes.get('home-root').innerHTML;
+ assert.match(html,/data-has-locations="true"/);assert.match(html,/No conversations match this filter/);assert.doesNotMatch(html,/No conversations yet/);
+ app.api.state.listFilter='all';app.api.state.nativeListError='Offline';app.api.render();assert.match(app.nodes.get('home-root').innerHTML,/Messages could not refresh/);
+});
+test('opening a linked invitation previews it once before claiming; accepting removes the token and refresh keeps the community',async()=>{
+ const token='b'.repeat(64),id='via-invite',app=client({path:'/invite/'+token});
+ app.context.location.pathname='/invite/'+token;app.context.location.href=app.context.location.origin+'/invite/'+token;
+ app.server.replies.set('/api/live/invites/'+token,app.response({invite:{name:'Our place',communityId:id,state:'active'}}));
+ await app.start();assert.equal(app.calls.filter(row=>row.url==='/api/live/invites/'+token).length,1);
+ assert.match(app.nodes.get('home-dialog').innerHTML,/Our place/);assert.equal(app.calls.some(row=>row.request.method==='POST'),false);
+ app.server.communities=[{id,name:'Our place',role:'member'}];
+ app.server.replies.set('/api/live/invites/claim',app.response({membership:{communityId:id}}));
+ app.server.replies.set('/api/live/communities/'+id+'/channels',app.response({channels:[]}));
+ await app.api.submit(app.form('join',{},{token}));assert.equal(app.context.location.pathname,'/chats');assert.equal(app.context.location.hash,'#servers/'+id);
+ await app.api.resume();assert.equal(app.api.state.communityId,id);assert.equal(app.calls.filter(row=>row.url==='/api/live/invites/'+token).length,1);
 });
 test('new server creation is explicit and does not silently select its suggested channel',async()=>{
  const app=client();await app.start();app.server.communities=[{id:'new-server',name:'Our chosen room',role:'owner'}];app.server.replies.set('/api/live/communities',request=>request.method==='POST'?app.response({community:{id:'new-server'}}):app.response({communities:app.server.communities}));app.server.replies.set('/api/live/communities/new-server/channels',app.response({channels:[{id:'general-new',name:'general'}]}));
@@ -81,6 +100,11 @@ test('registration uses the real native endpoint and keeps the recovery code in 
  const call=app.calls.find(c=>c.url==='/api/auth/register');assert.ok(call);assert.equal(call.request.headers['x-voidline-auth'],'1');assert.equal(call.body.passwordConfirm,undefined);assert.equal(call.body.username,'new_user');
  assert.equal(app.api.state.account.id,account.id);assert.equal(app.api.state.phase,'account-recovery');assert.equal(app.api.state.accountRecovery,code);assert.equal(app.api.state.communityId,null);assert.equal(app.api.state.communities.length,0);
  assert.match(app.nodes.get('home-root').innerHTML,/Save your recovery code/);await app.api.finishRecovery();assert.equal(app.api.state.accountRecovery,null);assert.equal(app.api.state.phase,'ready');assert.doesNotMatch(app.context.location.href,/password|recovery|code=/);
+ app.server.replies.set('/api/auth/logout',app.response({signedOut:true}));
+ await app.api.action('logout');
+ assert.equal(app.api.state.phase,'welcome');assert.equal(app.api.state.authView,'login');
+ assert.match(app.nodes.get('home-root').innerHTML,/data-home-form="login"/);
+ assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/data-home-form="register"/);
 });
 test('bad credentials remain inline without creating an account or clearing the form',async()=>{
  const app=client({guest:true});await app.start();app.server.replies.set('/api/auth/login',app.response({error:{code:'invalid_credentials',message:'Username or password is incorrect.'}},401));
@@ -245,6 +269,43 @@ test('native reaction toggles wait for actual server state and retain their requ
 test('background native refreshes preserve the actual composer, caret and draft',async()=>{
  const app=client();await app.start();await openConsentedNative(app);const input=app.nodes.get('home-native-input');input.value='Typing a real message';input.selectionStart=4;input.selectionEnd=8;input.focus();app.api.render();assert.equal(app.nodes.get('home-native-input'),input);assert.equal(input.value,'Typing a real message');assert.equal(input.selectionStart,4);assert.equal(input.selectionEnd,8);assert.equal(app.api.nativeDraft().text,'Typing a real message');
 });
+test('return from browser history keeps drafts and the durable queue only for the same validated session',async()=>{
+ for(const user of ['same','different','revoked']){
+  const app=client();await app.start();await openConsentedNative(app);const account=app.server.account.id,key='dm:'+nativeId;
+  app.context.navigator.onLine=false;
+  const id=webcrypto.randomUUID();
+  await app.window.VoidNativeOutbox.enqueue(account,key,{text:'Awaiting connection',clientId:id,replyToId:null});
+  const input=app.nodes.get('home-native-input');input.value='Draft in this tab';app.api.captureNativeDraft();
+  const held=deferred();app.server.replies.set('/api/auth/session',held.promise);
+  const restoring=app.windowListeners.get('pageshow')({persisted:true});
+  assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/Draft in this tab|Awaiting connection/);
+  if(user==='revoked')held.resolve(app.response({error:{code:'sign_in_required',message:'Sign in'}},401));
+  else held.resolve(app.response({account:{...app.server.account,id:user==='same'?account:'other-user'},session:{id:user==='same'?'session-a':'other-session'},csrfToken:'fresh'}));
+  await restoring;
+  await until(()=>user==='revoked'?app.api.state.phase==='welcome':app.api.state.phase==='ready');
+  const queue=await app.window.VoidNativeOutbox.list(account,key);
+  assert.equal(queue.length,user==='same'?1:0);
+  const saved=app.context.sessionStorage.getItem('voidline.standard.draft.v1.'+account+'.'+key);
+  if(user==='same'){assert.equal(JSON.parse(saved).text,'Draft in this tab');assert.equal(queue[0].payload.clientId,id);}
+  else{assert.equal(saved,null);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/Draft in this tab|Awaiting connection/);}
+ }
+});
+test('natural expiry restores only the unqueued text to a fresh sign-in by the same account',async()=>{
+ for(const user of ['same','different']){
+  const app=client();await app.start();await openConsentedNative(app);
+  app.api.state.session.expiresAt=Date.now()-2000;
+  app.nodes.get('home-native-input').value='Unsaved line for my room';app.api.captureNativeDraft();
+  app.server.replies.set('/api/auth/session',app.response({error:{code:'sign_in_required',message:'Log in again'}},401));
+  await app.api.checkSession();assert.equal(app.api.state.account,null);
+  assert.equal(app.context.sessionStorage.getItem('voidline.standard.draft.v1.account-a.dm:'+nativeId),null);
+  const account={...app.server.account,id:user==='same'?'account-a':'other-user'};
+  app.server.replies.set('/api/auth/login',app.response({account,session:{id:'fresh'},csrfToken:'new-csrf'}));
+  await app.api.submit(app.form('login',{username:'test-user',password:'sample test credential'}));
+  assert.equal(app.api.nativeDraft('dm:'+nativeId).text,user==='same'?'Unsaved line for my room':'');
+  assert.equal(app.api.nativeDraft('dm:'+nativeId).pending,null);
+  assert.ok(!app.calls.some(c=>c.request.method==='POST'&&c.url.endsWith(nativeId+'/messages')));
+ }
+});
 test('session revocation clears native conversation content and tab draft material',async()=>{
  const app=client();await app.start();await openConsentedNative(app,{messages:[nativeMessage('secret',1,'Native private content')]});app.nodes.get('home-native-input').value='Unsent account text';app.api.captureNativeDraft();app.server.replies.set('/api/auth/session',app.response({error:{code:'session_expired',message:'Session revoked'}},401));await app.api.checkSession();assert.equal(app.api.state.nativeMessages.length,0);assert.equal(app.api.state.nativeConversations.length,0);assert.equal(app.api.state.nativeDrafts.size,0);assert.equal(app.context.sessionStorage.getItem('voidline.standard.draft.v1.account-a.dm:'+nativeId),null);assert.doesNotMatch(app.nodes.get('home-root').innerHTML,/Native private content|Unsent account text/);
 });
@@ -302,6 +363,58 @@ test('favorite filters query the full account and keep authorized server results
 });
 test('conversation next and previous use the same server snapshot instead of shifting offsets',async()=>{
  const app=client();await app.start();app.server.replies.set('/api/messages/conversations',app.response({conversations:[],page:{scope:'account',snapshot:true,currentCursor:'page-zero',nextCursor:'page-one',hasMore:true,offset:0}}));await app.api.refreshNativeConversations();app.server.replies.set('/api/messages/conversations?limit=50&cursor=page-one',app.response({conversations:[],page:{scope:'account',snapshot:true,currentCursor:'page-one',hasMore:false,offset:50}}));await app.api.nativeConversationPage({dataset:{direction:'next'}});app.server.replies.set('/api/messages/conversations?limit=50&cursor=page-zero',app.response({conversations:[],page:{scope:'account',snapshot:true,currentCursor:'page-zero',nextCursor:'page-one',hasMore:true,offset:0}}));await app.api.nativeConversationPage({dataset:{direction:'previous'}});assert.ok(app.calls.some(c=>c.url.endsWith('cursor=page-one')));assert.ok(app.calls.some(c=>c.url.endsWith('cursor=page-zero')));assert.ok(!app.calls.some(c=>c.url.includes('offset=50')));
+});
+function encryptedComposer(app,overrides={}) {
+ const room='!private:example';
+ const messenger=mockEncrypted(app,overrides);
+ Object.assign(app.api.state,{view:'chats',secureRoomId:room,secureRooms:[{id:room,name:'Private',encrypted:true}]});
+ app.api.render();
+ return {room,messenger,input:app.nodes.get('home-secure-input')};
+}
+test('explicit send waits for active IME composition in both composers',async()=>{
+ for(const encrypted of [false,true]){
+  const app=client();await app.start();const sent=[];
+  const input=encrypted?encryptedComposer(app,{sendText:async(room,text)=>{sent.push(text);return{};}}).input:
+   (await openConsentedNative(app),app.nodes.get('home-native-input'));
+  input.value='正在';
+  app.listeners.get('compositionstart')?.({target:input});
+  await app.api.submit(app.form(encrypted?'secure-message':'native-message'));
+  assert.deepEqual(sent,[]);
+  assert.ok(!app.calls.some(c=>c.url.endsWith(nativeId+'/messages')&&c.request.method==='POST'));
+  app.listeners.get('compositionend')?.({target:input});
+  input.value='正在寫字';
+  if(encrypted){await app.api.submit(app.form('secure-message'));assert.deepEqual(sent,['正在寫字']);}
+  else{await app.api.submit(app.form('native-message'));assert.ok(app.calls.some(c=>c.body?.text==='正在寫字'));}
+ }
+});
+test('slow session validation sends the chosen encrypted draft once and keeps later edits and replies',async()=>{
+ const app=client();await app.start();const sent=[],session=deferred(),{input}=encryptedComposer(app,{
+  sendText:async(room,text,options)=>{sent.push({text,...options});return{};}
+ });
+ app.server.replies.set('/api/auth/session',session.promise);
+ input.value='First message';app.api.secureDraft().replyToId='$first';
+ const first=app.api.sendSecure(),second=app.api.sendSecure();
+ input.value='Next message';app.listeners.get('input')({target:input});app.api.secureDraft().replyToId='$second';
+ session.resolve(app.response({account:app.server.account,session:{id:'session-a'},csrfToken:'csrf-a'}));
+ await Promise.all([first,second]);
+ assert.equal(sent.length,1);assert.equal(sent[0].text,'First message');assert.equal(sent[0].replyToId,'$first');
+ assert.equal(app.api.secureDraft().text,'Next message');assert.equal(app.api.secureDraft().replyToId,'$second');
+});
+test('repeated encrypted attachment confirmation during session validation uploads once',async()=>{
+ const app=client();await app.start();const session=deferred(),uploads=[];
+ encryptedComposer(app,{sendAttachment:async(room,file,options)=>{uploads.push(options.clientId);return{};}});
+ app.api.reviewAttachment(new Blob(['hello'],{type:'text/plain'}));
+ app.server.replies.set('/api/auth/session',session.promise);
+ const first=app.api.sendReviewedAttachment(),second=app.api.sendReviewedAttachment();
+ session.resolve(app.response({account:app.server.account,session:{id:'session-a'},csrfToken:'csrf-a'}));
+ await Promise.all([first,second]);assert.equal(uploads.length,1);
+});
+test('an encrypted recorder that fails to start releases its microphone and can be retried',async()=>{
+ const app=client();await app.start();let stopped=0,opened=0;
+ app.context.navigator.mediaDevices={getUserMedia:async()=>{opened++;return{getTracks:()=>[{stop(){stopped++;}}]};}};
+ app.window.MediaRecorder=class{constructor(){throw Error('Unavailable encoder');}};
+ app.api.voiceDialog();await app.api.startVoice();assert.equal(stopped,1);
+ await app.api.startVoice();assert.equal(opened,2);assert.equal(stopped,2);
 });
 test('IME composition does not submit either composer and standard textarea height stays capped',async()=>{
  const app=client();await app.start();await openConsentedNative(app);const before=app.calls.length;let prevented=false;app.listeners.get('keydown')({target:{id:'home-native-input'},key:'Enter',shiftKey:false,isComposing:true,keyCode:229,preventDefault(){prevented=true;}});assert.equal(prevented,false);assert.equal(app.calls.length,before);const input=app.nodes.get('home-native-input');input.scrollHeight=400;app.api.autoSizeComposer(input);assert.equal(input.style.height,'160px');assert.equal(input.style.overflowY,'auto');
@@ -499,6 +612,16 @@ test('incoming encrypted writer requests preserve the open dialog until an expli
 });
 test('encrypted sidebar previews use locally supplied plaintext only under the selected preview preference',async()=>{
  const app=client();await app.start();app.api.state.secureStatus={phase:'ready',userId:'@me:example'};const target={kind:'matrix',isDirect:true,lastMessage:{type:'text',text:'Locally decrypted text',sender:'@friend:example',senderName:'Friend'}};assert.doesNotMatch(app.api.conversationPreview(target,'',{}),/Locally decrypted text/);app.window.VoidOrganize={getPreferences:()=>({notifications:{preview:'full'}})};assert.match(app.api.conversationPreview(target,'',{}),/Locally decrypted text/);target.lastMessage={type:'unavailable',unavailable:true};assert.match(app.api.conversationPreview(target,'',{}),/unavailable on this device/);app.api.state.secureStatus={phase:'locked'};assert.match(app.api.conversationPreview(target,'',{}),/Locked/);assert.ok(!app.calls.some(call=>call.request.method==='POST'));
+});
+test('a committed attachment stays queued if refreshing its status fails',async()=>{
+ const app=client();await app.start();await openConsentedNative(app);await app.api.drainNativeQueue();
+ const outbox=app.window.VoidNativeOutbox;app.context.navigator.onLine=false;
+ app.window.VoidNativeOutbox={...outbox,list:async()=>{throw Error('Outbox refresh interrupted');}};
+ const asset={id:'a'.repeat(64)};
+ await app.api.queueNativeAttachment(asset,'This is the attachment caption');
+ const rows=await outbox.list('account-a','dm:'+nativeId);
+ assert.equal(rows.length,1);assert.equal(rows[0].status,'queued');assert.deepEqual([...rows[0].payload.attachmentIds],[asset.id]);
+ assert.equal(app.api.nativeQueue()[0].payload.clientId,rows[0].payload.clientId);
 });
 test('native attachment rendering accepts only authenticated local asset routes and tombstones remove the media',async()=>{
  const app=client();await app.start();const id='a'.repeat(64),message={...nativeMessage('file-message',1,''),attachments:[{id,url:'/api/media/'+id,filename:'photo.webp',contentType:'image/webp',bytes:32,width:20,height:20},{id:'bad',url:'https://tracking.example/image',filename:'bad',contentType:'image/png'}]};await openConsentedNative(app,{messages:[message]});assert.match(app.nodes.get('home-native-feed').innerHTML,new RegExp('/api/media/'+id));assert.doesNotMatch(app.nodes.get('home-native-feed').innerHTML,/tracking\.example/);app.api.mergeNative([{...message,deleted_at:1,revision:50}]);app.api.render();assert.doesNotMatch(app.nodes.get('home-native-feed').innerHTML,new RegExp('/api/media/'+id));

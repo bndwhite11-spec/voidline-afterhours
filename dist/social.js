@@ -2,11 +2,13 @@
 (() => {
  'use strict';
  let home=null,identity='',epoch=0,panel=0,snapshot=null,view='friends',offset=0;
+ let query='',match=null,lookupSequence=0,returnFromProfile=null;
+ function clearSearch(){query='';match=null;lookupSequence++;returnFromProfile=null;}
  const $=id=>document.getElementById(id);
  const esc=value=>home.esc(value);
  const icon=name=>home.icon(name);
  const currentAccount=()=>home?.state.account?.id||'';
- function sync(){const id=currentAccount();if(id!==identity){identity=id;epoch++;panel++;snapshot=null;offset=0;view='friends';}}
+ function sync(){const id=currentAccount();if(id!==identity){identity=id;epoch++;panel++;snapshot=null;offset=0;view='friends';clearSearch();}}
  function guard(){sync();const id=identity,version=epoch;return ()=>id===currentAccount()&&version===epoch;}
  const count=name=>Number(snapshot?.counts?.[name])||0;
  function navHTML(){sync();return identity?`<button class="vh-nav-item vs-nav" data-home="social-open">${icon('you')}<span>Friends</span>${count('incoming')?`<b class="vs-count" aria-label="${count('incoming')} incoming friend requests">${count('incoming')}</b>`:''}</button>`:'';}
@@ -17,24 +19,74 @@
  function row(person,kind){
   const name=person.username?'@'+person.username:'Deleted account',id=person.accountId;
   const actions=kind==='incoming'?`<button class="vh-primary" data-social-action="accept" data-request="${esc(person.id)}">Accept</button><button class="vh-secondary" data-social-action="decline" data-request="${esc(person.id)}">Decline</button>`:kind==='outgoing'?`<span class="vs-status">Request sent</span><button class="vh-secondary" data-social-action="cancel" data-request="${esc(person.id)}">Cancel</button>`:kind==='blocked'?`<button class="vh-secondary" data-social-action="unblock" data-account="${esc(id)}">Unblock</button>`:`<button class="vh-primary" data-social-action="message" data-username="${esc(person.username)}">Message</button><button class="vh-secondary" data-social-action="remove-confirm" data-account="${esc(id)}" data-username="${esc(person.username)}">Remove</button>`;
-  return `<article class="vs-person">${kind!=='blocked'&&person.profileAvailable!==false?`<button class="vs-avatar" data-social-action="profile" data-account="${esc(id)}" aria-label="View ${esc(person.displayName||name)}'s profile">${avatarHTML(person)}</button>`:`<span class="vs-avatar" aria-hidden="true">${esc(Array.from(person.displayName||person.username||'?')[0]?.toUpperCase()||'?')}</span>`}<div class="vs-person-name"><b data-name-style="${kind==='blocked'||person.profileAvailable===false?'plain':identityNameStyle(person.nameStyle)}">${esc(person.displayName||name)}</b><span>${esc(name)}</span></div><div class="vs-person-actions">${actions}${kind!=='blocked'?`<button class="vs-more" data-social-action="block-confirm" data-account="${esc(id)}" data-username="${esc(person.username)}" aria-label="Block ${esc(name)}">Block</button>`:''}</div></article>`;
+  return `<article class="vs-person">${kind!=='blocked'&&person.profileAvailable!==false?`<button class="vs-avatar" data-social-action="profile" data-account="${esc(id)}" aria-label="View ${esc(person.displayName||name)}'s profile">${avatarHTML(person)}</button>`:`<span class="vs-avatar" aria-hidden="true">${esc(Array.from(person.displayName||person.username||'?')[0]?.toUpperCase()||'?')}</span>`}<div class="vs-person-name"><b dir="auto" data-name-style="${kind==='blocked'||person.profileAvailable===false?'plain':identityNameStyle(person.nameStyle)}">${esc(person.displayName||name)}</b><span>${esc(name)}</span></div><div class="vs-person-actions">${actions}${kind!=='blocked'?`<button class="vs-more" data-social-action="block-confirm" data-account="${esc(id)}" data-username="${esc(person.username)}" aria-label="Block ${esc(name)}">Block</button>`:''}</div></article>`;
  }
  function empty(kind){const labels={friends:['Your friends will appear here.','Add someone by their exact Voidline username.'],incoming:['No incoming requests.','People who send you a friend request will appear here.'],outgoing:['No sent requests.','Requests you send will appear here until they are handled.'],blocked:['No blocked accounts.','Blocked accounts cannot send you requests or gifts.']};return `<div class="vs-empty"><b>${labels[kind][0]}</b><p>${labels[kind][1]}</p></div>`;}
  function tabs(){return `<div class="vs-tabs" role="group" aria-label="Friends view">${[['friends','All friends'],['incoming','Incoming'],['outgoing','Sent'],['blocked','Blocked']].map(([key,label])=>`<button data-social-action="tab" data-view="${key}" aria-pressed="${view===key}" class="${view===key?'is-active':''}">${label}${count(key)?` <span>${count(key)}</span>`:''}</button>`).join('')}</div>`;}
- async function open(preferred='friends',page=0){
+ function resultHTML(){
+  if(!match)return '';
+  const labels={available:['Accepts friend requests','Send request','send'],friends:['Already friends','Message','message'],outgoing:['Request pending','View sent requests','tab'],incoming:['Sent you a friend request','Review request','tab']};
+  const [status,label,action]=labels[match.relationship];
+  return `<div class="vs-match"><div><b dir="auto">@${esc(match.username)}</b><small>${status}</small></div><button class="vh-secondary" data-social-action="${action}" data-username="${esc(match.username)}" data-view="${match.relationship}">${label}</button></div>`;
+ }
+ function setQuery(value){
+  if(query===value)return;
+  query=value;match=null;lookupSequence++;
+  const result=$('social-match'),alert=$('social-error');
+  if(result)result.innerHTML='';
+  if(alert){alert.textContent='';alert.hidden=true;}
+ }
+ async function lookup(form){
+  const valid=guard(),button=form.querySelector('[type="submit"]');
+  const value=String(new FormData(form).get('username')||'').trim();
+  setQuery(value);match=null;
+  const username=value.normalize('NFKC').replace(/^@/,'').toLowerCase();
+  const ticket=home.state.dialogGeneration,sequence=++lookupSequence,target=$('social-match');
+  if(!/^[a-z][a-z0-9_]{2,23}$/.test(username)){
+   if(target)target.innerHTML='';
+   return error('Enter an exact username of 3–24 letters, numbers or underscores, starting with a letter.');
+  }
+  if(button)button.disabled=true;
+  const alert=$('social-error');if(alert)alert.hidden=true;
+  if(target)target.textContent='Looking up username…';
+  const current=()=>valid()&&sequence===lookupSequence&&ticket===home.state.dialogGeneration&&target?.isConnected;
+  try{
+   const data=await home.request('/api/social/lookup',{username});
+   if(!current())return;
+   if(data.person?.username!==username||!data.person.accountId||!['available','friends','incoming','outgoing'].includes(data.person.relationship))throw Error('This account is unavailable. Check the username and try again.');
+   match=data.person;target.innerHTML=resultHTML();
+  }catch(reason){if(current()){target.textContent='';error(reason.message);}}
+  finally{if(button?.isConnected)button.disabled=false;}
+ }
+ async function open(preferred='friends',page=0,restore=null){
   sync();if(!identity)return;
   view=['friends','incoming','outgoing','blocked'].includes(preferred)?preferred:'friends';offset=Math.max(0,Number(page)||0);
-  const valid=guard(),ticket=++panel;
-  home.showDialog('Friends','Find someone by their username and send them a request.',`<section class="vs-panel"><form data-social-form="request" class="vs-add-form"><label for="social-username">Add a friend</label><div><input id="social-username" name="username" placeholder="Enter their username" maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false" required><button class="vh-primary" type="submit">Send request</button></div></form><p class="vs-error" id="social-error" role="alert" hidden></p><div id="social-tabs">${tabs()}</div><div id="social-results" class="vs-results" role="status">Loading friends…</div><div id="social-pages"></div><label class="vs-privacy"><input id="social-allow-requests" type="checkbox" ${snapshot?.settings?.allowRequests===false?'':'checked'}><span>Allow friend requests by username</span></label><p class="vs-note">You can disable new friend requests at any time. Blocking someone also prevents gifts.</p></section>`);
+  const valid=guard(),ticket=++panel;returnFromProfile=null;
+  home.showDialog('Friends','',`<section class="vs-panel">
+   <form data-social-form="lookup" class="vs-add-form">
+    <label for="social-username">Add a friend</label>
+    <div><input id="social-username" name="username" aria-describedby="social-lookup-hint" value="${esc(query)}" placeholder="@username" maxlength="25" autocomplete="off" autocapitalize="none" spellcheck="false" required><button class="vh-primary" type="submit">Find</button></div>
+    <small id="social-lookup-hint">Look up their exact username before sending a request.</small>
+   </form>
+   <p class="vs-error" id="social-error" role="alert" hidden></p>
+   <div id="social-match" aria-live="polite">${resultHTML()}</div>
+   <div id="social-tabs">${tabs()}</div><div id="social-results" class="vs-results" aria-busy="true">Loading friends…</div>
+   <div id="social-pages"></div><label class="vs-privacy"><input id="social-allow-requests" type="checkbox" disabled ${snapshot?.settings?.allowRequests===false?'':'checked'}><span>Allow friend requests by username</span></label>
+  </section>`);
   const results=$('social-results'),errorNode=$('social-error');
   try{
    const data=await home.request(`/api/social?limit=30&offset=${offset}`);
    if(!valid()||ticket!==panel||!results?.isConnected)return;
-   snapshot=data;const list=data[view]||[];results.innerHTML=list.length?list.map(person=>row(person,view)).join(''):empty(view);
+   snapshot=data;const list=data[view]||[];results.setAttribute?.('aria-busy','false');results.innerHTML=list.length?list.map(person=>row(person,view)).join(''):empty(view);
    const tabNode=$('social-tabs');if(tabNode)tabNode.innerHTML=tabs();
-   const setting=$('social-allow-requests');if(setting)setting.checked=data.settings?.allowRequests!==false;
-   const pages=$('social-pages');if(pages)pages.innerHTML=`<div class="vs-pages"><span>${count(view)?`${offset+1}–${Math.min(offset+30,count(view))} of ${count(view)}`:'0 results'}</span><button class="vh-secondary" data-social-action="page" data-offset="${Math.max(0,offset-30)}" ${offset===0?'disabled':''}>Previous</button><button class="vh-secondary" data-social-action="page" data-offset="${offset+30}" ${offset+30>=count(view)?'disabled':''}>Next</button></div>`;
-  }catch(reason){if(valid()&&ticket===panel&&results?.isConnected){results.innerHTML='<div class="vs-empty"><b>Friends could not load.</b><p>Retry when your connection is available.</p><button class="vh-secondary" data-social-action="refresh">Retry</button></div>';error(reason.message,errorNode);}}
+   const setting=$('social-allow-requests');if(setting){setting.checked=data.settings?.allowRequests!==false;setting.disabled=false;}
+   const pages=$('social-pages');if(pages)pages.innerHTML=count(view)<=30&&!offset?'':`<div class="vs-pages"><span>${count(view)?`${offset+1}–${Math.min(offset+30,count(view))} of ${count(view)}`:'0 results'}</span><button class="vh-secondary" data-social-action="page" data-offset="${Math.max(0,offset-30)}" ${offset===0?'disabled':''}>Previous</button><button class="vh-secondary" data-social-action="page" data-offset="${offset+30}" ${offset+30>=count(view)?'disabled':''}>Next</button></div>`;
+   if(restore){
+    results.scrollTop=restore.scroll;
+    const button=Array.from(results.querySelectorAll?.('[data-social-action="profile"]')||[]).find(node=>node.dataset.account===restore.accountId);
+    button?.focus({preventScroll:true});
+   }
+  }catch(reason){if(valid()&&ticket===panel&&results?.isConnected){results.setAttribute?.('aria-busy','false');results.innerHTML='<div class="vs-empty"><b>Friends could not load.</b><p>Retry when your connection is available.</p><button class="vh-secondary" data-social-action="refresh">Retry</button></div>';error(reason.message,errorNode);}}
  }
  async function mutate(path,body,button,success){
   const valid=guard(),ticket=panel,dialogTicket=home.state.dialogGeneration,errorNode=$('social-error');if(button)button.disabled=true;
@@ -48,7 +100,23 @@
   panel++;home.showDialog(kind==='block'?'Block '+name+'?':'Remove '+name+'?',kind==='block'?'This removes your friendship and cancels requests. You will not receive new friend requests or gifts from this account.':'This removes the friendship for both accounts. Existing messages are kept.',`<section class="vs-panel"><p id="social-error" class="vs-error" role="alert" hidden></p><div class="vs-confirm-actions"><button class="vh-danger" data-social-action="${kind}" data-account="${esc(id)}">${kind==='block'?'Block account':'Remove friend'}</button><button class="vh-secondary" data-social-action="refresh">Cancel</button></div></section>`);
  }
  function act(button){const name=button.dataset.socialAction,id=button.dataset.request,accountId=button.dataset.account;
-  if(name==='profile'){if(window.VoidProfilesPanel?.openProfile)return window.VoidProfilesPanel.openProfile(accountId,true);return error('Profile details could not load. Reload and try again.');}
+  if(name==='profile'){
+   if(!window.VoidProfilesPanel?.openProfile)return error('Profile details could not load. Reload and try again.');
+   const scroll=$('social-results')?.scrollTop||0;
+   const opened=window.VoidProfilesPanel.openProfile(accountId,true);
+   returnFromProfile={ticket:home.state.dialogGeneration,account:currentAccount(),accountId,scroll};
+   return opened;
+  }
+  if(name==='send'&&match?.relationship==='available'){
+   const reviewed=match;
+   return mutate('/api/social/request',{username:reviewed.username,recipientId:reviewed.accountId},button,data=>{
+    offset=0;
+    if(match===reviewed){query='';match=null;lookupSequence++;}
+    if(data.request?.state==='accepted'){view='friends';return 'You are already friends.';}
+    if(data.request?.direction==='incoming'){view='incoming';return 'Review the incoming request to accept it.';}
+    view='outgoing';return data.alreadyExists?'Your request is already pending.':'Friend request sent.';
+   });
+  }
   if(name==='message'){if(typeof home.newNativeConversation!=='function')return error('Reload Voidline to start an account conversation.');return home.newNativeConversation(button.dataset.username||'');}
   if(name==='tab')return open(button.dataset.view,0);
   if(name==='page')return open(view,button.dataset.offset);
@@ -63,12 +131,19 @@
   if(home)return;home=bridge;sync();
   window.addEventListener('voidline:activity',event=>{sync();const update=event.detail;if(!identity||update?.accountId!==identity||!Number.isSafeInteger(update.friendRequests)||update.friendRequests<0)return;snapshot={...(snapshot||{}),counts:{...(snapshot?.counts||{}),incoming:update.friendRequests}};});
   document.addEventListener('click',event=>{const button=event.target.closest('[data-social-action]');if(!button||!currentAccount())return;event.preventDefault();Promise.resolve(act(button)).catch(reason=>error(reason.message));});
-  document.addEventListener('submit',event=>{const form=event.target;if(form.dataset.socialForm!=='request'||!currentAccount())return;event.preventDefault();if(form.dataset.busy)return;form.dataset.busy='1';const button=form.querySelector('[type="submit"]'),username=String(new FormData(form).get('username')||'').trim().replace(/^@/,'');
-   mutate('/api/social/request',{username},button,data=>{offset=0;if(data.request?.state==='accepted'){view='friends';return 'You are already friends.';}if(data.request?.direction==='incoming'){view='incoming';return 'This person already sent you a request. Review Incoming to accept it.';}view='outgoing';return data.alreadyExists?'Your request is already pending.':'Friend request sent.';}).finally(()=>{delete form.dataset.busy;});
+  document.addEventListener('input',event=>{if(event.target.id==='social-username'&&currentAccount())setQuery(event.target.value);});
+  document.addEventListener('submit',event=>{
+   const form=event.target;if(form.dataset.socialForm!=='lookup'||!currentAccount())return;
+   event.preventDefault();if(form.dataset.busy)return;form.dataset.busy='1';
+   lookup(form).finally(()=>{delete form.dataset.busy;});
   });
   document.addEventListener('change',event=>{if(event.target.id!=='social-allow-requests'||!currentAccount())return;const checkbox=event.target,prior=!checkbox.checked;mutate('/api/social/settings',{allowRequests:checkbox.checked},checkbox,'Request preference saved.').then(data=>{if(!data&&checkbox.isConnected)checkbox.checked=prior;});});
  }
- const extension={id:'social',init,navHTML,accountHTML,handles:action=>action==='friend'||action==='social-open',handleAction(action){if(action==='friend'||action==='social-open'){open('friends');return true;}return false;},onAccount(){sync();},onLock(){identity='';epoch++;panel++;snapshot=null;}};
+ const extension={id:'social',init,navHTML,accountHTML,handles:action=>action==='friend'||action==='social-open',handleAction(action){if(action==='friend'||action==='social-open'){open('friends');return true;}return false;},beforeCloseDialog(){
+  const back=returnFromProfile;returnFromProfile=null;
+  if(!back||back.account!==currentAccount()||back.ticket!==home.state.dialogGeneration)return true;
+  open(view,offset,back);return false;
+ },onAccount(){sync();},onLock(){identity='';epoch++;panel++;snapshot=null;clearSearch();}};
  window.VoidSocial={open,extension};
  function register(){if(window.VoidHome?.registerExtension)window.VoidHome.registerExtension(extension);}
  window.addEventListener('voidline:home-ready',register,{once:true});register();

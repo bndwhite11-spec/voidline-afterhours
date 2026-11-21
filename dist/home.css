@@ -762,3 +762,26 @@ img, svg { max-width: 100%; }
   .vh-theme-presets { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .vh-appearance-actions .vh-link { flex-basis: 100%; }
 }
+
+/* The first visit uses the same compact action rows and surfaces as the list. */
+.vh-first-home { width: 100%; max-width: 630px; }
+.vh-first-home .vh-empty-mark { width: 52px; height: 52px; color: var(--vh-accent); border-radius: var(--vh-radius-panel); }
+.vh-first-home > p { font-size: calc(1rem * var(--vl-text-scale)); line-height: 1.5; }
+.vh-first-communities { width: 100%; margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--vh-line); }
+.vh-first-communities > h2 { margin: 0 0 6px; color: var(--vh-muted); font-size: calc(.875rem * var(--vl-text-scale)); font-weight: 600; letter-spacing: normal; }
+.vh-empty-row { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 8px; color: var(--vh-copy); background: transparent; border: 0; border-radius: var(--vh-radius); font: inherit; text-align: start; }
+.vh-empty-row > svg { width: 19px; height: 19px; flex: none; color: var(--vh-muted); }
+.vh-empty-row:hover, .vh-empty-row:focus-visible { color: var(--vh-text); background: var(--vh-side); }
+.vh-first-home .vh-empty-utilities { gap: 4px 18px; margin-top: 12px; }
+.vh-community-summary { display: flex; gap: 10px; align-items: center; margin: 12px 0 20px; color: var(--vh-copy); }
+.vh-community-summary .vh-icon { flex: none; color: var(--vh-muted); }
+.vh-community-options { border-block: 1px solid var(--vh-line); margin-bottom: 18px; }
+.vh-community-options summary { padding: 12px 2px; min-height: 44px; cursor: pointer; }
+.vh-community-options summary > span { margin-inline-start: 4px; font-size: .875rem; color: var(--vh-muted); }
+.vh-nav-item > span[dir=auto] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media(max-width: 860px) {
+  .vh-bottom-nav { padding-inline: max(3px,env(safe-area-inset-left)) max(3px,env(safe-area-inset-right)); }
+  .vh-bottom-nav button { padding-inline: 1px; min-width: 0; }
+  .vh-bottom-nav button > span { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .vh-empty-utilities .vh-text-button { min-height: 44px; }
+}

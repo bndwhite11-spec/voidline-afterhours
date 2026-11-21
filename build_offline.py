@@ -92,14 +92,16 @@ def mark_offline(match):
     return tag[:-1] + ' data-offline="true">'
 
 
+html = re.sub(r'<template data-feature="[a-z]+">([^<>]*(?:<link[^>]*>|<script[^>]*></script>)\s*)</template>', r'\1', html)
 html = re.sub(r'<html\b[^>]*>', mark_offline, html, count=1, flags=re.IGNORECASE)
 html = re.sub(r'<link\b[^>]*>', inline_link, html, flags=re.IGNORECASE)
 html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
               flags=re.IGNORECASE | re.DOTALL)
 html = html.replace('href="/install.html', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html')
+html = html.replace('href="/chats"', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/chats"')
 html = html.replace('href="/help.html', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html')
 required_styles = {'startup.css', 'mobile.css', 'art-motion.css', 'native-messaging.css', 'native-media.css', 'entry.css', 'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css', 'admin.css'}
-required_scripts = {'startup.js', 'mobile.js', 'account-export.js', 'theme.js', 'media-validation.js', 'profile-media.js', 'native-media.js', 'native-outbox.js', 'native-timeline.js', 'realtime.js', 'collectible-art.js', 'notifications.js', 'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js', 'admin.js'}
+required_scripts = {'feature-loader.js', 'startup.js', 'mobile.js', 'account-export.js', 'theme.js', 'media-validation.js', 'profile-media.js', 'native-media.js', 'native-outbox.js', 'native-timeline.js', 'realtime.js', 'collectible-art.js', 'notifications.js', 'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js', 'admin.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
     raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:

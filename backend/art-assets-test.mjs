@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {artCatalog,artSVG,artVersion} from '../src/art/catalog.mjs';
+import {artCatalog,artSVG,artVersion,studioIds,priorArtSVG} from '../src/art/catalog.mjs';
 import {assertSafeWebSVG,inspectRaster} from '../src/art/web-art.mjs';
 import {giftBases} from '../src/art/gift-bases.mjs';
 import {telegramReferences} from '../src/art/telegram-references.mjs';
@@ -38,7 +38,7 @@ test('every current object uses a credited downloaded raster and a bounded finge
 });
 test('the manifest truthfully records sources, licenses, static/motion states and no account claims',()=>{
  assert.equal(manifest.artVersion,artVersion);assert.deepEqual(manifest.counts,{decorations:COSMETICS.filter(item=>item.type==='badge').length,gifts:COSMETICS.filter(item=>item.type==='gift').length,earned:BADGE_DEFINITIONS.length,webSources:expected.length});assert.deepEqual(manifest.items.map(item=>item.id).sort(),[...expected].sort());
- for(const item of manifest.items){assert(item.alt.length>=20,item.id);assert(item.material&&item.series&&item.credits&&item.rights,item.id);assert.deepEqual(item.sourceArt,artCatalog[item.id].sourceArt,item.id);assert.deepEqual(item.newlyDrawn,[],item.id+': source image must not be credited as newly drawn');assert(item.sources.includes(item.sourceArt.sourceURL),item.id);if(item.sourceArt.licenseURL)assert(item.sources.includes(item.sourceArt.licenseURL),item.id);for(const source of item.sources)assert.equal(new URL(source).protocol,'https:');assert.deepEqual(Object.keys(item.variants).sort(),['card','detail','mini','silhouette']);assert.match(item.restingState,/static web-sourced image/i);
+ for(const item of manifest.items){assert(item.alt.length>=20,item.id);assert(item.material&&item.series&&item.credits&&item.rights,item.id);assert.deepEqual(item.sourceArt,artCatalog[item.id].sourceArt,item.id);if(item.edition){assert(item.storyboard?.length>20);assert(item.newlyDrawn.includes('optical miniature'));assert(!item.newlyDrawn.includes('source image'));}else assert.deepEqual(item.newlyDrawn,[],item.id+': source image must not be credited as newly drawn');assert(item.sources.includes(item.sourceArt.sourceURL),item.id);if(item.sourceArt.licenseURL)assert(item.sources.includes(item.sourceArt.licenseURL),item.id);for(const source of item.sources)assert.equal(new URL(source).protocol,'https:');assert.deepEqual(Object.keys(item.variants).sort(),['card','detail','mini','silhouette']);assert.match(item.restingState,/static web-sourced image/i);
   for(const mode of ['rest','explicit preview','inspection','reduced-motion still','unavailable/retired'])assert(item.animationStates.includes(mode),item.id+':'+mode);
   for(const key of ['accountId','ownerId','owned','equipped','csrfToken','passwordHash','recoveryCode','accessToken','sessionToken','platformOwner'])assert(!Object.hasOwn(item,key),item.id+':'+key);
  }
@@ -93,9 +93,24 @@ print(json.dumps({'parsed':len(records),'movingObjects':sum(1 for r in records i
 test('lightweight thumbnails and bounded one-shot image reveals preserve a complete static resting state',()=>{
  const giftPresets=new Set();for(const [id,item]of Object.entries(artCatalog)){
   assert(item.sourceArt.mini.bytes<=12*1024,id);assert(item.motion.duration>=900&&item.motion.duration<=1800,id);assert(item.motion.layers.length>0,id);if(item.type==='gift')giftPresets.add(item.revealPreset);
-  const names=new Set();for(const layer of item.motion.layers){assert(/^web-(?:image|panel-\d+)$/.test(layer.name),id);assert(!names.has(layer.name),id);names.add(layer.name);assert(Array.isArray(layer.origin)&&layer.origin.length===2&&layer.origin.every(Number.isFinite),id);assert.equal(layer.frames[0].at,0,id);assert.equal(layer.frames.at(-1).at,1,id);assert.deepEqual(layer.frames.at(-1),{at:1},id+': final pose must restore the actual source image');let previous=-1;for(const frame of layer.frames){assert(Number.isFinite(frame.at)&&frame.at>=previous&&frame.at<=1,id);previous=frame.at;for(const [key,value]of Object.entries(frame))assert(['at','x','y','rotate','scaleX','scaleY','opacity'].includes(key)&&Number.isFinite(value),id+':'+key);}}
+  const names=new Set();for(const layer of item.motion.layers){assert((item.edition?/^[a-z][a-z0-9-]*$/:/^web-(?:image|panel-\d+)$/).test(layer.name),id);assert(!names.has(layer.name),id);names.add(layer.name);assert(Array.isArray(layer.origin)&&layer.origin.length===2&&layer.origin.every(Number.isFinite),id);assert.equal(layer.frames[0].at,0,id);assert.equal(layer.frames.at(-1).at,1,id);assert.deepEqual(layer.frames.at(-1),{at:1},id+': final pose must restore the actual source image');let previous=-1;for(const frame of layer.frames){assert(Number.isFinite(frame.at)&&frame.at>=previous&&frame.at<=1,id);previous=frame.at;for(const [key,value]of Object.entries(frame))assert(['at','x','y','rotate','scaleX','scaleY','opacity'].includes(key)&&Number.isFinite(value),id+':'+key);}}
  }
  assert(giftPresets.size>=8,'The gift catalog must include all eight image reveal patterns');
+});
+test('Studio 01 preserves historical pixels and edition-paired miniatures for open clients',()=>{
+ const frozen=JSON.parse(readFileSync(new URL('../src/art/pre-studio-fingerprints.json',import.meta.url),'utf8'));
+ assert.deepEqual(Object.keys(frozen).sort(),[...studioIds].sort());
+ for(const id of studioIds){
+  const item=artCatalog[id],current=manifest.items.find(row=>row.id===id);
+  assert.equal(current.edition,'Studio 01');assert.equal(current.storyboard,item.storyboard);
+  for(const [variant,fingerprint] of Object.entries(frozen[id])){
+   const bytes=readFileSync(new URL('../dist/art/v4/'+id+'-'+variant+'.'+fingerprint+'.svg',import.meta.url));
+   assert.equal(hash(bytes).slice(0,12),fingerprint);assert.equal(bytes.toString(),priorArtSVG(id,variant));
+   assert.notEqual(hash(bytes),current.variants[variant].sha256);
+  }
+  assert.match(item.sourceArt.mini.path,/studio-01-/);assert.equal(item.sourceArt.mini.width,96);
+  assert(!artSVG(id,'detail').includes('height="200" rx="10"'),'individual object shape');
+ }
 });
 let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}
 console.log(`${tests.length-failed}/${tests.length} sourced art checks passed. Actual${expected.length} objects,${expected.length*4} compiled SVGs, downloaded source hashes and real XML parsing; not browser artwork judgment, motion playback, ownership or production verification.`);process.exitCode=failed?1:0;

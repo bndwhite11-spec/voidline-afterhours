@@ -19,9 +19,12 @@ async function bodyOf(request){
  check(data&&typeof data==='object'&&!Array.isArray(data),400,'invalid_body','Use a JSON object.');return data;
 }
 async function isBlocked(db,a,b){return !!await q(db,'SELECT 1 AS found FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?) LIMIT 1',a,b,b,a).first();}
-async function accountByName(db,value){
+function normalizedUsername(value){
  check(typeof value==='string'&&/^[a-z][a-z0-9_]{2,23}$/.test(value.trim().normalize('NFKC').toLowerCase()),400,'invalid_username','Enter an exact username, without @.');
- return q(db,"SELECT id,username,display_name,avatar FROM live_accounts WHERE username=? AND onboarding_complete=1 AND account_status='active'",value.trim().normalize('NFKC').toLowerCase()).first();
+ return value.trim().normalize('NFKC').toLowerCase();
+}
+async function accountByName(db,value){
+ return q(db,"SELECT id,username FROM live_accounts WHERE username=? AND onboarding_complete=1 AND account_status='active'",normalizedUsername(value)).first();
 }
 export async function handleSocialRequest(request,env){
  try{
@@ -52,6 +55,27 @@ export async function handleSocialRequest(request,env){
   const body=await bodyOf(request);await validateSessionMutation(request,user,body);
   await authRateLimit(request,db,'social-actions',30,now,user.id);
   const active=activeSession(user);
+  if(path.length===1&&path[0]==='lookup'){
+   await authRateLimit(request,db,'friend-lookup',12,now,user.id);
+   const username=normalizedUsername(body.username);
+   // Show the exact public handle and the viewer's own relationship. Profile
+   // details keep their separate audience checks even when requests are open.
+   const result=await q(db,`SELECT a.id AS accountId,a.username,
+     CASE WHEN r.state='accepted' THEN 'friends' WHEN r.sender_id=? THEN 'outgoing'
+          WHEN r.recipient_id=? THEN 'incoming' ELSE 'available' END AS relationship
+     FROM live_accounts a
+     LEFT JOIN social_settings s ON s.account_id=a.id
+     LEFT JOIN social_requests r ON r.state IN ('accepted','pending') AND
+       ((r.sender_id=a.id AND r.recipient_id=?) OR (r.recipient_id=a.id AND r.sender_id=?))
+     WHERE a.username=? AND a.id<>? AND a.account_status='active' AND a.onboarding_complete=1
+       AND COALESCE(s.allow_requests,1)=1 AND ${active.sql}
+       AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE
+         (b.blocker_id=a.id AND b.blocked_id=?) OR (b.blocked_id=a.id AND b.blocker_id=?))
+     ORDER BY CASE r.state WHEN 'accepted' THEN 0 ELSE 1 END LIMIT 1`,
+     user.id,user.id,user.id,user.id,username,user.id,...active.args,user.id,user.id).first();
+   if(!result)throw unavailable();
+   return json({person:result});
+  }
   if(path.length===1&&path[0]==='settings'){
    check(typeof body.allowRequests==='boolean',400,'invalid_setting','Choose whether to allow friend requests.');
    const saved=await q(db,'INSERT INTO social_settings(account_id,allow_requests) SELECT ?,? WHERE '+active.sql+' ON CONFLICT(account_id) DO UPDATE SET allow_requests=excluded.allow_requests',user.id,body.allowRequests?1:0,...active.args).run();
@@ -60,7 +84,7 @@ export async function handleSocialRequest(request,env){
   }
   if(path.length===1&&path[0]==='request'){
    await authRateLimit(request,db,'friend-request',5,now,user.id);
-   const target=await accountByName(db,body.username);if(!target||target.id===user.id||await isBlocked(db,user.id,target.id))throw unavailable();
+   const target=await accountByName(db,body.username);if(!target||(body.recipientId!==undefined&&body.recipientId!==target.id)||target.id===user.id||await isBlocked(db,user.id,target.id))throw unavailable();
    const setting=await q(db,'SELECT allow_requests FROM social_settings WHERE account_id=?',target.id).first();if(setting?.allow_requests===0)throw unavailable();
    const existing=await q(db,"SELECT * FROM social_requests WHERE ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) AND state IN ('pending','accepted') ORDER BY CASE state WHEN 'accepted' THEN 0 ELSE 1 END LIMIT 1",user.id,target.id,target.id,user.id).first();
    if(existing){await requireActive(db,active);return json({request:{id:existing.id,state:existing.state,direction:existing.sender_id===user.id?'outgoing':'incoming'},alreadyExists:true});}

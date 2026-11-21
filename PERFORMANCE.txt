@@ -1,5 +1,74 @@
 VOIDLINE / VALIDATION AND PERFORMANCE SCOPE
 
+PUBLIC ENTRY AND RETURN VISITS
+
+The production entry used 24 scripts and 17 stylesheets at 985e4400. The
+revised guest entry requires 6 scripts and 5 stylesheets. Measurements cover
+parser-requested JavaScript and CSS. HTML, icons, API bodies and HTTP headers
+are accounted separately.
+
+                        Previous         Quality release (rounded)
+Resources                      41                              11
+Raw asset bytes            990 KiB                         403 KiB
+gzip level 6               260 KiB                         104 KiB
+Brotli quality 5           241 KiB                          95 KiB
+
+To reproduce from the repository, run node scripts/measure-entry.mjs and
+node scripts/measure-entry.mjs --revision 985e4400. Each asset is compressed
+separately to reflect individual responses. Both commands report bytes for
+each stage. The authenticated workspace loads its timeline, account navigation
+and other extensions after session verification. Collection artwork, styling
+and showcase tools load for collection or profile use. Upload/crop and voice
+tools, private exports, the previous archive and owner tools load on demand.
+A user can retry a failed feature download. The single-file archive includes
+its dependencies inline.
+
+On the previous public deployment, a gzip GET of all 41 entry assets returned
+265,126 body bytes. A second GET with each asset’s actual returned ETag
+transferred 265,149 bytes. All 41 responded with HTTP 200. The compressed
+responses carried weak validators that the previous Worker compared as strong
+validators. The revised GET/HEAD handler recognizes those validators during
+revalidation. Unchanged resources can now return a bodyless HTTP 304.
+
+Request counts and compressed bytes quantify download work. Device layout,
+decoding, painting, actual cold and warm browser time and field Core Web
+Vitals require browser or device measurements. Target production p75 values
+are LCP ≤ 2.5 s, INP ≤ 200 ms and CLS ≤ 0.1.
+
+INTERACTION COMPARISONS FOR v1.0.5
+
+Node 24.22.1, one warm-up pair then eight timed pairs, alternating baseline
+and candidate first. Baseline is 985e4400. Values are median elapsed ms for
+the complete scenario. Samples, settings and structural assertions are in
+docs/quality-assets/interaction-samples.json.
+
+Scenario                                   Baseline      v1.0.5
+10 chat changes, 50 rows on each visit        82.10       81.20
+48 keystrokes with 8 incoming pages            9.59        9.64
+24 positions in a 10,000-row history         100.50       94.06
+8 gift inspections with replay and close      83.79       95.26
+
+Both chat-switch runs issued 20 requests. Both composers retained the same
+input node and all 48 characters. At most 24 history rows were mounted on
+each build. Both gallery runs used two detail fetches including warm-up,
+restored focus and finished with zero active effects. Gallery inspection took
+11.47 ms longer per eight inspections in this run. The study uses controlled
+DOM and in-memory transport for chat, computed row geometry for history and
+jsdom with real XML parsing and hashing for gifts. Animation timing and dialog
+methods are simulated. Browser rendering and device frame times are unmeasured.
+
+A separate collection filter replay typed nine queries on the same 81-card
+selection, warming once and then timing five runs. Returning to the full
+selection created zero additional posters in the candidate versus 2,088 in the
+baseline across the fixture. Median elapsed time was 126.1 to 9.3 ms per
+sequence. Reproduce with node scripts/measure-collection-filters.mjs.
+The paired profile typing fixture recorded 420 baseline writes to appearance
+presets and zero candidate writes, with median input work of 38.42 ms and
+4.50 ms respectively. Opening that studio used one initial request, down
+from three. These are local work counts and timings.
+
+PREVIOUS RELEASE MEASUREMENTS
+
 Current source extracts ordered native outbox, realtime, measured Standard
 history window, media validation/cropping and collectible art into coherent
 modules. Matrix/Rust cryptography remains locally hosted and lazy-loaded.

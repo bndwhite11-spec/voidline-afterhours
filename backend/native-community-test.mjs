@@ -9,8 +9,14 @@ import {handleLiveRequest} from '../worker/index.mjs';
 const origin='https://native-community.example',cases=[],test=(name,run)=>cases.push([name,run]),random=()=>crypto.randomUUID();
 const denied=result=>assert(result.status>=400&&result.status<500,`Expected client rejection, got ${result.status} ${JSON.stringify(result.data)}`);
 class Adapter{
- constructor(sqlite){this.sqlite=sqlite;this.beforeBatch=null;this.queue=Promise.resolve();}
- prepare(sql){const db=this.sqlite;return {bind(...values){if(values.length>100)throw Error('Modeled D1 statement parameter budget exceeded');const statement=db.prepare(sql);return {sql,first:async()=>statement.get(...values)||null,all:async()=>({results:statement.all(...values)}),run:async()=>{const before=db.prepare('SELECT total_changes() n').get().n;statement.run(...values);return {success:true,meta:{changes:db.prepare('SELECT total_changes() n').get().n-before}};}};}};}
+ constructor(sqlite){this.sqlite=sqlite;this.beforeBatch=null;this.duringMessageRead=null;this.queue=Promise.resolve();}
+ prepare(sql){const db=this.sqlite,adapter=this;return {bind(...values){if(values.length>100)throw Error('Modeled D1 statement parameter budget exceeded');const statement=db.prepare(sql);return {sql,first:async()=>statement.get(...values)||null,all:async()=>{
+    const results=statement.all(...values);
+    if(adapter.duringMessageRead && sql.includes('FROM live_bookmarks WHERE account_id=? AND message_id IN')){
+     const change=adapter.duringMessageRead;adapter.duringMessageRead=null;change();
+    }
+    return {results};
+   },run:async()=>{const before=db.prepare('SELECT total_changes() n').get().n;statement.run(...values);return {success:true,meta:{changes:db.prepare('SELECT total_changes() n').get().n-before}};}};}};}
  batch(statements){const task=this.queue.then(async()=>{if(this.beforeBatch)await this.beforeBatch(statements);this.sqlite.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());this.sqlite.exec('COMMIT');return result;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}});this.queue=task.catch(()=>{});return task;}
 }
 async function fixture(){
@@ -74,6 +80,39 @@ test('edits, reaction toggles, pins, deletion and source updates are synchronize
   const changes=await f.ok('member','/api/live/channels/text-channel/changes?after='+initial.changeCursor),changed=changes.messages.find(m=>m.id===message.id);assert.equal(changed.text,'Revised');assert.equal(changed.pinned,true);assert.equal(changed.reactions.find(r=>r.emoji==='👍').count,1);
   await f.ok('owner',messageURL(message.id)+'/reaction',{emoji:'👍',active:false,acknowledgeStandard:true});await f.ok('moderator',messageURL(message.id)+'/delete',{});
   const removed=(await f.ok('member',messageURL(message.id))).message;assert(removed.deleted_at);assert.equal(removed.text,'');assert.equal(removed.pinned,false);assert.deepEqual(removed.reactions,[]);
+ }finally{f.sqlite.close();}
+});
+test('channel history, changes, pins and message details recheck current access before returning content',async()=>{
+ for(const endpoint of ['messages','changes','pins','detail']){
+  for(const restriction of ['membership','session']){
+   const f=await fixture();
+   try{
+    const message=await f.send('owner');
+    await f.ok('owner',messageURL(message.id)+'/pin',{active:true,acknowledgeStandard:true});
+    const path=endpoint==='detail'?messageURL(message.id):'/api/live/channels/text-channel/'+endpoint;
+    const readable=await f.ok('member',path);
+    assert.equal((readable.message||readable.messages[0]).id,message.id);
+    f.db.duringMessageRead=()=>{
+     if(restriction==='membership')f.sqlite.prepare("DELETE FROM live_memberships WHERE community_id='room' AND account_id='member'").run();
+     else f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').run(Date.now(),f.identities.get('member').sessionId);
+    };
+    const changed=await f.call('member',path);
+    assert.equal(changed.status,403);
+    assert.equal(changed.data.messages,undefined);assert.equal(changed.data.message,undefined);
+   }finally{f.sqlite.close();}
+  }
+ }
+});
+test('announcement history returns current compose permissions after a moderator is demoted during loading',async()=>{
+ const f=await fixture();
+ try{
+  await f.send('owner','Fixture announcement','announcements');
+  const path=channelURL('announcements');
+  assert.equal((await f.ok('moderator',path)).permissions.canSend,true);
+  f.db.duringMessageRead=()=>f.sqlite.prepare("UPDATE live_memberships SET role='member' WHERE community_id='room' AND account_id='moderator'").run();
+  const current=await f.ok('moderator',path);
+  assert.equal(current.messages.length,1);
+  assert.deepEqual(current.permissions,{canSend:false,canManageMessages:false});
  }finally{f.sqlite.close();}
 });
 test('a timeout, membership removal or session revocation immediately before commit produces no message or send event',async()=>{

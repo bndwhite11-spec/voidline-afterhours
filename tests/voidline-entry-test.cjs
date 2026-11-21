@@ -47,8 +47,11 @@ test('first entry is skippable, names no fake backend step and does not mistake 
   assert.match(app.overlay.innerHTML,/Skip intro/);assert.match(app.overlay.innerHTML,/role="status"/);assert.doesNotMatch(app.overlay.innerHTML,/role="progressbar"|[0-9]+%|encrypting|connecting devices/i);
   app.window.VoidHome={state:{phase:'loading',error:''}};app.emitHome();app.tick(559);assert(app.overlay);assert.equal(app.overlay.status.textContent,'Opening Voidline…');
 });
-test('actual account resolution permits the short reveal to finish and restores the underlying app',()=>{
-  const app=client();app.start();app.tick(100);app.ready();assert.equal(app.overlay.status.textContent,'Ready when you are.');app.tick(459);assert(!app.overlay.classList.contains('ve-is-leaving'));app.tick(1);assert(app.overlay.classList.contains('ve-is-leaving'));app.tick(140);assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.document.activeElement,app.document.body);assert.equal(app.timers.size,0);
+test('a ready login immediately releases the introduction, including during its exit transition',()=>{
+  for (const delay of [100,1060]) {
+    const app=client();app.start();app.tick(delay);app.ready();
+    assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.document.activeElement,app.document.body);assert.equal(app.timers.size,0);
+  }
 });
 test('a real connection error removes the introduction immediately',()=>{
   const app=client();app.start();app.tick(10);app.ready('welcome','The connection could not finish.');assert.equal(app.overlay,undefined);assert.equal(app.root.inert,false);assert.equal(app.timers.size,0);

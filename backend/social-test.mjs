@@ -104,5 +104,25 @@ test('a stale block cannot cancel an existing request and a suspended sender can
   }finally{await f.close();}
  }
 });
+test('exact username review reveals only a permitted handle; confirming a stale recipient cannot send',async()=>{
+ const f=await fixture();try{
+  const bob=f.accounts.bobby,alice=f.accounts.alice;
+  let result=await f.ok('alice','/lookup',{username:'SOCIAL_BOBBY'});
+  assert.deepEqual(result.person,{accountId:bob.id,username:'social_bobby',relationship:'available'});
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM social_requests').get().n,0);
+  assert.equal((await f.call('alice','/request',{username:'social_bobby',recipientId:f.accounts.claire.id})).status,404);
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM social_requests').get().n,0);
+  const sent=await f.ok('alice','/request',{username:'social_bobby',recipientId:bob.id});
+  assert.equal((await f.ok('alice','/lookup',{username:'social_bobby'})).person.relationship,'outgoing');
+  assert.equal((await f.ok('bobby','/lookup',{username:'social_alice'})).person.relationship,'incoming');
+  await f.ok('bobby','/requests/'+sent.request.id+'/respond',{accept:true});
+  assert.equal((await f.ok('alice','/lookup',{username:'social_bobby'})).person.relationship,'friends');
+  await f.ok('bobby','/blocks',{accountId:alice.id,active:true});
+  const blocked=await f.call('alice','/lookup',{username:'social_bobby'}),missing=await f.call('alice','/lookup',{username:'nonexistent_user'});
+  assert.equal(blocked.status,404);assert.deepEqual(blocked,missing);
+  await f.ok('claire','/settings',{allowRequests:false});
+  assert.deepEqual(await f.call('alice','/lookup',{username:'social_claire'}),missing);
+ }finally{await f.close();}
+});
 let failures=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}
 console.log(`${tests.length-failures}/${tests.length} native social checks passed. Isolated registered accounts and actual SQLite, no contacts or real user accounts.`);process.exitCode=failures?1:0;

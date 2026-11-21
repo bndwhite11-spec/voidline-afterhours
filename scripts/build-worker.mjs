@@ -28,7 +28,7 @@ const contentTypes = {
 const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
 // never an executable production fallback or automatically loaded fixture.
-const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','startup.css','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
+const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','feature-loader.js','startup.css','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
   'cosmetics.js','cosmetics.css','social.js','social.css',
   'organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
@@ -512,7 +512,13 @@ async function serveVoidline(request, env, ctx) {
   };
   const androidPackage=pathname==='/downloads/VOIDLINE-Android.apk';
   if(androidPackage){headers['content-disposition']='attachment; filename="VOIDLINE-Android.apk"';headers['accept-ranges']='bytes';headers['content-length']=String(asset.size);}
-  if (request.headers.get('if-none-match') === asset.etag) return new Response(null, {status: 304, headers});
+  // A compressing edge can weaken this resource's ETag. GET and HEAD use
+  // weak comparison for If-None-Match; the separate byte-range validator below remains strong.
+  const validators = request.headers.get('if-none-match') || '';
+  if (validators.trim() === '*' || validators.split(',').some(value => {
+    const token = value.trim();
+    return token === asset.etag || token === 'W/' + asset.etag;
+  })) return new Response(null, {status: 304, headers});
   if (request.method === 'HEAD') return new Response(null, {headers});
   if (asset.rasterKey) {
     const bytes = Uint8Array.from(atob(VOIDLINE_STATIC_RASTERS[asset.rasterKey]), c => c.charCodeAt(0));

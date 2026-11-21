@@ -1,0 +1,50 @@
+{
+  "gift-rose": {
+    "mini": "187073b2f9cb",
+    "card": "6b9cb56f6a09",
+    "detail": "fbe6ee126f61",
+    "silhouette": "b548800045fd"
+  },
+  "gift-star": {
+    "mini": "0d468fc32ec5",
+    "card": "e7115ffb8fa8",
+    "detail": "e1514c36a8b0",
+    "silhouette": "54bfd66e6e77"
+  },
+  "gift-cassette": {
+    "mini": "bb70d7a7ec3b",
+    "card": "242b1f6cf11a",
+    "detail": "f839fb1b0441",
+    "silhouette": "9a0d3fcfe91e"
+  },
+  "gift-ghost": {
+    "mini": "3ee9ea37302d",
+    "card": "648c76779d5b",
+    "detail": "f6a6f017ce50",
+    "silhouette": "1bb1e83ca66d"
+  },
+  "gift-signal": {
+    "mini": "87d4edcb4bbe",
+    "card": "6b32d10ee947",
+    "detail": "f6e3adf40daf",
+    "silhouette": "dbefc7b39839"
+  },
+  "gift-block-zero": {
+    "mini": "3692215104ec",
+    "card": "41f28aa72190",
+    "detail": "c6b13a4d8850",
+    "silhouette": "7ae0ff24efef"
+  },
+  "gift-last-tab": {
+    "mini": "30c4405c8fa3",
+    "card": "5cde10e69810",
+    "detail": "86163e16fe28",
+    "silhouette": "3ef16e11c080"
+  },
+  "coin-genesis-block": {
+    "mini": "d411b1bbf311",
+    "card": "9817f73f7450",
+    "detail": "359b7981f50b",
+    "silhouette": "5e33caa755e4"
+  }
+}

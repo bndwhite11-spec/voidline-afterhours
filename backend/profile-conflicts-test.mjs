@@ -8,10 +8,21 @@ import {authHash} from '../worker/auth.mjs';
 const origin='https://profiles.example',tests=[];const test=(name,fn)=>tests.push([name,fn]);
 class Adapter{constructor(db){this.db=db;this.fail='';this.beforeBatch=null;}prepare(sql){const a=this;return{bind(...v){a.maxBindings=Math.max(a.maxBindings||0,v.length);if(v.length>100)throw Error('D1 binding limit exceeded');const check=()=>{if(a.fail&&sql.includes(a.fail))throw Error('Isolated failure');};return{first:async()=>{check();const result=a.db.prepare(sql).get(...v)||null;a.afterRead?.(sql);return result;},all:async()=>{check();return{results:a.db.prepare(sql).all(...v)};},run:async()=>{check();return{success:true,meta:{changes:a.db.prepare(sql).run(...v).changes}};}};}};}async batch(statements){this.beforeBatch?.();this.db.exec('BEGIN');try{const out=[];for(const s of statements)out.push(await s.run());this.db.exec('COMMIT');return out;}catch(error){this.db.exec('ROLLBACK');throw error;}}}
 async function fixture(){const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');for(const entry of JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url))).entries)sqlite.exec(readFileSync(new URL('../drizzle/'+entry.tag+'.sql',import.meta.url),'utf8'));const db=new Adapter(sqlite),env={DB:db},identities=new Map();
- for(const id of ['self','friend','stranger']){const token='a'.repeat(32)+crypto.randomUUID().replaceAll('-',''),csrf='b'.repeat(32)+crypto.randomUUID().replaceAll('-',''),session=crypto.randomUUID(),now=Date.now();sqlite.prepare('INSERT INTO live_accounts(id,display_name,email,username,onboarding_complete,created_at,updated_at) VALUES(?,?,?,?,1,?,?)').run(id,id==='stranger'?'AT xrp':'Profile '+id,'',id,now,now);sqlite.prepare('INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)').run(session,id,await authHash(token),await authHash(csrf),'Isolated profile test',now,now,now,now+60000);identities.set(id,{token,csrf,session});}
+ async function addSession(id,device=id){
+  const token=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
+  const csrf=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');
+  const session=crypto.randomUUID(),now=Date.now();
+  sqlite.prepare('INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)').run(session,id,await authHash(token),await authHash(csrf),device,now,now,now,now+60000);
+  identities.set(device,{token,csrf,session,id});
+ }
+ for(const id of ['self','friend','stranger']){
+  const now=Date.now();
+  sqlite.prepare('INSERT INTO live_accounts(id,display_name,email,username,onboarding_complete,created_at,updated_at) VALUES(?,?,?,?,1,?,?)').run(id,id==='stranger'?'AT xrp':'Profile '+id,'',id,now,now);
+  await addSession(id);
+ }
  sqlite.prepare("INSERT INTO social_requests(id,sender_id,recipient_id,state,created_at,updated_at) VALUES('friends','self','friend','accepted',1,1)").run();
- const call=async(user,path,body)=>{const identity=identities.get(user),headers={cookie:'__Host-voidline_session='+identity.token};if(body!==undefined)Object.assign(headers,{'content-type':'application/json',origin,'x-voidline-csrf':identity.csrf});const request=new Request(origin+path,{method:body===undefined?'GET':'POST',headers,...(body===undefined?{}:{body:JSON.stringify({expectedAccountId:user,...body})})});const response=await(path.startsWith('/api/cosmetics/')?handleCosmeticsRequest:path.startsWith('/api/live/')?handleLiveRequest:handleProfilesRequest)(request,env);return{status:response.status,data:await response.json()};};
- const ok=async(user,path,body)=>{const r=await call(user,path,body);assert.ok(r.status>=200&&r.status<300,`${path}: ${r.status} ${JSON.stringify(r.data)}`);return r.data;};return{sqlite,db,identities,call,ok};}
+ const call=async(user,path,body)=>{const identity=identities.get(user),headers={cookie:'__Host-voidline_session='+identity.token};if(body!==undefined)Object.assign(headers,{'content-type':'application/json',origin,'x-voidline-csrf':identity.csrf});const request=new Request(origin+path,{method:body===undefined?'GET':'POST',headers,...(body===undefined?{}:{body:JSON.stringify({expectedAccountId:identity.id,...body})})});const response=await(path.startsWith('/api/cosmetics/')?handleCosmeticsRequest:path.startsWith('/api/live/')?handleLiveRequest:handleProfilesRequest)(request,env);return{status:response.status,data:await response.json()};};
+ const ok=async(user,path,body)=>{const r=await call(user,path,body);assert.ok(r.status>=200&&r.status<300,`${path}: ${r.status} ${JSON.stringify(r.data)}`);return r.data;};return{sqlite,db,identities,addSession,call,ok};}
 function history(f){
  const db=f.sqlite;db.prepare("INSERT INTO live_communities(id,name,created_by,created_at) VALUES('history-community','History fixture','self',1)").run();
  for(const[id,role]of [['self','owner'],['friend','member']])db.prepare("INSERT INTO live_memberships(community_id,account_id,role,joined_at) VALUES('history-community',?,?,1)").run(id,role);
@@ -27,16 +38,25 @@ const gift=(f,id='instance-one')=>{f.sqlite.prepare("INSERT INTO gift_instances(
 const ownDecoration=f=>f.sqlite.prepare("INSERT INTO cosmetic_ownership(account_id,cosmetic_id,claimed_at) VALUES('self','larp',1)").run();
 
 test('two devices merge independent fields and retain the latest server revision',async()=>{const f=await fixture();try{
- const phone=(await f.ok('self','/api/profiles/me')).profile,desktop=(await f.ok('self','/api/profiles/me')).profile;
+ await f.addSession('self','phone');
+ assert.notEqual(f.identities.get('phone').session,f.identities.get('self').session);
+ const phone=(await f.ok('phone','/api/profiles/me')).profile,desktop=(await f.ok('self','/api/profiles/me')).profile;
  const saved=(await f.ok('self','/api/profiles/me',{bio:'A desktop biography.',expectedRevision:desktop.revision,baseValues:{bio:desktop.bio}})).profile;
- const merged=(await f.ok('self','/api/profiles/me',{avatar:'ghost',expectedRevision:phone.revision,baseValues:{avatar:phone.avatar}})).profile;
+ const merged=(await f.ok('phone','/api/profiles/me',{avatar:'ghost',expectedRevision:phone.revision,baseValues:{avatar:phone.avatar}})).profile;
  assert.equal(merged.bio,'A desktop biography.');assert.equal(merged.avatar,'ghost');assert.ok(merged.revision>saved.revision);
+ const persisted=(await f.ok('self','/api/profiles/me')).profile;
+ assert.equal(persisted.avatar,'ghost');assert.equal(persisted.bio,merged.bio);
+ f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').run(Date.now(),f.identities.get('phone').session);
+ const denied=await f.call('phone','/api/profiles/me',{bio:'Revoked edit',baseValues:{bio:persisted.bio}});
+ assert.equal(denied.status,401);
+ assert.equal((await f.ok('self','/api/profiles/me')).profile.bio,persisted.bio);
 }finally{f.sqlite.close();}});
 
 test('a same-field conflict preserves the draft server-side boundary and returns current saved values',async()=>{const f=await fixture();try{
- const changes=history(f),old=(await f.ok('self','/api/profiles/me')).profile;
+ await f.addSession('self','phone');
+ const changes=history(f),old=(await f.ok('phone','/api/profiles/me')).profile;
  await f.ok('self','/api/profiles/me',{bio:'Desktop saved biography.',expectedRevision:old.revision,baseValues:{bio:old.bio}});
- const media=stagedImage(f,'avatar','a'),result=await f.call('self','/api/profiles/me',{bio:'Phone biography.',avatarMediaId:media,expectedRevision:old.revision,baseValues:{bio:old.bio,avatarMediaId:null}});
+ const media=stagedImage(f,'avatar','a'),result=await f.call('phone','/api/profiles/me',{bio:'Phone biography.',avatarMediaId:media,expectedRevision:old.revision,baseValues:{bio:old.bio,avatarMediaId:null}});
  assert.equal(result.status,409);assert.equal(result.data.error.code,'profile_conflict');assert.deepEqual(result.data.conflicts,['bio']);assert.equal(result.data.profile.bio,'Desktop saved biography.');assert.equal(result.data.profile.avatarMediaId,null);
  assert.equal(f.sqlite.prepare('SELECT state FROM media_assets WHERE id=?').get(media).state,'staged');assert.equal(changes().length,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM media_cleanup').get().n,0);
 }finally{f.sqlite.close();}});

@@ -4,12 +4,11 @@
   if (window.VoidEntry) return;
 
   const SEEN_KEY = 'voidline.entry.seen.v1';
-  const MIN_REVEAL = 560;
   const MAX_REVEAL = 1050;
   const EXIT_TIME = 140;
-  let overlay = null, status = null, root = null, observer = null;
-  let startedAt = 0, originalInert = false, previousFocus = null;
-  let hardTimer = null, readyTimer = null, exitTimer = null;
+  let overlay = null, root = null, observer = null;
+  let originalInert = false, previousFocus = null;
+  let hardTimer = null, exitTimer = null;
   let closing = false, restoreRequested = false, active = false;
 
   function bypass() {
@@ -23,8 +22,8 @@
   }
 
   function clearTimers() {
-    clearTimeout(hardTimer); clearTimeout(readyTimer); clearTimeout(exitTimer);
-    hardTimer = readyTimer = exitTimer = null;
+    clearTimeout(hardTimer); clearTimeout(exitTimer);
+    hardTimer = exitTimer = null;
   }
 
   function restoreFocus() {
@@ -47,7 +46,7 @@
     if (root) root.inert = originalInert;
     overlay?.remove();
     restoreFocus();
-    overlay = status = root = previousFocus = null;
+    overlay = root = previousFocus = null;
     active = false;
   }
 
@@ -63,18 +62,14 @@
   }
 
   function inspect() {
-    if (!active || closing) return;
+    if (!active) return;
     const state = window.VoidHome?.state;
     if (state?.error) { dismiss({immediate:true}); return; }
     // The home-ready event exposes the bridge before its session request finishes.
     const phase = state?.phase;
     const resolved = phase ? phase !== 'loading' : root?.getAttribute('aria-busy') === 'false';
     if (!resolved) return;
-    if (status) status.textContent = phase === 'ready' ? 'Your space is ready.' : 'Ready when you are.';
-    if (readyTimer !== null) return;
-    const remaining = Math.max(0, MIN_REVEAL - (Date.now() - startedAt));
-    if (!remaining) dismiss();
-    else readyTimer = setTimeout(() => { readyTimer = null; dismiss(); }, remaining);
+    dismiss({immediate:true});
   }
 
   function keydown(event) {
@@ -95,7 +90,7 @@
     if (!root) return;
     previousFocus = document.activeElement;
     originalInert = !!root.inert;
-    startedAt = Date.now(); active = true; closing = false; restoreRequested = false;
+    active = true; closing = false; restoreRequested = false;
     try { sessionStorage.setItem(SEEN_KEY, '1'); } catch (_) { /* This page still has a strict deadline. */ }
     overlay = document.createElement('section');
     overlay.id = 'voidline-entry'; overlay.className = 've-entry';
@@ -103,7 +98,6 @@
     overlay.innerHTML = `<header class="ve-header"><span class="ve-signature">VOIDLINE<span>AFTERHOURS</span></span><button class="ve-skip" type="button" data-ve-skip>Skip intro</button></header>
       <div class="ve-center"><div class="ve-art" aria-hidden="true"><span class="ve-axis ve-axis-x"></span><svg viewBox="0 0 240 240" focusable="false"><defs><linearGradient id="ve-chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0f3fa"/><stop offset=".35" stop-color="#909aa9"/><stop offset=".54" stop-color="#f7f8fb"/><stop offset="1" stop-color="#6d7d94"/></linearGradient><clipPath id="ve-reflect-clip"><path d="m112 18 28 16-64 38v88l36 21v35l-70-41V58z"/><path d="m128 41 70 41v89l-70 41v-35l36-21V95l-36-21z"/><path d="m106 102 28-16v51l-28 16z"/></clipPath></defs><g class="ve-metal"><path class="ve-plane ve-plane-left" d="m112 18 28 16-64 38v88l36 21v35l-70-41V58z"/><path class="ve-plane ve-plane-right" d="m128 41 70 41v89l-70 41v-35l36-21V95l-36-21z"/><path class="ve-plane ve-plane-core" d="m106 102 28-16v51l-28 16z"/></g><g class="ve-outline" pathLength="1"><path pathLength="1" d="m112 18 28 16-64 38v88l36 21v35l-70-41V58z"/><path pathLength="1" d="m128 41 70 41v89l-70 41v-35l36-21V95l-36-21z"/><path pathLength="1" d="m106 102 28-16v51l-28 16z"/></g><g clip-path="url(#ve-reflect-clip)"><rect class="ve-glint" x="-80" y="0" width="18" height="240" fill="#fff" opacity=".5"/></g></svg></div><div class="ve-title"><p class="ve-eyebrow">MESSAGES · COMMUNITIES · COLLECTIONS</p><span class="ve-rule" aria-hidden="true"></span><p class="ve-status" data-ve-status role="status">Opening Voidline…</p></div></div>
       <footer class="ve-footer"><span>A place between days.</span></footer>`;
-    status = overlay.querySelector('[data-ve-status]');
     overlay.querySelector('[data-ve-skip]').addEventListener('click', () => dismiss({immediate:true, focus:true}));
     document.body.appendChild(overlay);
     root.inert = true;

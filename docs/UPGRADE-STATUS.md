@@ -1,3 +1,7 @@
+# Web release v1.0.5
+
+The current handover covers the messenger, profile studio, collection and install-flow changes since Sites version 31. It includes controlled before/after measurements, two privacy fixes and the 23-scenario acceptance matrix. The Android launcher history below applies to the existing native package. [Web release handover](QUALITY-RELEASE.md)
+
 # Android launcher 1.0.3
 
 The Samsung crash dialog on the 1.0.2 download page gave no exception or

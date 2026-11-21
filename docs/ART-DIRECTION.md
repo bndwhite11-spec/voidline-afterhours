@@ -1,5 +1,7 @@
 # VOIDLINE art direction / edition4
 
+[Studio 01](STUDIO-01.md) documents the newest eight compositions, optical miniatures, attached-part motion and review artifacts.
+
 The latest user correction requires actual web images rather than newly generated artwork, including gifts, LARP PRO MAX, Blockchain and Ledger. The preserved improvement8 brief remains; `VOIDLINE-IMPROVEMENT-9-ADDENDUM.txt` states the superseding source-art direction. Current scope is49 free decorative badges,32 gifts and2 separately earned awards.
 
 `web-badges.mjs`, `web-badges-objects.mjs`, `web-gifts-a.mjs` and `web-gifts-b.mjs` contain actual source metadata. `web-sources.mjs` rejects duplicate IDs. Production pixels under `/art/sources/` are conventional crops, masks, rasterizations or disclosed collages of real photographs, human illustrations, official marks and meme references. Their source URLs, creator/rights information and changes travel through the backend catalog, inspection, public manifest and SVG exports. Unknown source licenses stay unknown. No image generation or generative fill is used in edition4.

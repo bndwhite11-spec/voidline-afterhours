@@ -17,6 +17,22 @@ function client(){
  return{state,home,events,emitted,calls,toasts,replies,nodes,vault,vaultNotes,context,api:context.window.VoidOrganize,seam:context.window.__org,form,setForm:form=>{currentForm=form;},setSaveFailure:value=>{saveFailure=value;},get renders(){return renders;}};
 }
 test('opening Inbox is read-only and request counts come from real account responses',async()=>{const a=client();a.replies.set('/api/social?limit=1',{counts:{incoming:2}});a.replies.set('/api/cosmetics/inventory',{pendingGifts:3});await a.seam.inbox();assert.ok(a.calls.every(c=>c.body===undefined));assert.match(a.nodes.get('vo-requests').innerHTML,/2 friend requests/);assert.match(a.nodes.get('vo-requests').innerHTML,/3 gift requests/);assert.match(a.nodes.get('dialog').innerHTML,/does not mark anything read/);});
+test('reopening Search restores its submitted page and link filter under current permissions',async()=>{
+ const a=client();a.seam.search();const url='/api/messages/search?limit=30&offset=30&q=needle&has=links';
+ a.replies.set(url,{messages:[{id:'older-result',text:'needle',conversation_id:'permitted-room'}],total:31,page:{limit:30}});
+ await a.seam.runSearch({scope:'account',q:'needle',has:'links'},30);
+ const before=a.calls.filter(c=>c.route===url).length;
+ await a.seam.search();
+ assert.equal(a.calls.filter(c=>c.route===url).length,before+1);
+ assert.match(a.nodes.get('dialog').innerHTML,/value="links" selected/);
+ assert.match(a.nodes.get('vo-results').innerHTML,/older-result/);
+});
+test('a new identity cannot see or rerun a prior account’s decrypted search and person filter',async()=>{
+ const a=client();a.seam.search();await a.seam.runSearch({scope:'encrypted',q:'PRIVATE_NEEDLE',author:'@confidential:example'});
+ a.api.extension.onLock();a.state.account={id:'new-account'};a.seam.search();
+ assert.doesNotMatch(a.nodes.get('dialog').innerHTML,/PRIVATE_NEEDLE|@confidential/);
+ assert.ok(!a.calls.some(c=>decodeURIComponent(c.route).includes('PRIVATE_NEEDLE')));
+});
 test('malformed and contradictory dates issue no search request',async()=>{const a=client();a.seam.search();for(const values of [{scope:'legacy',before:'2026-02-30'},{scope:'legacy',after:'2026-12-31',before:'2026-01-01'}])await a.seam.runSearch(values);assert.equal(a.calls.length,0);assert.match(a.nodes.get('vo-error').textContent,/date|Before/);});
 test('an older server search response cannot overwrite a later query and content stays escaped',async()=>{const a=client();a.seam.search();const old=deferred();a.replies.set('/api/live/search?limit=30&offset=0&q=old',old.promise);a.replies.set('/api/live/search?limit=30&offset=0&q=new',{messages:[{id:'new',text:'<script>new</script>',created_at:1,channel_id:'channel',community_id:'community'}],total:81,page:{limit:30,hasMore:true}});const task=a.seam.runSearch({scope:'legacy',q:'old'});await a.seam.runSearch({scope:'legacy',q:'new'});old.resolve({messages:[{id:'old',text:'Stale'}],total:1,page:{limit:30,hasMore:false}});await task;const html=a.nodes.get('vo-results').innerHTML;assert.match(html,/81 matching messages/);assert.match(html,/&lt;script&gt;/);assert.doesNotMatch(html,/Stale|<script>/);});
 test('encrypted search stays entirely local and states its loaded-history boundary',async()=>{const a=client();a.home.timeline=[{id:'$exact',sender:'@friend:example',time:1700000000000,text:'A private https://example.invalid link'}];a.seam.search();await a.seam.runSearch({scope:'encrypted',q:'private',has:'links'});assert.equal(a.calls.length,0);const html=a.nodes.get('vo-results').innerHTML;assert.match(html,/1 currently loaded encrypted events/);assert.match(html,/Unloaded|unloaded/);assert.match(html,/data-event="\$exact"/);});

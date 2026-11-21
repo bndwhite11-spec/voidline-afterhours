@@ -12,7 +12,7 @@ function client({avatar,openProfile}={}){
  const context={window:{...((avatar||openProfile)?{VoidProfilesPanel:{avatar,openProfile}}:{}),VoidHome:{registerExtension:extension=>extension.init(bridge)},addEventListener(){}},document:{getElementById:id=>nodes.get(id)||null,addEventListener:(name,fn)=>listeners.set(name,fn)},FormData:class{constructor(form){this.values=form.values;}get(key){return this.values[key];}},console};
  vm.createContext(context);vm.runInContext(source,context,{filename:'dist/social.js'});
  const api=context.window.VoidSocial;
- return {api,bridge,nodes,listeners,calls,notices,answers,blank,node,state,async form(username){const form=node();form.dataset={socialForm:'request'};form.values={username};listeners.get('submit')({target:form,preventDefault(){}});await flush();await flush();return form;},async click(data){const button=node();button.dataset={socialAction:data.action,...data};listeners.get('click')({target:{closest:()=>button},preventDefault(){}});await flush();await flush();return button;}};
+ return {api,bridge,nodes,listeners,calls,notices,answers,blank,node,state,async form(username){const form=node();form.dataset={socialForm:'lookup'};form.values={username};listeners.get('submit')({target:form,preventDefault(){}});await flush();await flush();return form;},async click(data){const button=node();button.dataset={socialAction:data.action,...data};listeners.get('click')({target:{closest:()=>button},preventDefault(){}});await flush();await flush();return button;}};
 }
 const cases=[];const test=(name,run)=>cases.push([name,run]);
 test('the friend panel starts empty and a read never sends a request or invents a count',async()=>{
@@ -26,11 +26,36 @@ test('friends render uploaded static avatar representations while blocked rows n
  c.answers.set('/api/social?limit=30&offset=0',{...c.blank,friends:[person],counts:{...c.blank.counts,friends:1}});await c.api.open();assert.equal(calls.length,1);assert.match(c.nodes.get('social-results').innerHTML,new RegExp('src="/api/media/'+id+'"'));assert.doesNotMatch(c.nodes.get('social-results').innerHTML,/src="[^"]+\/animation/);
  c.answers.set('/api/social?limit=30&offset=0',{...c.blank,blocked:[person],counts:{...c.blank.counts,blocked:1}});await c.api.open('blocked');assert.equal(calls.length,1);assert.doesNotMatch(c.nodes.get('social-results').innerHTML,/<img/);
 });
-test('sending to an existing incoming request opens Incoming rather than claiming a new send',async()=>{
- const c=client();await c.api.open();c.answers.set('/api/social/request',{request:{id:'request1',state:'pending',direction:'incoming'},alreadyExists:true});await c.form('@bobby');const mutation=c.calls.find(call=>call.body);assert.equal(mutation.body.username,'bobby');assert.match(c.notices[0],/already sent you a request/);assert.match(c.nodes.get('social-tabs').innerHTML,/data-view="incoming" aria-pressed="true"/);
+test('an exact lookup is read-only; confirmation sends to the reviewed identity and handles a reciprocal request',async()=>{
+ const c=client();await c.api.open();
+ c.answers.set('/api/social/lookup',{person:{username:'bobby',accountId:'id-bobby',relationship:'available'}});
+ await c.form('@Bobby');assert.equal(c.calls.at(-1).route,'/api/social/lookup');assert.equal(c.calls.at(-1).body.username,'bobby');
+ assert.match(c.nodes.get('social-match').innerHTML,/Send request/);assert.ok(!c.calls.some(row=>row.route==='/api/social/request'));
+ c.answers.set('/api/social/request',{request:{id:'request1',state:'pending',direction:'incoming'},alreadyExists:true});
+ await c.click({action:'send'});
+ const mutation=c.calls.find(call=>call.route==='/api/social/request');assert.equal(mutation.body.username,'bobby');assert.equal(mutation.body.recipientId,'id-bobby');
+ assert.match(c.notices[0],/incoming request/);assert.match(c.nodes.get('social-tabs').innerHTML,/data-view="incoming" aria-pressed="true"/);
 });
-test('a failed friend-request write keeps its form available and never announces success',async()=>{
- const c=client();await c.api.open();c.answers.set('/api/social/request',()=>Promise.reject(Error('Not available')));const form=await c.form('bobby');assert.equal(form.isConnected,true);assert.equal(form.values.username,'bobby');assert.match(c.nodes.get('social-error').textContent,/Not available/);assert.equal(c.notices.length,0);assert.equal(form.dataset.busy,undefined);
+test('a failed friend-request confirmation keeps the reviewed handle available for retry',async()=>{
+ const c=client();await c.api.open();
+ c.answers.set('/api/social/lookup',{person:{username:'bobby',accountId:'id-bobby',relationship:'available'}});
+ c.answers.set('/api/social/request',()=>Promise.reject(Error('Not available')));
+ await c.form('bobby');await c.click({action:'send'});
+ assert.match(c.nodes.get('social-match').innerHTML,/@bobby/);assert.match(c.nodes.get('social-error').textContent,/Not available/);assert.equal(c.notices.length,0);
+});
+test('editing a lookup while it is pending cancels that result and cannot send to the old name',async()=>{
+ const c=client(),held=defer();await c.api.open();c.answers.set('/api/social/lookup',held.promise);await c.form('bobby');
+ c.listeners.get('input')({target:{id:'social-username',value:'alice'}});held.resolve({person:{username:'bobby',accountId:'old',relationship:'available'}});await flush();
+ assert.doesNotMatch(c.nodes.get('social-match').innerHTML,/bobby|Send request/);await c.click({action:'send'});
+ assert.ok(!c.calls.some(row=>row.route==='/api/social/request'));
+});
+test('closing a friend profile restores the prior input and tab only to its originating account',async()=>{
+ const c=client({openProfile:()=>c.bridge.showDialog('Profile','','<div id="vp-profile-result"></div>')});
+ await c.api.open('outgoing');c.listeners.get('input')({target:{id:'social-username',value:'@bobby'}});
+ await c.click({action:'profile',account:'id-bobby'});assert.equal(c.api.extension.beforeCloseDialog(),false);await flush();
+ assert.match(c.nodes.get('dialog').innerHTML,/value="@bobby"/);assert.match(c.nodes.get('social-tabs').innerHTML,/data-view="outgoing" aria-pressed="true"/);
+ await c.click({action:'profile',account:'id-bobby'});c.api.extension.onLock();c.state.account={id:'new-account'};
+ assert.equal(c.api.extension.beforeCloseDialog(),true);await c.api.open();assert.doesNotMatch(c.nodes.get('dialog').innerHTML,/@bobby/);
 });
 test('a late old-account response cannot populate the new account panel',async()=>{
  const c=client(),held=defer();c.answers.set('/api/social?limit=30&offset=0',held.promise);const opening=c.api.open();c.api.extension.onLock();c.state.account={id:'bobby'};c.bridge.showDialog('Different account','','<div id="other">New account</div>');held.resolve({...c.blank,friends:[{accountId:'secret',username:'old_private_friend',displayName:'Old private friend'}]});await opening;assert.match(c.nodes.get('dialog').innerHTML,/New account/);assert.doesNotMatch(c.nodes.get('dialog').innerHTML,/Old private friend/);
@@ -39,7 +64,7 @@ test('block and remove actions require their confirmation before account mutatio
  const c=client();await c.api.open();await c.click({action:'block-confirm',account:'bobby',username:'bobby'});assert.equal(c.calls.filter(call=>call.body).length,0);assert.match(c.nodes.get('dialog').innerHTML,/Block @bobby/);await c.click({action:'block',account:'bobby'});const mutation=c.calls.find(call=>call.body);assert.equal(mutation.route,'/api/social/blocks');assert.equal(mutation.body.accountId,'bobby');assert.equal(mutation.body.active,true);
 });
 test('a delayed social write cannot replace a newer profile dialog or its unsaved text',async()=>{
- const c=client(),held=defer();await c.api.open();c.answers.set('/api/social/request',held.promise);await c.form('bobby');c.bridge.showDialog('Edit profile','','<textarea id="new-profile">Unsaved profile text</textarea>');held.resolve({request:{id:'request1',state:'pending',direction:'outgoing'}});await flush();await flush();assert.match(c.nodes.get('dialog').innerHTML,/Unsaved profile text/);assert.equal(c.notices.length,0);assert.equal(c.calls.filter(call=>call.route.startsWith('/api/social?')).length,1);
+ const c=client(),held=defer();await c.api.open();c.answers.set('/api/social/lookup',{person:{username:'bobby',accountId:'id-bobby',relationship:'available'}});await c.form('bobby');c.answers.set('/api/social/request',held.promise);await c.click({action:'send'});c.bridge.showDialog('Edit profile','','<textarea id="new-profile">Unsaved profile text</textarea>');held.resolve({request:{id:'request1',state:'pending',direction:'outgoing'}});await flush();await flush();assert.match(c.nodes.get('dialog').innerHTML,/Unsaved profile text/);assert.equal(c.notices.length,0);assert.equal(c.calls.filter(call=>call.route.startsWith('/api/social?')).length,1);
 });
 test('an accepted friend Message action opens review without creating a conversation',async()=>{const c=client(),recipients=[];c.bridge.newNativeConversation=username=>recipients.push(username);c.answers.set('/api/social?limit=30&offset=0',{...c.blank,friends:[{accountId:'bob',username:'bobby',displayName:'Bobby'}],counts:{...c.blank.counts,friends:1}});await c.api.open();assert.match(c.nodes.get('social-results').innerHTML,/data-social-action="message"/);await c.click({action:'message',username:'bobby'});assert.deepEqual(recipients,['bobby']);assert.equal(c.calls.some(call=>call.body!==undefined),false);});
 test('friend profile clicks use the exact account ID without creating or changing a conversation',async()=>{
