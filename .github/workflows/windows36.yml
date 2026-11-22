@@ -1,0 +1,22 @@
+name: Windows app and Edge
+on:
+  push:
+    branches: [verification/cartridges-platform-36]
+    paths: ['.github/workflows/windows36.yml', '.github/qa-win/**']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Download and launch the published Windows x64 application
+        shell: powershell
+        run: ./.github/qa-win/windows.ps1
+      - name: Play the six live collectible previews in Microsoft Edge
+        if: ${{ !cancelled() }}
+        shell: powershell
+        run: node ./.github/qa-win/edge.cjs
