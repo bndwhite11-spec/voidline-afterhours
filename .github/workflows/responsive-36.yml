@@ -1,0 +1,43 @@
+name: VOIDLINE responsive browser checks
+on:
+  push:
+    branches: [verification/cartridges-platform-36]
+    paths:
+      - '.github/workflows/responsive-36.yml'
+      - 'scripts/ci/check-live-layout.cjs'
+permissions:
+  contents: read
+jobs:
+  responsive-browsers:
+    name: Responsive gallery / ${{ matrix.engine }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install the selected browser
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$RUNNER_TEMP/gallery-checks" playwright@1.56.1
+          "$RUNNER_TEMP/gallery-checks/node_modules/.bin/playwright" install --with-deps "$ENGINE"
+      - name: Check live artwork at four widths
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          NODE_PATH="$RUNNER_TEMP/gallery-checks/node_modules" node scripts/ci/check-live-layout.cjs
+      - name: Keep browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gallery-${{ matrix.engine }}
+          path: qa-browser-output/
+          if-no-files-found: warn
