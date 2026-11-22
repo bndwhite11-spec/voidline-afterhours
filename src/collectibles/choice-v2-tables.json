@@ -1,0 +1,205 @@
+[
+  {
+    "id": "midnight-tape",
+    "name": "Midnight Tape",
+    "tableVersion": "midnight-tape.v1",
+    "models": [
+      {
+        "id": "gift-tape-graphite-session",
+        "name": "Graphite Session",
+        "material": "Graphite ABS, cream paper and oxide tape",
+        "description": "The take-up hub gathers the recorded side while the supply pack unwinds.",
+        "alt": "Charcoal cassette with a cream label, open hub teeth and red oxide tape.",
+        "familyId": "midnight-tape",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Graphite Shelf",
+          "center": "#606970",
+          "edge": "#232a31",
+          "motifColor": "#87949a",
+          "foreground": "#f3fbfa"
+        },
+        "motif": "Cue dots",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Midnight Tape"
+      },
+      {
+        "id": "gift-tape-clear-leader",
+        "name": "Clear Leader",
+        "material": "Smoke-jade acrylic, copper guides and clear leader",
+        "description": "The clear wall exposes two unequal tape packs. An amber leader joint crosses the center window.",
+        "alt": "See-through jade cassette with exposed reels, metal tape guides and an amber splice.",
+        "familyId": "midnight-tape",
+        "tier": "Uncommon",
+        "weight": 2700,
+        "backdrop": {
+          "name": "Glass Booth",
+          "center": "#477776",
+          "edge": "#182e32",
+          "motifColor": "#80aba2",
+          "foreground": "#f1fffa"
+        },
+        "motif": "Signal lines",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Midnight Tape"
+      },
+      {
+        "id": "gift-tape-splice-repair",
+        "name": "Splice Repair",
+        "material": "Worn ochre plastic, splicing tape and ink",
+        "description": "Diagonal repair tape bridges a scuffed shell. A marked edit catches in the window, then slips through.",
+        "alt": "Ochre cassette with adhesive repair strips and a handwritten red splice mark.",
+        "familyId": "midnight-tape",
+        "tier": "Rare",
+        "weight": 1450,
+        "backdrop": {
+          "name": "Repair Bench",
+          "center": "#79614e",
+          "edge": "#30272a",
+          "motifColor": "#b39b77",
+          "foreground": "#fff5e6"
+        },
+        "motif": "Splice marks",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Midnight Tape"
+      },
+      {
+        "id": "gift-tape-brushed-deck",
+        "name": "Brushed Deck",
+        "material": "Brushed aluminum, machined hubs and steel screws",
+        "description": "A narrow reflection crosses the faceplate while the dark hubs take up the tape.",
+        "alt": "Pale metal cassette with four countersunk screws and dark machined reels.",
+        "familyId": "midnight-tape",
+        "tier": "Epic",
+        "weight": 650,
+        "backdrop": {
+          "name": "Machine Room",
+          "center": "#616a76",
+          "edge": "#242939",
+          "motifColor": "#919ba9",
+          "foreground": "#f5f6fc"
+        },
+        "motif": "Knurl lines",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Midnight Tape"
+      },
+      {
+        "id": "gift-tape-night-press",
+        "name": "Night Press",
+        "material": "Violet screen print, silver foil and gold ink",
+        "description": "A gold moon rests on the label. The foil registration cross turns with the take-up hub.",
+        "alt": "Violet art-label cassette with a printed horizon, gold moon and foil marks.",
+        "familyId": "midnight-tape",
+        "tier": "Legendary",
+        "weight": 200,
+        "backdrop": {
+          "name": "Night Printshop",
+          "center": "#67566e",
+          "edge": "#271e32",
+          "motifColor": "#a88dad",
+          "foreground": "#fff4fc"
+        },
+        "motif": "Register crosses",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Midnight Tape"
+      }
+    ]
+  },
+  {
+    "id": "copium-reserve",
+    "name": "Copium Reserve Tank",
+    "tableVersion": "copium-reserve.v1",
+    "models": [
+      {
+        "id": "gift-tank-field-enamel",
+        "name": "Field Enamel",
+        "material": "Jade enameled steel, brass valve and gauge glass",
+        "description": "The handwheel cracks open. The needle lifts and a short plume dissolves above the regulator.",
+        "alt": "Jade pressure cylinder on a molded foot, with a brass handwheel and a cream gauge.",
+        "familyId": "copium-reserve",
+        "tier": "Common",
+        "weight": 5200,
+        "backdrop": {
+          "name": "Service Bay",
+          "center": "#586e62",
+          "edge": "#202f2b",
+          "motifColor": "#93a890",
+          "foreground": "#f6fff3"
+        },
+        "motif": "Calibration ticks",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Copium Reserve Tank"
+      },
+      {
+        "id": "gift-tank-sight-glass",
+        "name": "Sight Glass",
+        "material": "Borosilicate glass, a brass cage and a ceramic float",
+        "description": "The liquid level and float settle behind the clear wall when the regulator opens.",
+        "alt": "Transparent reservoir in a brass cage with a visible float and liquid meniscus.",
+        "familyId": "copium-reserve",
+        "tier": "Uncommon",
+        "weight": 3000,
+        "backdrop": {
+          "name": "Gauge Room",
+          "center": "#506d75",
+          "edge": "#202e35",
+          "motifColor": "#82a4a8",
+          "foreground": "#f2fdff"
+        },
+        "motif": "Level marks",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Copium Reserve Tank"
+      },
+      {
+        "id": "gift-tank-field-repair",
+        "name": "Field Repair",
+        "material": "Oxide-red steel, canvas straps and riveted patches",
+        "description": "The repaired wing knob lifts. A taped joint exhales above the khaki field strap.",
+        "alt": "Oxide-red cylinder with a riveted patch, khaki reinforcement and a repaired regulator.",
+        "familyId": "copium-reserve",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Salvage Yard",
+          "center": "#7b5e54",
+          "edge": "#322525",
+          "motifColor": "#af9171",
+          "foreground": "#fff7eb"
+        },
+        "motif": "Rivet pairs",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Copium Reserve Tank"
+      },
+      {
+        "id": "gift-tank-kiln-white",
+        "name": "Kiln White",
+        "material": "Ivory ceramic, copper wire and cobalt enamel",
+        "description": "The copper wheel meters a breath of vapor past the warm shoulder seam.",
+        "alt": "Ivory ceramic tank with copper reinforcement, a cobalt gauge and a grounded foot ring.",
+        "familyId": "copium-reserve",
+        "tier": "Epic",
+        "weight": 400,
+        "backdrop": {
+          "name": "Kiln Room",
+          "center": "#6e6258",
+          "edge": "#31272a",
+          "motifColor": "#aa978b",
+          "foreground": "#fff9ef"
+        },
+        "motif": "Firing rings",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Copium Reserve Tank"
+      }
+    ]
+  }
+]

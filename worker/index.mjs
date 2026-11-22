@@ -1,3 +1,4 @@
+import {activeEditionId,expiryClock,issuingEnabled,participationWrites} from './capsule-rules.mjs';
 import {profileAvatarsForViewer,unavailableAvatar} from './identity.mjs';
 import {authenticate, validateSessionMutation, normalizeUsername, AuthError} from './auth.mjs';
 import {standardAttachmentIds,stagedAttachmentGuard,claimStandardAttachments,standardAttachmentMetadata} from './attachments.mjs';
@@ -101,11 +102,11 @@ const channelMembership = `FROM live_channels c
   JOIN live_communities g ON g.id = c.community_id
   WHERE c.id = ? AND m.account_id = ?`;
 
-async function accessibleChannel(db, channelId, userId) {
+async function accessibleChannel(db, channelId, userId, rewardEdition=null) {
   requireThat(typeof channelId==='string'&&channelId.length>0&&channelId.length<=100,400,'invalid_channel','Choose a valid shared channel.');
   const channel = await query(db,
-    `SELECT c.id, c.community_id, c.name, c.kind, m.role,g.ownership_repair_required ${channelMembership}`,
-    channelId, userId).first();
+    `SELECT c.id, c.community_id, c.name, c.kind, m.role,g.ownership_repair_required ${rewardEdition?",EXISTS(SELECT 1 FROM capsule_editions WHERE id=?) AS edition_installed":""} ${channelMembership}`,
+    ...(rewardEdition?[rewardEdition]:[]),channelId, userId).first();
   requireThat(channel, 403, 'channel_access_denied', 'You do not have access to this channel.');
   return channel;
 }
@@ -355,7 +356,8 @@ export async function handleLiveRequest(request,env) {
    return json({invite:{communityId:invite.community_id,name:invite.name,description:invite.description,icon:invite.icon,expiresAt:invite.expires_at,alreadyMember:!!existing,state}});
   }
   if(path.length===3&&path[0]==='channels'){
-   const channelId=path[1],channel=await accessibleChannel(db,channelId,user.id);
+   const rewardEdition=path[2]==='messages'&&method==='POST'&&issuingEnabled(env)?activeEditionId(env):null;
+   const channelId=path[1],channel=await accessibleChannel(db,channelId,user.id,rewardEdition);
    if(path[2]==='changes'&&method==='GET'){
     const after=cursorValue(url.searchParams.get('after'))??0,{limit}=paging(url);
     const changes=(await query(db,'SELECT seq,message_id FROM live_changes WHERE channel_id=? AND seq>? ORDER BY seq LIMIT ?',channelId,after,limit+1).all()).results;
@@ -399,7 +401,8 @@ export async function handleLiveRequest(request,env) {
     if(replyToId){const source=await getMessage(db,replyToId,user.id);requireThat(source.channel_id===channelId,400,'invalid_reply','Reply to a message in this channel.');requireThat(!source.deleted_at,409,'source_deleted','This message was deleted. Remove the reply reference to send.');}
     if(threadRootId){const root=await getMessage(db,threadRootId,user.id);requireThat(root.channel_id===channelId&&!root.thread_root_id,400,'invalid_thread','Choose a root message in this channel.');}
     const id=uuid(),record={id,channel_id:channelId},assetGuard=stagedAttachmentGuard(attachmentIds,user.id,{channelId},now);
-    const statements=[query(db,`INSERT OR IGNORE INTO live_messages(id,channel_id,author_id,client_id,text,reply_to_id,thread_root_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,?,? WHERE ${writeGuard.sql}${replyToId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND deleted_at IS NULL)':''}${threadRootId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND thread_root_id IS NULL AND deleted_at IS NULL)':''}${assetGuard.sql}`,id,channelId,user.id,body.clientId,text,replyToId,threadRootId,hash,now,...writeGuard.args,...(replyToId?[replyToId,channelId]:[]),...(threadRootId?[threadRootId,channelId]:[]),...assetGuard.args),...claimStandardAttachments(db,attachmentIds,user.id,{channelId},id,hash,now),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'send',? FROM live_messages WHERE id=?",user.id,now,id)];
+    const statements=[query(db,`INSERT OR IGNORE INTO live_messages(id,channel_id,author_id,client_id,text,reply_to_id,thread_root_id,original_hash,created_at) SELECT ?,?,?,?,?,?,?,?,${expiryClock} WHERE ${writeGuard.sql}${replyToId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND deleted_at IS NULL)':''}${threadRootId?' AND EXISTS(SELECT 1 FROM live_messages WHERE id=? AND channel_id=? AND thread_root_id IS NULL AND deleted_at IS NULL)':''}${assetGuard.sql}`,id,channelId,user.id,body.clientId,text,replyToId,threadRootId,hash,...writeGuard.args,...(replyToId?[replyToId,channelId]:[]),...(threadRootId?[threadRootId,channelId]:[]),...assetGuard.args),...claimStandardAttachments(db,attachmentIds,user.id,{channelId},id,hash,now),query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,id,?,'send',? FROM live_messages WHERE id=?",user.id,now,id)];
+    statements.push(...participationWrites(env,id,user,!!channel.edition_installed));
     if(mentionIds.length)statements.push(query(db,`INSERT OR IGNORE INTO live_message_mentions(message_id,account_id,created_at) SELECT m.id,t.account_id,? FROM live_messages m JOIN live_memberships t ON t.community_id=? WHERE m.id=? AND t.account_id IN (${mentionIds.map(()=>'?').join(',')})`,now,channel.community_id,id,...mentionIds));
     if(threadRootId)statements.push(query(db,"INSERT INTO live_changes(channel_id,message_id,actor_id,kind,created_at) SELECT channel_id,?,?,'thread',? FROM live_messages WHERE id=?",threadRootId,user.id,now,id));
     await db.batch(statements);

@@ -6,6 +6,12 @@ import {genre} from './badges-genre.mjs';
 import {telegramCharacters} from './telegram-characters.mjs';
 import {telegramObjects} from './telegram-objects.mjs';
 import {webSources} from './web-sources.mjs';
+import {collectibleModels,collectibleFamilies} from '../collectibles/models.mjs';
+import {curatedGifts} from './curated-gifts.mjs';
+import {plushModels} from './plush-models.mjs';
+import {tapeModels} from './tape-models.mjs';
+import {tankModels} from './tank-models.mjs';
+import {keycapModels} from './keycap-models.mjs';
 import {studioObjects} from './studio-objects.mjs';
 import studioMinis from './studio-miniatures.json' with {type:'json'};
 import {createWebArt,assertSafeWebSVG} from './web-art.mjs';
@@ -17,9 +23,25 @@ const legacy={...originals,...culture,...extras,...genre,...gifts,...telegramCha
 // precise artwork their original choreography and sanitizer expect.
 const previousCatalog=Object.fromEntries(Object.entries(legacy).map(([id,a])=>[id,webSources[id]?createWebArt(a,webSources[id]):a]));
 export const studioIds=Object.freeze(Object.keys(studioObjects));
-export const artCatalog=Object.freeze({...previousCatalog,...Object.fromEntries(studioIds.map(id=>[id,
+const expansion=Object.fromEntries(Object.entries({...tapeModels,...tankModels}).filter(([id])=>Object.hasOwn(collectibleModels,id)));
+const modelArtwork={...plushModels,...keycapModels,...expansion};
+const originalsByModel=Object.fromEntries(Object.entries(modelArtwork).map(([id,art])=>{
+ const model=collectibleModels[id];
+ if(!model)throw Error('Unknown model master '+id);
+ return [id,{...art,...model,type:'gift',series:collectibleFamilies[model.familyId].name,
+  edition:model.artRevision,assetKind:'layered-svg',storyboard:art.storyboard||art.story}];
+}));
+export const studioCatalog=Object.freeze({...previousCatalog,...Object.fromEntries(studioIds.map(id=>[id,
   createWebArt(legacy[id],webSources[id],{...studioObjects[id],miniPath:studioMinis[id]})
 ]))});
+export const curatedIds=Object.freeze(Object.keys(curatedGifts));
+const revised=Object.fromEntries(curatedIds.map(id=>{
+ const prior=studioCatalog[id],art=curatedGifts[id];
+ if(!prior||prior.type!=='gift'||art.name&&art.name!==prior.name)throw Error('Invalid legacy replacement '+id);
+ return [id,{...art,name:prior.name,type:'gift',series:prior.series,assetKind:'layered-svg',edition:art.artRevision,
+  acquisitionPolicy:'legacy-free'}];
+}));
+export const artCatalog=Object.freeze({...studioCatalog,...revised,...originalsByModel});
 const xml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export {artVersion};
 export function artSVG(id,variant='detail',registry=artCatalog){
@@ -27,10 +49,13 @@ export function artSVG(id,variant='detail',registry=artCatalog){
  if(!['mini','card','detail','silhouette'].includes(variant))throw Error('Invalid art variant');
  const prefix='va'+artVersion+'-'+id+'-'+variant,small=variant==='mini',silhouette=variant==='silhouette';
  const credits=item.sourceArt?xml([item.sourceArt.creator,item.sourceArt.license,item.sourceArt.sourceURL,item.sourceArt.licenseURL,...(item.sourceArt.components||[]).flatMap(c=>[c.creator,c.license,c.sourceURL,c.licenseURL])].filter(Boolean).join(' · ')):'';
- const content=small?item.mini:silhouette?`<g fill="#10161d" fill-rule="evenodd">${typeof item.silhouette==='function'?item.silhouette(prefix):item.silhouette}</g>`:(item.sourceArt?item.body(prefix,variant):`<defs>${materialDefs(prefix)}</defs>${item.body(prefix)}`);
+ const content=small?item.mini:silhouette?`<g fill="#10161d" fill-rule="evenodd">${typeof item.silhouette==='function'?item.silhouette(prefix):item.silhouette}</g>`:(item.sourceArt||item.assetKind==='layered-svg'?item.body(prefix,variant):`<defs>${materialDefs(prefix)}</defs>${item.body(prefix)}`);
  if(item.sourceArt)assertSafeWebSVG(content,item.sourceArt);
  else if(/<(?:script|foreignObject|image|iframe|animate|set)\b|\bon\w+\s*=|(?:href|src)\s*=/i.test(content))throw Error('Unsafe/external SVG content '+id);
- return `<svg xmlns="http://www.w3.org/2000/svg" width="${small?24:256}" height="${small?24:256}" viewBox="0 0 ${small?24:256} ${small?24:256}" data-vc-object="${xml(id)}" data-art-version="${artVersion}" data-variant="${variant}" role="img" aria-labelledby="${prefix}-title"><title id="${prefix}-title">${xml(item.alt)}</title>${credits?`<desc>${credits}</desc>`:''}${content}</svg>`;
+ const trackData=item.assetKind==='layered-svg'&&variant==='detail'?' data-motion="'+xml(JSON.stringify(item.motion))+'"':'';
+ return `<svg${trackData} xmlns="http://www.w3.org/2000/svg" width="${small?24:256}" height="${small?24:256}" viewBox="0 0 ${small?24:256} ${small?24:256}" data-vc-object="${xml(id)}" data-art-version="${artVersion}" data-variant="${variant}" role="img" aria-labelledby="${prefix}-title"><title id="${prefix}-title">${xml(item.alt)}</title>${credits?`<desc>${credits}</desc>`:''}${content}</svg>`;
 }
 
 export const priorArtSVG=(id,variant)=>artSVG(id,variant,previousCatalog);
+
+export const published32ArtSVG=(id,variant)=>artSVG(id,variant,studioCatalog);

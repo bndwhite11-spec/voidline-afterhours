@@ -1,0 +1,164 @@
+{
+  "gift-tape-graphite-session": {
+    "mini": {
+      "url": "/art/v4/gift-tape-graphite-session-mini.9eecf4931625.svg",
+      "sha256": "9eecf4931625906b3570c10bf2cce54caf659c1112fdac60fd49623b009deac1"
+    },
+    "card": {
+      "url": "/art/v4/gift-tape-graphite-session-card.7f936da82261.svg",
+      "sha256": "7f936da8226167ae62c7c6625cdd1850a11b12fb3a14a67cdb744767bdaa4ee8"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tape-graphite-session-detail.7e097ea8e654.svg",
+      "sha256": "7e097ea8e654246504571312402322f7e1425f3fa12aebf19b9c94e58bfdedd0"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tape-graphite-session-silhouette.e8357821930a.svg",
+      "sha256": "e8357821930a64250d0eb22fdfa039710dff59af7f5cc14731bd108459aa8cc4"
+    }
+  },
+  "gift-tape-clear-leader": {
+    "mini": {
+      "url": "/art/v4/gift-tape-clear-leader-mini.ad21acaf2034.svg",
+      "sha256": "ad21acaf2034ab3c6cce8bc0aa3dbe0a6b9d8c4ba60a08d7c8bb5b847f9c203f"
+    },
+    "card": {
+      "url": "/art/v4/gift-tape-clear-leader-card.c8dd6956a4bc.svg",
+      "sha256": "c8dd6956a4bc34e5d82dc4ae9e6aa715e2217993819ab966191d0672ce96a343"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tape-clear-leader-detail.8b8af0ae0802.svg",
+      "sha256": "8b8af0ae08028b9c90968bcd1997a2f6671ca58268d75db52b88c0d809b4e8f2"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tape-clear-leader-silhouette.ec4c7a9e1f3a.svg",
+      "sha256": "ec4c7a9e1f3a38aa3c6e1cd5dd6560b7924a6707814ccef7a465c2e79104f92c"
+    }
+  },
+  "gift-tape-splice-repair": {
+    "mini": {
+      "url": "/art/v4/gift-tape-splice-repair-mini.cdf01c85685e.svg",
+      "sha256": "cdf01c85685ebe1958563eb7bd58c82c4f26d3f2c6ac3c58c5267a2d7ddabe21"
+    },
+    "card": {
+      "url": "/art/v4/gift-tape-splice-repair-card.c7c40425bca2.svg",
+      "sha256": "c7c40425bca2df9dc4737b00373d9ef1d047302a9b0c5d2aaa4bf9d69bee14e9"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tape-splice-repair-detail.cb9bfdde2a6b.svg",
+      "sha256": "cb9bfdde2a6b89ce4b8c240f528ae8729b753e0398efca58741256b1f44d7b30"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tape-splice-repair-silhouette.f91930c94ca9.svg",
+      "sha256": "f91930c94ca90e7e32360eda96a2f401efe3991d740e98087660b5f266d71260"
+    }
+  },
+  "gift-tape-brushed-deck": {
+    "mini": {
+      "url": "/art/v4/gift-tape-brushed-deck-mini.a4e8387e4ce9.svg",
+      "sha256": "a4e8387e4ce921dbedbb49626d26f393ec181286cf7254c17e1531872b91c1a2"
+    },
+    "card": {
+      "url": "/art/v4/gift-tape-brushed-deck-card.de1f1047ef20.svg",
+      "sha256": "de1f1047ef2029152f16a258b539c949484a58cf34a2b1eb5f52ce2e2a27db8d"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tape-brushed-deck-detail.59374157c9f3.svg",
+      "sha256": "59374157c9f30f12113f56d28fb34414c94499297b1bbb7b30ada2ec79f03780"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tape-brushed-deck-silhouette.513e698fd97c.svg",
+      "sha256": "513e698fd97c136a1d0f98e5d3b0b0c7484db507c84d222114a7f6e3d4d26c8c"
+    }
+  },
+  "gift-tape-night-press": {
+    "mini": {
+      "url": "/art/v4/gift-tape-night-press-mini.33af7748caf6.svg",
+      "sha256": "33af7748caf6e67407532b37fcfa1bbd1fa293cabf13310593def2b0d9f4e29c"
+    },
+    "card": {
+      "url": "/art/v4/gift-tape-night-press-card.1effcf122ef6.svg",
+      "sha256": "1effcf122ef6a0dbba05810fcf564bd4060d4b856b4508e50228a48a8d2d08dd"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tape-night-press-detail.2ccbc91ca8c1.svg",
+      "sha256": "2ccbc91ca8c15f56643979066b846df576b2001ce5185373950f1174629c6646"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tape-night-press-silhouette.3fb11c532bc9.svg",
+      "sha256": "3fb11c532bc9851d0327c63f0f0e8afc60cffcaa097d1f2ffc5fdc477b4ac514"
+    }
+  },
+  "gift-tank-field-enamel": {
+    "mini": {
+      "url": "/art/v4/gift-tank-field-enamel-mini.74f4fa2e8a15.svg",
+      "sha256": "74f4fa2e8a1543cd0237491c14ea70a208e3019ca8e361dfc2606996efe6958c"
+    },
+    "card": {
+      "url": "/art/v4/gift-tank-field-enamel-card.ec3000ab914d.svg",
+      "sha256": "ec3000ab914dcb4f392919da9cb80058e3d7b945fd22d854dc6a26cbd89efc80"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tank-field-enamel-detail.6bb7b7d7eb52.svg",
+      "sha256": "6bb7b7d7eb52cc7b3d5414c9bfb99ea3c0da35309a81c5782bd85d8358fd5284"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tank-field-enamel-silhouette.6638565a2db8.svg",
+      "sha256": "6638565a2db8627545c0c1d948f4ddde86253e4b173202717f39feec04f2ad6c"
+    }
+  },
+  "gift-tank-sight-glass": {
+    "mini": {
+      "url": "/art/v4/gift-tank-sight-glass-mini.14e22c3fdd74.svg",
+      "sha256": "14e22c3fdd7487b5fd2907c26c9eb5810f2febf741ac2fdb69e38760d14fa02d"
+    },
+    "card": {
+      "url": "/art/v4/gift-tank-sight-glass-card.4973777fef47.svg",
+      "sha256": "4973777fef47152c0008f3b7b61e5977413b7f936d65e15801ca99406feb8c86"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tank-sight-glass-detail.2f956dfbc9fd.svg",
+      "sha256": "2f956dfbc9fddb43c92d1817dac37cf242c858580a799a5433614ada8ac204a9"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tank-sight-glass-silhouette.c2267e456607.svg",
+      "sha256": "c2267e45660762c510df0b687694b67a07c7c5255859a614a72bb1edcd437d2f"
+    }
+  },
+  "gift-tank-field-repair": {
+    "mini": {
+      "url": "/art/v4/gift-tank-field-repair-mini.d5e95274a851.svg",
+      "sha256": "d5e95274a851d855cbd0f0d8b9bb2c553edd29cbc86c4da4618374fd6515e92c"
+    },
+    "card": {
+      "url": "/art/v4/gift-tank-field-repair-card.1e59e0b81301.svg",
+      "sha256": "1e59e0b81301d8682589247308abe06ac75edd1b2a0232dc9f5b71fcc6eaaa0b"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tank-field-repair-detail.4a59b340e129.svg",
+      "sha256": "4a59b340e129489f71ece19b0ee12da678b9b78091fe8041e725bfd33c911489"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tank-field-repair-silhouette.8148658f1ec3.svg",
+      "sha256": "8148658f1ec3a358607c312e71ac2c9efb203f99ff0b504fc0e5849835bb38ad"
+    }
+  },
+  "gift-tank-kiln-white": {
+    "mini": {
+      "url": "/art/v4/gift-tank-kiln-white-mini.738dc80e6810.svg",
+      "sha256": "738dc80e68105eed183565a7183aa12cc5c1dee5bba60f1e1fa9fb8c6f95cda4"
+    },
+    "card": {
+      "url": "/art/v4/gift-tank-kiln-white-card.e24df44add21.svg",
+      "sha256": "e24df44add219c486a35694e264c601b7eea664321c0f0427a3e881510fbb1a5"
+    },
+    "detail": {
+      "url": "/art/v4/gift-tank-kiln-white-detail.b90acffba563.svg",
+      "sha256": "b90acffba563082213013cb450da4c7481e262f7aecf1754e18d76172f80d531"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-tank-kiln-white-silhouette.d6cc3f4ad18c.svg",
+      "sha256": "d6cc3f4ad18cc0c034254b35a6b18d220da4c0e234bfd380018247ea0fc524d6"
+    }
+  }
+}

@@ -16,6 +16,18 @@ async function fixture({rows=[rose,cup,tape],slots=[],profile={},onInspect}={}){
  window.VoidCosmetics={art:id=>`<svg data-art="${esc(id)}" aria-hidden="true"></svg>`};window.eval(source);const controller=window.VoidProfileShowcase.create({bridge,profile:{id:'account-a',showcase:slots.map(s=>({...rows.find(row=>row.id===s.instanceId),instance_id:s.instanceId,slot:s.slot,show_sender:s.showSender?1:0})),...profile},draft:{showcaseSlots:slots},onChange:slots=>changes.push(plain(slots)),onInspect});const root=document.getElementById('showcase');controller.mount(root);
  return{window,document,state,bridge,calls,changes,replies,controller,root,click(selector){const button=root.querySelector(selector);assert(button,'missing '+selector);button.click();return button;},change(selector,value){const node=root.querySelector(selector);assert(node,'missing '+selector);if(node.type==='checkbox')node.checked=value;else node.value=value;node.dispatchEvent(new window.Event('change',{bubbles:true}));return node;},close(){controller.dispose();window.close();}};
 }
+test('featuring a particular copy is reversible, exclusive and draft-only',async()=>{
+ const f=await fixture({slots:[{slot:1,instanceId:rose.id,showSender:false},{slot:2,instanceId:cup.id,showSender:false}]});
+ try{
+  f.click('[data-ps-action="feature"][data-slot="1"]');
+  assert.deepEqual(plain(f.controller.value()).filter(r=>r.featured).map(r=>r.instanceId),[rose.id]);
+  f.click('[data-ps-action="feature"][data-slot="2"]');
+  assert.deepEqual(plain(f.controller.project()).filter(r=>r.featured).map(r=>r.instance_id),[cup.id]);
+  f.click('[data-ps-action="feature"][data-slot="2"]');
+  assert(!f.controller.value().some(r=>r.featured));
+  assert.equal(f.calls.filter(r=>r.body).length,0);
+ }finally{f.controller.dispose();f.window.close();}
+});
 test('a new empty showcase has three explicit slots and opening it grants nothing',async()=>{
  const f=await fixture();try{assert.equal(f.root.querySelectorAll('[data-ps-slot]').length,3);assert.deepEqual(plain(f.controller.value()),[]);assert.equal(f.calls.length,0);f.click('[data-ps-action="choose"][data-slot="1"]');await settle();assert.equal(f.root.querySelectorAll('[data-ps-action="pick"]').length,3);assert.equal(f.calls.filter(row=>row.body!==undefined).length,0);assert.deepEqual(plain(f.controller.value()),[]);}finally{f.close();}
 });

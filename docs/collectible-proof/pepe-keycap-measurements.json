@@ -1,0 +1,50 @@
+[
+  {
+    "id": "gift-pepe-desk-green",
+    "movingPixelsAt100px": 3498,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1480,
+    "posterBytes": 16711,
+    "detailBytes": 21414
+  },
+  {
+    "id": "gift-pepe-terminal-clear",
+    "movingPixelsAt100px": 3593,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1580,
+    "posterBytes": 18263,
+    "detailBytes": 20951
+  },
+  {
+    "id": "gift-pepe-night-shift",
+    "movingPixelsAt100px": 3246,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1640,
+    "posterBytes": 17444,
+    "detailBytes": 20367
+  },
+  {
+    "id": "gift-pepe-porcelain-pond",
+    "movingPixelsAt100px": 3275,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1530,
+    "posterBytes": 17882,
+    "detailBytes": 20581
+  },
+  {
+    "id": "gift-pepe-meteor-core",
+    "movingPixelsAt100px": 3507,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1690,
+    "posterBytes": 18406,
+    "detailBytes": 21666
+  },
+  {
+    "id": "gift-pepe-black-opal-eclipse",
+    "movingPixelsAt100px": 3942,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1890,
+    "posterBytes": 18150,
+    "detailBytes": 21292
+  }
+]

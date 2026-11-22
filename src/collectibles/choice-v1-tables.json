@@ -1,0 +1,268 @@
+[
+  {
+    "id": "chudjak-plush",
+    "name": "Chudjak Plush",
+    "tableVersion": "chudjak-plush.v1",
+    "models": [
+      {
+        "id": "gift-chudjak-original",
+        "name": "Original Chudjak",
+        "material": "Felt, cotton shirting and embroidered thread",
+        "description": "An unimpressed face behind thick glasses. One soft hand lifts for a reluctant wave.",
+        "alt": "Seated Chudjak doll with felt hair, thick glasses, sewn shirt and rounded feet.",
+        "familyId": "chudjak-plush",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Warm Desk",
+          "center": "#755d4b",
+          "edge": "#29232a",
+          "motifColor": "#a48971",
+          "foreground": "#fff4df"
+        },
+        "motif": "Seam marks",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Chudjak Plush"
+      },
+      {
+        "id": "gift-chudjak-midnight-hoodie",
+        "name": "Midnight Hoodie",
+        "material": "Charcoal jersey with ribbed cotton cuffs",
+        "description": "He tugs at a lined hood. The cords take a beat to settle against his chest.",
+        "alt": "Bespectacled Chudjak in a charcoal hood with a deep lining and two hanging drawstrings.",
+        "familyId": "chudjak-plush",
+        "tier": "Uncommon",
+        "weight": 2800,
+        "backdrop": {
+          "name": "Night Bus",
+          "center": "#45586c",
+          "edge": "#192431",
+          "motifColor": "#788da4",
+          "foreground": "#f3f6ff"
+        },
+        "motif": "Stitches",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Chudjak Plush"
+      },
+      {
+        "id": "gift-chudjak-helmet",
+        "name": "Helmet Chudjak",
+        "material": "Olive twill, webbing and padded felt",
+        "description": "A padded field helmet slips with the tilt of his head. One hand nudges it back.",
+        "alt": "Chudjak plush in a paneled olive helmet with a chin strap and a utility overshirt.",
+        "familyId": "chudjak-plush",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Field Dusk",
+          "center": "#60664c",
+          "edge": "#232a24",
+          "motifColor": "#919774",
+          "foreground": "#fcfae3"
+        },
+        "motif": "Stitched chevrons",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Chudjak Plush"
+      },
+      {
+        "id": "gift-chudjak-patchwork",
+        "name": "Patchwork Afterhours",
+        "material": "Pieced cotton with blanket-stitched repairs",
+        "description": "Cream, burgundy and graphite panels pull together in a brief self-hug. One knee wears a repair.",
+        "alt": "Patchwork Chudjak toy with a repaired knee, mismatched cuff and stitched fabric panels.",
+        "familyId": "chudjak-plush",
+        "tier": "Epic",
+        "weight": 600,
+        "backdrop": {
+          "name": "Burgundy Workshop",
+          "center": "#78515d",
+          "edge": "#321f2c",
+          "motifColor": "#b28785",
+          "foreground": "#fff4ee"
+        },
+        "motif": "Repair crosses",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Chudjak Plush"
+      },
+      {
+        "id": "gift-chudjak-silver-thread",
+        "name": "Silver Thread",
+        "material": "Dark velour, satin and silver embroidery",
+        "description": "A shoulder turn catches the silver embroidery. The zipper pull swings against the satin collar.",
+        "alt": "Chudjak in a dark satin bomber jacket with a separate zipper pull and silver stitching.",
+        "familyId": "chudjak-plush",
+        "tier": "Legendary",
+        "weight": 150,
+        "backdrop": {
+          "name": "Graphite Atelier",
+          "center": "#5c616c",
+          "edge": "#232531",
+          "motifColor": "#959cac",
+          "foreground": "#fbfaff"
+        },
+        "motif": "Thread loops",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Chudjak Plush"
+      },
+      {
+        "id": "gift-chudjak-velvet-eclipse",
+        "name": "Velvet Eclipse",
+        "material": "Violet velvet with moon-gray lining and woven trim",
+        "description": "He draws a velvet hood around his glasses, lowers it and gives a small wave.",
+        "alt": "Violet velvet Chudjak with a lined hood, a moon-gray interior and a familiar deadpan face.",
+        "familyId": "chudjak-plush",
+        "tier": "Mythic",
+        "weight": 50,
+        "backdrop": {
+          "name": "Eclipse Violet",
+          "center": "#61537d",
+          "edge": "#241d35",
+          "motifColor": "#a08ba9",
+          "foreground": "#fff5ff"
+        },
+        "motif": "Crescent stitches",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Chudjak Plush"
+      }
+    ]
+  },
+  {
+    "id": "pepe-keycap",
+    "name": "Pepe Keycap",
+    "tableVersion": "pepe-keycap.v1",
+    "models": [
+      {
+        "id": "gift-pepe-desk-green",
+        "name": "Desk Green",
+        "material": "Moss-green molded PBT, cream stem and brushed steel",
+        "description": "Raised sleepy eyes sit above a broad terracotta lip. A single press compresses the switch.",
+        "alt": "Sculpted green Pepe keycap with sleepy raised eyes, a cream stem and a grounded metal socket.",
+        "familyId": "pepe-keycap",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Warm Terminal",
+          "center": "#75664b",
+          "edge": "#282720",
+          "motifColor": "#a99870",
+          "foreground": "#fcfae9"
+        },
+        "motif": "Key legends",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Pepe Keycap"
+      },
+      {
+        "id": "gift-pepe-terminal-clear",
+        "name": "Terminal Clear",
+        "material": "Translucent jade polycarbonate and brass spring",
+        "description": "The stepped clear wall exposes the spring. A point of light rises through the jade as it releases.",
+        "alt": "Clear jade frog keycap with a visible internal stem and brass spring.",
+        "familyId": "pepe-keycap",
+        "tier": "Uncommon",
+        "weight": 2800,
+        "backdrop": {
+          "name": "Deep Jade",
+          "center": "#37695f",
+          "edge": "#162b2c",
+          "motifColor": "#70a497",
+          "foreground": "#f0fff6"
+        },
+        "motif": "Circuit traces",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Pepe Keycap"
+      },
+      {
+        "id": "gift-pepe-night-shift",
+        "name": "Night Shift",
+        "material": "Graphite and ivory two-shot plastic",
+        "description": "A small moon sits in the graphite cap. The far eye opens under load and settles back.",
+        "alt": "Graphite and ivory sculpted frog keycap with a crescent inset beside the raised eyes.",
+        "familyId": "pepe-keycap",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Ink Blue",
+          "center": "#4d5f7a",
+          "edge": "#1b2238",
+          "motifColor": "#8198b7",
+          "foreground": "#f5f7ff"
+        },
+        "motif": "Moons",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Pepe Keycap"
+      },
+      {
+        "id": "gift-pepe-porcelain-pond",
+        "name": "Porcelain Pond",
+        "material": "Ivory ceramic glaze, celadon and gold repair lines",
+        "description": "Painted reeds curl around the ceramic face. A fine gold seam catches the light on release.",
+        "alt": "Ivory glazed frog keycap with a celadon face and a fine gold repair seam.",
+        "familyId": "pepe-keycap",
+        "tier": "Epic",
+        "weight": 600,
+        "backdrop": {
+          "name": "Pond Mist",
+          "center": "#557675",
+          "edge": "#223737",
+          "motifColor": "#8db0a5",
+          "foreground": "#f6fff4"
+        },
+        "motif": "Ripples",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Pepe Keycap"
+      },
+      {
+        "id": "gift-pepe-meteor-core",
+        "name": "Meteor Core",
+        "material": "Faceted ironstone, polished nickel and amber resin",
+        "description": "A warm inclusion sits inside the cut mineral shell. One reflection circles the inset.",
+        "alt": "Dark faceted mineral frog cap with a bright amber inclusion and polished metal stem.",
+        "familyId": "pepe-keycap",
+        "tier": "Legendary",
+        "weight": 150,
+        "backdrop": {
+          "name": "Copper Dusk",
+          "center": "#805b4d",
+          "edge": "#342623",
+          "motifColor": "#bd8e70",
+          "foreground": "#fff6ea"
+        },
+        "motif": "Mineral facets",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Pepe Keycap"
+      },
+      {
+        "id": "gift-pepe-black-opal-eclipse",
+        "name": "Black Opal Eclipse",
+        "material": "Carved opal, silver and smoked metal",
+        "description": "The opal cap lifts clear of its stem, revealing an eclipse, then seats itself in the switch.",
+        "alt": "Dark opalescent frog keycap with a silver crescent over a smoked-metal switch housing.",
+        "familyId": "pepe-keycap",
+        "tier": "Mythic",
+        "weight": 50,
+        "backdrop": {
+          "name": "Plum Night",
+          "center": "#6a5573",
+          "edge": "#2c2034",
+          "motifColor": "#a38aaf",
+          "foreground": "#fff4ff"
+        },
+        "motif": "Crescents",
+        "artRevision": "atelier-01",
+        "acquisitionPolicy": "capsule-only",
+        "familyName": "Pepe Keycap"
+      }
+    ]
+  }
+]

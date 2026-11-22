@@ -74,7 +74,7 @@ const compiledAssets=bundledAssetTable(),rasters=new Map();
 // and desktop packages stream verified R2 objects instead of duplicating them
 // inside the constrained Worker bundle.
 const release=JSON.parse(await readFile(path.join(dist,'downloads/voidline-release.json'),'utf8'));
-assert.equal(release.tag,'v1.0.5');
+assert.equal(release.tag,'v1.0.6');
 assert.equal(release.android.version,'1.0.3');
 assert.equal(release.android.versionCode,4);
 assert.equal(release.android.filename,'VOIDLINE-Android.apk');
@@ -144,15 +144,16 @@ try{
 }catch(error){if(error.code!=='ENOENT')throw error;}
 const currentArt=JSON.parse(await readFile(path.join(dist,'art/v4/manifest.json'),'utf8'));
 const currentById=new Map(currentArt.items.map(item=>[item.id,item]));
+const frozenGiftRoutes=JSON.parse(await readFile(path.join(root,'src/art/published-32-gift-variants.json'),'utf8'));
 const legacyTargets=new Map([['/art/v3/manifest.json','/art/v4/manifest.json']]);
 for(const filename of legacyNames){
  const match=/^(.+)-(mini|card|detail|silhouette)\.[a-f0-9]{12,64}\.svg$/.exec(filename);
- const target=match&&currentById.get(match[1])?.variants?.[match[2]]?.url;
+ const target=match&&(frozenGiftRoutes[match[1]]||currentById.get(match[1])?.variants)?.[match[2]]?.url;
  assert(target&&verifiedFiles.has(target),'same catalog ID and variant retained for '+filename);
  legacyTargets.set('/art/v3/'+filename,target);
 }
 for(const [variant,hash] of [['card','36e6120e3ff6'],['detail','be18797dc5bf']]){
- legacyTargets.set('/art/v4/gift-cassette-'+variant+'.'+hash+'.svg',currentById.get('gift-cassette').variants[variant].url);
+ legacyTargets.set('/art/v4/gift-cassette-'+variant+'.'+hash+'.svg',frozenGiftRoutes['gift-cassette'][variant].url);
 }
 for(const [legacy,target]of legacyTargets){
  assert.equal(compiledAssets[legacy],undefined,'historical pixel payload is omitted: '+legacy);
@@ -170,7 +171,7 @@ for(const [legacy,target]of legacyTargets){
 }
 assert.equal((await fetchAsset('/art/v3/unknown-mini.0123456789ab.svg')).status,404);
 assert.equal((await fetchAsset('/art/v3/manifest.json',{method:'POST'})).status,405);
-console.log(`PASS historical artwork compatibility: ${legacyTargets.size} GET/HEAD redirects retain each catalog ID/variant and resolve to current exact artwork; no retired payloads embedded.`);
+console.log(`PASS historical artwork compatibility: ${legacyTargets.size} GET/HEAD redirects retain each catalog ID/variant and resolve to compatible exact artwork; no retired payloads embedded.`);
 let rasterReferences=0,embeddedReferences=0;
 const sha=value=>createHash('sha256').update(value).digest('hex');
 for(const [route,original] of verifiedFiles){

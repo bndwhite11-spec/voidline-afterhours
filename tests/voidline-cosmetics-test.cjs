@@ -25,7 +25,7 @@ function fixture(options={}){
 }
 
 test('free catalog stays unowned until an acknowledged explicit claim',async()=>{
- const app=fixture();await app.extension.onAccount();await app.seam.collection();assert.equal(app.seam.summary().owned.length,0);assert.match(app.nodes.get('dialog').innerHTML,/Add to collection/);assert.match(app.nodes.get('dialog').innerHTML,/Every item is free/);
+ const app=fixture();await app.extension.onAccount();await app.seam.collection();assert.equal(app.seam.summary().owned.length,0);assert.match(app.nodes.get('dialog').innerHTML,/Add to collection/);assert.match(app.nodes.get('dialog').innerHTML,/free decorations, legacy gifts and earned capsule models/);
  app.replies.set('/api/cosmetics/inventory',{owned:[{cosmetic_id:'angel'}],equippedId:null,giftsEnabled:true,pendingGifts:0});app.replies.set('/api/cosmetics/claim',{owned:[{cosmetic_id:'angel'}],equippedId:null,giftsEnabled:true,pendingGifts:0});await app.seam.mutate('/claim',{cosmeticId:'angel'},app.node(),()=>app.seam.collection());assert.equal(app.seam.summary().owned[0],'angel');
 });
 test('failed collection writes keep ownership and equipped state unchanged',async()=>{
@@ -145,9 +145,24 @@ test('account switching clears cached collection content and its prior filter co
  const app=fixture({page:true});app.replies.set('/api/cosmetics/inventory',{owned:[{cosmetic_id:'angel'}],equippedId:'angel'});await app.extension.onAccount();await app.seam.collection('collected');assert.match(app.extension.pageHTML(),/Equipped/);app.extension.onLock();app.state.account={id:'account-b'};app.replies.set('/api/cosmetics/inventory',{owned:[],equippedId:null});await app.extension.onAccount();assert.doesNotMatch(app.extension.pageHTML(),/Equipped|value="rose"/);await app.seam.collection('collected');assert.match(app.extension.pageHTML(),/Your collection starts empty/);assert.equal(app.seam.summary().owned.length,0);
 });
 
+test('a capsule-only model exposes its actual identity without a free claim or new-grant control',async()=>{
+ const model={id:'gift-pepe-desk-green',type:'gift',name:'Desk Green',familyName:'Pepe Keycap',tier:'Common',material:'Molded green plastic',motif:'Key legends',backdrop:{name:'Warm Terminal'},acquisitionPolicy:'capsule-only'};
+ const f=fixture({catalog:[model]});await f.extension.onAccount();await f.seam.collection();let html=f.nodes.get('dialog').innerHTML;
+ assert.match(html,/Earned capsule model/);assert.doesNotMatch(html,/data-vc-action="claim"/);
+ f.seam.inspect(model.id);html=f.nodes.get('dialog').innerHTML;
+ for(const value of ['Desk Green','Pepe Keycap','Common','Key legends','Warm Terminal'])assert(html.includes(value));
+ assert.doesNotMatch(html,/data-vc-action="(?:claim|send-form|transfer-form|showcase)"|Free to collect/);
+});
+test('a terminal transfer missing from bootstrap uses its participant receipt without replaying acceptance',async()=>{
+ const f=fixture();await f.extension.onAccount();const t={id:'tx',instance_id:'copy',catalog_id:'gift-rose',state:'accepted',model:{name:'Chrome Rose'},currentlyOwned:false};
+ f.replies.set('/api/cosmetics/transfers/tx',{transfer:t});f.replies.set('/api/cosmetics/transfers/tx/open',{handled:true,state:'accepted',transfer:t,instances:[],owned:[]});
+ const b=f.node();b.dataset={item:'gift-rose',instance:'copy',transfer:'tx'};await f.seam.receivedGift(b,true);const html=f.nodes.get('dialog').innerHTML;
+ assert.match(html,/Accepted gift receipt/);assert.match(html,/Replay gift/);assert.doesNotMatch(html,/View owned copy|data-vc-action="transfer-open"/);
+ assert.equal(f.calls.filter(r=>r.route.endsWith('/open')).length,1);
+});
 (async()=>{test('the actual expanded catalog exposes recognizable names and keeps former names searchable without changing ownership',async()=>{
  const {COSMETICS}=await import('../worker/cosmetics.mjs');const app=fixture({page:true,catalog:COSMETICS});await app.extension.onAccount();await app.seam.collection();
- assert.match(app.extension.pageHTML(),/49 decorations · 32 gifts/);assert.equal(app.seam.summary().owned.length,0);
+ assert.match(app.extension.pageHTML(),new RegExp('49 decorations · '+COSMETICS.filter(item=>item.type==='gift').length+' gifts'));assert.equal(app.seam.summary().owned.length,0);
  const input=app.node();input.dataset.vcSearch='';
  const renamed=[['coin-crosssignal','XRP','Cross Signal'],['ego-unique-one','Max Stirner','The Unique One'],['meme-nothing-happens','Chudjak','Nothing Ever Happens'],['meme-final-reply','Reply Guy','Final Reply']];
  for(const [id,name,alias]of renamed)for(const query of [name,alias]){input.value=query;app.listeners.get('input')({target:input});const html=app.nodes.get('vc-design-grid').innerHTML;assert(html.includes('data-item="'+id+'"'),query);assert(html.includes('>'+name+'<'),query);}
@@ -158,7 +173,7 @@ test('original gift inspections explain their cosmetic acquisition and preview w
  const {COSMETICS}=await import('../worker/cosmetics.mjs');const app=fixture({catalog:COSMETICS});await app.extension.onAccount();await app.seam.collection('gifts');
  assert.doesNotMatch(app.nodes.get('dialog').innerHTML,/gift-telegram-|Telegram studies|Plush Pepe|Jelly Bunny|Astral Shard|Heroic Helmet|Skull Flower|Vintage Cigar|Lol Pop/);
  const ids=['gift-chudjak-plush','gift-wojak-jelly','gift-doomer-bloom','gift-brainrot-pop','gift-larp-cap','gift-spook-crystal','gift-larp-helmet','gift-copium-cartridge'];
- for(const id of ids){app.seam.inspect(id);const html=app.nodes.get('dialog').innerHTML;assert.match(html,/Free VOIDLINE cosmetic instance/);assert.match(html,/credited web artwork/);assert.match(html,/no blockchain asset changes hands/i);assert.match(html,/Not collected/);assert.doesNotMatch(html,/https:\/\/t\.me\/nft\/|data-vc-reference|Amalgam|King Leonidas|Silver Bullet/);await app.seam.action({dataset:{vcAction:'preview',item:id,stage:'vc-inspection-scene'}});assert.equal(app.artCalls.at(-1).id,id);}
+ for(const id of ids){app.seam.inspect(id);const html=app.nodes.get('dialog').innerHTML;assert.match(html,/Free VOIDLINE cosmetic instance/);assert.match(html,COSMETICS.find(item=>item.id===id).artwork?/credited web artwork/:/original workshop artwork/);assert.match(html,/no blockchain asset changes hands/i);assert.match(html,/Not collected/);assert.doesNotMatch(html,/https:\/\/t\.me\/nft\/|data-vc-reference|Amalgam|King Leonidas|Silver Bullet/);await app.seam.action({dataset:{vcAction:'preview',item:id,stage:'vc-inspection-scene'}});assert.equal(app.artCalls.at(-1).id,id);}
  assert.equal(app.calls.filter(call=>call.body).length,0);assert.equal(app.seam.summary().owned.length,0);
 });
 test('opening one earned badge shows its exact award and returns directly to the unchanged profile draft',async()=>{

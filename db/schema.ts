@@ -258,17 +258,52 @@ export const organizationTargets = sqliteTable("organization_targets", {
 export const communityTimeouts = sqliteTable("community_timeouts", {
  communityId:text("community_id").notNull().references(()=>liveCommunities.id),accountId:text("account_id").notNull().references(()=>liveAccounts.id),expiresAt:integer("expires_at").notNull(),reason:text("reason").notNull().default(""),issuedBy:text("issued_by").notNull().references(()=>liveAccounts.id),createdAt:integer("created_at").notNull(),
 },t=>[primaryKey({columns:[t.communityId,t.accountId]}),index("community_timeouts_expiry").on(t.expiresAt)]);
+// Each immutable edition records the complete selectable family tables and original model presentation.
+export const capsuleEditions = sqliteTable("capsule_editions", {
+  id: text("id").primaryKey(), familiesJson: text("families_json").notNull(),
+});
+export const collectibleCapsules = sqliteTable("collectible_capsules", {
+  id: text("id").primaryKey(), accountId: text("account_id").notNull().references(() => liveAccounts.id),
+  source: text("source").notNull(), period: text("period").notNull(),
+  editionId: text("edition_id").notNull().references(() => capsuleEditions.id), earnedAt: integer("earned_at").notNull(),
+}, t => [unique("capsule_entitlement_unique").on(t.accountId,t.source,t.period),index("capsule_account_earned").on(t.accountId,t.earnedAt,t.id),
+  check("capsule_source", sql`${t.source} IN ('weekly','welcome')`)]);
+export const capsuleStamps = sqliteTable("capsule_stamps", {
+  accountId: text("account_id").notNull().references(() => liveAccounts.id), utcDay:text("utc_day").notNull(),
+  utcWeek:text("utc_week").notNull(), committedAt:integer("committed_at").notNull(),
+  editionId: text("edition_id").notNull().references(() => capsuleEditions.id),
+}, t=>[primaryKey({columns:[t.accountId,t.utcDay]}),index("capsule_week_progress").on(t.accountId,t.utcWeek)]);
+export const capsuleOpenRequests = sqliteTable("capsule_open_requests", {
+  accountId:text("account_id").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),
+  capsuleId:text("capsule_id").notNull().references(()=>collectibleCapsules.id),familyId:text("family_id").notNull(),
+},t=>[primaryKey({columns:[t.accountId,t.clientId]})]);
+export const capsuleOpenings = sqliteTable("capsule_openings", {
+  id:text("id").primaryKey(),capsuleId:text("capsule_id").notNull().unique("capsule_once").references(()=>collectibleCapsules.id),
+  instanceId:text("instance_id").notNull().unique("capsule_open_instance"),familyId:text("family_id").notNull(),modelId:text("model_id").notNull(),
+  tableVersion:text("table_version").notNull(),snapshot:text("snapshot").notNull(),weight:integer("weight").notNull(),
+  totalWeight:integer("total_weight").notNull(),discovery:text("discovery").notNull(),openedAt:integer("opened_at").notNull(),acknowledgedAt:integer("acknowledged_at"),
+}, t=>[check("capsule_positive_weight", sql`${t.weight} > 0 AND ${t.weight} <= ${t.totalWeight}`),
+  check("capsule_discovery_kind",sql`${t.discovery} IN ('first','additional','returning')`)]);
+export const collectibleDiscoveries = sqliteTable("collectible_discoveries", {
+  accountId:text("account_id").notNull().references(()=>liveAccounts.id),modelId:text("model_id").notNull(),discoveredAt:integer("discovered_at").notNull(),
+},t=>[primaryKey({columns:[t.accountId,t.modelId]})]);
+
 export const giftInstances = sqliteTable("gift_instances", {
  id:text("id").primaryKey(),catalogId:text("catalog_id").notNull(),ownerId:text("owner_id").notNull().references(()=>liveAccounts.id),originGiftId:text("origin_gift_id").unique("gift_instances_origin_unique").references(()=>cosmeticGifts.id),originKind:text("origin_kind").notNull(),createdAt:integer("created_at").notNull(),pendingTransferId:text("pending_transfer_id"),
-},t=>[index("gift_instances_owner").on(t.ownerId,t.createdAt)]);
+  ownershipRevision:integer("ownership_revision").notNull().default(0), acquiredAt:integer("acquired_at"),arrivalAcknowledgedAt:integer("arrival_acknowledged_at").default(-1),
+  capsuleId:text("capsule_id").unique("gift_instance_capsule_unique").references(()=>collectibleCapsules.id),
+},t=>[index("gift_instances_owner").on(t.ownerId,t.createdAt),index("gift_instances_models").on(t.ownerId,t.catalogId,t.acquiredAt,t.id)]);
 export const giftTransfers = sqliteTable("gift_transfers", {
  id:text("id").primaryKey(),instanceId:text("instance_id").notNull().references(()=>giftInstances.id),senderId:text("sender_id").notNull().references(()=>liveAccounts.id),recipientId:text("recipient_id").notNull().references(()=>liveAccounts.id),clientId:text("client_id").notNull(),state:text("state").notNull().default("pending"),createdAt:integer("created_at").notNull(),handledAt:integer("handled_at"),
-},t=>[unique("gift_transfers_client_unique").on(t.senderId,t.clientId),index("gift_transfers_recipient").on(t.recipientId,t.state),index("gift_transfers_sender").on(t.senderId,t.createdAt)]);
+  ownershipRevision:integer("ownership_revision").notNull().default(0), modelSnapshot:text("model_snapshot"),
+},t=>[unique("gift_transfers_client_unique").on(t.senderId,t.clientId),index("gift_transfers_recipient").on(t.recipientId,t.state),index("gift_transfers_sender").on(t.senderId,t.createdAt),index("gift_transfer_acquisition").on(t.instanceId,t.recipientId,t.state,t.handledAt)]);
 export const giftShowcase = sqliteTable("gift_showcase", {
  accountId:text("account_id").notNull().references(()=>liveAccounts.id),slot:integer("slot").notNull(),instanceId:text("instance_id").notNull().references(()=>giftInstances.id),showSender:integer("show_sender").notNull().default(0),
+  featured:integer("featured").notNull().default(0),
 },t=>[primaryKey({columns:[t.accountId,t.slot]}),unique("gift_showcase_instance_unique").on(t.accountId,t.instanceId)]);
 export const profilePreferences = sqliteTable("profile_preferences", {
  accountId:text("account_id").primaryKey().references(()=>liveAccounts.id),avatarMediaId:text("avatar_media_id").references(()=>mediaAssets.id,{onDelete:"set null"}),bannerMediaId:text("banner_media_id").references(()=>mediaAssets.id,{onDelete:"set null"}),banner:text("banner").notNull().default("midnight"),accent:text("accent").notNull().default("ice"),nameStyle:text("name_style").notNull().default("plain"),profileFrame:text("profile_frame").notNull().default("none"),detailsVisibility:text("details_visibility").notNull().default("shared"),collectionVisibility:text("collection_visibility").notNull().default("shared"),animationEnabled:integer("animation_enabled").notNull().default(0),badgeOrder:text("badge_order").notNull().default("[]"),updatedAt:integer("updated_at").notNull().default(0),
+  fullInventoryVisibility:text("full_inventory_visibility").notNull().default("private"),
 });
 export const badgeDefinitions = sqliteTable("badge_definitions", {
  id:text("id").primaryKey(),name:text("name").notNull(),description:text("description").notNull(),requirement:text("requirement").notNull(),rule:text("rule").notNull(),active:integer("active").notNull().default(1),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull(),

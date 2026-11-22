@@ -1,0 +1,578 @@
+{
+  "gift-rose": {
+    "mini": {
+      "url": "/art/v4/gift-rose-mini.5d70aaaa12ee.svg",
+      "sha256": "5d70aaaa12ee79a40c4e1912f699abf6fe6c04c27b1f7a24b6e389841fba7881"
+    },
+    "card": {
+      "url": "/art/v4/gift-rose-card.14c17b8d1f30.svg",
+      "sha256": "14c17b8d1f3003bd1c2eb385b78c69a9677a49207103d20c7064da133532e290"
+    },
+    "detail": {
+      "url": "/art/v4/gift-rose-detail.d338f330f036.svg",
+      "sha256": "d338f330f03628aae47ac970d88d7e7f3b4f35aebade0cc2b39359ce55553ab5"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-rose-silhouette.ce55a8442338.svg",
+      "sha256": "ce55a8442338cce2f82c06bcf01e2d382f56e0ffa34009939da05da84bf97b1f"
+    }
+  },
+  "gift-cassette": {
+    "mini": {
+      "url": "/art/v4/gift-cassette-mini.5bbfc62879f3.svg",
+      "sha256": "5bbfc62879f3b73b50ccb9e2dc060c37fd1d8650270fce1f32bd58eb3d3703da"
+    },
+    "card": {
+      "url": "/art/v4/gift-cassette-card.792d888688e5.svg",
+      "sha256": "792d888688e5e692309554fbd13257ceb906a161c05180d5bf1dc2d9bfbb7449"
+    },
+    "detail": {
+      "url": "/art/v4/gift-cassette-detail.afc55eb73b62.svg",
+      "sha256": "afc55eb73b62e07df6e42232aabe6b808354c668343a12950ae74ec69232c3c5"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-cassette-silhouette.6be3ac059cf5.svg",
+      "sha256": "6be3ac059cf5caea130c5a7be5276308fdb8bf6bd0635b63d12e1eea13ee32c0"
+    }
+  },
+  "gift-star": {
+    "mini": {
+      "url": "/art/v4/gift-star-mini.dd796a715735.svg",
+      "sha256": "dd796a715735bd81429f867702c38592ce24c5b6de168bc566387f5d1fccaf3f"
+    },
+    "card": {
+      "url": "/art/v4/gift-star-card.97ae2e9742f3.svg",
+      "sha256": "97ae2e9742f3b9740aeba2f8269ced7295d52b5bdb73afa6e6d41b3b8c193963"
+    },
+    "detail": {
+      "url": "/art/v4/gift-star-detail.135d5934baba.svg",
+      "sha256": "135d5934baba10caf36cfa3a452e737301d540e9e7f2ee5c3c0331f87576d050"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-star-silhouette.65dd82337b34.svg",
+      "sha256": "65dd82337b346382a554049f25c69783a8256973cb74fb3ac905d46a5edddef7"
+    }
+  },
+  "gift-cup": {
+    "mini": {
+      "url": "/art/v4/gift-cup-mini.1da9a51557b2.svg",
+      "sha256": "1da9a51557b26b21e15a62f09904155c0b5b00bbd5410a2db540375f6db0a7e8"
+    },
+    "card": {
+      "url": "/art/v4/gift-cup-card.9d1e325ff722.svg",
+      "sha256": "9d1e325ff722b41b9db0ae4cb9f3ae02db3f00b86f11686de692adecd68c3961"
+    },
+    "detail": {
+      "url": "/art/v4/gift-cup-detail.7708d16d47f8.svg",
+      "sha256": "7708d16d47f82ad6d666905946525967993bac5105cd4441ed1df91cf2f84ecc"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-cup-silhouette.2d5d67a98dba.svg",
+      "sha256": "2d5d67a98dba71611fe5cd25b8a641c6381ab56bc086a915dcd9b9b3038a8d24"
+    }
+  },
+  "gift-ghost": {
+    "mini": {
+      "url": "/art/v4/gift-ghost-mini.f8bc12195f74.svg",
+      "sha256": "f8bc12195f740a715893a65b1ac4b539dd67f90562fb9f27ac17df16f4de4e2b"
+    },
+    "card": {
+      "url": "/art/v4/gift-ghost-card.4839fa6f2e1f.svg",
+      "sha256": "4839fa6f2e1f296afa16c22c9959508527c530d507922cff5fb7bc409a366092"
+    },
+    "detail": {
+      "url": "/art/v4/gift-ghost-detail.a637334cb719.svg",
+      "sha256": "a637334cb719372cb544ed9a0b23f9263735e0172f54a31ee38988938aa86444"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-ghost-silhouette.aad7987917e8.svg",
+      "sha256": "aad7987917e8c4c9bc2fba612ed171c1d83f2c6a72fcbcf35e9ef79eb8343b15"
+    }
+  },
+  "gift-parcel": {
+    "mini": {
+      "url": "/art/v4/gift-parcel-mini.bd9674064652.svg",
+      "sha256": "bd967406465286a9c64ae93ea5d2eda3e13c51571ab6204961afbabce568b981"
+    },
+    "card": {
+      "url": "/art/v4/gift-parcel-card.b6331ac9fc09.svg",
+      "sha256": "b6331ac9fc097843e1aae0d7bf75543eaab4f9cbf71b8b043557237a01cb7682"
+    },
+    "detail": {
+      "url": "/art/v4/gift-parcel-detail.54773ef6f320.svg",
+      "sha256": "54773ef6f320bb4e61266e887f31456e2b04b0a840af1681c037f0f34a5488fe"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-parcel-silhouette.43f31345c255.svg",
+      "sha256": "43f31345c25542d40c874de5d0aeb362685eb71d79f231b92c5c4b91fe84a715"
+    }
+  },
+  "gift-seraph": {
+    "mini": {
+      "url": "/art/v4/gift-seraph-mini.a1405ba17a60.svg",
+      "sha256": "a1405ba17a60de0b541a1ab3aa579491d50cbc08dc99577f5fde50442eee59e2"
+    },
+    "card": {
+      "url": "/art/v4/gift-seraph-card.1859177fa36b.svg",
+      "sha256": "1859177fa36bf6bbbfdca439793e1febb94175885bb9655a4f801941527b4539"
+    },
+    "detail": {
+      "url": "/art/v4/gift-seraph-detail.0ee0737ebcdb.svg",
+      "sha256": "0ee0737ebcdb838a1b9748216360ed0437e3099a77f8a6250c98fffb2eefbaf8"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-seraph-silhouette.c57381aa4bba.svg",
+      "sha256": "c57381aa4bba9412472b1a51af8a3fba5f2c8e7a21ec966792b39c7d3909f60a"
+    }
+  },
+  "gift-key": {
+    "mini": {
+      "url": "/art/v4/gift-key-mini.9bdb6d0ef09f.svg",
+      "sha256": "9bdb6d0ef09f4a37f410cb35d97bd50d9111c7562e0450bf71ef1473a569abda"
+    },
+    "card": {
+      "url": "/art/v4/gift-key-card.a93e6536419b.svg",
+      "sha256": "a93e6536419b2685fe3f0fea07fecb5e2524536f8f850b0f68fdd80d2edc9ad0"
+    },
+    "detail": {
+      "url": "/art/v4/gift-key-detail.3471a0d307dc.svg",
+      "sha256": "3471a0d307dc02609b0fc37644911e6031322c34d7d2beb46d0c0dfe96d63d88"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-key-silhouette.cb28cf6aca5c.svg",
+      "sha256": "cb28cf6aca5c1b56cdcd732c8db0dc93f7bb67d57e121e6a174ecc813d52e0f2"
+    }
+  },
+  "gift-halo": {
+    "mini": {
+      "url": "/art/v4/gift-halo-mini.d51693a7f4da.svg",
+      "sha256": "d51693a7f4daaf4eafd2ec0b2f7fabab1d1ad0c0c21ca2939ae7e1d0f36dd147"
+    },
+    "card": {
+      "url": "/art/v4/gift-halo-card.dc765b495fa5.svg",
+      "sha256": "dc765b495fa53cd549758148d201487e2c1aadaa670f75457257f70d3e914d0d"
+    },
+    "detail": {
+      "url": "/art/v4/gift-halo-detail.52bf5e573347.svg",
+      "sha256": "52bf5e5733474c0659af57455a600742d9629843e4f97fb280920072afd7f4c3"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-halo-silhouette.c903838a1462.svg",
+      "sha256": "c903838a1462c3de051ac82de1703126479727479922e83074322013b25d5d98"
+    }
+  },
+  "gift-orchid": {
+    "mini": {
+      "url": "/art/v4/gift-orchid-mini.f66ce8e59a09.svg",
+      "sha256": "f66ce8e59a0978a534907285454bd0aee80cab83e66dc7f9e2f0733893ec06f8"
+    },
+    "card": {
+      "url": "/art/v4/gift-orchid-card.00c585df1c49.svg",
+      "sha256": "00c585df1c49701e3472d3a29ccfc22fe51bc00298338fa41065628b75c7270c"
+    },
+    "detail": {
+      "url": "/art/v4/gift-orchid-detail.2b03f39d6060.svg",
+      "sha256": "2b03f39d6060590a911fa4ff10c097a04a1e852d26eab201a9d72777108624e1"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-orchid-silhouette.81a690ffdf7d.svg",
+      "sha256": "81a690ffdf7dd8ccadf4b1f17f64291740ca8838370d082020efc2bb65a21074"
+    }
+  },
+  "gift-signal": {
+    "mini": {
+      "url": "/art/v4/gift-signal-mini.2fa041b5cd91.svg",
+      "sha256": "2fa041b5cd9162f81ce47bb6765b01fd0214dc756d4ca782b441e6d0bc2a1d18"
+    },
+    "card": {
+      "url": "/art/v4/gift-signal-card.ee14d2bd5397.svg",
+      "sha256": "ee14d2bd5397764ac2e50dbf8381b3c636bae4fe3ce5234218c372aa0a689a34"
+    },
+    "detail": {
+      "url": "/art/v4/gift-signal-detail.2f75ed78abe3.svg",
+      "sha256": "2f75ed78abe3a6739f7fbe497294adef08cc48c5d601b3aeb6c6c0efc453b71f"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-signal-silhouette.179356baadfc.svg",
+      "sha256": "179356baadfc597a45f3721b9b662171cef5e107320536f278b3a52d0fa9cbfb"
+    }
+  },
+  "gift-ticket": {
+    "mini": {
+      "url": "/art/v4/gift-ticket-mini.bebfd07a93f8.svg",
+      "sha256": "bebfd07a93f8fc6f57bd74786be59ec338cd89718d25ab386fe450e0831e9fb4"
+    },
+    "card": {
+      "url": "/art/v4/gift-ticket-card.e6026435b4e4.svg",
+      "sha256": "e6026435b4e4b230b87fe3c590702fbe0a856bf910c77766815caf9c5e24842c"
+    },
+    "detail": {
+      "url": "/art/v4/gift-ticket-detail.73263eed6b1e.svg",
+      "sha256": "73263eed6b1efc842ac023ad5beb857bf1af4879ad1259a07fef60bbef1720a5"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-ticket-silhouette.c68a9eae44ab.svg",
+      "sha256": "c68a9eae44ab8e00847e38a6eb237dccb994f5d8949722f4dcdaedb2550c1f67"
+    }
+  },
+  "gift-pocket-doomer": {
+    "mini": {
+      "url": "/art/v4/gift-pocket-doomer-mini.4e94f60c211d.svg",
+      "sha256": "4e94f60c211d5162573abce92dfff87f03871ec6ba3a6acf2c5bc4ff868963fc"
+    },
+    "card": {
+      "url": "/art/v4/gift-pocket-doomer-card.cd2982884283.svg",
+      "sha256": "cd2982884283c63c9100aa40f2805d7b70bedc0dbc6a2b6783f2080227b8a754"
+    },
+    "detail": {
+      "url": "/art/v4/gift-pocket-doomer-detail.72dd42b096b1.svg",
+      "sha256": "72dd42b096b1d6da95f49d26dbf8b3ac147fb2956f54cd6f448f29259efaaa88"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-pocket-doomer-silhouette.2c3fe7f1ecba.svg",
+      "sha256": "2c3fe7f1ecba8702d94fdaea575059773fa79c49b6429a6c2094b8f946c7653e"
+    }
+  },
+  "gift-orbit-mobile": {
+    "mini": {
+      "url": "/art/v4/gift-orbit-mobile-mini.e1420b2f9697.svg",
+      "sha256": "e1420b2f9697031973732f7b7d595cc1a61311ca1057d25e014a70c9bf059871"
+    },
+    "card": {
+      "url": "/art/v4/gift-orbit-mobile-card.57faba7333be.svg",
+      "sha256": "57faba7333beb591d2ecd315f066102efde9495923776558c48ae48f004fa7e7"
+    },
+    "detail": {
+      "url": "/art/v4/gift-orbit-mobile-detail.1dd7a8d8a20f.svg",
+      "sha256": "1dd7a8d8a20fd057d799b1c9c380961130220f9d3f2ecf4cdbbe4964a76372e8"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-orbit-mobile-silhouette.faee056d7a21.svg",
+      "sha256": "faee056d7a21bc9fe9bf922f846ca049b0fd97b9429598bdf7fc9e10ccbeec98"
+    }
+  },
+  "gift-last-broadcast": {
+    "mini": {
+      "url": "/art/v4/gift-last-broadcast-mini.a08fe0cab946.svg",
+      "sha256": "a08fe0cab946825f699b7cfa279e9890d22c85345e70014e5629a1cffce4b784"
+    },
+    "card": {
+      "url": "/art/v4/gift-last-broadcast-card.dcbcd850379c.svg",
+      "sha256": "dcbcd850379c937a81cb7332e247503f7f2624d263ff9a356e6049d5d1da6bff"
+    },
+    "detail": {
+      "url": "/art/v4/gift-last-broadcast-detail.b9be84070f66.svg",
+      "sha256": "b9be84070f66956b96658f550bd935ddd1d353fbfedbe4b2b5d494a4918312c5"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-last-broadcast-silhouette.0dfe161fc85a.svg",
+      "sha256": "0dfe161fc85ab9264f8af692e99b06055e71dc4d608ce9b41080b0fa52f65bd5"
+    }
+  },
+  "gift-night-lantern": {
+    "mini": {
+      "url": "/art/v4/gift-night-lantern-mini.e48799b12ae5.svg",
+      "sha256": "e48799b12ae5d6dc8d030785a40ec9c83175e7be67b54747f96ef2fa62df5081"
+    },
+    "card": {
+      "url": "/art/v4/gift-night-lantern-card.9d58c6d51bdf.svg",
+      "sha256": "9d58c6d51bdfb5e936a33ce26d2c794a955f454020f19d28f5d892bb267f0725"
+    },
+    "detail": {
+      "url": "/art/v4/gift-night-lantern-detail.1d7719dc21ba.svg",
+      "sha256": "1d7719dc21baabdc6d01811d8919c1ca36f31917174a7d379c0323ad75634601"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-night-lantern-silhouette.ee93dd4ffa57.svg",
+      "sha256": "ee93dd4ffa5750efdcf4944f29f69ca63a5e61ad6383fc63f20e99e8e3617dbe"
+    }
+  },
+  "gift-ego-volume": {
+    "mini": {
+      "url": "/art/v4/gift-ego-volume-mini.a7241c9a5455.svg",
+      "sha256": "a7241c9a54552922dfacc3a80e32b2a82698434d28a14086a67ddbe85d83bbf3"
+    },
+    "card": {
+      "url": "/art/v4/gift-ego-volume-card.02a5a4b2d24d.svg",
+      "sha256": "02a5a4b2d24d64992024fe93171e8b3ca2e5a71300fb7b6d784d1f1962dbe13e"
+    },
+    "detail": {
+      "url": "/art/v4/gift-ego-volume-detail.446a3ad7b94c.svg",
+      "sha256": "446a3ad7b94c768bebf7a66f631e39307834a103c5ed005669704e0e5ef5d78b"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-ego-volume-silhouette.789444ecdb43.svg",
+      "sha256": "789444ecdb4343241166664ad5f0b6fa0562f75cb55c09913087e110948e0e56"
+    }
+  },
+  "gift-curtain-call": {
+    "mini": {
+      "url": "/art/v4/gift-curtain-call-mini.a84673b24dae.svg",
+      "sha256": "a84673b24dae0bdb683db5859c0ed341b11cae28564769b1c25dfe1cd031e6f4"
+    },
+    "card": {
+      "url": "/art/v4/gift-curtain-call-card.0f39615104d1.svg",
+      "sha256": "0f39615104d1edfe5a7a4f3472deddc82f623be3a61147f204a8677907582f5e"
+    },
+    "detail": {
+      "url": "/art/v4/gift-curtain-call-detail.889f9f4085e0.svg",
+      "sha256": "889f9f4085e07c17ab64a4b8c4255b007ddfb56f64d823277865c92f9d0a493b"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-curtain-call-silhouette.6e0d092a7aed.svg",
+      "sha256": "6e0d092a7aedca86cb68f082c8e5385922cc4067a06a125769b8fa25572650e5"
+    }
+  },
+  "gift-larp-kit": {
+    "mini": {
+      "url": "/art/v4/gift-larp-kit-mini.f09fb2c0b482.svg",
+      "sha256": "f09fb2c0b482c1dd58ff7594884055947a7b971df2a98510a754d9cf436cbcdf"
+    },
+    "card": {
+      "url": "/art/v4/gift-larp-kit-card.4fe6cf277de7.svg",
+      "sha256": "4fe6cf277de7fdc9f705b323ddf7a14472c5516e2d1cbbbbe16583a611c8f2c5"
+    },
+    "detail": {
+      "url": "/art/v4/gift-larp-kit-detail.5e5277d84983.svg",
+      "sha256": "5e5277d8498398808c4dcaace601c8ec965bd6257120a5043c0f73bca6cd79a2"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-larp-kit-silhouette.16fedb4c1ee7.svg",
+      "sha256": "16fedb4c1ee7392051e80d513b4ed5fc4ad8941a780974db7692bd8896c447bb"
+    }
+  },
+  "gift-aura-meter": {
+    "mini": {
+      "url": "/art/v4/gift-aura-meter-mini.1d7ca6cb5f03.svg",
+      "sha256": "1d7ca6cb5f0374b0326e2a26927676c92439042a245aefcbafd34de012bb3a70"
+    },
+    "card": {
+      "url": "/art/v4/gift-aura-meter-card.a353082301d2.svg",
+      "sha256": "a353082301d200b5291490790cebbefd700c1698b08037978b5bfe7b1cf459f6"
+    },
+    "detail": {
+      "url": "/art/v4/gift-aura-meter-detail.af355a473c5a.svg",
+      "sha256": "af355a473c5aa7f1170c6312085e8bb601b4a5fb8efea787cc1963e34022ca8b"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-aura-meter-silhouette.3c18a6f33b57.svg",
+      "sha256": "3c18a6f33b576372d1f273067570dda8a8ef23d8f55500d07c6d8cf3864b896b"
+    }
+  },
+  "gift-copium-tank": {
+    "mini": {
+      "url": "/art/v4/gift-copium-tank-mini.8d0d09a72d33.svg",
+      "sha256": "8d0d09a72d338608130189c908242e47ca575cc1a818e0999c72ea4ec6f2ca17"
+    },
+    "card": {
+      "url": "/art/v4/gift-copium-tank-card.edd7ed656dfe.svg",
+      "sha256": "edd7ed656dfecc396bbb422748660e7cfe86de9b4151fad0cda344e76770f1a6"
+    },
+    "detail": {
+      "url": "/art/v4/gift-copium-tank-detail.baaac2749b3c.svg",
+      "sha256": "baaac2749b3c3e46df616c44bc4381a8b0475cbab59d2bf23501e1eb10d747ff"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-copium-tank-silhouette.bf7009bdd959.svg",
+      "sha256": "bf7009bdd959fb7aa4e460e4aeaada936dc6644397adb2fed1f5c82d13cc43e4"
+    }
+  },
+  "gift-cold-wallet": {
+    "mini": {
+      "url": "/art/v4/gift-cold-wallet-mini.840da76edfa1.svg",
+      "sha256": "840da76edfa19105929e4d04c948cb8d267f17195007938800149ca9c5c1651e"
+    },
+    "card": {
+      "url": "/art/v4/gift-cold-wallet-card.5f2b1eb931c3.svg",
+      "sha256": "5f2b1eb931c3116807f83f2c7fe8744b6c8fea43cd92d6d487a68b23916746e6"
+    },
+    "detail": {
+      "url": "/art/v4/gift-cold-wallet-detail.3c1175bfa0ee.svg",
+      "sha256": "3c1175bfa0eebc7451671e112669233b1abcc7621108aa4e73de4ea66cb9bb8f"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-cold-wallet-silhouette.f239268cb8c8.svg",
+      "sha256": "f239268cb8c8353b7aff11b6c947675e7cf1ad0b91d77744e0a0ac2b85010974"
+    }
+  },
+  "gift-block-zero": {
+    "mini": {
+      "url": "/art/v4/gift-block-zero-mini.369f4a6f03b2.svg",
+      "sha256": "369f4a6f03b239c2cb67407c2cff28ce1c3c1e247a26c310f89b0a22df3c49e7"
+    },
+    "card": {
+      "url": "/art/v4/gift-block-zero-card.e31176b893fb.svg",
+      "sha256": "e31176b893fba15713825c140a8dc74a52ebe4010bd2577ac99eb1ecdcd54b6e"
+    },
+    "detail": {
+      "url": "/art/v4/gift-block-zero-detail.f13b92423818.svg",
+      "sha256": "f13b92423818bd44973f47aaba20dbc5cf7813e4bd6c450c1a045f3572282f10"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-block-zero-silhouette.34f14ca9f4dc.svg",
+      "sha256": "34f14ca9f4dc5c2f2759bfca80c978ed4738b6efeb2c5b2c7bf4e74e31242fca"
+    }
+  },
+  "gift-last-tab": {
+    "mini": {
+      "url": "/art/v4/gift-last-tab-mini.e0c017f9dd1f.svg",
+      "sha256": "e0c017f9dd1f33987773b0a17c99d183fed1c318e04d0e481732b8c14d9737fe"
+    },
+    "card": {
+      "url": "/art/v4/gift-last-tab-card.faa9ee35e135.svg",
+      "sha256": "faa9ee35e13544ae859f3a9cb171fb7f3ef34711d206aab1dec3f90653ce7358"
+    },
+    "detail": {
+      "url": "/art/v4/gift-last-tab-detail.0ee15a53ada9.svg",
+      "sha256": "0ee15a53ada90b7e18541a82dc203f7b13923b911edef2b8b03e48ba12e8d29b"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-last-tab-silhouette.bc6079030a40.svg",
+      "sha256": "bc6079030a405da8386c037a169e87ca36396070f8f3080e8b84f5288de029fc"
+    }
+  },
+  "gift-chudjak-plush": {
+    "mini": {
+      "url": "/art/v4/gift-chudjak-plush-mini.d5020941b7bb.svg",
+      "sha256": "d5020941b7bbeb15a73d8fab256c2822199006b8b9c0958da1d15f2c5164fd8d"
+    },
+    "card": {
+      "url": "/art/v4/gift-chudjak-plush-card.4a587efb3201.svg",
+      "sha256": "4a587efb32017679fc00a1aba0947b192f5eefa1859eeaa31be0a93c1df0003d"
+    },
+    "detail": {
+      "url": "/art/v4/gift-chudjak-plush-detail.3a7d5d8ce8dd.svg",
+      "sha256": "3a7d5d8ce8ddeb83a45d39492b2c0b103123abe524de3f7e31c57eefd14b6ef6"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-chudjak-plush-silhouette.d988ad67ad6f.svg",
+      "sha256": "d988ad67ad6fcb387377e0e5c531e0c219f42f99f40c037b4f9886eac48734ba"
+    }
+  },
+  "gift-wojak-jelly": {
+    "mini": {
+      "url": "/art/v4/gift-wojak-jelly-mini.439b6e9a956c.svg",
+      "sha256": "439b6e9a956c21dcfb4d7572046e3b84f7576ac00884ce6e8d2b9f2d9c945688"
+    },
+    "card": {
+      "url": "/art/v4/gift-wojak-jelly-card.d78d30540498.svg",
+      "sha256": "d78d305404982bd56284f03d26c3a1de4273cbeb520e7361a738d75b1f0b172e"
+    },
+    "detail": {
+      "url": "/art/v4/gift-wojak-jelly-detail.f23fb7a74d0e.svg",
+      "sha256": "f23fb7a74d0e9ec922e3ec39aa5603fa04a2d3b5b222140f246522faa42e8f19"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-wojak-jelly-silhouette.a9728b25951b.svg",
+      "sha256": "a9728b25951ba954ad8a0de5a57d94c89d5899bcfe2b48b974031fffeb57f1b4"
+    }
+  },
+  "gift-doomer-bloom": {
+    "mini": {
+      "url": "/art/v4/gift-doomer-bloom-mini.9d2c9d93d904.svg",
+      "sha256": "9d2c9d93d9041abddde36d02a3fec5a707e23765bdb48cd2ffd529fed8d5b8bd"
+    },
+    "card": {
+      "url": "/art/v4/gift-doomer-bloom-card.b2bdbef5a555.svg",
+      "sha256": "b2bdbef5a5554453ebb744e0716ebc5356f71c3e8cc82747abc59a19beaae4a2"
+    },
+    "detail": {
+      "url": "/art/v4/gift-doomer-bloom-detail.9d1ae0f0e81a.svg",
+      "sha256": "9d1ae0f0e81a50c5b359f60e54495fb4743df2f2287a236c41de5683fc0d5964"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-doomer-bloom-silhouette.d3f14d095f55.svg",
+      "sha256": "d3f14d095f551bc584dc2402670ae430744e4458a64ff480e339e3bb18d0d0fc"
+    }
+  },
+  "gift-brainrot-pop": {
+    "mini": {
+      "url": "/art/v4/gift-brainrot-pop-mini.c9e7b27c023a.svg",
+      "sha256": "c9e7b27c023a70b26f0469f1b8c22201d9dcd83469d03dcfac122f67e386943c"
+    },
+    "card": {
+      "url": "/art/v4/gift-brainrot-pop-card.8b59f6d2ff5e.svg",
+      "sha256": "8b59f6d2ff5e26505ade40d7a2d14eae7d5006ace501d4dd6911a683214e845a"
+    },
+    "detail": {
+      "url": "/art/v4/gift-brainrot-pop-detail.9097d6904867.svg",
+      "sha256": "9097d69048670cfcb98c395bdd84c284a3f636b8b26d9f20ae601d4baad2a93b"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-brainrot-pop-silhouette.79d8aa6c6354.svg",
+      "sha256": "79d8aa6c6354aa24b3cab32bee72306470be2e58350bdd10d5b6a7a1b028c429"
+    }
+  },
+  "gift-larp-cap": {
+    "mini": {
+      "url": "/art/v4/gift-larp-cap-mini.4f312fc0f02f.svg",
+      "sha256": "4f312fc0f02f84878181b1bb00d965b91ea004d6af4bb72fd0aa8ea6f5e73130"
+    },
+    "card": {
+      "url": "/art/v4/gift-larp-cap-card.c5700d89c57a.svg",
+      "sha256": "c5700d89c57a490dcb5e7c15ab6c575327866cbb8f287d915818602f36190abc"
+    },
+    "detail": {
+      "url": "/art/v4/gift-larp-cap-detail.a8c2e576a094.svg",
+      "sha256": "a8c2e576a094824bc8fd5976b7c8c1253474e90ede751fb9792ccbd9b5215f85"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-larp-cap-silhouette.088aaf44dcb0.svg",
+      "sha256": "088aaf44dcb0b5fc5f0b9858761fcec281d4f0e033645308a12fd17695c13b2a"
+    }
+  },
+  "gift-spook-crystal": {
+    "mini": {
+      "url": "/art/v4/gift-spook-crystal-mini.629e72ded3cc.svg",
+      "sha256": "629e72ded3ccb3bc9d4dda133b2b1b2e87e727863febb5385842d0691da69c42"
+    },
+    "card": {
+      "url": "/art/v4/gift-spook-crystal-card.022b71f0e15a.svg",
+      "sha256": "022b71f0e15a102fe6baffe91ca8c7c8ae2db0051dd1d1ba4f0f1c10bb4444af"
+    },
+    "detail": {
+      "url": "/art/v4/gift-spook-crystal-detail.44be1cdf610a.svg",
+      "sha256": "44be1cdf610ac0f8f5eb7d3e196969c68ae9a042f87c0a4f7dc5db0da2b7c277"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-spook-crystal-silhouette.2df2245a2c94.svg",
+      "sha256": "2df2245a2c942c75cfc58e3c1b11679dad14a65c474633ce4894aa952de6a4cb"
+    }
+  },
+  "gift-larp-helmet": {
+    "mini": {
+      "url": "/art/v4/gift-larp-helmet-mini.27d28276eafb.svg",
+      "sha256": "27d28276eafb1458697cb06cde3875ba43eb1f634cc1b878e901eb79f1fe51ea"
+    },
+    "card": {
+      "url": "/art/v4/gift-larp-helmet-card.ae424625272b.svg",
+      "sha256": "ae424625272bb144e16fd8c68134fa787ad5181e06125f9b310fcc688a05e1a7"
+    },
+    "detail": {
+      "url": "/art/v4/gift-larp-helmet-detail.85f980ecdca1.svg",
+      "sha256": "85f980ecdca18b66bd5f7b867bd3ce02046570747c76e7efe1346daa9f236268"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-larp-helmet-silhouette.9f8eb4663039.svg",
+      "sha256": "9f8eb46630399e6e5a84d332e9c6c4817bf7d9f01e4f1a6538d214c30d7b53e2"
+    }
+  },
+  "gift-copium-cartridge": {
+    "mini": {
+      "url": "/art/v4/gift-copium-cartridge-mini.2ebd0c50e5a9.svg",
+      "sha256": "2ebd0c50e5a9326a3bf240b1007a9df9c91556e08161e5b11151c5bad6aaa961"
+    },
+    "card": {
+      "url": "/art/v4/gift-copium-cartridge-card.fba449697eac.svg",
+      "sha256": "fba449697eac5b43f4b46600c1dcfc6e6a72b7377273a863bd01a3e128656ed6"
+    },
+    "detail": {
+      "url": "/art/v4/gift-copium-cartridge-detail.9965407cfc06.svg",
+      "sha256": "9965407cfc06b3898ef03f45b928f976843c18264b8f91b8109eb79a603e165f"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-copium-cartridge-silhouette.01d7b5b9a348.svg",
+      "sha256": "01d7b5b9a3488c0438fbdd8f93bcab75c4a0400c036891632d67eeab473b2c64"
+    }
+  }
+}

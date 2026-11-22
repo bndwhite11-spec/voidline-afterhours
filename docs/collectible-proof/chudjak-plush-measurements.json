@@ -1,0 +1,50 @@
+[
+  {
+    "id": "gift-chudjak-original",
+    "movingPixelsAt100px": 2256,
+    "edgePixelsAt100px": 0,
+    "durationMs": 2500,
+    "posterBytes": 15096,
+    "detailBytes": 18640
+  },
+  {
+    "id": "gift-chudjak-midnight-hoodie",
+    "movingPixelsAt100px": 2968,
+    "edgePixelsAt100px": 0,
+    "durationMs": 2500,
+    "posterBytes": 16786,
+    "detailBytes": 21179
+  },
+  {
+    "id": "gift-chudjak-helmet",
+    "movingPixelsAt100px": 3076,
+    "edgePixelsAt100px": 0,
+    "durationMs": 2500,
+    "posterBytes": 17365,
+    "detailBytes": 21104
+  },
+  {
+    "id": "gift-chudjak-patchwork",
+    "movingPixelsAt100px": 3026,
+    "edgePixelsAt100px": 0,
+    "durationMs": 2500,
+    "posterBytes": 16063,
+    "detailBytes": 19606
+  },
+  {
+    "id": "gift-chudjak-silver-thread",
+    "movingPixelsAt100px": 2185,
+    "edgePixelsAt100px": 0,
+    "durationMs": 2500,
+    "posterBytes": 15934,
+    "detailBytes": 20033
+  },
+  {
+    "id": "gift-chudjak-velvet-eclipse",
+    "movingPixelsAt100px": 2625,
+    "edgePixelsAt100px": 0,
+    "durationMs": 2500,
+    "posterBytes": 16010,
+    "detailBytes": 20606
+  }
+]

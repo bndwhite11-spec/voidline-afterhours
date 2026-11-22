@@ -8,8 +8,9 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import sharp from 'sharp';
+import {sampleArtPose} from './sample-art-pose.mjs';
 import {JSDOM} from 'jsdom';
-import {artCatalog, artSVG, priorArtSVG, studioIds} from '../src/art/catalog.mjs';
+import {studioCatalog as artCatalog, published32ArtSVG as artSVG, priorArtSVG, studioIds} from '../src/art/catalog.mjs';
 
 const dest=fileURLToPath(new URL('../docs/quality-assets/',import.meta.url));
 await mkdir(dest,{recursive:true});
@@ -20,38 +21,7 @@ const label=(copy,width,height,size,color=text)=>Buffer.from(`<svg xmlns="http:/
 const surface=(width,height,color)=>sharp({create:{width,height,channels:4,background:color}});
 const beforeAfter=[],optics=[],strip=[];
 const docById=new Map(studioIds.map(id=>[id,new JSDOM(artSVG(id,'detail'),{contentType:'image/svg+xml'})]));
-function easing(fraction){
-  // WAAPI's per-segment ease-in-out is cubic-bezier(.42,0,.58,1).
-  let low=0,high=1;
-  for(let i=0;i<19;i++){
-    const t=(low+high)/2, one=1-t;
-    if(3*one*one*t*.42+3*one*t*t*.58+t*t*t<fraction)low=t;else high=t;
-  }
-  const t=(low+high)/2;
-  return (3-2*t)*t*t;
-}
-function sample(layer,progress,key,defaultValue) {
-  const next=layer.frames.findIndex(frame=>frame.at>=progress);
-  if(next<=0)return layer.frames[next===0?0:layer.frames.length-1][key]??defaultValue;
-  const left=layer.frames[next-1], right=layer.frames[next];
-  if(right.at===progress)return right[key]??defaultValue;
-  const t=easing((progress-left.at)/(right.at-left.at));
-  const a=left[key]??defaultValue, b=right[key]??defaultValue;
-  return a+(b-a)*t;
-}
-function pose(id,time) {
-  const dom=docById.get(id),scene=dom.window.document.documentElement.cloneNode(true);
-  for(const layer of artCatalog[id].motion.layers){
-    const [ox,oy]=layer.origin;
-    for(const node of scene.querySelectorAll('[data-part="'+layer.name+'"]')){
-      const get=(key,fallback)=>sample(layer,time,key,fallback);
-      const base=node.getAttribute('transform')||'';
-      node.setAttribute('transform',`translate(${ox+get('x',0)} ${oy+get('y',0)}) rotate(${get('rotate',0)}) scale(${get('scaleX',1)} ${get('scaleY',1)}) translate(${-ox} ${-oy}) ${base}`);
-      node.setAttribute('opacity',get('opacity',Number(node.getAttribute('opacity')??1)));
-    }
-  }
-  return new dom.window.XMLSerializer().serializeToString(scene);
-}
+const pose=(id,time)=>sampleArtPose(docById.get(id),artCatalog[id].motion,time);
 
 for (const [i,id] of studioIds.entries()) {
   const obj=artCatalog[id],x=18+(i%2)*416,y=16+Math.floor(i/2)*215;

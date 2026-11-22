@@ -1,0 +1,56 @@
+{
+  "environment": "Packaged VOIDLINE document and scripts in jsdom, isolated workerd/D1/R2, two temporary registered accounts per run. All resources and interactions were local.",
+  "tested": "Rendered form controls, durable ownership and receipt agreement, event wiring, session rotation and private response guards. jsdom has no compositor, physical touch or native screen reader.",
+  "commands": [
+    "node scripts/verify-web-workspace.mjs --collectible-transfer --expanded",
+    "node scripts/verify-web-workspace.mjs --collectible-transfer --expanded --reduced-motion"
+  ],
+  "observations": [
+    {
+      "preference": "Standard motion preference",
+      "packagedWorkerSHA256": "2bfa1c8143310178d2da0d99747413d6f1b874e4926173284d37599a9454b873",
+      "result": {
+        "accounts": 2,
+        "model": "gift-pepe-desk-green",
+        "edition": "afterhours-choice.v2",
+        "tableVersion": "pepe-keycap.v1",
+        "senderReviewedExactRecipient": true,
+        "reservedBeforeAcceptance": true,
+        "showcaseRetainedWhilePending": true,
+        "recipientAcceptedSameCopy": true,
+        "showcaseClearedOnTransfer": true,
+        "receiptDisplayedExactModelAndInstance": true,
+        "receiptReplayGrantedCopies": 0,
+        "endingGiftCopies": 1,
+        "endingTransferRows": 1,
+        "endingAwardReceipts": 1,
+        "senderHistoricalReceiptHasNoOwnershipActions": true,
+        "historicalReceiptExposesNewOwner": false,
+        "staleInventoryReadsDeniedDuringDeliberateLogout": 3
+      }
+    },
+    {
+      "preference": "Reduced motion preference",
+      "packagedWorkerSHA256": "2bfa1c8143310178d2da0d99747413d6f1b874e4926173284d37599a9454b873",
+      "result": {
+        "accounts": 2,
+        "model": "gift-pepe-desk-green",
+        "edition": "afterhours-choice.v2",
+        "tableVersion": "pepe-keycap.v1",
+        "senderReviewedExactRecipient": true,
+        "reservedBeforeAcceptance": true,
+        "showcaseRetainedWhilePending": true,
+        "recipientAcceptedSameCopy": true,
+        "showcaseClearedOnTransfer": true,
+        "receiptDisplayedExactModelAndInstance": true,
+        "receiptReplayGrantedCopies": 0,
+        "endingGiftCopies": 1,
+        "endingTransferRows": 1,
+        "endingAwardReceipts": 1,
+        "senderHistoricalReceiptHasNoOwnershipActions": true,
+        "historicalReceiptExposesNewOwner": false,
+        "staleInventoryReadsDeniedDuringDeliberateLogout": 2
+      }
+    }
+  ]
+}

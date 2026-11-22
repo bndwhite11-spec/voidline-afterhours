@@ -1,0 +1,42 @@
+[
+  {
+    "id": "gift-tape-graphite-session",
+    "movingPixelsAt100px": 144,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1580,
+    "posterBytes": 16328,
+    "detailBytes": 18703
+  },
+  {
+    "id": "gift-tape-clear-leader",
+    "movingPixelsAt100px": 152,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1670,
+    "posterBytes": 17651,
+    "detailBytes": 19701
+  },
+  {
+    "id": "gift-tape-splice-repair",
+    "movingPixelsAt100px": 140,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1720,
+    "posterBytes": 16677,
+    "detailBytes": 19832
+  },
+  {
+    "id": "gift-tape-brushed-deck",
+    "movingPixelsAt100px": 237,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1480,
+    "posterBytes": 15132,
+    "detailBytes": 22084
+  },
+  {
+    "id": "gift-tape-night-press",
+    "movingPixelsAt100px": 136,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1740,
+    "posterBytes": 16340,
+    "detailBytes": 19562
+  }
+]

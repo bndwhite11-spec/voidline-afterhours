@@ -3,7 +3,7 @@
  const art=window.VoidCollectibleArt;
  const $=id=>document.getElementById(id);
  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const rows=art?.items?.()||[], dialog=$('ar-dialog'),stage=$('ar-stage'),grid=$('ar-grid');
+ const rows=(art?.items?.()||[]).sort((a,b)=>Number(!!b.familyId)-Number(!!a.familyId)), dialog=$('ar-dialog'),stage=$('ar-stage'),grid=$('ar-grid');
  const types={gift:'Gift',badge:'Name decoration',earned:'Earned badge'};
  let selected=null,origin=null,operation=null,player=null,mode='poster',frameValue=null;
  const systemMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -12,8 +12,17 @@
  if(!rows.length){$('ar-count').textContent='Collection unavailable';$('ar-error').textContent='The artwork catalog could not load. Reload this page to retry.';return;}
 
  // Keep the card elements and their decoded posters when a filter changes.
- grid.innerHTML=rows.map(a=>`<button class="ar-card" type="button" data-art-open="${escape(a.id)}">${art.render(a.id)}<strong>${escape(a.name)}</strong><small>${types[a.type]} · ${escape(a.series)}</small></button>`).join('');
+ grid.innerHTML=rows.map(a=>`<button class="ar-card" type="button" data-art-open="${escape(a.id)}">${art.render(a.id)}<strong>${escape(a.name)}</strong><small>${a.tier?escape(a.tier):types[a.type]} · ${escape(a.series)}</small></button>`).join('');
  const cards=new Map([...grid.children].map(card=>[card.dataset.artOpen,card]));
+ function paintStage(element,model){
+  if(!element)return;
+  element.querySelector(':scope > .va-backdrop')?.remove();
+  const field=model?.backdrop;
+  if(!field){element.removeAttribute('data-model-field');return;}
+  element.dataset.modelField=model.familyId;
+  element.insertAdjacentHTML('afterbegin',art.backdrop?.(model.id)||'');
+ }
+ for(const model of rows)if(model.familyId)paintStage(cards.get(model.id).querySelector('.vc-art'),model);
  function filter(){
   const query=$('ar-search').value.trim().toLocaleLowerCase(),series=$('ar-series').value,type=$('ar-type').value,counts={badge:0,gift:0,earned:0};
   let total=0;
@@ -27,9 +36,11 @@
   $('ar-empty').hidden=total>0;
  }
  function credits(a){
-  const source=a.sourceArt;if(!source)return '';
+  const source=a.sourceArt||a.archivedSource;
+  const original=a.assetKind==='layered-svg'?'Illustration and object motion drawn for VOIDLINE. Character references retain their respective authorship.':'';
+  if(!source)return original;
   let link='';try{const u=new URL(source.sourceURL);if(u.protocol==='https:'&&!u.username&&!u.password)link=' · <a href="'+escape(u.href)+'" target="_blank" rel="noopener noreferrer">Source artwork</a>';}catch{}
-  return escape(source.creator)+' · '+escape(source.license)+link;
+  return (a.archivedSource?original+'<br>Site 32 archived artwork · ':'')+escape(source.creator)+' · '+escape(source.license)+link;
  }
  function cancel(){
   operation?.abort();operation=null;art.stop(stage);player=null;
@@ -77,8 +88,11 @@
  function open(id,button){
   const a=rows.find(row=>row.id===id);if(!a)return;
   selected=a;origin=button;$('ar-loading').value='normal';
-  $('ar-title').textContent=a.name;$('ar-detail-series').textContent=types[a.type]+' · '+a.series;
-  $('ar-alt').textContent=a.alt;$('ar-material').textContent=a.material;$('ar-source').innerHTML=credits(a);
+  $('ar-title').textContent=a.name;$('ar-detail-series').textContent=(a.tier?a.tier+' · ':'')+types[a.type]+' · '+a.series;
+  $('ar-alt').textContent=a.description||a.alt;$('ar-material').textContent=a.material;
+  paintStage($('ar-plate'),a);
+  $('ar-traits').textContent=a.familyId?a.backdrop.name+' · '+a.motif:'';
+  $('ar-background').value=a.familyId?'model':'dark';$('ar-plate').dataset.surface=$('ar-background').value;$('ar-source').innerHTML=credits(a);
   $('ar-inline').innerHTML=[16,20,24].map(n=>'<span>'+art.render(id,true)+n+' px</span>').join('');
   $('ar-version').textContent=[a.edition,'Asset '+a.detailURL.split('/').pop()].filter(Boolean).join(' · ');
   $('ar-download').href=a.detailURL;$('ar-download').download=id+'.svg';
@@ -126,6 +140,8 @@
  $('ar-reduce').checked=!!window.VoidTheme?.state?.().effectiveReducedMotion;motionChanged();
  for(const series of [...new Set(rows.map(a=>a.series))]){const option=document.createElement('option');option.value=series;option.textContent=series;$('ar-series').append(option);}
  $('ar-search').addEventListener('input',filter);$('ar-series').addEventListener('change',filter);$('ar-type').addEventListener('change',filter);
+ const family=new URLSearchParams(window.location?.search||'').get('family'),initial=rows.find(row=>row.familyId===family);
+ if(initial){$('ar-series').value=initial.series;$('ar-type').value='gift';}
  $('ar-credits').href='/art/v'+art.version+'/manifest.json';
  filter();
 })();

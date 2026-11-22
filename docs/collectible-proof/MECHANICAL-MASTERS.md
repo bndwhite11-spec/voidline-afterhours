@@ -1,0 +1,21 @@
+# Keycaps, pressure bottles and the Workshop bench
+
+## Editable artwork
+
+The keycaps use a 256-unit transparent stage. Six heads share the sleepy lid line, projecting muzzle and broad mouth. The sculpt, skirt, undercut, fine surface details and optical drawings are drawn in the keycap master. Each shell has its own construction details. The cream guide, metal helix, clear housing and low mounting plate are separate pieces. The crown and face sit eight units above the mechanism’s coordinate origin in the resting pose. [Keycap source](../../src/art/keycap-models.mjs)
+
+The cap and stem travel on the same axis. The spring compresses around its fixed lower turn at (128, 196). Only Black Opal Eclipse detaches from its guide. Its seated clamp releases briefly while the stem stays extended inside the housing. In Desk Green and Night Shift, the moving lid is clipped to its own eye opening and the uncovered eye is fully drawn. Terminal Clear has a cutaway in its front apron. Porcelain Pond’s traveling reflection is clipped to the ceramic sculpt. Meteor Core’s reflection turns around the amber inclusion. These parts all inherit the cap's travel. [Keycap contact sheet](pepe-keycap-details.png) · [Sampled poses](pepe-keycap-poses.png)
+
+The bottles use one regulator rig over a stationary cylinder and foot. The valve turns on (92, 59), and the gauge needle on (161, 60). The vapor originates at the outlet in three models and at the plated joint in Field Repair. Sight Glass includes a visible fill surface and a separately moving float on a guide. Kiln White has a copper return pipe and a cobalt dial. The guard, hose, strap, ceramic cage and dial markings are separate, editable paths. [Bottle source](../../src/art/tank-models.mjs) · [Bottle contact sheet](copium-reserve-details.png) · [Bottle poses](copium-reserve-poses.png)
+
+The five existing bench gifts use their previous optical marks. Their large bodies are drawn at the same stage size and use the previous object identities. The blue Midnight Tape label stays still while its two toothed hubs shuttle together. The smaller pack turns 1.25 times as far as the larger pack. Pocket Star retains the folded five-point outline. Sealed Signal has separate flap faces, a wax impression, a moving note and an opaque front pocket. Block Zero’s three-plane cube, gilt rim and enamel field rotate together. Last Tab Open retains the Tab legend, amber switch, worn PBT shell and a fixed plate. Its mechanism supplies the pivot convention for the six Pepe caps. [Workshop bench source](../../src/art/curated-bench.mjs) · [Original Studio optical drawings](../../src/art/studio-objects.mjs)
+
+## Reference and authorship
+
+The new illustrations use editable project geometry. The Pepe character reference originates in Matt Furie's *Boy's Club*. No publisher image, Telegram collectible, CHERRY product photograph or reaction-image file is embedded in these masters. The credit for drawing the keycaps is separate from authorship of the character. [Fantagraphics](https://www.fantagraphics.com/products/boys-club)
+
+The Telegram gift detail and attribute references informed the separation of an object's appearance from its backdrop, motif and ownership. The CHERRY MX switch product page informed the distinction between cap travel, spring and fixed housing. The VOIDLINE bottle mechanisms and materials were drawn for their four models. [Telegram collectible detail](https://t.me/nft/PlushPepe-1) · [Telegram backdrop definition](https://core.telegram.org/constructor/starGiftAttributeBackdrop) · [CHERRY switch reference](https://www.cherry.de/en-us/product/mx2a-brown)
+
+## Reproduction
+
+Build the actual art using `node scripts/build-art.mjs --require-web-sources`. Run `node scripts/review-collectible-models.mjs --family pepe-keycap --video` and the same command with `--family copium-reserve` to render the family studies. The review script reads the content-hashed production files, samples their declared keyframes and rasterizes the SVGs with librsvg. The MP4s show those sampled shapes and timing at 20 fps. Both families' start and end images matched pixel for pixel in the software review. Five sampled poses per object had no opaque pixels at the outer stage edge. [Keycap measurements](pepe-keycap-measurements.json) · [Bottle measurements](copium-reserve-measurements.json)

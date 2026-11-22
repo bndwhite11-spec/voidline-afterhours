@@ -1,0 +1,290 @@
+[
+  {
+    "id": "gift-rose",
+    "name": "Chrome Rose",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1257,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-cassette",
+    "name": "Midnight Tape",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 63,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-star",
+    "name": "Pocket Star",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2626,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-cup",
+    "name": "Afterhours Cup",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 243,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-ghost",
+    "name": "Paper Ghost",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1342,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-parcel",
+    "name": "Small Surprise",
+    "revised": false,
+    "edition": "legacy",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2347,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-seraph",
+    "name": "Chrome Seraph",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2081,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-key",
+    "name": "Obsidian Key",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1847,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-halo",
+    "name": "Broken Halo",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1636,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-orchid",
+    "name": "Midnight Orchid",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2488,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-signal",
+    "name": "Sealed Signal",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1568,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-ticket",
+    "name": "Afterhours Ticket",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1308,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-pocket-doomer",
+    "name": "Pocket Doomer",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1184,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-orbit-mobile",
+    "name": "Orbit Mobile",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1406,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-last-broadcast",
+    "name": "Last Broadcast",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 177,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-night-lantern",
+    "name": "Night Lantern",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1550,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-ego-volume",
+    "name": "Egoist’s Volume",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2921,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-curtain-call",
+    "name": "Curtain Call",
+    "revised": false,
+    "edition": "legacy",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2000,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-larp-kit",
+    "name": "LARP Starter Kit",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1225,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-aura-meter",
+    "name": "Aura Meter",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 192,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-copium-tank",
+    "name": "Copium Reserve Tank",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 223,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-cold-wallet",
+    "name": "Cold Wallet Relic",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1201,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-block-zero",
+    "name": "Block Zero",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2506,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-last-tab",
+    "name": "Last Tab Open",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1885,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-chudjak-plush",
+    "name": "Chudjak Plush",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1658,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-wojak-jelly",
+    "name": "Wojak Jelly",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1206,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-doomer-bloom",
+    "name": "Doomer Bloom",
+    "revised": false,
+    "edition": "legacy",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2191,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-brainrot-pop",
+    "name": "Brainrot Pop",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 2626,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-larp-cap",
+    "name": "LARP Cap",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1042,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-spook-crystal",
+    "name": "Spook Crystal",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 207,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-larp-helmet",
+    "name": "LARP Helmet",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 1841,
+    "occupiedStageEdgePixelsAt96": 0
+  },
+  {
+    "id": "gift-copium-cartridge",
+    "name": "Copium Cartridge",
+    "revised": true,
+    "edition": "workshop-01",
+    "canonicalEndpointsMatch": true,
+    "changedPixelsAt96": 383,
+    "occupiedStageEdgePixelsAt96": 0
+  }
+]

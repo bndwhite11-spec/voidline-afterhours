@@ -1,6 +1,6 @@
-# Current edition4 source-image correction
+# Site 32 source-image research
 
-The latest user instruction requires actual web images for badges and gifts, including LARP PRO MAX, Blockchain and Ledger. Current source attribution is in `WEB-ART-SOURCES.md`, four `src/art/web-*.mjs` metadata modules, `/art/v4/manifest.json` and `/art/sources/ATTRIBUTION.txt`. Edition4 uses actual downloaded human artwork and conventional source-image preparation, with factual rights status and no image generation. Earlier vector-drawing/reference-only statements below describe edition3 research history; they do not describe current production pixels.
+The Site 32 release used actual web images for badges and gifts, including LARP PRO MAX, Blockchain and Ledger. Source attribution for that release appears in `WEB-ART-SOURCES.md`, four `src/art/web-*.mjs` metadata modules, `/art/v4/manifest.json` and `/art/sources/ATTRIBUTION.txt`. Edition4 uses actual downloaded human artwork and conventional source-image preparation, with factual rights status and no image generation. Earlier vector-drawing and reference-only statements below describe edition 3 research. The current gift revision and the live mixed-format catalog are documented in [Gift artwork and motion](COLLECTIBLE-ART.md).
 
 ## Earlier edition3 research record
 

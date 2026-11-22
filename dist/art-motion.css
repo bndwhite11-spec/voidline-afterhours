@@ -6,3 +6,8 @@
 .vc-mini{width:20px;height:20px;flex:0 0 auto;vertical-align:-3px;overflow:visible}
 html.vh-reduced-motion .va-playing [data-part]{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){.va-playing [data-part]{animation:none!important;transition:none!important}}
+
+.va-unavailable{display:inline-grid;place-items:center;aspect-ratio:1;color:var(--vh-muted,#a7afb8)}
+.va-unavailable>svg{width:46%;height:46%}.va-unavailable.vc-mini>svg{width:100%;height:100%}
+
+.va-backdrop{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}

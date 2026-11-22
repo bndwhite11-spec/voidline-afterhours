@@ -27,3 +27,6 @@ __pycache__/
 /native/**/out/
 *.jks
 *.keystore
+
+# Generated copies of the review films in docs/collectible-proof.
+/dist/art/studies/

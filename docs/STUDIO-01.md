@@ -1,5 +1,7 @@
 # Studio 01 collectibles
 
+This records the historical Studio 01 visual edition. Its proof script reproduces the published source-image compositions. [Current gift artwork and motion](COLLECTIBLE-ART.md)
+
 Seven existing gifts and one existing name decoration have new artwork. The source images remain credited in each inspection view. Studio 01 combines those images with separately drawn objects, working parts and optical miniatures. The existing catalog IDs continue to identify the same gifts and decoration.
 
 ## Object guide

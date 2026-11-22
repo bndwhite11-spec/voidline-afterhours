@@ -1,5 +1,6 @@
 /** Private organization of existing, currently owned gift instances.
  * A group is neither ownership, profile showcase nor a transferable asset. */
+import {acquisitionTime} from './collectible-inventory.mjs';
 import {authenticate,validateSessionMutation,authRateLimit,AuthError} from './auth.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const need=(ok,status,code,message)=>{if(!ok)throw new AuthError(status,code,message);};
@@ -33,12 +34,12 @@ export function createGiftCollectionsService({now=()=>Date.now()}={}){
     }
     if(path.length===1&&path[0]==='inventory'){
      const groupId=url.searchParams.get('collection'),group=groupId?await collection(db,user,groupId):null,pageOffset=offset(url),total=(await q(db,'SELECT COUNT(*) AS n FROM gift_instances WHERE owner_id=?',user.id).first()).n;
-     const rows=(await q(db,'SELECT i.*,EXISTS(SELECT 1 FROM gift_collection_items m WHERE m.instance_id=i.id AND m.collection_id=?) AS included FROM gift_instances i WHERE i.owner_id=? ORDER BY i.created_at DESC,i.id LIMIT ? OFFSET ?',group?.id||'',user.id,LIMIT,pageOffset).all()).results;
-     await currentActor(db,user);return json({accountId:user.id,instances:rows.map(r=>({id:r.id,catalogId:r.catalog_id,createdAt:r.created_at,pendingTransfer:!!r.pending_transfer_id,included:!!r.included})),...(group?{collection:project(group)}:{}),page:{offset:pageOffset,limit:LIMIT,total,hasMore:pageOffset+LIMIT<total}});
+     const rows=(await q(db,`SELECT i.id,i.catalog_id,${acquisitionTime()} AS acquired_at,i.pending_transfer_id,EXISTS(SELECT 1 FROM gift_collection_items m WHERE m.instance_id=i.id AND m.collection_id=?) AS included FROM gift_instances i WHERE i.owner_id=? ORDER BY acquired_at DESC,i.id LIMIT ? OFFSET ?`,group?.id||'',user.id,LIMIT,pageOffset).all()).results;
+     await currentActor(db,user);return json({accountId:user.id,instances:rows.map(r=>({id:r.id,catalogId:r.catalog_id,createdAt:r.acquired_at,pendingTransfer:!!r.pending_transfer_id,included:!!r.included})),...(group?{collection:project(group)}:{}),page:{offset:pageOffset,limit:LIMIT,total,hasMore:pageOffset+LIMIT<total}});
     }
     need(path.length===1&&UUID.test(path[0]),404,'not_found','This collection page is unavailable.');const group=await collection(db,user,path[0]),pageOffset=offset(url);
-    const rows=(await q(db,'SELECT i.id,i.catalog_id,i.created_at,i.pending_transfer_id,m.added_at FROM gift_collection_items m JOIN gift_instances i ON i.id=m.instance_id AND i.owner_id=? WHERE m.collection_id=? ORDER BY m.position,m.added_at,i.id LIMIT ? OFFSET ?',user.id,group.id,LIMIT,pageOffset).all()).results;
-    await currentActor(db,user);return json({accountId:user.id,collection:project(group),instances:rows.map(r=>({id:r.id,catalogId:r.catalog_id,createdAt:r.created_at,addedAt:r.added_at,pendingTransfer:!!r.pending_transfer_id,included:true})),page:{offset:pageOffset,limit:LIMIT,total:group.count,hasMore:pageOffset+LIMIT<group.count}});
+    const rows=(await q(db,`SELECT i.id,i.catalog_id,${acquisitionTime()} AS acquired_at,i.pending_transfer_id,m.added_at FROM gift_collection_items m JOIN gift_instances i ON i.id=m.instance_id AND i.owner_id=? WHERE m.collection_id=? ORDER BY m.position,m.added_at,i.id LIMIT ? OFFSET ?`,user.id,group.id,LIMIT,pageOffset).all()).results;
+    await currentActor(db,user);return json({accountId:user.id,collection:project(group),instances:rows.map(r=>({id:r.id,catalogId:r.catalog_id,createdAt:r.acquired_at,addedAt:r.added_at,pendingTransfer:!!r.pending_transfer_id,included:true})),page:{offset:pageOffset,limit:LIMIT,total:group.count,hasMore:pageOffset+LIMIT<group.count}});
    }
    const body=await bodyJSON(request);await validateSessionMutation(request,user,body);await authRateLimit(request,db,'gift-collections',120,time,user.id);const active=actor(user);
    if(path.length===0){

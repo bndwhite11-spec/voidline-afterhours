@@ -21,7 +21,8 @@ const {Miniflare} = await import(pathToFileURL(wrangler.resolve('miniflare')));
 const origin = 'https://quality.voidline.example';
 const args = parseArgs({options: {
   baseline:{type:'string'}, candidate:{type:'string',default:resolve(root,'dist/server/index.js')},
-  pairs:{type:'string',default:'1'}, output:{type:'string'},
+  pairs:{type:'string',default:'1'}, output:{type:'string'}, collectibles:{type:'boolean'},
+  'collectible-transfer':{type:'boolean'}, expanded:{type:'boolean'}, 'lost-opening-response':{type:'boolean'}, 'reduced-motion':{type:'boolean'}, 'missing-art':{type:'boolean'},
 }}).values;
 const pairCount=Number(args.pairs);
 assert(Number.isInteger(pairCount) && pairCount>0 && pairCount<=20,'Choose 1–20 repetitions.');
@@ -41,15 +42,20 @@ async function run(script) {
   let outbound=0, stage='setup', dom;
   const runtime = new Miniflare({
     modules:true,script,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],
-    d1Databases:['DB'],r2Buckets:['MEDIA'],d1Persist:false,r2Persist:false,
+    bindings:{CAPSULE_EXPANDED_FAMILIES:args.expanded?'1':'0'},d1Databases:['DB'],r2Buckets:['MEDIA'],d1Persist:false,r2Persist:false,
     outboundService:()=>{outbound++;return new Response(null,{status:502});},
   });
   const jar=new CookieJar(), seen=[], clientErrors=[];
   const timings={};
   let guestRequests, guestRequestStarts, guestByKind, signOutDefault;
   const started={document:0,script:0,style:0,api:0,other:0};
-  const browserFailures=[];
-  let closing=false;
+  const browserFailures=[], deliberateLogoutSessions=new Set();
+  let staleReadsDenied=0;
+  function markSessionLogout(){
+    const current=jar.getCookieStringSync(origin+'/');
+    if(current)deliberateLogoutSessions.add(current);
+  }
+  let closing=false, lostOpeningResponse=false, collectionResult, transferResult;
 
   async function exchange(input, init={}) {
     const destination=new URL(typeof input==='string'?input:input.url,origin);
@@ -62,6 +68,7 @@ async function run(script) {
     else if(path.endsWith('.css'))started.style++;
     else started.other++;
     const method=init.method||input.method||'GET';
+    if(args['missing-art'] && stage==='capsule:submitting' && /-detail\.[a-f0-9]+\.svg$/.test(path)) return new Response(null,{status:503});
     const headers=new Headers(init.headers||input.headers||{});
     if(method!=='GET' && method!=='HEAD')headers.set('origin',origin);
     const cookies=jar.getCookieStringSync(destination.href);
@@ -72,9 +79,16 @@ async function run(script) {
     for(const value of response.headers.getSetCookie())jar.setCookieSync(value,destination.href);
     const body=await response.arrayBuffer(), outgoing=new Headers(response.headers);
     for(const key of ['content-length','content-encoding','set-cookie'])outgoing.delete(key);
-    seen.push({path:destination.pathname, method, status:response.status});
-    if(response.status>=400 && !(destination.pathname==='/api/auth/session' && response.status===401))
+    const errorCode=response.status>=400 && outgoing.get('content-type')?.includes('json')?JSON.parse(new TextDecoder().decode(body))?.error?.code:undefined;
+    seen.push({path:destination.pathname, method, status:response.status, stage, errorCode});
+    const revokedRead=deliberateLogoutSessions.has(cookies) && method==='GET' && path==='/api/cosmetics/inventory' &&
+      response.status===409 && errorCode==='account_changed';
+    if(revokedRead)staleReadsDenied++;
+    else if(response.status>=400 && !(destination.pathname==='/api/auth/session' && response.status===401))
       browserFailures.push(response.status);
+    if(args['lost-opening-response'] && !lostOpeningResponse && /\/api\/capsules\/[^/]+\/open$/.test(path) && method==='POST' && response.ok){
+      lostOpeningResponse=true;throw TypeError('Simulated connection loss after D1 commit');
+    }
     return new Response(body.byteLength?body:null,{status:response.status,headers:outgoing});
   }
   function $ (selector) {return dom.window.document.querySelector(selector);}
@@ -124,7 +138,7 @@ async function run(script) {
         beforeParse(w) {
           Object.assign(w,{fetch:exchange,Response,Request,Headers,TextEncoder,TextDecoder,indexedDB:new IDBFactory(),IDBKeyRange});
           Object.defineProperty(w,'crypto',{value:webcrypto});
-          w.matchMedia=media=>({media,matches:false,addEventListener(){},removeEventListener(){}});
+          w.matchMedia=media=>({media,matches:!!args['reduced-motion']&&media.includes('prefers-reduced-motion'),addEventListener(){},removeEventListener(){}});
           w.HTMLElement.prototype.scrollIntoView=function(){};
           w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
           w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
@@ -184,6 +198,12 @@ async function run(script) {
     assert.equal((await one('SELECT COUNT(*) AS n FROM gift_instances')).n,0);
     await action('close-dialog');
 
+    if(args.collectibles||args['collectible-transfer']){
+      stage='capsule:enter';
+      const {verifyCollectibleFlow}=await import('./verify-collectible-flow.mjs');
+      collectionResult=await verifyCollectibleFlow({action,click,element,until,$,event,json,one,accountId:id,observe:name=>{stage='capsule:'+name;}});
+      if(args['lost-opening-response'])assert.ok(lostOpeningResponse,'Lost reply must follow a committed opening');
+    }
     stage='communityCreate';await action('create');
     const create=await element('[data-home-form="create"]');fill(create,{name:communityName});create.dispatchEvent(event('submit'));
     await until(()=>state().communities?.some(room=>room.name===communityName));
@@ -207,7 +227,7 @@ async function run(script) {
     assert.ok(row?.id===ack.id&&row.author_id===id&&row.community_id===room.id,'Rendered message must match durable author, channel and message identity');
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_messages')).n,1);
 
-    stage='logout';await action('you');await action('logout');await element('[data-home="auth-login"]');
+    stage='logout';await action('you');markSessionLogout();await action('logout');await element('[data-home="auth-login"]');
     assert.equal((await exchange('/api/auth/session')).status,401,'Server should revoke the signed-out session');
     signOutDefault=$('[data-home-form="login"]')?'login':'createAccount';
     if(signOutDefault==='createAccount')await action('auth-login');
@@ -216,15 +236,24 @@ async function run(script) {
       login.dispatchEvent(event('submit'));
       await until(()=>state()?.account?.id===id&&state().communities?.some(item=>item.id===room.id));
     });
-    assert.equal((await one('SELECT COUNT(*) AS n FROM live_accounts')).n,1);
+    if(args['collectible-transfer']){
+      const {verifyCollectibleTransfer}=await import('./verify-collectible-transfer.mjs');
+      transferResult=await verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,
+        sender:{id,username,password},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
+    }
+    assert.equal((await one('SELECT COUNT(*) AS n FROM live_accounts')).n,args['collectible-transfer']?2:1);
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_messages WHERE author_id=?',id)).n,1);
     assert.equal(outbound,0,'All transport must stay inside the fixture');
     assert.equal(clientErrors.length,0,'Uncaught document runtime errors');
     assert.equal(browserFailures.length,0,'Unexpected HTTP errors');
-    return {timings,guestRequests,guestRequestStarts,guestByKind,signOutDefault};
+    return {timings,guestRequests,guestRequestStarts,guestByKind,signOutDefault,...(collectionResult?{collectionResult,lostOpeningResponse,expandedRelease:!!args.expanded}:{}),...(transferResult?{transferResult:{...transferResult,staleInventoryReadsDeniedDuringDeliberateLogout:staleReadsDenied}}:{})};
   } catch (error) {
     // Exception and API text may contain account input. Only report the
     // scenario boundary, safe assertion label and error category.
+    if(args.collectibles||args['collectible-transfer']){
+      const controls=[...dom.window.document.querySelectorAll('#home-dialog button')].map(n=>Object.keys(n.dataset).join('/')+' '+(n.getAttribute('data-ps-action')||n.getAttribute('data-vp-action')||n.getAttribute('data-cl')||n.getAttribute('data-vc-action')||'')).filter(Boolean);
+      console.error('Collector fixture boundary',stage,controls.slice(0,50),seen.slice(-12).map(r=>[r.method,r.path.replace(/[0-9a-f-]{32,}/g,'…'),r.status]),clientErrors,seen.filter(r=>r.status>=400).map(r=>[r.method,r.path.replace(/[0-9a-f-]{32,}/g,'…'),r.status,r.stage,r.errorCode]),error.code==='ERR_ASSERTION'?error.stack.split('\n').filter(l=>l.includes('verify-')).slice(0,2):[]);
+    }
     const safe=error.code==='ERR_ASSERTION'?'state assertion':error.message==='UI condition timed out'?'UI timeout':'transport or runtime error';
     throw Error('Workspace check failed in '+stage+' ('+safe+').');
   } finally {closing=true;dom?.window.close();await runtime.dispose();}

@@ -100,8 +100,8 @@ html = re.sub(r'(<script\b[^>]*>)(.*?)</script\s*>', inline_script, html,
 html = html.replace('href="/install.html', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html')
 html = html.replace('href="/chats"', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/chats"')
 html = html.replace('href="/help.html', 'href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html')
-required_styles = {'startup.css', 'mobile.css', 'art-motion.css', 'native-messaging.css', 'native-media.css', 'entry.css', 'home.css', 'cosmetics.css', 'social.css', 'organize.css', 'profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css', 'admin.css'}
-required_scripts = {'feature-loader.js', 'startup.js', 'mobile.js', 'account-export.js', 'theme.js', 'media-validation.js', 'profile-media.js', 'native-media.js', 'native-outbox.js', 'native-timeline.js', 'realtime.js', 'collectible-art.js', 'notifications.js', 'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'social.js', 'organize.js', 'gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js', 'admin.js'}
+required_styles = {'capsule-stage.css', 'startup.css', 'mobile.css', 'art-motion.css', 'native-messaging.css', 'native-media.css', 'entry.css', 'home.css', 'cosmetics.css', 'collector.css', 'social.css', 'organize.css', 'profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css', 'admin.css'}
+required_scripts = {'capsule-stage.js', 'feature-loader.js', 'startup.js', 'mobile.js', 'account-export.js', 'theme.js', 'media-validation.js', 'profile-media.js', 'native-media.js', 'native-outbox.js', 'native-timeline.js', 'realtime.js', 'collectible-art.js', 'notifications.js', 'entry.js', 'store.js', 'legacy-import.js', 'home.js', 'cosmetics.js', 'collector.js', 'social.js', 'organize.js', 'gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js', 'admin.js'}
 if not required_styles.issubset(inlined_styles) or not required_scripts.issubset(inlined_scripts):
     raise ValueError('The entrypoint must load the production home and explicit archive recovery modules.')
 if 'data-offline="true"' not in html:
@@ -140,7 +140,7 @@ def allowed(path):
         return False
     if len(parts) > 1 and parts[0] == 'dist' and parts[1] in generated_dist_roots:
         return False
-    if len(parts) > 2 and parts[:2] == ('dist', 'art') and re.fullmatch(r'v[0-9]+', parts[2]):
+    if len(parts) > 2 and parts[:2] == ('dist', 'art') and (parts[2] == 'studies' or re.fullmatch(r'v[0-9]+', parts[2])):
         return False  # Rebuilt SVG variants; source PNG/JPEG and presentation modules are included.
     if relative == Path('dist/downloads/voidline-source.zip'):
         return False

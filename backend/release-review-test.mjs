@@ -87,10 +87,13 @@ test('a reserved instance cannot change ownership if its recipient is suspended 
  const f=fixture();try{const {client:a}=await f.register('transfer_sender'),{client:b}=await f.register('transfer_recipient');
   const collected=await a.ok('/api/cosmetics/claim',{cosmeticId:'gift-key'}),instance=collected.instances.find(i=>i.catalog_id==='gift-key');
   const {transfer}=await a.ok('/api/cosmetics/transfers',{instanceId:instance.id,username:'transfer_recipient',clientId:'review-transfer-suspend'});
+  assert.equal(f.sqlite.prepare('SELECT pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id).pending_transfer_id,transfer.id);
   const result=await f.interrupt(sql=>sql.some(s=>s.startsWith('UPDATE gift_transfers')),
    ()=>b.call('/api/cosmetics/transfers/'+transfer.id+'/open',{}),()=>f.suspend(b.account.id));
-  assert.ok([401,409].includes(result.status));const item=f.sqlite.prepare('SELECT owner_id,pending_transfer_id FROM gift_instances WHERE id=?').get(instance.id);
-  assert.equal(item.owner_id,a.account.id);assert.equal(item.pending_transfer_id,transfer.id);assert.equal(f.sqlite.prepare('SELECT state FROM gift_transfers WHERE id=?').get(transfer.id).state,'pending');
+  assert.ok([401,409].includes(result.status));const item=f.sqlite.prepare('SELECT owner_id,pending_transfer_id,ownership_revision FROM gift_instances WHERE id=?').get(instance.id);
+  assert.equal(item.owner_id,a.account.id);assert.equal(item.ownership_revision,0);assert.equal(item.pending_transfer_id,null);
+  const offer=f.sqlite.prepare('SELECT state,handled_at FROM gift_transfers WHERE id=?').get(transfer.id);assert.equal(offer.state,'cancelled');assert.ok(offer.handled_at>0);
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM gift_instances WHERE owner_id=?').get(b.account.id).n,0);
  }finally{f.sqlite.close();}
 });
 

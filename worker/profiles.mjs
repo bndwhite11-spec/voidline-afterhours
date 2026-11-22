@@ -1,6 +1,7 @@
 /** Account-backed public profile details. Authentication information is never public. */
 import {authenticate,validateSessionMutation,authRateLimit,AuthError} from './auth.mjs';
 import {BADGE_DEFINITIONS,COSMETICS,relationship,mayView,earnedBadges,effectiveCatalog} from './cosmetics.mjs';
+import {collectibleDisplay} from '../src/collectibles/presentation.mjs';
 import {profileMedia} from './media.mjs';
 const q=(db,sql,...values)=>db.prepare(sql).bind(...values);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
@@ -21,7 +22,7 @@ async function bodyJSON(request){
 }
 const bounded=(value,maximum,label)=>{need(typeof value==='string'&&value.length<=maximum&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value),400,'invalid_profile',`${label} must contain at most ${maximum} characters.`);return value.trim();};
 const choice=(value,options,fallback)=>{const selected=value??fallback;need(options.includes(selected),400,'invalid_profile','Choose one of the available profile settings.');return selected;};
-function prefs(row){return {banner:row?.banner||'midnight',accent:row?.accent||'ice',detailsVisibility:row?.details_visibility||'shared',collectionVisibility:row?.collection_visibility||'shared',animationEnabled:!!row?.animation_enabled,badgeOrder:JSON.parse(row?.badge_order||'[]'),avatarMediaId:row?.avatar_media_id||null,bannerMediaId:row?.banner_media_id||null,nameStyle:row?.name_style||'plain',profileFrame:row?.profile_frame||'none'};}
+function prefs(row){return {banner:row?.banner||'midnight',accent:row?.accent||'ice',detailsVisibility:row?.details_visibility||'shared',collectionVisibility:row?.collection_visibility||'shared',fullInventoryVisibility:row?.full_inventory_visibility||'private',animationEnabled:!!row?.animation_enabled,badgeOrder:JSON.parse(row?.badge_order||'[]'),avatarMediaId:row?.avatar_media_id||null,bannerMediaId:row?.banner_media_id||null,nameStyle:row?.name_style||'plain',profileFrame:row?.profile_frame||'none'};}
 /** Run before the account/prefs update in the same batch. Compare committed author
  * fields, rather than an earlier request snapshot. CROSS JOIN keeps the one-row
  * account/prefs check outside history traversal when no author field changed.
@@ -60,12 +61,12 @@ export function profileNativeAuthorChanges(db,user,now,patch,guard){
 const accountFields={displayName:'display_name',bio:'bio',status:'status',avatar:'avatar'};
 const preferenceFields={banner:'banner',accent:'accent',detailsVisibility:'details_visibility',collectionVisibility:'collection_visibility',animationEnabled:'animation_enabled',badgeOrder:'badge_order',avatarMediaId:'avatar_media_id',bannerMediaId:'banner_media_id',nameStyle:'name_style',profileFrame:'profile_frame'};
 const editableFields=[...Object.keys(accountFields),...Object.keys(preferenceFields),'equippedId','showcaseSlots'];
-const slotsJSON=slots=>JSON.stringify(slots.map(s=>[s.slot,s.instanceId,s.showSender?1:0]));
-const showcaseSQL="COALESCE((SELECT json_group_array(json_array(slot,instance_id,show_sender)) FROM(SELECT slot,instance_id,show_sender FROM gift_showcase WHERE account_id=? ORDER BY slot)),'[]')";
+const slotsJSON=slots=>JSON.stringify(slots.map(s=>[s.slot,s.instanceId,s.showSender?1:0,s.featured?1:0]));
+const showcaseSQL="COALESCE((SELECT json_group_array(json_array(slot,instance_id,show_sender,featured)) FROM(SELECT slot,instance_id,show_sender,featured FROM gift_showcase WHERE account_id=? ORDER BY slot)),'[]')";
 async function editableState(db,id){
  const row=await q(db,`SELECT a.display_name,a.bio,a.status,a.avatar,a.account_status,p.*,c.equipped_id,COALESCE(v.revision,0) AS revision,${showcaseSQL} AS slots_json FROM live_accounts a LEFT JOIN profile_preferences p ON p.account_id=a.id LEFT JOIN cosmetic_profiles c ON c.account_id=a.id LEFT JOIN profile_save_state v ON v.account_id=a.id WHERE a.id=?`,id,id).first();
  need(row,409,'profile_changed','Your account changed before the profile could be saved.');
- return {displayName:row.display_name,bio:row.bio,status:row.status,avatar:row.avatar,...prefs(row),equippedId:row.equipped_id||null,showcaseSlots:JSON.parse(row.slots_json).map(([slot,instanceId,showSender])=>({slot,instanceId,showSender:!!showSender})),revision:row.revision,accountStatus:row.account_status};
+ return {displayName:row.display_name,bio:row.bio,status:row.status,avatar:row.avatar,...prefs(row),equippedId:row.equipped_id||null,showcaseSlots:JSON.parse(row.slots_json).map(([slot,instanceId,showSender,featured])=>({slot,instanceId,showSender:!!showSender,...(featured?{featured:true}:{})})),revision:row.revision,accountStatus:row.account_status};
 }
 function normalized(key,value){
  if(key==='displayName'){const name=bounded(value,32,'Display name');need(name.length>=2,400,'invalid_profile','Use a display name of 2–32 characters.');return name;}
@@ -78,8 +79,8 @@ function normalized(key,value){
  if(key==='badgeOrder'){need(Array.isArray(value)&&value.length<=3&&new Set(value).size===value.length&&value.every(id=>typeof id==='string'&&id.length<=128),400,'invalid_badge_order','Choose up to three distinct earned badges.');return value;}
  if(key==='equippedId'){need(value===null||typeof value==='string'&&COSMETICS.some(item=>item.id===value&&item.type==='badge'),400,'invalid_cosmetic','Choose an available profile decoration.');return value;}
  if(key==='showcaseSlots'){
-  need(Array.isArray(value)&&value.length<=3&&value.every(s=>s&&typeof s.instanceId==='string'&&s.instanceId.length<=160&&Number.isSafeInteger(s.slot)&&s.slot>=1&&s.slot<=3&&typeof s.showSender==='boolean')&&new Set(value.map(s=>s.slot)).size===value.length&&new Set(value.map(s=>s.instanceId)).size===value.length,400,'invalid_showcase','Choose up to three different owned gifts.');
-  return value.map(({slot,instanceId,showSender})=>({slot,instanceId,showSender})).sort((a,b)=>a.slot-b.slot);
+  need(Array.isArray(value)&&value.length<=3&&value.every(s=>s&&typeof s.instanceId==='string'&&s.instanceId.length<=160&&Number.isSafeInteger(s.slot)&&s.slot>=1&&s.slot<=3&&typeof s.showSender==='boolean')&&value.every(s=>s.featured===undefined||typeof s.featured==='boolean')&&value.filter(s=>s.featured).length<=1&&new Set(value.map(s=>s.slot)).size===value.length&&new Set(value.map(s=>s.instanceId)).size===value.length,400,'invalid_showcase','Choose up to three different owned gifts.');
+  return value.map(({slot,instanceId,showSender,featured})=>({slot,instanceId,showSender,...(featured?{featured:true}:{})})).sort((a,b)=>a.slot-b.slot);
  }
  throw new AuthError(400,'invalid_profile','Choose a supported profile field.');
 }
@@ -92,7 +93,7 @@ function fieldExpression(key,id){
 }
 function sameField(key,left,right){return JSON.stringify(storedValue(key,left))===JSON.stringify(storedValue(key,right));}
 async function finalProfileScope(db,viewer,id,sessionId){
- return q(db,`SELECT target.account_status AS target_status,reader.account_status AS reader_status,COALESCE(p.details_visibility,'shared') AS details_visibility,COALESCE(p.collection_visibility,'shared') AS collection_visibility,
+ return q(db,`SELECT target.account_status AS target_status,reader.account_status AS reader_status,COALESCE(p.details_visibility,'shared') AS details_visibility,COALESCE(p.collection_visibility,'shared') AS collection_visibility,COALESCE(p.full_inventory_visibility,'private') AS full_inventory_visibility,
   EXISTS(SELECT 1 FROM social_blocks b WHERE(b.blocker_id=? AND b.blocked_id=?)OR(b.blocker_id=? AND b.blocked_id=?)) AS blocked,
   EXISTS(SELECT 1 FROM social_requests f WHERE f.state='accepted' AND((f.sender_id=? AND f.recipient_id=?)OR(f.sender_id=? AND f.recipient_id=?))) AS friends,
   EXISTS(SELECT 1 FROM live_memberships mine JOIN live_memberships theirs ON theirs.community_id=mine.community_id WHERE mine.account_id=? AND theirs.account_id=?) AS shared,
@@ -105,18 +106,23 @@ export async function readProfile(db,viewer,id,attempt=0,sessionId=null){
  const relation=await relationship(db,viewer,id);need(!relation.blocked,403,'profile_unavailable','This profile is unavailable.');
  const settings=prefs(await q(db,'SELECT * FROM profile_preferences WHERE account_id=?',id).first());
  need(relation.own||relation.friends||relation.shared||settings.detailsVisibility==='public',403,'profile_unavailable','This profile is unavailable.');
- const detailsVisible=mayView(settings.detailsVisibility,relation),collectionVisible=mayView(settings.collectionVisibility,relation);
+ const detailsVisible=mayView(settings.detailsVisibility,relation),collectionVisible=mayView(settings.collectionVisibility,relation),fullInventoryVisible=mayView(settings.fullInventoryVisibility,relation);
  const [cosmetic,owner,awards]=await Promise.all([q(db,'SELECT equipped_id FROM cosmetic_profiles WHERE account_id=?',id).first(),q(db,'SELECT account_id FROM platform_owner WHERE id=1').first(),earnedBadges(db,id)]);
  const badgeById=new Map(awards.map(a=>[a.badge_id,a])),ordered=settings.badgeOrder.map(id=>badgeById.get(id)).filter(Boolean);
  // A displayed award publishes its requirement, date and issuing institution.
  // Reviewer account references and award notes remain in the owner's record.
  const visibleAwards=ordered.map(({reason,issuer_id,issuer_name,issuer,...award})=>({...award,issuer:issuer_id?'VOIDLINE platform award':'VOIDLINE server rule'}));
- const profile={id:target.id,username:target.username,displayName:target.display_name,avatar:target.avatar,avatarMedia:settings.avatarMediaId?await profileMedia(db,settings.avatarMediaId,'avatar'):null,theme:target.theme,createdAt:target.created_at,detailsVisible,collectionVisible,equippedId:cosmetic?.equipped_id||null,role:owner?.account_id===id?'platform-owner':null,earnedBadges:detailsVisible?visibleAwards:[]};
+ const profile={id:target.id,username:target.username,displayName:target.display_name,avatar:target.avatar,avatarMedia:settings.avatarMediaId?await profileMedia(db,settings.avatarMediaId,'avatar'):null,theme:target.theme,createdAt:target.created_at,detailsVisible,collectionVisible,fullInventoryVisible,equippedId:cosmetic?.equipped_id||null,role:owner?.account_id===id?'platform-owner':null,earnedBadges:detailsVisible?visibleAwards:[]};
  if(detailsVisible)Object.assign(profile,{bio:target.bio,status:target.status,banner:settings.banner,bannerMedia:settings.bannerMediaId?await profileMedia(db,settings.bannerMediaId,'banner'):null,accent:settings.accent,animationEnabled:settings.animationEnabled,nameStyle:settings.nameStyle,profileFrame:settings.profileFrame});
  if(collectionVisible){
   const catalog=new Map((await effectiveCatalog(db)).map(item=>[item.id,item]));
-  profile.showcase=(await q(db,`SELECT s.slot,s.instance_id,s.show_sender,i.catalog_id,i.origin_kind,i.created_at,CASE WHEN s.show_sender=1 OR ?=1 THEN a.display_name ELSE NULL END AS sender_name,CASE WHEN s.show_sender=1 OR ?=1 THEN a.username ELSE NULL END AS sender_username
-  FROM gift_showcase s JOIN gift_instances i ON i.id=s.instance_id AND i.owner_id=s.account_id LEFT JOIN cosmetic_gifts g ON g.id=i.origin_gift_id LEFT JOIN live_accounts a ON a.id=g.sender_id AND a.account_status='active' AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE(b.blocker_id=a.id AND b.blocked_id IN(?,?)) OR(b.blocked_id=a.id AND b.blocker_id IN(?,?))) WHERE s.account_id=? ORDER BY s.slot LIMIT 3`,relation.own?1:0,relation.own?1:0,viewer,id,viewer,id,id).all()).results.map(item=>({...item,name:catalog.get(item.catalog_id)?.name||'Gift',...(relation.own?{senderDisclosureAvailable:!!item.sender_username}: {})}));
+  profile.showcase=(await q(db,`SELECT s.slot,s.instance_id,s.show_sender,s.featured,i.catalog_id,CASE WHEN s.show_sender=1 OR ?=1 THEN a.display_name ELSE NULL END AS sender_name,CASE WHEN s.show_sender=1 OR ?=1 THEN a.username ELSE NULL END AS sender_username
+  FROM gift_showcase s JOIN gift_instances i ON i.id=s.instance_id AND i.owner_id=s.account_id LEFT JOIN gift_transfers tx ON tx.id=(SELECT h.id FROM gift_transfers h WHERE h.instance_id=i.id AND h.state='accepted' AND h.recipient_id=i.owner_id ORDER BY h.handled_at DESC,h.rowid DESC LIMIT 1) LEFT JOIN cosmetic_gifts g ON tx.id IS NULL AND i.ownership_revision=0 AND g.id=i.origin_gift_id AND g.recipient_id=i.owner_id LEFT JOIN live_accounts a ON a.id=COALESCE(tx.sender_id,g.sender_id) AND a.account_status='active' AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE(b.blocker_id=a.id AND b.blocked_id IN(?,?)) OR(b.blocked_id=a.id AND b.blocker_id IN(?,?))) WHERE s.account_id=? ORDER BY s.slot LIMIT 3`,relation.own?1:0,relation.own?1:0,viewer,id,viewer,id,id).all()).results.map(item=>{
+    const design=catalog.get(item.catalog_id),name=design?.name||'Unavailable collectible';
+    if(!relation.own&&design?.acquisitionPolicy==='capsule-only')return {slot:item.slot,catalog_id:item.catalog_id,featured:!!item.featured,name,model:collectibleDisplay(item.catalog_id,design)};
+    const {instance_id,...display}=item;
+    return {...display,featured:!!item.featured,name,model:collectibleDisplay(item.catalog_id,design),...(relation.own?{instance_id,senderDisclosureAvailable:!!item.sender_username}:{})};
+   });
  }
  if(relation.own){const state=await editableState(db,id);if(state.revision!==before){need(attempt<2,409,'profile_changed','The saved profile changed while loading. Try again.');return readProfile(db,viewer,id,attempt+1,sessionId);}Object.assign(profile,{...settings,earnedBadges:awards,revision:state.revision,showcaseSlots:state.showcaseSlots});}
  const scope=await finalProfileScope(db,viewer,id,sessionId);
@@ -124,7 +130,7 @@ export async function readProfile(db,viewer,id,attempt=0,sessionId=null){
  need(scope.target_status==='active',404,'profile_unavailable','This profile is unavailable.');
  const current={own:viewer===id,friends:!!scope.friends,shared:!!scope.shared,blocked:!!scope.blocked};
  need(!current.blocked&&(current.own||current.friends||current.shared||scope.details_visibility==='public'),403,'profile_unavailable','This profile is unavailable.');
- if(mayView(scope.details_visibility,current)!==detailsVisible||mayView(scope.collection_visibility,current)!==collectionVisible){need(attempt<2,409,'profile_changed','Profile visibility changed while loading. Try again.');return readProfile(db,viewer,id,attempt+1,sessionId);}
+ if(mayView(scope.details_visibility,current)!==detailsVisible||mayView(scope.collection_visibility,current)!==collectionVisible||mayView(scope.full_inventory_visibility,current)!==fullInventoryVisible){need(attempt<2,409,'profile_changed','Profile visibility changed while loading. Try again.');return readProfile(db,viewer,id,attempt+1,sessionId);}
  return profile;
 }
 export async function handleProfilesRequest(request,env){
@@ -174,7 +180,7 @@ export async function handleProfilesRequest(request,env){
   if(Object.hasOwn(patch,'equippedId'))writes.push(q(db,'INSERT INTO cosmetic_profiles(account_id,equipped_id) SELECT ?,? WHERE '+marker.sql+' ON CONFLICT(account_id) DO UPDATE SET equipped_id=excluded.equipped_id WHERE cosmetic_profiles.equipped_id IS NOT excluded.equipped_id',user.id,patch.equippedId,...marker.args));
   if(patch.showcaseSlots){
    writes.push(q(db,'DELETE FROM gift_showcase WHERE account_id=? AND '+marker.sql+' AND '+showcaseSQL+' IS NOT ?',user.id,...marker.args,user.id,slotsJSON(patch.showcaseSlots)));
-   for(const slot of patch.showcaseSlots)writes.push(q(db,'INSERT INTO gift_showcase(account_id,slot,instance_id,show_sender) SELECT ?,?,?,? WHERE '+marker.sql+' AND NOT EXISTS(SELECT 1 FROM gift_showcase WHERE account_id=? AND slot=?)',user.id,slot.slot,slot.instanceId,slot.showSender?1:0,...marker.args,user.id,slot.slot));
+   for(const slot of patch.showcaseSlots)writes.push(q(db,'INSERT INTO gift_showcase(account_id,slot,instance_id,show_sender,featured) SELECT ?,?,?,?,? WHERE '+marker.sql+' AND NOT EXISTS(SELECT 1 FROM gift_showcase WHERE account_id=? AND slot=?)',user.id,slot.slot,slot.instanceId,slot.showSender?1:0,slot.featured?1:0,...marker.args,user.id,slot.slot));
   }
   const definition=BADGE_DEFINITIONS.find(d=>d.id==='profile-authored');
   writes.push(q(db,'INSERT OR IGNORE INTO badge_definitions(id,name,description,requirement,rule,active,created_at,updated_at) SELECT ?,?,?,?,?,1,?,? WHERE '+marker.sql,definition.id,definition.name,definition.description,definition.requirement,definition.rule,now,now,...marker.args));

@@ -20,3 +20,11 @@
 #ar-dialog:focus-visible{outline-offset:-2px}.ar-inspection-tools summary:focus-visible{outline:2px solid var(--vh-accent,#cbef84);outline-offset:1px}
 @media(max-width:640px){.ar-plate{max-width:360px;width:100%;margin:auto}.ar-stage{max-width:100%}#ar-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}}
 @media(max-width:360px){.ar-card{display:grid}.ar-tools label:first-child{min-width:0}.ar-inspect .ar-kicker{padding-right:32px}}
+
+.ar-card .vc-art[data-model-field],.ar-plate[data-model-field][data-surface="model"]{border-radius:6px;overflow:hidden}
+.ar-card .vc-art[data-model-field]{align-self:stretch;width:auto;max-width:none;padding:8%}
+#ar-traits{font-size:.9375rem;color:var(--vh-muted,#aab1b8)}#ar-traits:empty{display:none}
+
+.ar-card [data-model-field],.ar-plate[data-model-field]{position:relative;isolation:isolate}
+.ar-card [data-model-field]>.va-backdrop,.ar-plate>.va-backdrop{z-index:-1;object-fit:fill}
+.ar-plate[data-model-field]:not([data-surface="model"])>.va-backdrop{display:none}

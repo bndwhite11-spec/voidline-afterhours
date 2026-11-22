@@ -1,0 +1,12 @@
+.vc-capsule-stage { pointer-events:none; display:grid; place-items:center; width:min(17rem,90%); aspect-ratio:208/166; margin-inline:auto; }
+.vc-capsule-stage svg { display:block; width:100%; height:100%; overflow:visible; }
+.vc-capsule-stage .vc-case-latch { transform-origin:122px 87px; }
+.vc-capsule-stage .vc-case-lid { transform-origin:42px 65px; }
+.vc-capsule-stage.is-open .vc-case-latch { animation:vc-latch-release .18s ease-out both; }
+.vc-capsule-stage.is-open .vc-case-lid { animation:vc-lid-open .52s .12s cubic-bezier(.22,.67,.2,1) both; }
+.vc-capsule-stage.is-open { animation:vc-set-down .36s .55s ease-in both; }
+.vc-capsule-stage.is-rest { visibility:hidden; }
+@keyframes vc-latch-release { to { transform:translate(0,3px) rotate(18deg) scaleY(.61); } }
+@keyframes vc-lid-open { 16% { transform:translateY(1px); } to { transform:skewX(-32deg) scaleY(-.83); } }
+@keyframes vc-set-down { to { transform:translateY(16%) scale(.83); opacity:0; } }
+@media (prefers-reduced-motion:reduce) { .vc-capsule-stage.is-open,.vc-capsule-stage.is-open * { animation:none!important; } .vc-capsule-stage.is-open { visibility:hidden; } }

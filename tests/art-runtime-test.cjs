@@ -2,7 +2,7 @@
 // Actual illustration runtime, controlled DOM/WAAPI and Python's XML parser.
 // This does not establish browser rendering, timing, touch or accessibility acceptance.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{spawnSync}=require('node:child_process');
-const source=fs.readFileSync(path.join(__dirname,'../src/art/client.mjs'),'utf8').replace('export function installArt','function installArt');
+const source=require('esbuild').buildSync({entryPoints:[path.join(__dirname,'../src/art/client.mjs')],bundle:true,write:false,format:'iife',globalName:'testArt'}).outputFiles[0].text;
 const tests=[],test=(name,run)=>tests.push([name,run]);
 function held(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};}
 function fixture(options={}){
@@ -36,8 +36,8 @@ function fixture(options={}){
  const valid=id=>`<svg xmlns="http://www.w3.org/2000/svg" data-vc-object="${id}" width="256" height="256" aria-labelledby="fixture-title"><title id="fixture-title">A fixture</title><defs><linearGradient id="paint"><stop offset="0" stop-color="#fff"/></linearGradient><clipPath id="clip"><rect width="20" height="20"/></clipPath></defs><g data-part="hinge" opacity=".35" transform="matrix(1 0 0 1 9 3)"><path id="shape" fill="url(#paint)" clip-path="url(#clip)" d="M1 1h18v18H1Z"/></g></svg>`;
  const document={hidden:false,documentElement:{classList:{contains:v=>classes.has(v)}},body:new Element('body'),addEventListener:(name,fn)=>events.set(name,fn),importNode:node=>node.clone()};
  const media={get matches(){return flags.osReduced;},addEventListener:(name,fn)=>mediaEvents.set(name,fn)};
- const context={document,console,Promise,Map,Set,WeakMap,AbortController,crypto:options.crypto||require('node:crypto').webcrypto,atob:value=>Buffer.from(value,'base64').toString('binary'),window:{VoidHome:{request(){throw Error('Account API must not be called');}},VoidTheme:{state:()=>({effectiveReducedMotion:flags.appReduced})},matchMedia:()=>media,addEventListener:(name,fn)=>windowEvents.set(name,fn)},fetch:async(url,request)=>{calls.push({url,request});if(api.fetchReply)return api.fetchReply(url,request);return{ok:true,text:async()=>valid(url.includes('gift-b')?'gift-b':'badge-a')};},DOMParser:class{parseFromString(text,type){assert.equal(type,'image/svg+xml');const result=spawnSync('python3',['-c',parseCode],{input:text,encoding:'utf8',maxBuffer:1024*1024});if(result.status)throw Error(result.stderr);const node=fromJSON(JSON.parse(result.stdout));return{documentElement:node,querySelector:selector=>node.matches(selector)?node:node.querySelector(selector)};}},IntersectionObserver:class{constructor(fn,config){this.fn=fn;this.config=config;this.disconnected=false;observers.push(this);}observe(target){this.target=target;}disconnect(){this.disconnected=true;}},MutationObserver:class{constructor(fn){this.fn=fn;this.disconnected=false;mutations.push(this);}observe(target,config){this.target=target;this.config=config;}disconnect(){this.disconnected=true;}},__catalog:catalog};
- vm.createContext(context);vm.runInContext(source+'\ninstallArt(__catalog,4);',context);
+ const context={document,console,TextEncoder,TextDecoder,Promise,Map,Set,WeakMap,AbortController,crypto:options.crypto||require('node:crypto').webcrypto,atob:value=>Buffer.from(value,'base64').toString('binary'),window:{VoidHome:{request(){throw Error('Account API must not be called');}},VoidTheme:{state:()=>({effectiveReducedMotion:flags.appReduced})},matchMedia:()=>media,addEventListener:(name,fn)=>windowEvents.set(name,fn)},fetch:async(url,request)=>{calls.push({url,request});if(api.fetchReply)return api.fetchReply(url,request);return{ok:true,text:async()=>valid(url.includes('gift-b')?'gift-b':'badge-a')};},DOMParser:class{parseFromString(text,type){assert.equal(type,'image/svg+xml');const result=spawnSync('python3',['-c',parseCode],{input:text,encoding:'utf8',maxBuffer:1024*1024});if(result.status)throw Error(result.stderr);const node=fromJSON(JSON.parse(result.stdout));return{documentElement:node,querySelector:selector=>node.matches(selector)?node:node.querySelector(selector)};}},IntersectionObserver:class{constructor(fn,config){this.fn=fn;this.config=config;this.disconnected=false;observers.push(this);}observe(target){this.target=target;}disconnect(){this.disconnected=true;}},MutationObserver:class{constructor(fn){this.fn=fn;this.disconnected=false;mutations.push(this);}observe(target,config){this.target=target;this.config=config;}disconnect(){this.disconnected=true;}},__catalog:catalog};
+ vm.createContext(context);vm.runInContext(source+'\ntestArt.installArt(__catalog,4);',context);
  const api={art:context.window.VoidCollectibleArt,catalog,valid,Element,calls,animations,observers,mutations,events,windowEvents,mediaEvents,flags,classes,document,fetchReply:null,web(id='gift-b'){const bytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==','base64'),uri='data:image/png;base64,'+bytes.toString('base64'),digest=require('node:crypto').createHash('sha256').update(bytes).digest('hex');catalog[id].sourceArt={mime:'image/png',bytes:bytes.length,sha256:digest,mini:{path:'/art/sources/controlled-mini.'+digest.slice(0,12)+'.png'}};const svg=`<svg xmlns="http://www.w3.org/2000/svg" data-vc-object="${id}"><defs><image id="source-image" href="${uri}" x="0" y="0" width="256" height="256"/></defs><g data-part="hinge"><use href="#source-image"/></g></svg>`;catalog[id].detailBytes=Buffer.byteLength(svg);return{bytes,uri,svg};},host(id='badge-a',outer=false){const art=new Element('span',{'class':'vc-art va-asset','data-vc-object':id}),container=outer?new Element('div',{},[art]):art;document.body.children.push(container);return{container,art};},tick:async()=>{for(let i=0;i<8;i++)await Promise.resolve();}};
  return api;
 }
@@ -94,8 +94,8 @@ test('stale preview stop, abort and queued observer callbacks cannot cancel a ne
 test('a declined preview has no cancellation authority over a later successful preview',async()=>{
  const f=fixture(),{container}=f.host(),declined=await f.art.preview(container,'unknown-id');assert.equal(declined.played,false);const current=await f.art.preview(container,'badge-a');assert.equal(current.played,true);declined.stop();assert.equal(f.animations[0].cancelled,false);current.stop();assert.equal(f.animations[0].cancelled,true);
 });
-test('separate hosts animate independently and abort restores only the targeted scene',async()=>{
- const f=fixture(),a=f.host(),b=f.host('gift-b'),controller=new AbortController(),first=await f.art.preview(a.container,'badge-a'),second=await f.art.preview(b.container,'gift-b',{signal:controller.signal});assert.equal(first.played,true);assert.equal(second.played,true);assert.equal(f.animations[0].cancelled,false);assert.equal(f.animations[1].cancelled,false);controller.abort();assert.equal(f.animations[1].cancelled,true);await second.finished;assert(a.art.querySelector('svg'));assert(b.art.querySelector('svg'));assert.ok(!f.calls.some(call=>call.url.startsWith('/api/')));
+test('a second foreground host stops the first playback and abort releases the active scene',async()=>{
+ const f=fixture(),a=f.host(),b=f.host('gift-b'),controller=new AbortController(),first=await f.art.preview(a.container,'badge-a'),second=await f.art.preview(b.container,'gift-b',{signal:controller.signal});assert.equal(first.played,true);assert.equal(second.played,true);assert.equal(f.animations[0].cancelled,true);assert.equal(await first.finished,'stopped');assert.equal(f.animations[1].cancelled,false);controller.abort();assert.equal(f.animations[1].cancelled,true);await second.finished;assert(a.art.querySelector('svg'));assert(b.art.querySelector('svg'));assert.ok(!f.calls.some(call=>call.url.startsWith('/api/')));
 });
 test('closing a stage releases pending fetches; a second consumer keeps the shared request alive',async()=>{
  const f=fixture(),a=f.host(),b=f.host(),network=held();f.fetchReply=()=>network.promise;
@@ -105,16 +105,33 @@ test('closing a stage releases pending fetches; a second consumer keeps the shar
  network.resolve({ok:true,text:async()=>f.valid('badge-a')});assert.equal((await first).reason,'cancelled');assert.equal((await second).reason,'cancelled');
  f.fetchReply=null;assert((await f.art.prepare(a.container,'badge-a')).svg);assert.equal(f.calls.length,2);
 });
-test('manual frame inspection pauses all tracks and a separate host keeps playing',async()=>{
- const f=fixture(),first=f.host(),other=f.host(),a=await f.art.preview(first.container,'badge-a',{pausedAt:0.5}),b=await f.art.preview(other.container,'badge-a');
+test('manual frame inspection pauses all tracks until another foreground selection',async()=>{
+ const f=fixture(),first=f.host(),other=f.host(),a=await f.art.preview(first.container,'badge-a',{pausedAt:0.5});
  assert.equal(first.container.dataset.vaState,'paused');assert.equal(f.animations[0].currentTime,650);assert.equal(f.animations[0].paused,true);
  a.seek(.75);assert.equal(f.animations[0].currentTime,975);a.resume();assert.equal(f.animations[0].paused,false);a.pause();
- assert(!f.animations[1].cancelled);a.stop();assert.equal(await a.finished,'stopped');assert(!f.animations[1].cancelled);b.stop();
+ const b=await f.art.preview(other.container,'badge-a');assert(!f.animations[1].cancelled);a.stop();assert.equal(await a.finished,'stopped');assert(!f.animations[1].cancelled);b.stop();
 });
 test('invalid asset cache is evicted, reasons distinguish validation and missing file, poster survives both',async()=>{
  const f=fixture(),{container}=f.host();const poster=new f.Element('img');container.replaceChildren(poster);
  f.fetchReply=()=>({ok:false});assert.equal((await f.art.prepare(container,'badge-a')).reason,'asset-unavailable');
  f.fetchReply=()=>({ok:true,text:async()=>'<svg></svg>'});assert.equal((await f.art.preview(container,'badge-a')).reason,'validation-rejected');
  assert.equal(container.firstChild,poster);f.fetchReply=null;assert((await f.art.prepare(container,'badge-a')).svg);assert.equal(f.calls.length,3);
+});
+test('unknown IDs retain authorized names and make no asset request',async()=>{
+ const f=fixture(),m=f.art.render('missing-id',false,'Moon <1>');assert.match(m,/Moon &lt;1&gt; · Artwork unavailable/);assert(!m.includes('<img'));assert.match(f.art.render('missing-id',true),/missing-id/);assert.equal(f.calls.length,0);
+});
+test('the complete immutable detail digest rejects a same-length change before mounting',async()=>{
+ const f=fixture(),a=f.catalog['badge-a'],h=f.host(),body=f.valid('badge-a');
+ a.detailBytes=Buffer.byteLength(body);a.detailSHA256=require('node:crypto').createHash('sha256').update(body).digest('hex');
+ f.fetchReply=()=>({ok:true,text:async()=>body.replace('hinge','hingf')});
+ assert.equal((await f.art.prepare(h.container,a.id)).reason,'validation-rejected');
+ f.fetchReply=()=>({ok:true,text:async()=>body});assert((await f.art.prepare(h.container,a.id)).svg);
+});
+test('an idle least-recently-used detail is fetched again after eight other validated details',async()=>{
+ const f=fixture(),base=f.catalog['badge-a'];for(let i=0;i<10;i++){const id='model-'+i;f.catalog[id]={...base,id,detailURL:'/art/v4/'+id+'-detail.abcdef012345.svg'};}
+ f.fetchReply=url=>({ok:true,text:async()=>f.valid(/(model-\d+)/.exec(url)[1])});
+ for(let i=0;i<10;i++){const id='model-'+i;assert(await f.art.mount(f.host(id).container,id));}
+ assert.equal(f.calls.length,10);assert(await f.art.mount(f.host('model-9').container,'model-9'));assert.equal(f.calls.length,10);
+ assert(await f.art.mount(f.host('model-0').container,'model-0'));assert.equal(f.calls.length,11);
 });
 (async()=>{let failed=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name+'\n'+error.stack);}}console.log(`${tests.length-failed}/${tests.length} illustration runtime checks passed. Actual module with controlled DOM/WAAPI, real XML parsing and mocked static transport; not browser animation/device acceptance.`);process.exitCode=failed?1:0;})();

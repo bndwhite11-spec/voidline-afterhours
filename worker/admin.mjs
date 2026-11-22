@@ -212,10 +212,10 @@ export async function handleAdminRequest(request,env){
   }
   if(path.length===1&&path[0]==='catalog'&&method==='GET'){
    const overrides=(await q(db,'SELECT id,name,description,active,updated_at FROM gift_catalog').all()).results;
-   return json({gifts:COSMETICS.filter(c=>c.type==='gift').map(item=>({...item,...overrides.find(r=>r.id===item.id),price:0})),monetary:false});
+   return json({gifts:COSMETICS.filter(c=>c.type==='gift'&&c.acquisitionPolicy==='legacy-free').map(item=>({...item,...overrides.find(r=>r.id===item.id),price:0})),monetary:false});
   }
   if(path.length===2&&path[0]==='catalog'&&method==='POST'){
-   const item=COSMETICS.find(c=>c.id===path[1]&&c.type==='gift');need(item,404,'gift_unavailable','Choose an existing original gift design.');const name=text(body.name,60,'Gift name',2),description=text(body.description,300,'Description',2);need(typeof body.active==='boolean',400,'invalid_state','Choose whether the item is available.');
+   const item=COSMETICS.find(c=>c.id===path[1]&&c.type==='gift'&&c.acquisitionPolicy==='legacy-free');need(item,404,'gift_unavailable','Choose an existing original gift design.');const name=text(body.name,60,'Gift name',2),description=text(body.description,300,'Description',2);need(typeof body.active==='boolean',400,'invalid_state','Choose whether the item is available.');
    await db.batch([q(db,'INSERT INTO gift_catalog(id,name,description,active,updated_by,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,active=excluded.active,updated_by=excluded.updated_by,updated_at=excluded.updated_at',item.id,name,description,body.active?1:0,user.id,now),audit(db,user.id,'gift.catalog.updated','gift',item.id,{active:body.active,name},now)]);return json({saved:true,price:0});
   }
   if(path.length===1&&path[0]==='badges'&&method==='GET'){

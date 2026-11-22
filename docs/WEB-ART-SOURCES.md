@@ -1,8 +1,10 @@
-# Current web-source artwork
+# Site 32 web-source artwork
 
-Edition 4 contains 49 decorations, 32 gifts and 2 earned-award images. Its credited sources include downloaded photographs, human illustrations, official marks and published memes. Studio 01 retains the credited originals in eight object-specific compositions and adds separately drawn optical miniatures. [Studio 01 source and review notes](STUDIO-01.md) Sources are local at runtime. Preparation uses conventional crops, masks, rasterization, format conversion, palette optimization and disclosed collages. No image generation or generative fill is used.
+This record describes the 83 Site 32 compositions. The current mixed-format catalog preserves these source credits and adds original layered art. [Gift artwork and motion](COLLECTIBLE-ART.md)
 
-The records in `src/art/web-*.mjs`, public `/art/v4/manifest.json`, `/art/sources/ATTRIBUTION.txt` and SVG descriptions carry attribution and changes. Unknown meme/brand reuse licenses are recorded as unknown, rather than an invented grant. Earlier synthetic vector bodies are retained as historical source; strict production builds require all83 web entries. Catalog IDs and ownership remain unchanged.
+Site 32 contains 49 decorations, 32 gifts and 2 earned-award images. Its credited sources include downloaded photographs, human illustrations, official marks and published memes. Studio 01 retains the credited originals in eight object-specific compositions and adds separately drawn optical miniatures. [Studio 01 source and review notes](STUDIO-01.md) Sources are local at runtime. Preparation uses conventional crops, masks, rasterization, format conversion, palette optimization and disclosed collages. No image generation or generative fill is used.
+
+The records in `src/art/web-*.mjs`, public `/art/v4/manifest.json`, `/art/sources/ATTRIBUTION.txt` and SVG descriptions carry attribution and changes. Unknown meme/brand reuse licenses are recorded as unknown, rather than an invented grant. Earlier synthetic vector bodies are retained as historical source; the Site 32 build required all 83 web entries. Catalog IDs and ownership remain unchanged.
 
 Midnight Tape now has a specific tape-check reveal: two circular regions from
 its actual cassette artwork turn independently while the case stays intact.

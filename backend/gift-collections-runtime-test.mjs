@@ -25,5 +25,21 @@ try{
  await test('actual D1 revision-trigger side effects do not falsely reject an owned cosmetic equip',async()=>{
   await call('alice','/api/cosmetics/claim',{cosmeticId:'angel'});const saved=await call('alice','/api/cosmetics/equip',{cosmeticId:'angel'});assert.equal(saved.equippedId,'angel');const revision=await db.prepare("SELECT revision,write_token FROM profile_save_state WHERE account_id='alice'").first();assert(revision.revision>0);const removed=await call('alice','/api/cosmetics/equip',{cosmeticId:null});assert.equal(removed.equippedId,null);assert((await db.prepare("SELECT revision FROM profile_save_state WHERE account_id='alice'").first()).revision>revision.revision);
  });
+ await test('concurrent D1 acceptance and sender cancellation commit one outcome and preserve the exact copy, groups and featured slot',async()=>{
+  const instance=(await call('alice','/api/cosmetics/claim',{cosmeticId:'gift-star'})).instances.find(i=>i.catalog_id==='gift-star');
+  const group=(await call('alice','/api/gift-collections',{name:'Transfer test',clientId:crypto.randomUUID()},201)).collection;
+  await call('alice','/api/gift-collections/'+group.id+'/items',{instanceId:instance.id,included:true,expectedRevision:0});
+  await call('alice','/api/cosmetics/showcase',{slots:[{slot:1,instanceId:instance.id,showSender:false,featured:true}]});
+  const offer={instanceId:instance.id,username:'bob',recipientId:'bob',expectedOwnershipRevision:0,clientId:crypto.randomUUID()};
+  const transfer=(await call('alice','/api/cosmetics/transfers',offer,201)).transfer;
+  const path='/api/cosmetics/transfers/'+transfer.id;
+  const attempt=async(id,action)=>{const s=sessions.get(id);const result=await mf.dispatchFetch(origin+path+'/'+action,{method:'POST',headers:{origin,'content-type':'application/json','x-voidline-csrf':s.csrf,cookie:'__Host-voidline_session='+s.token},body:JSON.stringify({expectedAccountId:id})});await result.arrayBuffer();return result.status;};
+  const statuses=await Promise.all([attempt('bob','open'),attempt('alice','cancel')]);assert.deepEqual(statuses.sort(),[200,409]);
+  const receipt=(await call('alice',path)).transfer,accepted=receipt.state==='accepted';
+  assert.equal((await call('alice','/api/cosmetics/transfers',offer)).transfer.state,receipt.state);
+  const row=await db.prepare('SELECT owner_id,ownership_revision,pending_transfer_id FROM gift_instances WHERE id=?').bind(instance.id).first();
+  assert.equal(row.owner_id,accepted?'bob':'alice');assert.equal(row.ownership_revision,accepted?1:0);assert.equal(row.pending_transfer_id,null);
+  assert.equal((await call('alice','/api/gift-collections/'+group.id)).collection.count,accepted?0:1);assert.equal((await call('alice','/api/cosmetics/inventory')).showcase.length,accepted?0:1);
+ });
 }catch(error){failed++;console.error('FAIL grouping runtime setup',error.stack);}finally{await mf.dispose();}
-console.log(`${passed}/2 workerd/D1 gift-group checks passed. Actual isolated migrations, trigger metadata and HTTP handlers; not hosted or browser evidence.`);process.exitCode=failed?1:0;
+console.log(`${passed}/3 workerd/D1 gift-group checks passed. Actual isolated migrations, trigger metadata and HTTP handlers; not hosted or browser evidence.`);process.exitCode=failed?1:0;

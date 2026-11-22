@@ -1,0 +1,1235 @@
+{
+  "measurement": "Local files; per-response Gzip level 6; no headers, HTML or account API traffic.",
+  "baseline": {
+    "parser": {
+      "requests": 11,
+      "raw": 412457,
+      "gzip6": 106586
+    },
+    "collection": {
+      "requests": 9,
+      "raw": 248159,
+      "gzip6": 56452
+    }
+  },
+  "current": {
+    "parser": {
+      "requests": 11,
+      "raw": 412457,
+      "gzip6": 106586
+    },
+    "collection": {
+      "requests": 13,
+      "raw": 293643,
+      "gzip6": 79113
+    }
+  },
+  "illustrationRuntime": {
+    "raw": 175722,
+    "gzip6": 44269
+  },
+  "models": [
+    {
+      "id": "gift-rose",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 9346,
+        "gzip6": 2648
+      },
+      "detailWithMotion": {
+        "raw": 12049,
+        "gzip6": 3058
+      },
+      "miniature": {
+        "raw": 886,
+        "gzip6": 487
+      },
+      "selectedModelCold": {
+        "raw": 197117,
+        "gzip6": 49975
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 21395,
+        "gzip6": 5706
+      }
+    },
+    {
+      "id": "gift-cassette",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6089,
+        "gzip6": 1524
+      },
+      "detailWithMotion": {
+        "raw": 7055,
+        "gzip6": 1746
+      },
+      "miniature": {
+        "raw": 799,
+        "gzip6": 447
+      },
+      "selectedModelCold": {
+        "raw": 188866,
+        "gzip6": 47539
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 13144,
+        "gzip6": 3270
+      }
+    },
+    {
+      "id": "gift-star",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 2270,
+        "gzip6": 846
+      },
+      "detailWithMotion": {
+        "raw": 3148,
+        "gzip6": 1068
+      },
+      "miniature": {
+        "raw": 663,
+        "gzip6": 404
+      },
+      "selectedModelCold": {
+        "raw": 181140,
+        "gzip6": 46183
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 5418,
+        "gzip6": 1914
+      }
+    },
+    {
+      "id": "gift-cup",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6423,
+        "gzip6": 1819
+      },
+      "detailWithMotion": {
+        "raw": 7893,
+        "gzip6": 2082
+      },
+      "miniature": {
+        "raw": 797,
+        "gzip6": 443
+      },
+      "selectedModelCold": {
+        "raw": 190038,
+        "gzip6": 48170
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 14316,
+        "gzip6": 3901
+      }
+    },
+    {
+      "id": "gift-ghost",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 4945,
+        "gzip6": 1318
+      },
+      "detailWithMotion": {
+        "raw": 6252,
+        "gzip6": 1566
+      },
+      "miniature": {
+        "raw": 836,
+        "gzip6": 457
+      },
+      "selectedModelCold": {
+        "raw": 186919,
+        "gzip6": 47153
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 11197,
+        "gzip6": 2884
+      }
+    },
+    {
+      "id": "gift-seraph",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6515,
+        "gzip6": 1624
+      },
+      "detailWithMotion": {
+        "raw": 8933,
+        "gzip6": 1941
+      },
+      "miniature": {
+        "raw": 675,
+        "gzip6": 406
+      },
+      "selectedModelCold": {
+        "raw": 191170,
+        "gzip6": 47834
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 15448,
+        "gzip6": 3565
+      }
+    },
+    {
+      "id": "gift-key",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 5312,
+        "gzip6": 1513
+      },
+      "detailWithMotion": {
+        "raw": 6419,
+        "gzip6": 1722
+      },
+      "miniature": {
+        "raw": 714,
+        "gzip6": 430
+      },
+      "selectedModelCold": {
+        "raw": 187453,
+        "gzip6": 47504
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 11731,
+        "gzip6": 3235
+      }
+    },
+    {
+      "id": "gift-halo",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6378,
+        "gzip6": 1553
+      },
+      "detailWithMotion": {
+        "raw": 7332,
+        "gzip6": 1741
+      },
+      "miniature": {
+        "raw": 643,
+        "gzip6": 401
+      },
+      "selectedModelCold": {
+        "raw": 189432,
+        "gzip6": 47563
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 13710,
+        "gzip6": 3294
+      }
+    },
+    {
+      "id": "gift-orchid",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6951,
+        "gzip6": 2069
+      },
+      "detailWithMotion": {
+        "raw": 8731,
+        "gzip6": 2371
+      },
+      "miniature": {
+        "raw": 777,
+        "gzip6": 452
+      },
+      "selectedModelCold": {
+        "raw": 191404,
+        "gzip6": 48709
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 15682,
+        "gzip6": 4440
+      }
+    },
+    {
+      "id": "gift-signal",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 3237,
+        "gzip6": 1238
+      },
+      "detailWithMotion": {
+        "raw": 4762,
+        "gzip6": 1501
+      },
+      "miniature": {
+        "raw": 807,
+        "gzip6": 456
+      },
+      "selectedModelCold": {
+        "raw": 183721,
+        "gzip6": 47008
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 7999,
+        "gzip6": 2739
+      }
+    },
+    {
+      "id": "gift-ticket",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 10580,
+        "gzip6": 1835
+      },
+      "detailWithMotion": {
+        "raw": 11724,
+        "gzip6": 2071
+      },
+      "miniature": {
+        "raw": 736,
+        "gzip6": 425
+      },
+      "selectedModelCold": {
+        "raw": 198026,
+        "gzip6": 48175
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 22304,
+        "gzip6": 3906
+      }
+    },
+    {
+      "id": "gift-pocket-doomer",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 12653,
+        "gzip6": 2365
+      },
+      "detailWithMotion": {
+        "raw": 13765,
+        "gzip6": 2598
+      },
+      "miniature": {
+        "raw": 1234,
+        "gzip6": 514
+      },
+      "selectedModelCold": {
+        "raw": 202140,
+        "gzip6": 49232
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 26418,
+        "gzip6": 4963
+      }
+    },
+    {
+      "id": "gift-orbit-mobile",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6692,
+        "gzip6": 1817
+      },
+      "detailWithMotion": {
+        "raw": 7986,
+        "gzip6": 2056
+      },
+      "miniature": {
+        "raw": 840,
+        "gzip6": 474
+      },
+      "selectedModelCold": {
+        "raw": 190400,
+        "gzip6": 48142
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 14678,
+        "gzip6": 3873
+      }
+    },
+    {
+      "id": "gift-last-broadcast",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 8224,
+        "gzip6": 1871
+      },
+      "detailWithMotion": {
+        "raw": 9274,
+        "gzip6": 2085
+      },
+      "miniature": {
+        "raw": 886,
+        "gzip6": 472
+      },
+      "selectedModelCold": {
+        "raw": 193220,
+        "gzip6": 48225
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 17498,
+        "gzip6": 3956
+      }
+    },
+    {
+      "id": "gift-night-lantern",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6817,
+        "gzip6": 1813
+      },
+      "detailWithMotion": {
+        "raw": 7882,
+        "gzip6": 2020
+      },
+      "miniature": {
+        "raw": 749,
+        "gzip6": 432
+      },
+      "selectedModelCold": {
+        "raw": 190421,
+        "gzip6": 48102
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 14699,
+        "gzip6": 3833
+      }
+    },
+    {
+      "id": "gift-ego-volume",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 7698,
+        "gzip6": 2257
+      },
+      "detailWithMotion": {
+        "raw": 8865,
+        "gzip6": 2479
+      },
+      "miniature": {
+        "raw": 763,
+        "gzip6": 448
+      },
+      "selectedModelCold": {
+        "raw": 192285,
+        "gzip6": 49005
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 16563,
+        "gzip6": 4736
+      }
+    },
+    {
+      "id": "gift-larp-kit",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6982,
+        "gzip6": 2026
+      },
+      "detailWithMotion": {
+        "raw": 8038,
+        "gzip6": 2261
+      },
+      "miniature": {
+        "raw": 906,
+        "gzip6": 472
+      },
+      "selectedModelCold": {
+        "raw": 190742,
+        "gzip6": 48556
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 15020,
+        "gzip6": 4287
+      }
+    },
+    {
+      "id": "gift-aura-meter",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6711,
+        "gzip6": 1847
+      },
+      "detailWithMotion": {
+        "raw": 7472,
+        "gzip6": 2022
+      },
+      "miniature": {
+        "raw": 845,
+        "gzip6": 468
+      },
+      "selectedModelCold": {
+        "raw": 189905,
+        "gzip6": 48138
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 14183,
+        "gzip6": 3869
+      }
+    },
+    {
+      "id": "gift-copium-tank",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 7329,
+        "gzip6": 2030
+      },
+      "detailWithMotion": {
+        "raw": 8417,
+        "gzip6": 2253
+      },
+      "miniature": {
+        "raw": 953,
+        "gzip6": 499
+      },
+      "selectedModelCold": {
+        "raw": 191468,
+        "gzip6": 48552
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 15746,
+        "gzip6": 4283
+      }
+    },
+    {
+      "id": "gift-cold-wallet",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 6334,
+        "gzip6": 1741
+      },
+      "detailWithMotion": {
+        "raw": 7238,
+        "gzip6": 1935
+      },
+      "miniature": {
+        "raw": 839,
+        "gzip6": 452
+      },
+      "selectedModelCold": {
+        "raw": 189294,
+        "gzip6": 47945
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 13572,
+        "gzip6": 3676
+      }
+    },
+    {
+      "id": "gift-block-zero",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 8271,
+        "gzip6": 1351
+      },
+      "detailWithMotion": {
+        "raw": 9159,
+        "gzip6": 1624
+      },
+      "miniature": {
+        "raw": 736,
+        "gzip6": 414
+      },
+      "selectedModelCold": {
+        "raw": 193152,
+        "gzip6": 47244
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 17430,
+        "gzip6": 2975
+      }
+    },
+    {
+      "id": "gift-last-tab",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 3845,
+        "gzip6": 1364
+      },
+      "detailWithMotion": {
+        "raw": 5138,
+        "gzip6": 1685
+      },
+      "miniature": {
+        "raw": 761,
+        "gzip6": 451
+      },
+      "selectedModelCold": {
+        "raw": 184705,
+        "gzip6": 47318
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 8983,
+        "gzip6": 3049
+      }
+    },
+    {
+      "id": "gift-chudjak-plush",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 12001,
+        "gzip6": 3322
+      },
+      "detailWithMotion": {
+        "raw": 12621,
+        "gzip6": 3480
+      },
+      "miniature": {
+        "raw": 1079,
+        "gzip6": 536
+      },
+      "selectedModelCold": {
+        "raw": 200344,
+        "gzip6": 51071
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 24622,
+        "gzip6": 6802
+      }
+    },
+    {
+      "id": "gift-wojak-jelly",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 7903,
+        "gzip6": 2056
+      },
+      "detailWithMotion": {
+        "raw": 9124,
+        "gzip6": 2311
+      },
+      "miniature": {
+        "raw": 905,
+        "gzip6": 493
+      },
+      "selectedModelCold": {
+        "raw": 192749,
+        "gzip6": 48636
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 17027,
+        "gzip6": 4367
+      }
+    },
+    {
+      "id": "gift-brainrot-pop",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 9386,
+        "gzip6": 2335
+      },
+      "detailWithMotion": {
+        "raw": 10984,
+        "gzip6": 2538
+      },
+      "miniature": {
+        "raw": 949,
+        "gzip6": 505
+      },
+      "selectedModelCold": {
+        "raw": 196092,
+        "gzip6": 49142
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 20370,
+        "gzip6": 4873
+      }
+    },
+    {
+      "id": "gift-larp-cap",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 9589,
+        "gzip6": 2651
+      },
+      "detailWithMotion": {
+        "raw": 10051,
+        "gzip6": 2801
+      },
+      "miniature": {
+        "raw": 1079,
+        "gzip6": 527
+      },
+      "selectedModelCold": {
+        "raw": 195362,
+        "gzip6": 49721
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 19640,
+        "gzip6": 5452
+      }
+    },
+    {
+      "id": "gift-spook-crystal",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 10481,
+        "gzip6": 2812
+      },
+      "detailWithMotion": {
+        "raw": 11628,
+        "gzip6": 3060
+      },
+      "miniature": {
+        "raw": 827,
+        "gzip6": 449
+      },
+      "selectedModelCold": {
+        "raw": 197831,
+        "gzip6": 50141
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 22109,
+        "gzip6": 5872
+      }
+    },
+    {
+      "id": "gift-larp-helmet",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 9013,
+        "gzip6": 1903
+      },
+      "detailWithMotion": {
+        "raw": 9828,
+        "gzip6": 2077
+      },
+      "miniature": {
+        "raw": 1042,
+        "gzip6": 499
+      },
+      "selectedModelCold": {
+        "raw": 194563,
+        "gzip6": 48249
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 18841,
+        "gzip6": 3980
+      }
+    },
+    {
+      "id": "gift-copium-cartridge",
+      "artRevision": "workshop-01",
+      "poster": {
+        "raw": 9486,
+        "gzip6": 2558
+      },
+      "detailWithMotion": {
+        "raw": 10478,
+        "gzip6": 2767
+      },
+      "miniature": {
+        "raw": 1129,
+        "gzip6": 582
+      },
+      "selectedModelCold": {
+        "raw": 195686,
+        "gzip6": 49594
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 19964,
+        "gzip6": 5325
+      }
+    },
+    {
+      "id": "gift-chudjak-original",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 15096,
+        "gzip6": 3555
+      },
+      "detailWithMotion": {
+        "raw": 18640,
+        "gzip6": 4357
+      },
+      "miniature": {
+        "raw": 1686,
+        "gzip6": 732
+      },
+      "selectedModelCold": {
+        "raw": 209458,
+        "gzip6": 52181
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 33736,
+        "gzip6": 7912
+      }
+    },
+    {
+      "id": "gift-chudjak-midnight-hoodie",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16786,
+        "gzip6": 4028
+      },
+      "detailWithMotion": {
+        "raw": 21179,
+        "gzip6": 4970
+      },
+      "miniature": {
+        "raw": 2172,
+        "gzip6": 877
+      },
+      "selectedModelCold": {
+        "raw": 213687,
+        "gzip6": 53267
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 37965,
+        "gzip6": 8998
+      }
+    },
+    {
+      "id": "gift-chudjak-helmet",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 17365,
+        "gzip6": 4170
+      },
+      "detailWithMotion": {
+        "raw": 21104,
+        "gzip6": 5023
+      },
+      "miniature": {
+        "raw": 2014,
+        "gzip6": 817
+      },
+      "selectedModelCold": {
+        "raw": 214191,
+        "gzip6": 53462
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 38469,
+        "gzip6": 9193
+      }
+    },
+    {
+      "id": "gift-chudjak-patchwork",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16063,
+        "gzip6": 3815
+      },
+      "detailWithMotion": {
+        "raw": 19606,
+        "gzip6": 4619
+      },
+      "miniature": {
+        "raw": 1824,
+        "gzip6": 786
+      },
+      "selectedModelCold": {
+        "raw": 211391,
+        "gzip6": 52703
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 35669,
+        "gzip6": 8434
+      }
+    },
+    {
+      "id": "gift-chudjak-silver-thread",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 15934,
+        "gzip6": 3775
+      },
+      "detailWithMotion": {
+        "raw": 20033,
+        "gzip6": 4644
+      },
+      "miniature": {
+        "raw": 1867,
+        "gzip6": 779
+      },
+      "selectedModelCold": {
+        "raw": 211689,
+        "gzip6": 52688
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 35967,
+        "gzip6": 8419
+      }
+    },
+    {
+      "id": "gift-chudjak-velvet-eclipse",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16010,
+        "gzip6": 3861
+      },
+      "detailWithMotion": {
+        "raw": 20606,
+        "gzip6": 4802
+      },
+      "miniature": {
+        "raw": 2044,
+        "gzip6": 833
+      },
+      "selectedModelCold": {
+        "raw": 212338,
+        "gzip6": 52932
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 36616,
+        "gzip6": 8663
+      }
+    },
+    {
+      "id": "gift-pepe-desk-green",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16711,
+        "gzip6": 3966
+      },
+      "detailWithMotion": {
+        "raw": 21414,
+        "gzip6": 4630
+      },
+      "miniature": {
+        "raw": 1684,
+        "gzip6": 726
+      },
+      "selectedModelCold": {
+        "raw": 213847,
+        "gzip6": 52865
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 38125,
+        "gzip6": 8596
+      }
+    },
+    {
+      "id": "gift-pepe-terminal-clear",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 18263,
+        "gzip6": 4274
+      },
+      "detailWithMotion": {
+        "raw": 20951,
+        "gzip6": 4718
+      },
+      "miniature": {
+        "raw": 1707,
+        "gzip6": 731
+      },
+      "selectedModelCold": {
+        "raw": 214936,
+        "gzip6": 53261
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 39214,
+        "gzip6": 8992
+      }
+    },
+    {
+      "id": "gift-pepe-night-shift",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 17444,
+        "gzip6": 4117
+      },
+      "detailWithMotion": {
+        "raw": 20367,
+        "gzip6": 4593
+      },
+      "miniature": {
+        "raw": 1843,
+        "gzip6": 815
+      },
+      "selectedModelCold": {
+        "raw": 213533,
+        "gzip6": 52979
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 37811,
+        "gzip6": 8710
+      }
+    },
+    {
+      "id": "gift-pepe-porcelain-pond",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 17882,
+        "gzip6": 4201
+      },
+      "detailWithMotion": {
+        "raw": 20581,
+        "gzip6": 4641
+      },
+      "miniature": {
+        "raw": 1704,
+        "gzip6": 729
+      },
+      "selectedModelCold": {
+        "raw": 214185,
+        "gzip6": 53111
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 38463,
+        "gzip6": 8842
+      }
+    },
+    {
+      "id": "gift-pepe-meteor-core",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 18406,
+        "gzip6": 4452
+      },
+      "detailWithMotion": {
+        "raw": 21666,
+        "gzip6": 4980
+      },
+      "miniature": {
+        "raw": 1756,
+        "gzip6": 747
+      },
+      "selectedModelCold": {
+        "raw": 215794,
+        "gzip6": 53701
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 40072,
+        "gzip6": 9432
+      }
+    },
+    {
+      "id": "gift-pepe-black-opal-eclipse",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 18150,
+        "gzip6": 4378
+      },
+      "detailWithMotion": {
+        "raw": 21292,
+        "gzip6": 4883
+      },
+      "miniature": {
+        "raw": 1784,
+        "gzip6": 758
+      },
+      "selectedModelCold": {
+        "raw": 215164,
+        "gzip6": 53530
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 39442,
+        "gzip6": 9261
+      }
+    },
+    {
+      "id": "gift-tape-graphite-session",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16328,
+        "gzip6": 3023
+      },
+      "detailWithMotion": {
+        "raw": 18703,
+        "gzip6": 3380
+      },
+      "miniature": {
+        "raw": 1612,
+        "gzip6": 608
+      },
+      "selectedModelCold": {
+        "raw": 210753,
+        "gzip6": 50672
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 35031,
+        "gzip6": 6403
+      }
+    },
+    {
+      "id": "gift-tape-clear-leader",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 17651,
+        "gzip6": 3466
+      },
+      "detailWithMotion": {
+        "raw": 19701,
+        "gzip6": 3852
+      },
+      "miniature": {
+        "raw": 1763,
+        "gzip6": 678
+      },
+      "selectedModelCold": {
+        "raw": 213074,
+        "gzip6": 51587
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 37352,
+        "gzip6": 7318
+      }
+    },
+    {
+      "id": "gift-tape-splice-repair",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16677,
+        "gzip6": 3275
+      },
+      "detailWithMotion": {
+        "raw": 19832,
+        "gzip6": 3736
+      },
+      "miniature": {
+        "raw": 1664,
+        "gzip6": 636
+      },
+      "selectedModelCold": {
+        "raw": 212231,
+        "gzip6": 51280
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 36509,
+        "gzip6": 7011
+      }
+    },
+    {
+      "id": "gift-tape-brushed-deck",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 15132,
+        "gzip6": 2940
+      },
+      "detailWithMotion": {
+        "raw": 22084,
+        "gzip6": 3728
+      },
+      "miniature": {
+        "raw": 1737,
+        "gzip6": 643
+      },
+      "selectedModelCold": {
+        "raw": 212938,
+        "gzip6": 50937
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 37216,
+        "gzip6": 6668
+      }
+    },
+    {
+      "id": "gift-tape-night-press",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 16340,
+        "gzip6": 3150
+      },
+      "detailWithMotion": {
+        "raw": 19562,
+        "gzip6": 3542
+      },
+      "miniature": {
+        "raw": 1680,
+        "gzip6": 644
+      },
+      "selectedModelCold": {
+        "raw": 211624,
+        "gzip6": 50961
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 35902,
+        "gzip6": 6692
+      }
+    },
+    {
+      "id": "gift-tank-field-enamel",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 12515,
+        "gzip6": 3022
+      },
+      "detailWithMotion": {
+        "raw": 15023,
+        "gzip6": 3460
+      },
+      "miniature": {
+        "raw": 1344,
+        "gzip6": 606
+      },
+      "selectedModelCold": {
+        "raw": 203260,
+        "gzip6": 50751
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 27538,
+        "gzip6": 6482
+      }
+    },
+    {
+      "id": "gift-tank-sight-glass",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 13294,
+        "gzip6": 3069
+      },
+      "detailWithMotion": {
+        "raw": 15991,
+        "gzip6": 3537
+      },
+      "miniature": {
+        "raw": 1461,
+        "gzip6": 620
+      },
+      "selectedModelCold": {
+        "raw": 205007,
+        "gzip6": 50875
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 29285,
+        "gzip6": 6606
+      }
+    },
+    {
+      "id": "gift-tank-field-repair",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 14078,
+        "gzip6": 3223
+      },
+      "detailWithMotion": {
+        "raw": 16484,
+        "gzip6": 3658
+      },
+      "miniature": {
+        "raw": 1401,
+        "gzip6": 607
+      },
+      "selectedModelCold": {
+        "raw": 206284,
+        "gzip6": 51150
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 30562,
+        "gzip6": 6881
+      }
+    },
+    {
+      "id": "gift-tank-kiln-white",
+      "artRevision": "atelier-01",
+      "poster": {
+        "raw": 11645,
+        "gzip6": 2812
+      },
+      "detailWithMotion": {
+        "raw": 14340,
+        "gzip6": 3264
+      },
+      "miniature": {
+        "raw": 1428,
+        "gzip6": 609
+      },
+      "selectedModelCold": {
+        "raw": 201707,
+        "gzip6": 50345
+      },
+      "selectedModelAfterRuntime": {
+        "raw": 25985,
+        "gzip6": 6076
+      }
+    }
+  ],
+  "budgetExceptions": [],
+  "warmReplay": "0 GETs in the exercised recently-used model case. Each mounted scene stores its own decoded tracks. The replay fixture uses the actual compiled client, local immutable responses, jsdom, and controlled WAAPI."
+}

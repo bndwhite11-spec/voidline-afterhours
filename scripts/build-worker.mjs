@@ -29,7 +29,8 @@ const excludedRoots = new Set(['server', '.openai', '_appgen_meta']);
 // v7's sample/archive source remains in the source download and tests. It is
 // never an executable production fallback or automatically loaded fixture.
 const productionRoots = new Set(['icons','install.html','mobile.js','mobile.css','art','art-motion.css','art-review.html','art-review.css','art-review.js','account-export.js','theme.js','media-validation.js','profile-media.js','native-media.js','native-media.css','native-outbox.js','native-timeline.js','native-messaging.css','realtime.js','collectible-art.js','index.html','help.html','help.css','notifications.js','push-worker.js','startup.js','feature-loader.js','startup.css','entry.js','entry.css','home.js','home.css','store.js','legacy-import.js',
-  'cosmetics.js','cosmetics.css','social.js','social.css',
+  'capsule-stage.js','capsule-stage.css',
+  'cosmetics.js','cosmetics.css','collector.js','collector.css','social.js','social.css',
   'organize.js','organize.css','gift-collections.js','profile-looks.js','profile-showcase.js','profiles-panel.js','profile-media.css','gift-collections.css','profile-looks.css','profiles-panel.css','profile-showcase.css','appearance.css','admin.js','admin.css','passkey-client.js',
   'icon.svg','manifest.webmanifest','secure-messenger.js','secure-messenger.js.LEGAL.txt','pkg','downloads','.well-known']);
 const release = JSON.parse(await readFile(path.join(output,'downloads/voidline-release.json'),'utf8'));
@@ -368,16 +369,19 @@ const legacyV3Filenames = [
 async function legacyArtworkAliases() {
   const current=JSON.parse(await readFile(path.join(output,'art/v4/manifest.json'),'utf8'));
   const byId=new Map(current.items.map(item=>[item.id,item]));
+  // Preserve the raster-edition target expected by older deployed players.
+  const released=JSON.parse(await readFile(path.join(root,'src/art/published-32-gift-variants.json'),'utf8'));
+  const compatibleVariants=id=>released[id]||byId.get(id)?.variants;
   const aliases=Object.create(null);
   for(const filename of legacyV3Filenames){
     const match=/^(.+)-(mini|card|detail|silhouette)\.[a-f0-9]{12,64}\.svg$/.exec(filename);
-    const target=match&&byId.get(match[1])?.variants?.[match[2]]?.url;
+    const target=match&&compatibleVariants(match[1])?.[match[2]]?.url;
     if(!target||!target.startsWith('/art/v4/'))throw new Error('Missing current artwork for legacy route: '+filename);
     aliases['/art/v3/'+filename]=target;
   }
   aliases['/art/v3/manifest.json']='/art/v4/manifest.json';
   // Version 28 manifests can remain open while the cassette animation updates.
-  const cassette = byId.get('gift-cassette').variants;
+  const cassette = compatibleVariants('gift-cassette');
   aliases['/art/v4/gift-cassette-card.36e6120e3ff6.svg'] = cassette.card.url;
   aliases['/art/v4/gift-cassette-detail.be18797dc5bf.svg'] = cassette.detail.url;
   return aliases;
@@ -445,6 +449,12 @@ async function collect(directory, prefix = '') {
     } else throw new Error(`Unexpected symlink or special asset: ${relative}`);
   }
 }
+// Publish the four review films separately from the messenger's entry assets.
+const studyDirectory=path.join(output,'art','studies');
+await mkdir(studyDirectory,{recursive:true});
+for(const family of ['chudjak-plush','pepe-keycap','midnight-tape','copium-reserve']){
+  await cp(path.join(root,'docs','collectible-proof',family+'.mp4'),path.join(studyDirectory,family+'.mp4'));
+}
 await collect(output);
 if (!assets['/index.html']) throw new Error('Missing dist/index.html. Existing static client source must be retained.');
 for(const [legacy,target]of Object.entries(legacyArtAliases)){if(!assets[target]||assets[legacy])throw new Error('Invalid artwork compatibility target: '+legacy);}
@@ -481,6 +491,7 @@ async function serveVoidline(request, env, ctx) {
   if (url.pathname==='/api/messages'||url.pathname.startsWith('/api/messages/')) return apiResponse(request,env,ctx,handleMessagesRequest);
   if (url.pathname==='/api/organize'||url.pathname.startsWith('/api/organize/')) return apiResponse(request,env,ctx,handleOrganizeRequest);
   if (url.pathname === '/api/profile-looks' || url.pathname.startsWith('/api/profile-looks/')) return apiResponse(request,env,ctx,handleProfileLooks);
+  if (url.pathname === '/api/capsules' || url.pathname.startsWith('/api/capsules/')) return apiResponse(request,env,ctx,handleCapsulesRequest);
   if (url.pathname === '/api/gift-collections' || url.pathname.startsWith('/api/gift-collections/')) return apiResponse(request,env,ctx,handleGiftCollectionsRequest);
   if (url.pathname.startsWith('/api/profiles/')) return apiResponse(request,env,ctx,handleProfilesRequest);
   if (url.pathname.startsWith('/api/cosmetics/')) return apiResponse(request,env,ctx,handleCosmeticsRequest);
@@ -558,7 +569,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfileLooks} from './worker/profile-looks.mjs';\nimport {handleGiftCollectionsRequest} from './worker/gift-collections.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfileLooks} from './worker/profile-looks.mjs';\nimport {handleCapsulesRequest} from './worker/capsules.mjs';\nimport {handleGiftCollectionsRequest} from './worker/gift-collections.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

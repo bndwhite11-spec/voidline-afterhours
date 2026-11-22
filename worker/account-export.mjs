@@ -1,3 +1,4 @@
+import {acquisitionKind,acquisitionTime} from './collectible-inventory.mjs';
 /** Deliberate plaintext exports of narrowly selected native account data.
  * Not a database backup, Matrix history exporter, or encrypted-key export.
  */
@@ -38,7 +39,7 @@ function dataset(scope,userId){
  if(scope==='memberships')return row('m.joined_at','membership','m.community_id',"'communityId',c.id,'name',c.name,'description',c.description,'icon',c.icon,'role',m.role,'ownerId',c.created_by,'joinedAt',m.joined_at",'FROM live_memberships m JOIN live_communities c ON c.id=m.community_id','m.account_id=?',[userId]);
  if(scope==='gifts'){
   const sources=[
-   row('g.created_at','gift','g.id',"'id',g.id,'catalogId',g.catalog_id,'originKind',g.origin_kind,'originGiftId',g.origin_gift_id,'createdAt',g.created_at,'pendingTransferId',g.pending_transfer_id",'FROM gift_instances g','g.owner_id=?',[userId]),
+   row(acquisitionTime('g'),'gift','g.id',`'id',g.id,'catalogId',g.catalog_id,'originKind',${acquisitionKind('g')},'createdAt',${acquisitionTime('g')},'pendingTransferId',g.pending_transfer_id`,'FROM gift_instances g','g.owner_id=?',[userId]),
    row('c.created_at','gift-collection','c.id',"'id',c.id,'name',c.name,'revision',c.revision,'createdAt',c.created_at,'updatedAt',c.updated_at",'FROM gift_collections c','c.owner_id=?',[userId]),
    row('i.added_at','gift-collection-item',"i.collection_id||':'||i.instance_id","'collectionId',i.collection_id,'instanceId',i.instance_id,'position',i.position,'addedAt',i.added_at",'FROM gift_collection_items i JOIN gift_collections c ON c.id=i.collection_id JOIN gift_instances g ON g.id=i.instance_id AND g.owner_id=c.owner_id','c.owner_id=? AND g.owner_id=?',[userId,userId])
   ];return {sql:sources.map(source=>source.sql).join(' UNION ALL '),args:sources.flatMap(source=>source.args)};

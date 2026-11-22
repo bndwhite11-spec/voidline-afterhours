@@ -1,0 +1,34 @@
+[
+  {
+    "id": "gift-tank-field-enamel",
+    "movingPixelsAt100px": 311,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1680,
+    "posterBytes": 12515,
+    "detailBytes": 15023
+  },
+  {
+    "id": "gift-tank-sight-glass",
+    "movingPixelsAt100px": 416,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1810,
+    "posterBytes": 13294,
+    "detailBytes": 15991
+  },
+  {
+    "id": "gift-tank-field-repair",
+    "movingPixelsAt100px": 305,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1740,
+    "posterBytes": 14078,
+    "detailBytes": 16484
+  },
+  {
+    "id": "gift-tank-kiln-white",
+    "movingPixelsAt100px": 319,
+    "edgePixelsAt100px": 0,
+    "durationMs": 1830,
+    "posterBytes": 11645,
+    "detailBytes": 14340
+  }
+]
