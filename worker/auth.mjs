@@ -309,7 +309,13 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
    const revocation=path.match(/^\/api\/auth\/devices\/([a-f0-9-]{36})\/revoke$/);
    if(revocation){requireAuth(user.reauthenticatedAt>time-10*60000,401,'reauthentication_required','Confirm your password before revoking a session.');await db.batch([query(db,'UPDATE auth_sessions SET revoked_at=? WHERE id=? AND account_id=? AND revoked_at IS NULL',time,revocation[1],user.id),matrixPolicyStatement(db,{accountId:user.id,kind:'logout_session',subjectId:revocation[1],idempotencyKey:'logout-session:'+revocation[1],requestedBy:user.id,time,guardSql:'EXISTS(SELECT 1 FROM auth_sessions WHERE id=? AND account_id=? AND revoked_at IS NOT NULL)',guardBinds:[revocation[1],user.id]})]);return responseCookies(json({revoked:true,signedOut:revocation[1]===user.sessionId}),revocation[1]===user.sessionId?clearCookies():[]);}
    throw new AuthError(404,'not_found','No account action matches this request.');
-  }catch(error){if(path==='/api/auth/google/callback')return responseCookies(new Response(null,{status:303,headers:{location:errorReturn(callbackReturnTo,error instanceof AuthError&&error.code==='invalid_oauth_state'?'expired':error instanceof AuthError&&error.code==='provider_exchange_failed'?'provider_unavailable':'invalid_response'),'cache-control':'no-store','referrer-policy':'no-referrer'}}),[cookie(OAUTH_COOKIE,'',true,0)]);return json({error:{code:error instanceof AuthError||error.code==='authentication_busy'?error.code:'account_unavailable',message:error instanceof AuthError||error.code==='authentication_busy'?error.message:'The account action could not complete. Try again.'}},error instanceof AuthError||error.code==='authentication_busy'?error.status:503);}
+  }catch(error){if(path==='/api/auth/google/callback')return responseCookies(new Response(null,{status:303,headers:{location:errorReturn(callbackReturnTo,error instanceof AuthError&&error.code==='invalid_oauth_state'?'expired':error instanceof AuthError&&error.code==='provider_exchange_failed'?'provider_unavailable':'invalid_response'),'cache-control':'no-store','referrer-policy':'no-referrer'}}),[cookie(OAUTH_COOKIE,'',true,0)]);
+   if(error.code==='authentication_busy'){
+    const response=json({error:{code:'authentication_busy',message:error.message}},503);
+    response.headers.set('Retry-After','1');return response;
+   }
+   return json({error:{code:error instanceof AuthError?error.code:'account_unavailable',message:error instanceof AuthError?error.message:'The account action could not complete. Try again.'}},error instanceof AuthError?error.status:503);
+  }
  }
  return {authenticate,handleAuthRequest,verifyGoogleToken,requestVerifiedResetForAccount};
 }

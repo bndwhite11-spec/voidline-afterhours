@@ -24,8 +24,10 @@ parameters. Only exact known stored algorithms select work factors. Existing
 successful login using a credential-version compare-and-swap. IDs, membership
 and history remain intact. No fast-hash password fallback is used.
 
-Argon2 runs once at a time per isolate, with at most four queued operations;
-excess work receives a retryable 503. A Node measurement in the execution
+Each isolate admits up to two simultaneous Argon2 operations (38 MiB of Argon2
+working memory total). Each hash runs in the request that submitted it. An
+overlapping request beyond this limit receives HTTP 503 with a one-second
+Retry-After before account or credential writes. A Node measurement in the execution
 workspace took approximately 376 ms and increased RSS by approximately 28 MiB.
 An isolated Wrangler/workerd request also completed the exact hash in 367 ms
 (HTTP 200). This proves local Worker compatibility, not a hosted CPU allowance

@@ -42,6 +42,12 @@ async function verify(directory, prefix = '') {
   }
 }
 await verify(dist);
+for(const route of ['/', '/chats', '/install.html']){
+  const page=await fetchAsset(route);
+  const policy=page.headers.get('content-security-policy') || '';
+  assert(policy.split(';').some(rule=>rule.trim()==="manifest-src 'self'"), route+' must allow its own installation manifest');
+  assert.match(await page.text(), /<link rel="manifest" href="\/manifest\.webmanifest">/);
+}
 // Production compression returns a weak validator to the browser.
 const entryETag=(await fetchAsset('/home.js',{method:'HEAD'})).headers.get('etag');
 for(const method of ['GET','HEAD']){
@@ -74,7 +80,7 @@ const compiledAssets=bundledAssetTable(),rasters=new Map();
 // and desktop packages stream verified R2 objects instead of duplicating them
 // inside the constrained Worker bundle.
 const release=JSON.parse(await readFile(path.join(dist,'downloads/voidline-release.json'),'utf8'));
-assert.equal(release.tag,'v1.0.6');
+assert.equal(release.tag,'v1.0.7');
 assert.equal(release.android.version,'1.0.3');
 assert.equal(release.android.versionCode,4);
 assert.equal(release.android.filename,'VOIDLINE-Android.apk');

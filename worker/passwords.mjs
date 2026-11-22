@@ -7,18 +7,24 @@ const DUMMY_SALT='a8df45ee43ac2dc98af0915ad32e06fba8df45ee43ac2dc98af0915ad32e06
 const random=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
 const unhex=value=>Uint8Array.from(value.match(/.{2}/g)||[],byte=>parseInt(byte,16));
 const hex=bytes=>Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join('');
-let working=false;
-const queue=[];
-async function serialize(operation){
- if(working){if(queue.length>=4){const error=new Error('Account verification is busy. Please retry shortly.');error.status=503;error.code='authentication_busy';throw error;}await new Promise(resolve=>queue.push(resolve));}
- working=true;
- try{return await operation();}finally{const next=queue.shift();if(next)next();else working=false;}
-}
+// Keep only scalar admission state across requests. workerd can cancel a
+// continuation whose Promise was stored by one request and settled by another.
+const MAX_PASSWORD_HASHES=2;
+let activeHashes=0;
 export function equalHash(left,right){if(typeof left!=='string'||typeof right!=='string'||left.length!==64||right.length!==64)return false;let mismatch=0;for(let i=0;i<64;i++)mismatch|=left.charCodeAt(i)^right.charCodeAt(i);return mismatch===0;}
 export async function hashPassword(password,salt=random()){
  if(!/^[a-f0-9]{64}$/.test(salt))throw new Error('Invalid password salt.');
+ if(activeHashes>=MAX_PASSWORD_HASHES){
+  const error=new Error('Account verification is busy. Please retry shortly.');
+  error.status=503;error.code='authentication_busy';throw error;
+ }
  const bytes=encoder.encode(password);
- try{return await serialize(async()=>{const output=await argon2idAsync(bytes,unhex(salt),ARGON_PARAMETERS);try{return {hash:hex(output),salt,iterations:2,algorithm:ARGON_ALGORITHM};}finally{output.fill(0);}});}finally{bytes.fill(0);}
+ activeHashes++;
+ try{
+  const output=await argon2idAsync(bytes,unhex(salt),ARGON_PARAMETERS);
+  try{return {hash:hex(output),salt,iterations:2,algorithm:ARGON_ALGORITHM};}
+  finally{output.fill(0);}
+ }finally{activeHashes--;bytes.fill(0);}
 }
 export async function passwordMatches(password,credential){
  const bounded=typeof password==='string'&&password.length<=128&&encoder.encode(password).length<=512?password:'';
