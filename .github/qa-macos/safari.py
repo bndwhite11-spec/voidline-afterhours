@@ -58,7 +58,23 @@ try:
     print('PASS guest account form rendered', flush=True)
 
     navigate('/art-review.html?item=gift-copium-cartridge')
-    wait(lambda: js("document.querySelector('#ar-dialog')?.open && document.querySelector('#ar-stage svg [data-part=\"cartridge-smoke-ring\"]') && document.querySelector('#ar-status').textContent === 'Resting artwork'"))
+    wait(lambda: js("Boolean(document.querySelector('#ar-dialog')?.open)"))
+    state_expr = """({title:document.querySelector('#ar-title')?.textContent,
+      status:document.querySelector('#ar-status')?.textContent, button:document.querySelector('#ar-play')?.textContent,
+      svg:!!document.querySelector('#ar-stage svg [data-part="cartridge-smoke-ring"]'),
+      reduce:matchMedia('(prefers-reduced-motion: reduce)').matches, hidden:document.hidden,
+      url:location.href})"""
+    wait(lambda: js("document.querySelector('#ar-status').textContent !== 'Loading detail…'"))
+    state = js(state_expr)
+    print('Initial preview:',state,flush=True)
+    if state['button']=='Retry artwork':
+        click('#ar-play')
+    wait(lambda: js("!!document.querySelector('#ar-stage svg [data-part=\"cartridge-smoke-ring\"]')"))
+    if js("document.querySelector('#ar-reduce').checked && !document.querySelector('#ar-reduce').disabled"):
+        click('#ar-close')
+        click('#ar-reduce')
+        click('[data-art-open="gift-copium-cartridge"]')
+    wait(lambda: js("document.querySelector('#ar-status').textContent === 'Resting artwork'"))
     assert js("document.querySelector('#ar-title').textContent === 'Copium Cartridge'")
     click('#ar-play')
     wait(lambda: js("document.querySelector('#ar-status').textContent === 'Playing once'"), timeout=10)
@@ -75,5 +91,8 @@ try:
     wait(lambda: js("document.querySelector('#vm-title')?.textContent === 'Install VOIDLINE'"))
     assert js("document.querySelector('.vm-other-devices').innerText.includes('Add to Dock') && !!document.querySelector('link[rel=manifest]')")
     print('PASS Mac install page contains Safari Add to Dock instructions and a web manifest', flush=True)
+except Exception:
+    print('Final page:',js("({url:location.href,hidden:document.hidden,body:document.body.innerText.slice(-1200),parts:document.querySelectorAll('#ar-stage [data-part]').length})"),flush=True)
+    raise
 finally:
     request('DELETE', base)
