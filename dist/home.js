@@ -30,8 +30,14 @@
   });
   let featureIntent = 0;
   function prepareAction(name, button, feature, intent) {
+    // A deliberate destination change supersedes a restored URL immediately,
+    // including while both requests are awaiting the same feature bundle.
+    const destination = name === 'you' || name === 'cosmetics-collection';
+    const navigation = destination ? ++resumeSerial : null;
+    if (destination) restoringRoute = false;
     const current = guard(), dialogVersion = state.dialogGeneration;
-    const active = () => current() && intent === featureIntent && dialogVersion === state.dialogGeneration;
+    const active = () => current() && intent === featureIntent && dialogVersion === state.dialogGeneration
+      && (!destination || navigation === resumeSerial);
     announce('Loading ' + ({collection:'collection tools',media:'media tools',export:'export tools',archive:'archive tools'}[feature] || 'tools') + '…');
     return loadFeature(feature).then(() => {
       if (active()) { announce(''); return action(name, button); }
@@ -90,7 +96,7 @@
     state.account=null;state.session=null;state.authentication=null;state.csrf='';state.communities=[];state.channels=[];state.members=[];state.messages=[];state.communityId=null;state.channelId=null;state.readPositions.clear();state.error='';state.drawer=false;closeDialog(false);
   }
   function brand() {return '<span class="vh-wordmark">'+mark+'<span><b>VOIDLINE</b><small>AFTERHOURS</small></span></span>';}
-  function topbar() {return `<header class="vh-topbar"><button data-home="home" aria-label="Voidline home">${brand()}</button>${state.account?`<button class="vh-quick-search" data-home="search">${icon('search')}<span>Search Voidline</span><kbd>Ctrl / ⌘ K</kbd></button>${writerHandoff?'<button id="home-tab-switch" class="vh-text-button" data-home="secure-handoff-review">Tab switch request</button>':''}<button class="vh-icon-button" data-home="you" aria-label="Account settings">${icon('you')}</button>`:'<span class="vh-edition">CHATS · SERVERS · YOUR PEOPLE</span>'}</header>`;}
+  function topbar() {return `<header class="vh-topbar"><button data-home="home" aria-label="Voidline home">${brand()}</button>${state.account && state.phase!=='loading'?`<button class="vh-quick-search" data-home="search">${icon('search')}<span>Search Voidline</span><kbd>Ctrl / ⌘ K</kbd></button>${writerHandoff?'<button id="home-tab-switch" class="vh-text-button" data-home="secure-handoff-review">Tab switch request</button>':''}<button class="vh-icon-button" data-home="you" aria-label="Account settings">${icon('you')}</button>`:'<span class="vh-edition">CHATS · SERVERS · YOUR PEOPLE</span>'}</header>`;}
   function googleAuthHTML(){if(!state.config?.google?.configured)return '';const returnTo=location.pathname+location.search+(credentialToken('verify-email')?'#you':location.hash);return `<div class="vh-auth-separator"><span>or</span></div><a class="vh-google" href="${esc((state.config.google.signInPath||'/api/auth/google/start')+'?returnTo='+encodeURIComponent(returnTo))}" target="_top">Continue with Google</a>${credentialToken('verify-email')?'<p class="vh-field-help">After signing in with Google, reopen your email link to confirm it.</p>':''}`;}
   function passwordField(label,name,autocomplete='current-password',confirm=false) {
     const id='home-'+name;
@@ -827,7 +833,7 @@
     catch (_) { if (current()) announce('Owner controls could not load. Reopen your profile to try again.'); }
   }
   async function enterWorkspace(acknowledgedRecovery=false) {
-    const current=guard();
+    const current=guard(),navigation=resumeSerial;
     if(needsFeature('workspace')){
       state.phase='loading';render();
       try { await loadFeature('workspace'); }
@@ -839,7 +845,7 @@
     loadOwnerTools();
     if(state.phase!=='ready'){render();return;}
     if(acknowledgedRecovery&&state.recoveryReturn==='account'){return action('you');}
-    await refreshCommunities();if(current())await resume();
+    await refreshCommunities();if(current()&&navigation===resumeSerial)await resume();
   }
   async function finishRecovery(){await enterWorkspace(true);}
 

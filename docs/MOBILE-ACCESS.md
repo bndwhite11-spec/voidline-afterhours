@@ -30,4 +30,7 @@ The signed-in checks used the shipped client and an isolated Worker and database
 
 The phone checks uncovered a content security policy that blocked the install manifest. The Worker now permits same-origin manifests on its app and install pages. The build verifies the manifest link and policy together. Chromium’s installability check on the corrected release loaded the manifest and returned zero errors in a fresh profile.
 
-Concurrent mobile sign-ups also exposed a Worker request that could hang. Two requests can now hash passwords independently. At capacity the service returns a retryable 503. An isolated database test submitted three overlapping registrations, retried the busy request, and signed all three users back in on the same Worker. Physical iOS installation through the Safari share sheet, software keyboards and on-device push delivery still require a handset.
+Concurrent mobile sign-ups also exposed a Worker request that could hang. Two requests can now hash passwords independently. At capacity the service returns a retryable 503. An isolated database test submitted three overlapping registrations, retried the busy request, and signed all three users back in on the same Worker.
+A cold start on the Collection URL could overwrite an immediate tap on Profile while the two screens waited on the same download. An explicit navigation now takes precedence over route restoration. The regression test covers the first tap and browser back and forward.
+
+Physical iOS installation through the Safari share sheet, software keyboards and on-device push delivery still require a handset.

@@ -103,6 +103,23 @@ async function until(check, description) {
     assert.deepEqual(switching.errors,[]);
     console.log('PASS navigating away during a pending feature load does not reopen it or fetch private inventory');
   } finally { switching.release(); switching.dom.window.close(); }
+  const interrupted=fixture({signedIn:true,route:'#collection',wait:'/collectible-art.js'});
+  try {
+    const {w,assets}=interrupted,doc=w.document;
+    await until(()=>assets.includes('/collectible-art.js'),'cold collection route loading');
+    // The conversation list can finish while the collection artwork is still loading.
+    w.VoidHome.state.nativeListLoaded=true;
+    doc.querySelector('[data-home="you"]').click();
+    interrupted.release();
+    await until(()=>doc.querySelector('[data-home="logout"]'),'profile from first tap');
+    assert.equal(w.location.hash,'#you');
+    w.history.back();
+    await until(()=>w.VoidHome.state.view==='collection','back to original collection route');
+    w.history.forward();
+    await until(()=>w.VoidHome.state.view==='you','forward to the chosen profile');
+    assert.deepEqual(interrupted.errors,[]);
+    console.log('PASS a profile tap during collection route restoration wins and preserves back/forward history');
+  } finally { interrupted.release(); interrupted.dom.window.close(); }
   const restored=fixture({signedIn:true,fail:'/native-outbox.js',route:'#collection'});
   try {
     const {w,assets,calls}=restored,doc=w.document;
