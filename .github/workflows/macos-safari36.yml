@@ -1,0 +1,28 @@
+name: macOS desktop Safari verification
+on:
+  push:
+    branches: [verification/cartridges-platform-36]
+    paths: ['.github/workflows/macos-safari36.yml', '.github/qa-macos/**']
+permissions:
+  contents: read
+jobs:
+  safari-desktop:
+    name: macOS desktop Safari
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/qa-macos
+      - name: Verify published app in desktop Safari
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          /usr/bin/safaridriver --version
+          sudo /usr/bin/safaridriver --enable
+          /usr/bin/safaridriver --port 4444 > "$RUNNER_TEMP/voidline-safaridriver.log" 2>&1 &
+          driver_pid=$!
+          trap 'kill "$driver_pid" 2>/dev/null || true' EXIT
+          python3 .github/qa-macos/safari.py
