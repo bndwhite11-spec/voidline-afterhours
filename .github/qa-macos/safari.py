@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 
 DRIVER = 'http://127.0.0.1:4444'
 ORIGIN = 'https://voidline-afterhours.pipedcactus1.chatgpt.site'
-ELEMENT = 'element-6066-11e4-a52e-4f73-bacf-4a6e4f8f7d76'
+ELEMENT = 'element-6066-11e4-a52e-4f735466cecf'
 
 
 def request(method, path, data=None):
