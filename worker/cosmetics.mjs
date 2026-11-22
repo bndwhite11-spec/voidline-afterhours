@@ -2,6 +2,7 @@
 import {giftBases} from '../src/art/gift-bases.mjs';
 import {webSources} from '../src/art/web-sources.mjs';
 import {capsuleCatalogItems,collectibleDisplay} from '../src/collectibles/presentation.mjs';
+import {cartridgeDesigns,cartridgeSeries} from '../src/collectibles/cartridge-designs.mjs';
 import {legacyPresentations} from '../src/collectibles/legacy-presentations.mjs';
 import {inventorySummary,ownInstanceSelect,privateInstance,ownerFilters,transferReceipt,acquisitionTime,acquisitionKind} from './collectible-inventory.mjs';
 import {authenticate, validateSessionMutation, normalizeUsername, authRateLimit, AuthError} from './auth.mjs';
@@ -79,12 +80,13 @@ export const COSMETICS = Object.freeze([
  {id:'meme-gigachad',type:'badge',category:'memes',series:'Internet Relics',name:'Gigachad',description:'A deliberately dramatic squared-jaw portrait with directional black-and-white planes and a very composed expression.',finish:'Monochrome enamel and steel'},
  {id:'meme-cope-seethe',type:'badge',category:'memes',series:'Internet Relics',name:'Cope & Seethe',description:'One tiny gritted-teeth reaction, with eyes and brows doing their best to keep it together.',finish:'Warm porcelain and oxide enamel'},
  {id:'meme-pepe',type:'badge',category:'memes',series:'Internet Relics',name:'Pepe',description:'A recognizable frog expression interpreted as a new little enamel portrait. Mood, rather than status.',finish:'Jade enamel and tarnished nickel'},
+ ...Object.entries(cartridgeDesigns).map(([id,design])=>({id,...design,type:'gift',acquisition:'Claim one free copy or send a free gift to someone.'})),
  ...Object.values(giftBases).map(({referenceKey,...item})=>({...item,type:'gift',category:'gifts',inspiration:'Original VOIDLINE design with researched collectible-gift staging',acquisition:'Free VOIDLINE cosmetic instance. Original artwork and choreography; no blockchain asset changes hands.'}))
 ].map(item=>{
  const model=collectibleDisplay(item.id,item.name),curated=legacyPresentations[item.id],source=curated?undefined:webSources[item.id];
  const artwork=source?{sourceURL:source.sourceURL,creator:source.creator,license:source.license,licenseURL:source.licenseURL,changes:source.changes,components:source.components||[]}:undefined;
  const acquisition=item.type==='gift'?(curated?'Free VOIDLINE cosmetic instance with original workshop artwork. No blockchain asset changes hands.':source?'Free VOIDLINE cosmetic instance with credited web artwork. No blockchain asset changes hands.':item.acquisition):item.acquisition;
- return Object.freeze({category:item.type==='gift'?'gifts':'originals',series:item.type==='gift'?'Afterhours Objects':'VOIDLINE Originals',...item,...model,finish:model.material||item.finish,...(artwork?{artwork}:{}),price:0,acquisition:acquisition||(item.category==='crypto'?'Free profile decoration inspired by crypto culture. No coins, wallet holdings or official affiliation.':'Free to collect. Cosmetic only; no staff role or verified achievement.')});
+ return Object.freeze({category:item.type==='gift'?'gifts':'originals',series:item.type==='gift'?'Afterhours Objects':'VOIDLINE Originals',...item,...model,...(item.id==='gift-copium-cartridge'?{relatedSeries:cartridgeSeries}:{}),finish:model.material||item.finish,...(artwork?{artwork}:{}),price:0,acquisition:acquisition||(item.category==='crypto'?'Free profile decoration inspired by crypto culture. No coins, wallet holdings or official affiliation.':'Free to collect. Cosmetic only; no staff role or verified achievement.')});
 }).concat(capsuleCatalogItems().map(Object.freeze)));
 const legacyGiftIds=JSON.stringify(COSMETICS.filter(i=>i.type==='gift'&&i.acquisitionPolicy==='legacy-free').map(i=>i.id));
 const catalog=new Map(COSMETICS.map(c=>[c.id,c]));

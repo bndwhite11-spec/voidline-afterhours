@@ -79,8 +79,11 @@ const compiled=await build({stdin:{contents:`import {installArt} from './src/art
 // intentional art repair retains the old bytes under src/art/historical-variants
 // (the normal source ZIP also contains that directory). Refuse a broken release.
 const inventoryFolder=new URL('../src/collectibles/',import.meta.url);
-for(const table of (await readdir(inventoryFolder)).filter(name=>/^choice-v\d+-assets\.json$/.test(name))){
- const pinned=JSON.parse(await readFile(new URL(table,inventoryFolder),'utf8'));
+const editionFiles=(await readdir(inventoryFolder)).filter(name=>/^choice-v\d+-assets\.json$/.test(name));
+const archives=[...editionFiles.map(name=>new URL(name,inventoryFolder)),new URL('../src/art/historical-variants/index.json',import.meta.url)];
+for(const archive of archives){
+ const table=path.basename(archive.pathname);
+ const pinned=JSON.parse(await readFile(archive,'utf8'));
  for(const [id,variants]of Object.entries(pinned))for(const [variant,record]of Object.entries(variants)){
   const filename=id+'-'+variant+'.'+record.sha256.slice(0,12)+'.svg';
   if(!/^[a-z0-9-]+$/.test(id)||!['mini','card','detail','silhouette'].includes(variant)||!/^[a-f0-9]{64}$/.test(record.sha256)||record.url!=='/art/v'+artVersion+'/'+filename)throw Error('Invalid frozen artwork path in '+table);

@@ -3,8 +3,11 @@ import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {handleCosmeticsRequest, COSMETICS} from '../worker/cosmetics.mjs';
 import {collectibleModels,collectibleFamilies} from '../src/collectibles/models.mjs';
+import {cartridgeDesigns,cartridgeSeries} from '../src/collectibles/cartridge-designs.mjs';
 import {legacyPresentations} from '../src/collectibles/legacy-presentations.mjs';
 const capsuleModels=Object.values(collectibleModels);
+const freeGiftCount=32+Object.keys(cartridgeDesigns).length;
+const catalogSize=49+freeGiftCount+capsuleModels.length;
 import {authHash} from '../worker/auth.mjs';
 import {accountDeletionStatements} from '../worker/account-deletion.mjs';
 
@@ -43,15 +46,68 @@ async function fixture(){
 test('new accounts have zero owned items and every listed cosmetic is explicitly free',async()=>{
  const f=await fixture();try{
   const inventory=await f.ok('sender','/inventory');assert.deepEqual(inventory.owned,[]);assert.equal(inventory.equippedId,null);assert.equal(inventory.pendingGifts,0);
-  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,81+capsuleModels.length);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
+  const catalog=await f.ok('sender','/catalog');assert.equal(catalog.free,true);assert.equal(catalog.items.length,catalogSize);assert.ok(catalog.items.every(i=>i.price===0));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);
   assert.equal((await f.call(undefined,'/inventory')).status,401);
+ }finally{f.sqlite.close();}
+});
+test('five free Copium Cartridge designs have separate claims, gift receipts and transferable copies',async()=>{
+ const f=await fixture();
+ try{
+  const catalog=(await f.ok('sender','/catalog')).items;
+  const collection=catalog.filter(item=>item.series===cartridgeSeries);
+  assert.deepEqual(collection.map(item=>item.name),['They’ll Text Back','One More Game','Next in Queue','It Was Lag','Still Early']);
+  const original=catalog.find(item=>item.id==='gift-copium-cartridge');
+  assert.equal(original.name,'Copium Cartridge');
+  assert.equal(original.relatedSeries,cartridgeSeries);
+  assert.notEqual(original.series,cartridgeSeries);
+  assert.equal(original.artRevision,'workshop-02');
+
+  for(const [index,item] of collection.entries()){
+   const design=cartridgeDesigns[item.id];
+   assert.equal(item.type,'gift');
+   assert.equal(item.acquisitionPolicy,'legacy-free');
+   assert.equal(item.price,0);
+   assert.equal(item.finish,design.material);
+   assert.equal(item.artRevision,'cartridge-01');
+   assert.equal(item.active,true);
+   assert.equal(Object.hasOwn(collectibleModels,item.id),false);
+
+   const claim=await f.ok('sender','/claim',{cosmeticId:item.id});
+   const claimed=claim.instances.find(instance=>instance.catalog_id===item.id);
+   const copy=(await f.ok('sender','/instances/'+claimed.id)).instance;
+   assert.equal(copy.model.name,item.name);
+   assert.equal(copy.model.alt,design.alt);
+   const retry=await f.ok('sender','/claim',{cosmeticId:item.id});
+   assert.deepEqual(retry.instances.filter(instance=>instance.catalog_id===item.id).map(instance=>instance.id),[copy.id]);
+
+   const recipient=index<2?'recipient':'stranger';
+   const grant=(await f.gift('send-'+item.id,recipient,item.id)).gift;
+   await f.ok(recipient,'/gifts/'+grant.id+'/open',{});
+   const received=(await f.ok(recipient,'/instances/gift:'+grant.id)).instance;
+   assert.notEqual(received.id,copy.id);
+   assert.deepEqual(received.model,copy.model);
+  }
+
+  const id=collection[0].id;
+  const copy=(await f.ok('sender','/inventory')).instances.find(item=>item.catalog_id===id);
+  const request={instanceId:copy.id,username:'recipient',clientId:'offer-rain-check',expectedOwnershipRevision:copy.ownership_revision};
+  const offer=(await f.ok('sender','/transfers',request)).transfer;
+  assert.equal(offer.model.artRevision,'cartridge-01');
+  assert.equal(offer.model.name,'They’ll Text Back');
+  await f.ok('recipient','/transfers/'+offer.id+'/open',{});
+  const accepted=(await f.ok('recipient','/instances/'+copy.id)).instance;
+  assert.equal(accepted.id,copy.id);
+  assert.deepEqual(accepted.model,offer.model);
+  assert.equal((await f.call('sender','/instances/'+copy.id)).status,404);
+  assert.equal((await f.call('sender','/claim',{cosmeticId:id})).data.error.code,'claim_used');
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM capsule_openings').get().n,0);
  }finally{f.sqlite.close();}
 });
 test('crypto and internet series stay free decorations with authoritative ownership and no privileges',async()=>{
  const f=await fixture();try{
   const items=(await f.ok('sender','/catalog')).items;
-  assert.equal(new Set(items.map(item=>item.id)).size,81+capsuleModels.length);
-  assert.deepEqual(Object.fromEntries(['originals','crypto','memes','ego','guild','gifts'].map(category=>[category,items.filter(item=>item.category===category).length])),{originals:9,crypto:11,memes:22,ego:3,guild:4,gifts:32+capsuleModels.length});
+  assert.equal(new Set(items.map(item=>item.id)).size,catalogSize);
+  assert.deepEqual(Object.fromEntries(['originals','crypto','memes','ego','guild','gifts'].map(category=>[category,items.filter(item=>item.category===category).length])),{originals:9,crypto:11,memes:22,ego:3,guild:4,gifts:freeGiftCount+capsuleModels.length});
   const added=items.filter(item=>['crypto','memes','ego','guild'].includes(item.category));
   for(const item of added){
    assert.equal(item.type,'badge');assert.equal(item.price,0);assert.ok(item.series.length>0);
@@ -257,7 +313,7 @@ test('replaying an opened gift cannot restore private ownership after deletion b
  }finally{f.sqlite.close();}
 });
 test('expanded catalog preserves original identities and keeps all new designs separate from earned awards',async()=>{
- const f=await fixture();try{const items=(await f.ok('sender','/catalog')).items;assert.equal(items.filter(i=>i.type==='badge').length,49);assert.equal(items.filter(i=>i.type==='gift'&&i.acquisitionPolicy==='legacy-free').length,32);assert.equal(items.filter(i=>i.type==='gift'&&i.acquisitionPolicy==='capsule-only').length,capsuleModels.length);for(const id of ['larp','angel','ghost','velvet','night','unknown','dead','voidwalker','orbit','coin-bitforge','coin-etherglass','coin-crosssignal','coin-solarstack','coin-moonshibe','coin-diamondhands','meme-grass','meme-npc','meme-yapper','meme-copium','meme-cooked','meme-terminal','gift-rose','gift-cassette','gift-star','gift-cup','gift-ghost','gift-parcel','gift-seraph','gift-key','gift-halo','gift-orchid','gift-signal','gift-ticket'])assert(items.some(item=>item.id===id),id);for(const id of ['ego-unique-one','meme-nothing-happens','meme-six-seven','guild-guildless-knight','coin-cold-storage','gift-ego-volume','gift-curtain-call','gift-last-tab','meme-doomer','meme-bloomer','meme-absolute-cinema','guild-forum-wizard','gift-pocket-doomer','gift-orbit-mobile','gift-last-broadcast','gift-night-lantern'])assert(items.some(item=>item.id===id),id);assert(!items.some(i=>['profile-authored','reviewed-contribution'].includes(i.id)));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM badge_awards').get().n,0);}finally{f.sqlite.close();}
+ const f=await fixture();try{const items=(await f.ok('sender','/catalog')).items;assert.equal(items.filter(i=>i.type==='badge').length,49);assert.equal(items.filter(i=>i.type==='gift'&&i.acquisitionPolicy==='legacy-free').length,freeGiftCount);assert.equal(items.filter(i=>i.type==='gift'&&i.acquisitionPolicy==='capsule-only').length,capsuleModels.length);for(const id of ['larp','angel','ghost','velvet','night','unknown','dead','voidwalker','orbit','coin-bitforge','coin-etherglass','coin-crosssignal','coin-solarstack','coin-moonshibe','coin-diamondhands','meme-grass','meme-npc','meme-yapper','meme-copium','meme-cooked','meme-terminal','gift-rose','gift-cassette','gift-star','gift-cup','gift-ghost','gift-parcel','gift-seraph','gift-key','gift-halo','gift-orchid','gift-signal','gift-ticket'])assert(items.some(item=>item.id===id),id);for(const id of ['ego-unique-one','meme-nothing-happens','meme-six-seven','guild-guildless-knight','coin-cold-storage','gift-ego-volume','gift-curtain-call','gift-last-tab','meme-doomer','meme-bloomer','meme-absolute-cinema','guild-forum-wizard','gift-pocket-doomer','gift-orbit-mobile','gift-last-broadcast','gift-night-lantern'])assert(items.some(item=>item.id===id),id);assert(!items.some(i=>['profile-authored','reviewed-contribution'].includes(i.id)));assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM cosmetic_ownership').get().n,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM badge_awards').get().n,0);}finally{f.sqlite.close();}
 });
 test('recipient review resolves only eligible public identity and does not reserve or send a gift',async()=>{
  const f=await fixture();try{const reviewed=await f.ok('sender','/recipient?username=recipient');assert.deepEqual(Object.keys(reviewed.recipient).sort(),['avatar','displayName','id','username']);assert.equal(reviewed.recipient.id,'recipient');assert.equal(reviewed.recipient.username,'recipient');assert.equal((await f.call('sender','/recipient?username=unknown')).status,404);assert.equal((await f.call('sender','/recipient?username=sender')).status,404);f.sqlite.prepare("INSERT INTO social_blocks(blocker_id,blocked_id,created_at) VALUES('sender','recipient',1)").run();assert.equal((await f.call('sender','/recipient?username=recipient')).status,404);f.sqlite.prepare('DELETE FROM social_blocks').run();f.sqlite.prepare("INSERT INTO cosmetic_profiles(account_id,gifts_enabled) VALUES('recipient',0)").run();assert.equal((await f.call('sender','/recipient?username=recipient')).status,404);for(const table of ['cosmetic_gifts','gift_transfers','gift_instances','cosmetic_ownership'])assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);}finally{f.sqlite.close();}

@@ -169,6 +169,40 @@ test('a terminal transfer missing from bootstrap uses its participant receipt wi
  for(const [id,name]of [['meme-chud','CHUD'],['meme-wojak','Wojak'],['meme-soyjak','Soyjak'],['meme-gigachad','Gigachad'],['meme-cope-seethe','Cope & Seethe'],['meme-pepe','Pepe']]){input.value=name;app.listeners.get('input')({target:input});assert(app.nodes.get('vc-design-grid').innerHTML.includes('data-item="'+id+'"'),name);app.seam.inspect(id);assert(app.nodes.get('dialog').innerHTML.includes('<h3>'+app.bridge.esc(name)+'</h3>'));app.bridge.closeDialog();}
  assert.equal(app.calls.filter(call=>call.body).length,0);assert.equal(app.seam.summary().owned.length,0);
 });
+test('the original Copium Cartridge opens its five free designs in Browse with normal gift actions',async()=>{
+ const {COSMETICS}=await import('../worker/cosmetics.mjs');
+ const {JSDOM}=require('jsdom');
+ const app=fixture({page:true,catalog:COSMETICS});
+ const ids=['rain-check','second-wind','hold-music','panic-button','last-resort'].map(name=>'gift-cartridge-'+name);
+ await app.extension.onAccount();
+ await app.extension.handleAction('cosmetics-collection');
+ const browse=JSDOM.fragment(app.extension.pageHTML());
+ const series=browse.querySelector('[data-vc-series]');
+ assert([...series.options].some(option=>option.value==='Copium Cartridges'));
+ const original=browse.querySelector('[data-vc-action="inspect"][data-item="gift-copium-cartridge"]');
+ await app.seam.action(original);
+ const related=JSDOM.fragment(app.nodes.get('dialog').innerHTML).querySelector('[data-vc-action="browse-series"]');
+ assert.equal(related.textContent,'Browse Copium Cartridges');
+ await app.seam.action(related);
+ const results=JSDOM.fragment(app.extension.pageHTML());
+ assert.equal(results.querySelector('[data-vc-series]').value,'Copium Cartridges');
+ assert.equal(results.querySelector('[data-vc-kind]').value,'gift');
+ const cards=[...results.querySelectorAll('[data-design-id]')];
+ assert.deepEqual(cards.map(card=>card.dataset.designId).sort(),ids.slice().sort());
+ for(const card of cards){
+  const catalogDesign=COSMETICS.find(item=>item.id===card.dataset.designId);
+  assert.equal(card.querySelector('h3').textContent,catalogDesign.name);
+  assert.equal(card.querySelector('.vc-art-button').getAttribute('aria-label'),'Inspect '+catalogDesign.name);
+ }
+ assert.equal(results.querySelectorAll('[data-vc-action="claim"]').length,5);
+ const design=results.querySelector('[data-vc-action="inspect"][data-item="gift-cartridge-rain-check"]');
+ await app.seam.action(design);
+ const send=JSDOM.fragment(app.nodes.get('dialog').innerHTML).querySelector('[data-vc-action="send-form"]');
+ await app.seam.action(send);
+ const form=JSDOM.fragment(app.nodes.get('dialog').innerHTML).querySelector('[data-vc-form="send"]');
+ assert.equal(form.dataset.item,design.dataset.item);
+ assert.equal(app.calls.filter(call=>call.body).length,0);
+});
 test('original gift inspections explain their cosmetic acquisition and preview without source NFT links or transactions',async()=>{
  const {COSMETICS}=await import('../worker/cosmetics.mjs');const app=fixture({catalog:COSMETICS});await app.extension.onAccount();await app.seam.collection('gifts');
  assert.doesNotMatch(app.nodes.get('dialog').innerHTML,/gift-telegram-|Telegram studies|Plush Pepe|Jelly Bunny|Astral Shard|Heroic Helmet|Skull Flower|Vintage Cigar|Lol Pop/);

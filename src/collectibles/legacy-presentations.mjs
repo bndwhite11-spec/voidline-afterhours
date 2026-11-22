@@ -200,7 +200,7 @@ export const legacyPresentations = Object.freeze({
     "name": "Copium Cartridge",
     "material": "Smoked jade glass, brass end caps, hand valve and analog pressure dial",
     "alt": "A portable smoked-jade glass cartridge with brass end caps, visible imaginary green liquid, a spoked shutoff wheel, a white pressure gauge and the word COPIUM printed on its side. A brief valve release moves the needle and unwinds a soft vapor curl.",
-    "description": "A smoked-jade cylinder with brass end caps, a little pressure gauge and a plunger. A short puff escapes its valve.",
-    "artRevision": "workshop-01"
+    "description": "Turn the brass handwheel and the plunger squeezes the jade reservoir. Bubbles climb, the gauge kicks, and a pale smoke ring drifts from the glowing valve.",
+    "artRevision": "workshop-02"
   }
 });

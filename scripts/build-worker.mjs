@@ -449,12 +449,13 @@ async function collect(directory, prefix = '') {
     } else throw new Error(`Unexpected symlink or special asset: ${relative}`);
   }
 }
-// Publish the four review films separately from the messenger's entry assets.
+// Keep artwork studies separate from the messenger's entry assets.
 const studyDirectory=path.join(output,'art','studies');
 await mkdir(studyDirectory,{recursive:true});
-for(const family of ['chudjak-plush','pepe-keycap','midnight-tape','copium-reserve']){
+for(const family of ['chudjak-plush','pepe-keycap','midnight-tape','copium-reserve','copium-cartridges']){
   await cp(path.join(root,'docs','collectible-proof',family+'.mp4'),path.join(studyDirectory,family+'.mp4'));
 }
+await cp(path.join(root,'docs/collectible-proof/copium-cartridges.png'),path.join(studyDirectory,'copium-cartridges.png'));
 await collect(output);
 if (!assets['/index.html']) throw new Error('Missing dist/index.html. Existing static client source must be retained.');
 for(const [legacy,target]of Object.entries(legacyArtAliases)){if(!assets[target]||assets[legacy])throw new Error('Invalid artwork compatibility target: '+legacy);}

@@ -1,0 +1,20 @@
+{
+  "gift-copium-cartridge": {
+    "mini": {
+      "url": "/art/v4/gift-copium-cartridge-mini.a2b9679054e9.svg",
+      "sha256": "a2b9679054e94293d149a9b46a3d0dc2c8f370b54ef6f7f0cda942560a444cf0"
+    },
+    "card": {
+      "url": "/art/v4/gift-copium-cartridge-card.c826cfab1583.svg",
+      "sha256": "c826cfab158345d7bd703f8ebe3111bad1cfc60440fb50f1f943871055049131"
+    },
+    "detail": {
+      "url": "/art/v4/gift-copium-cartridge-detail.3e05472c1812.svg",
+      "sha256": "3e05472c1812448eab0b8368e9592f411130414adf28b66f34971070ba1680b2"
+    },
+    "silhouette": {
+      "url": "/art/v4/gift-copium-cartridge-silhouette.8a1c59589fd0.svg",
+      "sha256": "8a1c59589fd0c6984312ca09a18681223967ce78a02cddc0596a46ed8a26fb13"
+    }
+  }
+}

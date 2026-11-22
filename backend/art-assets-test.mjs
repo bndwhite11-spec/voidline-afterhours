@@ -10,6 +10,7 @@ import {giftBases} from '../src/art/gift-bases.mjs';
 import {telegramReferences} from '../src/art/telegram-references.mjs';
 import {JSDOM} from 'jsdom';
 import {collectibleModels} from '../src/collectibles/models.mjs';
+import {cartridgeDesigns} from '../src/collectibles/cartridge-designs.mjs';
 import {validateLayeredScene} from '../src/art/layered-format.mjs';
 import {COSMETICS,BADGE_DEFINITIONS} from '../worker/cosmetics.mjs';
 const manifest=JSON.parse(readFileSync(new URL('../dist/art/v'+artVersion+'/manifest.json',import.meta.url),'utf8'));
@@ -27,7 +28,7 @@ test('the registry preserves released IDs and product names while separating ear
 test('each source-image master uses a credited raster and bounded fingerprinted thumbnail; original masters have their own grade',()=>{
  const startup=readFileSync(new URL('../dist/collectible-art.js',import.meta.url),'utf8');assert(!/data:image\/(?:png|jpeg|webp);base64,/.test(startup),'Raster bytes must remain outside startup JavaScript');
  for(const [id,item]of Object.entries(artCatalog)){
-  if(item.assetKind==='layered-svg'){assert(collectibleModels[id]||curatedIds.includes(id));assert(!item.sourceArt);continue;}
+  if(item.assetKind==='layered-svg'){assert(collectibleModels[id]||curatedIds.includes(id)||Object.hasOwn(cartridgeDesigns,id),id);assert(!item.sourceArt);continue;}
   const source=item.sourceArt;assert(source,id+': cannot silently fall back to generated illustration');assert.equal(source.id,id);assert.equal(source.kind,'Downloaded web image');
   for(const key of ['sourceURL','creator','license','changes'])assert(typeof source[key]==='string'&&source[key].trim(),id+':'+key);
   for(const key of ['sourceURL','licenseURL','usageURL'])if(source[key])assert.equal(new URL(source[key]).protocol,'https:',id+':'+key);

@@ -12,6 +12,10 @@ import {plushModels} from './plush-models.mjs';
 import {tapeModels} from './tape-models.mjs';
 import {tankModels} from './tank-models.mjs';
 import {keycapModels} from './keycap-models.mjs';
+import {cartridgeDesigns} from '../collectibles/cartridge-designs.mjs';
+import {weatherCartridges} from './cartridges-weather.mjs';
+import {signalCartridges} from './cartridges-signal.mjs';
+import {pearlCartridges} from './cartridges-pearl.mjs';
 import {studioObjects} from './studio-objects.mjs';
 import studioMinis from './studio-miniatures.json' with {type:'json'};
 import {createWebArt,assertSafeWebSVG} from './web-art.mjs';
@@ -41,7 +45,13 @@ const revised=Object.fromEntries(curatedIds.map(id=>{
  return [id,{...art,name:prior.name,type:'gift',series:prior.series,assetKind:'layered-svg',edition:art.artRevision,
   acquisitionPolicy:'legacy-free'}];
 }));
-export const artCatalog=Object.freeze({...studioCatalog,...revised,...originalsByModel});
+const cartridgeMasters={...weatherCartridges,...signalCartridges,...pearlCartridges};
+const cartridges=Object.fromEntries(Object.entries(cartridgeDesigns).map(([id,design])=>{
+ const master=cartridgeMasters[id];
+ if(!master)throw Error('Missing cartridge artwork '+id);
+ return [id,{...master,...design,type:'gift',assetKind:'layered-svg',edition:design.artRevision}];
+}));
+export const artCatalog=Object.freeze({...studioCatalog,...revised,...originalsByModel,...cartridges});
 const xml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export {artVersion};
 export function artSVG(id,variant='detail',registry=artCatalog){

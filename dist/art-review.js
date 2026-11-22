@@ -140,8 +140,13 @@
  $('ar-reduce').checked=!!window.VoidTheme?.state?.().effectiveReducedMotion;motionChanged();
  for(const series of [...new Set(rows.map(a=>a.series))]){const option=document.createElement('option');option.value=series;option.textContent=series;$('ar-series').append(option);}
  $('ar-search').addEventListener('input',filter);$('ar-series').addEventListener('change',filter);$('ar-type').addEventListener('change',filter);
- const family=new URLSearchParams(window.location?.search||'').get('family'),initial=rows.find(row=>row.familyId===family);
+ const params=new URLSearchParams(window.location?.search||'');
+ const family=params.get('family'),series=params.get('series');
+ const initial=family&&rows.find(row=>row.familyId===family);
  if(initial){$('ar-series').value=initial.series;$('ar-type').value='gift';}
+ else if(series&&rows.some(row=>row.series===series))$('ar-series').value=series;
  $('ar-credits').href='/art/v'+art.version+'/manifest.json';
  filter();
+ const item=params.get('item'),card=cards.get(item);
+ if(card&&!card.hidden)open(item,card);
 })();

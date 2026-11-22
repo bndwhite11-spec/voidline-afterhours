@@ -1,5 +1,6 @@
 /** Catalog identity shared by account and receipt projections. Keep this module independent of the Worker. */
 import {collectibleModels,collectibleFamilies} from './models.mjs';
+import {cartridgeDesigns} from './cartridge-designs.mjs';
 import {legacyPresentations} from './legacy-presentations.mjs';
 import {studioObjects} from '../art/studio-objects.mjs';
 import {webSources} from '../art/web-sources.mjs';
@@ -10,6 +11,7 @@ export const legacyOnlySQL='catalog_id NOT IN (SELECT value FROM json_each(?))';
 export const capsuleModelIdsJSON=JSON.stringify(models.map(model=>model.id));
 
 function legacyArt(id){
+ if(Object.hasOwn(cartridgeDesigns,id))return cartridgeDesigns[id];
  if(legacyPresentations[id])return legacyPresentations[id];
  const studio=studioObjects[id];
  if(studio)return {alt:studio.alt,description:studio.alt,material:studio.material,artRevision:'studio-01'};

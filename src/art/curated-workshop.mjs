@@ -2,6 +2,7 @@ import {gifts} from './gifts.mjs';
 import {telegramCharacters} from './telegram-characters.mjs';
 import {telegramObjects} from './telegram-objects.mjs';
 import {makeLegacyRevision} from './legacy-rig.mjs';
+import {originalCartridgeMotion} from './original-cartridge-motion.mjs';
 
 const master = {...gifts,...telegramObjects,...telegramCharacters};
 const stroke = (d,color,width=1) => '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+width+'" stroke-linecap="round" stroke-linejoin="round"/>';
@@ -76,8 +77,5 @@ export const curatedWorkshop = {
     articulated('wallet-clasp',[149,191],[{at:.2,rotate:-17},{at:.63,rotate:-17}]),
     articulated('wallet-lid',[123,119],[{at:.21,scaleY:.94},{at:.53,scaleY:1.16},{at:.67,scaleY:1.13}]),
     glow('wallet-display',[130,148],1,[{at:.18,opacity:.44},{at:.52,opacity:1},{at:.80,opacity:.8}]))}),
-  'gift-copium-cartridge':stock('gift-copium-cartridge',{motion:clip(1620,
-    articulated('cartridge-plunger',[204,150],[{at:.20,x:2},{at:.43,x:-7},{at:.69,x:-2}]),
-    articulated('cartridge-needle',[137,148],[{at:.28,rotate:-2},{at:.53,rotate:22},{at:.71,rotate:12}]),
-    glow('cartridge-vapor',[51,98],1,[{at:.23,opacity:.3},{at:.58,opacity:.89,y:-3},{at:.74,opacity:.22,y:-4}]))})
+  'gift-copium-cartridge':stock('gift-copium-cartridge',originalCartridgeMotion)
 };

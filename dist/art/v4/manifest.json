@@ -4,7 +4,7 @@
   "generatedFrom": "Credited web sources, optical miniatures and original layered collectible masters in src/art",
   "counts": {
     "decorations": 49,
-    "gifts": 53,
+    "gifts": 58,
     "earned": 2,
     "webSources": 54
   },
@@ -11330,8 +11330,47 @@
         "unavailable/retired"
       ],
       "motion": {
-        "duration": 1620,
+        "duration": 2680,
         "layers": [
+          {
+            "name": "cartridge-valve",
+            "origin": [
+              50,
+              102
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.07,
+                "rotate": 5
+              },
+              {
+                "at": 0.25,
+                "rotate": -68
+              },
+              {
+                "at": 0.32,
+                "rotate": -79
+              },
+              {
+                "at": 0.56,
+                "rotate": -79
+              },
+              {
+                "at": 0.74,
+                "rotate": -24
+              },
+              {
+                "at": 0.85,
+                "rotate": 3
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
           {
             "name": "cartridge-plunger",
             "origin": [
@@ -11343,16 +11382,128 @@
                 "at": 0
               },
               {
+                "at": 0.12
+              },
+              {
                 "at": 0.2,
-                "x": 2
+                "x": 3
               },
               {
-                "at": 0.43,
-                "x": -7
+                "at": 0.37,
+                "x": -8.5
               },
               {
-                "at": 0.69,
-                "x": -2
+                "at": 0.44,
+                "x": -8.5
+              },
+              {
+                "at": 0.52,
+                "x": -3
+              },
+              {
+                "at": 0.61,
+                "x": 1.6
+              },
+              {
+                "at": 0.72,
+                "x": -0.4
+              },
+              {
+                "at": 0.84
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "cartridge-liquid",
+            "origin": [
+              64,
+              165
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.17
+              },
+              {
+                "at": 0.25,
+                "scaleY": 0.91,
+                "rotate": -0.45
+              },
+              {
+                "at": 0.4,
+                "scaleY": 1.2,
+                "rotate": 0.4
+              },
+              {
+                "at": 0.53,
+                "scaleY": 0.86,
+                "rotate": -0.7
+              },
+              {
+                "at": 0.67,
+                "scaleY": 1.07,
+                "rotate": 0.2
+              },
+              {
+                "at": 0.8
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "cartridge-bubbles",
+            "origin": [
+              129,
+              159
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.2
+              },
+              {
+                "at": 0.33,
+                "x": 0.7,
+                "y": -1
+              },
+              {
+                "at": 0.46,
+                "x": 2,
+                "y": -6
+              },
+              {
+                "at": 0.56,
+                "x": 3.7,
+                "y": -10,
+                "opacity": 0.24
+              },
+              {
+                "at": 0.63,
+                "x": 4.5,
+                "y": -11,
+                "opacity": 0
+              },
+              {
+                "at": 0.64,
+                "y": 3,
+                "opacity": 0
+              },
+              {
+                "at": 0.79,
+                "y": 1,
+                "opacity": 0.78
+              },
+              {
+                "at": 0.86
               },
               {
                 "at": 1
@@ -11370,16 +11521,39 @@
                 "at": 0
               },
               {
-                "at": 0.28,
-                "rotate": -2
+                "at": 0.17
               },
               {
-                "at": 0.53,
-                "rotate": 22
+                "at": 0.27,
+                "rotate": -5
               },
               {
-                "at": 0.71,
-                "rotate": 12
+                "at": 0.42,
+                "rotate": 23
+              },
+              {
+                "at": 0.49,
+                "rotate": 13
+              },
+              {
+                "at": 0.57,
+                "rotate": -42
+              },
+              {
+                "at": 0.65,
+                "rotate": -31
+              },
+              {
+                "at": 0.73,
+                "rotate": -35
+              },
+              {
+                "at": 0.84,
+                "rotate": 4
+              },
+              {
+                "at": 0.93,
+                "rotate": -1
               },
               {
                 "at": 1
@@ -11394,26 +11568,193 @@
             ],
             "frames": [
               {
-                "at": 0,
-                "opacity": 1
+                "at": 0
               },
               {
-                "at": 0.23,
-                "opacity": 0.3
+                "at": 0.12,
+                "opacity": 0.72
+              },
+              {
+                "at": 0.29,
+                "opacity": 0.3,
+                "scaleY": 0.85
+              },
+              {
+                "at": 0.43,
+                "opacity": 0.3,
+                "scaleY": 0.85
+              },
+              {
+                "at": 0.56,
+                "opacity": 0.1
+              },
+              {
+                "at": 0.7,
+                "opacity": 0.15
+              },
+              {
+                "at": 0.89,
+                "opacity": 0.65
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "cartridge-outlet-glow",
+            "origin": [
+              50,
+              92
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.26,
+                "opacity": 0
+              },
+              {
+                "at": 0.4,
+                "opacity": 0.45
+              },
+              {
+                "at": 0.48,
+                "opacity": 1
               },
               {
                 "at": 0.58,
-                "opacity": 0.89,
-                "y": -3
+                "opacity": 0.62
               },
               {
-                "at": 0.74,
-                "opacity": 0.22,
-                "y": -4
+                "at": 0.73,
+                "opacity": 0
               },
               {
                 "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "cartridge-outlet-stream",
+            "origin": [
+              50,
+              94
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.35,
+                "scaleX": 0.35,
+                "scaleY": 0.07,
+                "opacity": 0
+              },
+              {
+                "at": 0.46,
+                "scaleX": 0.77,
+                "scaleY": 0.73,
+                "opacity": 0.89
+              },
+              {
+                "at": 0.55,
+                "scaleX": 1,
+                "scaleY": 1,
+                "opacity": 0.97
+              },
+              {
+                "at": 0.65,
+                "scaleX": 1.08,
+                "scaleY": 1.03,
+                "opacity": 0.63
+              },
+              {
+                "at": 0.76,
+                "scaleX": 0.95,
+                "scaleY": 0.89,
+                "opacity": 0.21
+              },
+              {
+                "at": 0.85,
+                "opacity": 0
+              },
+              {
+                "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "cartridge-smoke-ring",
+            "origin": [
+              65,
+              49
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.43,
+                "x": -3,
+                "y": 8,
+                "scaleX": 0.2,
+                "scaleY": 0.32,
+                "opacity": 0
+              },
+              {
+                "at": 0.54,
+                "x": 0,
+                "y": 1,
+                "scaleX": 0.68,
+                "scaleY": 0.78,
+                "opacity": 0.87
+              },
+              {
+                "at": 0.63,
+                "x": 5,
+                "y": -5,
+                "scaleX": 1.05,
+                "scaleY": 0.92,
+                "rotate": 2,
                 "opacity": 1
+              },
+              {
+                "at": 0.74,
+                "x": 14,
+                "y": -13,
+                "scaleX": 1.16,
+                "scaleY": 1,
+                "rotate": 6,
+                "opacity": 0.83
+              },
+              {
+                "at": 0.84,
+                "x": 23,
+                "y": -18,
+                "scaleX": 1.27,
+                "scaleY": 1.04,
+                "rotate": 10,
+                "opacity": 0.37
+              },
+              {
+                "at": 0.94,
+                "x": 29,
+                "y": -22,
+                "scaleX": 1.38,
+                "scaleY": 1.12,
+                "rotate": 13,
+                "opacity": 0
+              },
+              {
+                "at": 1,
+                "opacity": 0
               }
             ]
           }
@@ -11435,11 +11776,11 @@
           "sha256": "c826cfab158345d7bd703f8ebe3111bad1cfc60440fb50f1f943871055049131"
         },
         "detail": {
-          "url": "/art/v4/gift-copium-cartridge-detail.3e05472c1812.svg",
+          "url": "/art/v4/gift-copium-cartridge-detail.50ca0a168603.svg",
           "width": 256,
           "height": 256,
-          "bytes": 10478,
-          "sha256": "3e05472c1812448eab0b8368e9592f411130414adf28b66f34971070ba1680b2"
+          "bytes": 16801,
+          "sha256": "50ca0a168603e48e4da92ebff772c4df52b80bd5df922671798b09e4c7d21f52"
         },
         "silhouette": {
           "url": "/art/v4/gift-copium-cartridge-silhouette.8a1c59589fd0.svg",
@@ -11458,14 +11799,20 @@
       "newlyDrawn": [
         "optical miniature",
         "object geometry",
+        "cartridge-valve",
         "cartridge-plunger",
+        "cartridge-liquid",
+        "cartridge-bubbles",
         "cartridge-needle",
-        "cartridge-vapor"
+        "cartridge-vapor",
+        "cartridge-outlet-glow",
+        "cartridge-outlet-stream",
+        "cartridge-smoke-ring"
       ],
-      "description": "A smoked-jade cylinder with brass end caps, a little pressure gauge and a plunger. A short puff escapes its valve.",
+      "description": "Turn the brass handwheel and the plunger squeezes the jade reservoir. Bubbles climb, the gauge kicks, and a pale smoke ring drifts from the glowing valve.",
       "acquisitionPolicy": "legacy-free",
-      "artRevision": "workshop-01",
-      "edition": "workshop-01",
+      "artRevision": "workshop-02",
+      "edition": "workshop-02",
       "archivedSource": {
         "edition": "Site 32",
         "creator": "Delapouite",
@@ -11492,7 +11839,7 @@
         "changes": "Icons made by Delapouite. Actual energy-tank icon rotated and flat-tinted, then collaged with the actual speedometer icon as an imaginary cartridge gauge. Original cosmetic, not Vintage Cigar or a real inhalable product. Final prepared raster conventionally transcoded to PNG with a PNG optical miniature for self-contained SVG compatibility; no new drawing or AI-generated imagery. Final PNG palette optimized to at most256 colors without redrawing the source."
       },
       "presentation": "Original layered artwork with named mechanical or textile parts",
-      "storyboard": "A smoked-jade cylinder with brass end caps, a little pressure gauge and a plunger. A short puff escapes its valve."
+      "storyboard": "The valve turns against its stop. The plunger compresses the jade liquid, bubbles lift and the needle overshoots. The warm outlet sends a curling wisp through a drifting smoke ring before the mechanism settles."
     },
     {
       "id": "profile-authored",
@@ -17041,6 +17388,1741 @@
       "edition": "atelier-01",
       "presentation": "Original layered artwork with named mechanical or textile parts",
       "storyboard": "A copper handwheel meters a short plume. The cobalt gauge responds and light passes across the glazed shoulder."
+    },
+    {
+      "id": "gift-cartridge-rain-check",
+      "assetKind": "layered-svg",
+      "reference": null,
+      "name": "They’ll Text Back",
+      "type": "gift",
+      "series": "Copium Cartridges",
+      "material": "Storm-blue glass, midnight paper and antique brass",
+      "alt": "A tiny terracotta umbrella sits inside a blue glass cigar cartridge. A midnight-and-gold band wraps its brass-trimmed barrel. Blue-gray smoke forms three typing dots above the ash tip.",
+      "artVersion": 4,
+      "restingState": "Complete static layered illustration",
+      "animationStates": [
+        "rest",
+        "hover/focus response",
+        "explicit preview",
+        "inspection",
+        "acknowledged receipt reveal",
+        "reduced-motion still",
+        "unavailable/retired"
+      ],
+      "motion": {
+        "duration": 2010,
+        "layers": [
+          {
+            "name": "valve-wheel",
+            "origin": [
+              0,
+              0
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.1,
+                "rotate": 4
+              },
+              {
+                "at": 0.29,
+                "rotate": 51
+              },
+              {
+                "at": 0.5,
+                "rotate": 47
+              },
+              {
+                "at": 0.74,
+                "rotate": 3
+              },
+              {
+                "at": 0.88,
+                "rotate": -1.3
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "pressure-needle",
+            "origin": [
+              0,
+              0
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.16,
+                "rotate": -3
+              },
+              {
+                "at": 0.4,
+                "rotate": 37
+              },
+              {
+                "at": 0.52,
+                "rotate": 32
+              },
+              {
+                "at": 0.67,
+                "rotate": 12
+              },
+              {
+                "at": 0.78,
+                "rotate": -6
+              },
+              {
+                "at": 0.91,
+                "rotate": 2
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "ember-pulse",
+            "origin": [
+              220,
+              132
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0.44
+              },
+              {
+                "at": 0.12,
+                "opacity": 0.36
+              },
+              {
+                "at": 0.26,
+                "opacity": 1
+              },
+              {
+                "at": 0.45,
+                "opacity": 0.83
+              },
+              {
+                "at": 0.65,
+                "opacity": 0.6
+              },
+              {
+                "at": 0.83,
+                "opacity": 0.46
+              },
+              {
+                "at": 1,
+                "opacity": 0.44
+              }
+            ]
+          },
+          {
+            "name": "typing-smoke",
+            "origin": [
+              217,
+              116.5
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.12,
+                "opacity": 0,
+                "scaleX": 0.47,
+                "scaleY": 0.2
+              },
+              {
+                "at": 0.26,
+                "opacity": 0.72,
+                "scaleX": 0.72,
+                "scaleY": 0.48
+              },
+              {
+                "at": 0.44,
+                "opacity": 1,
+                "scaleX": 0.97,
+                "scaleY": 0.96
+              },
+              {
+                "at": 0.59,
+                "opacity": 0.95,
+                "scaleX": 1,
+                "scaleY": 1
+              },
+              {
+                "at": 0.76,
+                "opacity": 0.6,
+                "y": -1,
+                "scaleX": 1.03,
+                "scaleY": 1.09
+              },
+              {
+                "at": 0.9,
+                "opacity": 0,
+                "y": -3,
+                "scaleX": 1.05,
+                "scaleY": 1.13
+              },
+              {
+                "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "umbrella-canopy",
+            "origin": [
+              120.7,
+              125.5
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.15,
+                "scaleX": 0.95,
+                "scaleY": 1.03
+              },
+              {
+                "at": 0.37,
+                "scaleX": 1.33,
+                "scaleY": 0.71
+              },
+              {
+                "at": 0.51,
+                "scaleX": 1.27,
+                "scaleY": 0.77
+              },
+              {
+                "at": 0.65,
+                "scaleX": 1.29,
+                "scaleY": 0.76
+              },
+              {
+                "at": 0.82,
+                "scaleX": 0.98,
+                "scaleY": 1.03
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "rain-runner",
+            "origin": [
+              120.7,
+              125.5
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.15,
+                "scaleX": 0.96,
+                "scaleY": 1.03
+              },
+              {
+                "at": 0.37,
+                "scaleX": 1.35,
+                "scaleY": 0.76
+              },
+              {
+                "at": 0.51,
+                "scaleX": 1.25,
+                "scaleY": 0.81
+              },
+              {
+                "at": 0.65,
+                "scaleX": 1.28,
+                "scaleY": 0.8
+              },
+              {
+                "at": 0.82,
+                "scaleX": 0.97,
+                "scaleY": 1.02
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "typing-bead-1",
+            "origin": [
+              168.5,
+              62
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.23,
+                "opacity": 0,
+                "scaleX": 0.65,
+                "scaleY": 0.65
+              },
+              {
+                "at": 0.38,
+                "opacity": 0.94,
+                "y": -1.1,
+                "scaleX": 1.13,
+                "scaleY": 1.13
+              },
+              {
+                "at": 0.5,
+                "opacity": 0.98
+              },
+              {
+                "at": 0.69,
+                "opacity": 0.87,
+                "y": -0.5
+              },
+              {
+                "at": 0.86,
+                "opacity": 0
+              },
+              {
+                "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "typing-bead-2",
+            "origin": [
+              180.5,
+              62
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.27,
+                "opacity": 0,
+                "scaleX": 0.65,
+                "scaleY": 0.65
+              },
+              {
+                "at": 0.42,
+                "opacity": 0.94,
+                "y": -1.1,
+                "scaleX": 1.13,
+                "scaleY": 1.13
+              },
+              {
+                "at": 0.54,
+                "opacity": 0.98
+              },
+              {
+                "at": 0.71,
+                "opacity": 0.87,
+                "y": -0.5
+              },
+              {
+                "at": 0.86,
+                "opacity": 0
+              },
+              {
+                "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "typing-bead-3",
+            "origin": [
+              192.5,
+              62
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.31,
+                "opacity": 0,
+                "scaleX": 0.65,
+                "scaleY": 0.65
+              },
+              {
+                "at": 0.46,
+                "opacity": 0.94,
+                "y": -1.1,
+                "scaleX": 1.13,
+                "scaleY": 1.13
+              },
+              {
+                "at": 0.58,
+                "opacity": 0.98
+              },
+              {
+                "at": 0.73,
+                "opacity": 0.87,
+                "y": -0.5
+              },
+              {
+                "at": 0.86,
+                "opacity": 0
+              },
+              {
+                "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "rain-drops",
+            "origin": [
+              123,
+              122
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.16,
+                "y": -1.6,
+                "opacity": 0.78
+              },
+              {
+                "at": 0.39,
+                "y": 3.8,
+                "opacity": 0.96
+              },
+              {
+                "at": 0.52,
+                "y": 6,
+                "opacity": 0.35
+              },
+              {
+                "at": 0.64,
+                "y": -1.8,
+                "opacity": 0.05
+              },
+              {
+                "at": 0.83,
+                "y": -0.5,
+                "opacity": 0.75
+              },
+              {
+                "at": 1
+              }
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "mini": {
+          "url": "/art/v4/gift-cartridge-rain-check-mini.acabbc21cede.svg",
+          "width": 24,
+          "height": 24,
+          "bytes": 2142,
+          "sha256": "acabbc21cede4c8ca7507435e10079d5a637b41d6a227b5a04e94becafacb6ab"
+        },
+        "card": {
+          "url": "/art/v4/gift-cartridge-rain-check-card.de3ee31eadb4.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 17422,
+          "sha256": "de3ee31eadb4230b53b354cd38fd929324ae522cfb1e409383223b2dd1e3b280"
+        },
+        "detail": {
+          "url": "/art/v4/gift-cartridge-rain-check-detail.56ea4ed33408.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 23323,
+          "sha256": "56ea4ed334087e494f9fd94e83bf414bd94b576da5b5d48c5a5cf9f68d761fc3"
+        },
+        "silhouette": {
+          "url": "/art/v4/gift-cartridge-rain-check-silhouette.4e25ed3e3ca3.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 1113,
+          "sha256": "4e25ed3e3ca3cd9deb9870475bd969588e5613b797225fea05dbf2a8c3d7231d"
+        }
+      },
+      "sources": [],
+      "credits": "Original VOIDLINE vector illustration and motion",
+      "rights": "Art drawn for VOIDLINE. Character references have their respective creators; no official affiliation.",
+      "newlyDrawn": [
+        "optical miniature",
+        "object geometry",
+        "valve-wheel",
+        "pressure-needle",
+        "ember-pulse",
+        "typing-smoke",
+        "umbrella-canopy",
+        "rain-runner",
+        "typing-bead-1",
+        "typing-bead-2",
+        "typing-bead-3",
+        "rain-drops"
+      ],
+      "description": "“They saw it. They’re just busy.” The ember sends up three typing dots. The reply never arrives.",
+      "acquisitionPolicy": "legacy-free",
+      "artRevision": "cartridge-01",
+      "edition": "cartridge-01",
+      "presentation": "Original layered artwork with named mechanical or textile parts",
+      "storyboard": "The ember brightens as the wheel turns and the umbrella opens inside the blue barrel. Smoke curls from the ash tip and three typing dots appear one after another before fading."
+    },
+    {
+      "id": "gift-cartridge-second-wind",
+      "assetKind": "layered-svg",
+      "reference": null,
+      "name": "One More Game",
+      "type": "gift",
+      "series": "Copium Cartridges",
+      "material": "Indigo concertina sleeve, copper foil and ivory enamel",
+      "alt": "An indigo ribbed cigar cartridge with ivory ends, an orange seal and a copper checkerboard band around a cream dial. Pale lavender smoke curls into a retry arrow.",
+      "artVersion": 4,
+      "restingState": "Complete static layered illustration",
+      "animationStates": [
+        "rest",
+        "hover/focus response",
+        "explicit preview",
+        "inspection",
+        "acknowledged receipt reveal",
+        "reduced-motion still",
+        "unavailable/retired"
+      ],
+      "motion": {
+        "duration": 1730,
+        "layers": [
+          {
+            "name": "valve-wheel",
+            "origin": [
+              0,
+              0
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.1,
+                "rotate": 4
+              },
+              {
+                "at": 0.29,
+                "rotate": -46
+              },
+              {
+                "at": 0.5,
+                "rotate": -41
+              },
+              {
+                "at": 0.74,
+                "rotate": 3
+              },
+              {
+                "at": 0.88,
+                "rotate": -1.3
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "pressure-needle",
+            "origin": [
+              0,
+              0
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.16,
+                "rotate": -3
+              },
+              {
+                "at": 0.4,
+                "rotate": 53
+              },
+              {
+                "at": 0.52,
+                "rotate": 44
+              },
+              {
+                "at": 0.67,
+                "rotate": 12
+              },
+              {
+                "at": 0.78,
+                "rotate": -6
+              },
+              {
+                "at": 0.91,
+                "rotate": 2
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "ember-pulse",
+            "origin": [
+              220,
+              132
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0.44
+              },
+              {
+                "at": 0.12,
+                "opacity": 0.36
+              },
+              {
+                "at": 0.26,
+                "opacity": 1
+              },
+              {
+                "at": 0.45,
+                "opacity": 0.83
+              },
+              {
+                "at": 0.65,
+                "opacity": 0.6
+              },
+              {
+                "at": 0.83,
+                "opacity": 0.46
+              },
+              {
+                "at": 1,
+                "opacity": 0.44
+              }
+            ]
+          },
+          {
+            "name": "retry-smoke",
+            "origin": [
+              217,
+              116.5
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0
+              },
+              {
+                "at": 0.12,
+                "opacity": 0,
+                "scaleX": 0.47,
+                "scaleY": 0.2
+              },
+              {
+                "at": 0.26,
+                "opacity": 0.72,
+                "scaleX": 0.72,
+                "scaleY": 0.48
+              },
+              {
+                "at": 0.44,
+                "opacity": 1,
+                "scaleX": 0.97,
+                "scaleY": 0.96
+              },
+              {
+                "at": 0.59,
+                "opacity": 0.95,
+                "scaleX": 1,
+                "scaleY": 1
+              },
+              {
+                "at": 0.76,
+                "opacity": 0.6,
+                "y": -1,
+                "scaleX": 1.03,
+                "scaleY": 1.09
+              },
+              {
+                "at": 0.9,
+                "opacity": 0,
+                "y": -3,
+                "scaleX": 1.05,
+                "scaleY": 1.13
+              },
+              {
+                "at": 1,
+                "opacity": 0
+              }
+            ]
+          },
+          {
+            "name": "return-curl",
+            "origin": [
+              204,
+              80
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.2,
+                "rotate": -19,
+                "scaleX": 0.75,
+                "scaleY": 0.76
+              },
+              {
+                "at": 0.46,
+                "rotate": 4
+              },
+              {
+                "at": 0.62,
+                "rotate": -2
+              },
+              {
+                "at": 0.83,
+                "rotate": 3
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "piston-sleeve",
+            "origin": [
+              118,
+              138
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.14,
+                "scaleX": 1.025
+              },
+              {
+                "at": 0.39,
+                "scaleX": 0.71
+              },
+              {
+                "at": 0.52,
+                "scaleX": 0.74
+              },
+              {
+                "at": 0.72,
+                "scaleX": 1.045
+              },
+              {
+                "at": 0.85,
+                "scaleX": 0.985
+              },
+              {
+                "at": 1
+              }
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "mini": {
+          "url": "/art/v4/gift-cartridge-second-wind-mini.6068ea18bf26.svg",
+          "width": 24,
+          "height": 24,
+          "bytes": 2050,
+          "sha256": "6068ea18bf26aab5a7e909d48232ca927111214823c031da8cc4ae3d3042610a"
+        },
+        "card": {
+          "url": "/art/v4/gift-cartridge-second-wind-card.ad8acdf4d092.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 18065,
+          "sha256": "ad8acdf4d09293d857bc19b512714621b8fdff8629975c3361d4d2203b81190c"
+        },
+        "detail": {
+          "url": "/art/v4/gift-cartridge-second-wind-detail.1d44fa08a19b.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 21494,
+          "sha256": "1d44fa08a19b6a14e299c330730d721007f4ac7b7de7aa807f8d7c52348240a5"
+        },
+        "silhouette": {
+          "url": "/art/v4/gift-cartridge-second-wind-silhouette.408d5150ab8f.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 1094,
+          "sha256": "408d5150ab8f3900b6fcf2617251f5a63215d015e7a666433d74ea477f6a80ec"
+        }
+      },
+      "sources": [],
+      "credits": "Original VOIDLINE vector illustration and motion",
+      "rights": "Art drawn for VOIDLINE. Character references have their respective creators; no official affiliation.",
+      "newlyDrawn": [
+        "optical miniature",
+        "object geometry",
+        "valve-wheel",
+        "pressure-needle",
+        "ember-pulse",
+        "retry-smoke",
+        "return-curl",
+        "piston-sleeve"
+      ],
+      "description": "“I can end on a win.” A puff curls into the retry arrow. There goes another evening.",
+      "acquisitionPolicy": "legacy-free",
+      "artRevision": "cartridge-01",
+      "edition": "cartridge-01",
+      "presentation": "Original layered artwork with named mechanical or textile parts",
+      "storyboard": "The indigo sleeve draws back on its shaft. The copper band stays fixed while the glowing tip sends up a lavender curl that loops into a retry arrow, then dissipates."
+    },
+    {
+      "id": "gift-cartridge-hold-music",
+      "assetKind": "layered-svg",
+      "reference": null,
+      "name": "Next in Queue",
+      "type": "gift",
+      "series": "Copium Cartridges",
+      "material": "Smoked violet glass, silver foil and spring brass",
+      "alt": "A violet glass cigar cartridge with a silver QUEUE band and three brass reeds in its side window. Lavender smoke rises from the ashy tip to form a musical note.",
+      "artVersion": 4,
+      "restingState": "Complete static layered illustration",
+      "animationStates": [
+        "rest",
+        "hover/focus response",
+        "explicit preview",
+        "inspection",
+        "acknowledged receipt reveal",
+        "reduced-motion still",
+        "unavailable/retired"
+      ],
+      "motion": {
+        "duration": 1940,
+        "layers": [
+          {
+            "name": "shutoff-wheel",
+            "origin": [
+              52,
+              88
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.1,
+                "rotate": -3
+              },
+              {
+                "at": 0.23,
+                "rotate": 42
+              },
+              {
+                "at": 0.44,
+                "rotate": 41
+              },
+              {
+                "at": 0.71,
+                "rotate": 2
+              },
+              {
+                "at": 0.84,
+                "rotate": -2
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "reed-low",
+            "origin": [
+              78,
+              133
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.15,
+                "rotate": 0
+              },
+              {
+                "at": 0.23,
+                "rotate": -5
+              },
+              {
+                "at": 0.33,
+                "rotate": 3.5
+              },
+              {
+                "at": 0.44,
+                "rotate": -2
+              },
+              {
+                "at": 0.57,
+                "rotate": 1
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "reed-middle",
+            "origin": [
+              78,
+              142
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.21,
+                "rotate": 0
+              },
+              {
+                "at": 0.31,
+                "rotate": 6
+              },
+              {
+                "at": 0.42,
+                "rotate": -4
+              },
+              {
+                "at": 0.54,
+                "rotate": 2
+              },
+              {
+                "at": 0.69,
+                "rotate": -0.6
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "reed-high",
+            "origin": [
+              78,
+              151
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.27,
+                "rotate": 0
+              },
+              {
+                "at": 0.37,
+                "rotate": -6
+              },
+              {
+                "at": 0.47,
+                "rotate": 4.2
+              },
+              {
+                "at": 0.59,
+                "rotate": -2
+              },
+              {
+                "at": 0.76,
+                "rotate": 0.7
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "queue-smoke",
+            "origin": [
+              210,
+              94
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.21,
+                "opacity": 0,
+                "scaleX": 0.27,
+                "scaleY": 0.12
+              },
+              {
+                "at": 0.39,
+                "opacity": 0.66,
+                "scaleX": 0.81,
+                "scaleY": 0.63
+              },
+              {
+                "at": 0.53,
+                "opacity": 1
+              },
+              {
+                "at": 0.66,
+                "opacity": 0.96,
+                "y": -0.6
+              },
+              {
+                "at": 0.8,
+                "opacity": 0.4,
+                "x": -1.8,
+                "y": -5
+              },
+              {
+                "at": 0.92,
+                "opacity": 0,
+                "x": -4,
+                "y": -10
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "dial-needle",
+            "origin": [
+              154,
+              145
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.13,
+                "rotate": 0
+              },
+              {
+                "at": 0.31,
+                "rotate": 42
+              },
+              {
+                "at": 0.43,
+                "rotate": 32
+              },
+              {
+                "at": 0.53,
+                "rotate": 44
+              },
+              {
+                "at": 0.68,
+                "rotate": 18
+              },
+              {
+                "at": 0.84,
+                "rotate": -3
+              },
+              {
+                "at": 1
+              }
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "mini": {
+          "url": "/art/v4/gift-cartridge-hold-music-mini.2358301b353e.svg",
+          "width": 24,
+          "height": 24,
+          "bytes": 1651,
+          "sha256": "2358301b353eb245e14300c7e9f87c5f197aeab10e7f5b8e9faddd3689a491b8"
+        },
+        "card": {
+          "url": "/art/v4/gift-cartridge-hold-music-card.ec498bcc4e4a.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 15552,
+          "sha256": "ec498bcc4e4a618f4cc31f9b6a5dcd1091dc684ec63915dd8ba929707c113f3d"
+        },
+        "detail": {
+          "url": "/art/v4/gift-cartridge-hold-music-detail.644da086d696.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 18201,
+          "sha256": "644da086d696afba837ffac9d87db9c413b3f16dbc8639d42f8f4a5081bc16a8"
+        },
+        "silhouette": {
+          "url": "/art/v4/gift-cartridge-hold-music-silhouette.59772c6cee3f.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 1261,
+          "sha256": "59772c6cee3f619691bf95ecffab8c5ad7dff94f1cf8b5d7895df0f7eaeeb82c"
+        }
+      },
+      "sources": [],
+      "credits": "Original VOIDLINE vector illustration and motion",
+      "rights": "Art drawn for VOIDLINE. Character references have their respective creators; no official affiliation.",
+      "newlyDrawn": [
+        "optical miniature",
+        "object geometry",
+        "shutoff-wheel",
+        "reed-low",
+        "reed-middle",
+        "reed-high",
+        "queue-smoke",
+        "dial-needle"
+      ],
+      "description": "“My call is very important to them.” The ember plays one smoky note of hold music. The queue hasn’t moved.",
+      "acquisitionPolicy": "legacy-free",
+      "artRevision": "cartridge-01",
+      "edition": "cartridge-01",
+      "presentation": "Original layered artwork with named mechanical or textile parts",
+      "storyboard": "The valve turns. Three brass tongues flex in sequence behind violet glass and the side gauge climbs with their resonance and lavender smoke curls into an eighth note above the lit tip."
+    },
+    {
+      "id": "gift-cartridge-panic-button",
+      "assetKind": "layered-svg",
+      "reference": null,
+      "name": "It Was Lag",
+      "type": "gift",
+      "series": "Copium Cartridges",
+      "material": "Graphite enamel, gold-edged foil and amber resin",
+      "alt": "A graphite cigar cartridge with warning stripes, a foil LAG band and an amber guard over a scarlet release. Ember smoke stutters into three broken Wi-Fi arcs.",
+      "artVersion": 4,
+      "restingState": "Complete static layered illustration",
+      "animationStates": [
+        "rest",
+        "hover/focus response",
+        "explicit preview",
+        "inspection",
+        "acknowledged receipt reveal",
+        "reduced-motion still",
+        "unavailable/retired"
+      ],
+      "motion": {
+        "duration": 2120,
+        "layers": [
+          {
+            "name": "shutoff-wheel",
+            "origin": [
+              52,
+              88
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.1,
+                "rotate": -3
+              },
+              {
+                "at": 0.23,
+                "rotate": 42
+              },
+              {
+                "at": 0.44,
+                "rotate": 41
+              },
+              {
+                "at": 0.71,
+                "rotate": 2
+              },
+              {
+                "at": 0.84,
+                "rotate": -2
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "safety-cover",
+            "origin": [
+              152,
+              103
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.09,
+                "rotate": -2
+              },
+              {
+                "at": 0.29,
+                "rotate": 46
+              },
+              {
+                "at": 0.37,
+                "rotate": 43
+              },
+              {
+                "at": 0.63,
+                "rotate": 44
+              },
+              {
+                "at": 0.79,
+                "rotate": 2
+              },
+              {
+                "at": 0.85,
+                "rotate": 4
+              },
+              {
+                "at": 0.94,
+                "rotate": 0
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "release-button",
+            "origin": [
+              125,
+              99
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.32,
+                "y": 0
+              },
+              {
+                "at": 0.43,
+                "y": 5.5
+              },
+              {
+                "at": 0.51,
+                "y": 5.5
+              },
+              {
+                "at": 0.62,
+                "y": -0.8
+              },
+              {
+                "at": 0.71,
+                "y": 0
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "lag-smoke",
+            "origin": [
+              210,
+              94
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.29,
+                "opacity": 0,
+                "scaleX": 0.4,
+                "scaleY": 0.18
+              },
+              {
+                "at": 0.4,
+                "opacity": 0.82,
+                "scaleX": 0.82,
+                "scaleY": 0.69
+              },
+              {
+                "at": 0.44,
+                "opacity": 0.42,
+                "scaleX": 0.84,
+                "scaleY": 0.7
+              },
+              {
+                "at": 0.51,
+                "opacity": 0.96,
+                "scaleX": 0.96,
+                "scaleY": 0.92
+              },
+              {
+                "at": 0.56,
+                "opacity": 0.73,
+                "x": 1.5
+              },
+              {
+                "at": 0.62,
+                "opacity": 1
+              },
+              {
+                "at": 0.72,
+                "opacity": 0.93
+              },
+              {
+                "at": 0.84,
+                "opacity": 0.39,
+                "x": -2.1,
+                "y": -5
+              },
+              {
+                "at": 0.95,
+                "opacity": 0,
+                "x": -3,
+                "y": -9
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "dial-needle",
+            "origin": [
+              130,
+              145
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.23,
+                "rotate": 22
+              },
+              {
+                "at": 0.35,
+                "rotate": 22
+              },
+              {
+                "at": 0.46,
+                "rotate": -38
+              },
+              {
+                "at": 0.55,
+                "rotate": -27
+              },
+              {
+                "at": 0.68,
+                "rotate": -13
+              },
+              {
+                "at": 0.82,
+                "rotate": 3
+              },
+              {
+                "at": 1
+              }
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "mini": {
+          "url": "/art/v4/gift-cartridge-panic-button-mini.31f6acccdcb0.svg",
+          "width": 24,
+          "height": 24,
+          "bytes": 1702,
+          "sha256": "31f6acccdcb0f3b7a413f9de6a272c1cb4872e69b81f8d22bff01635aa04c52f"
+        },
+        "card": {
+          "url": "/art/v4/gift-cartridge-panic-button-card.fdbd749ecc59.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 15512,
+          "sha256": "fdbd749ecc599df8a5a4df8cd2a418c303e0e8c87c153db83e95ac1b0039ce64"
+        },
+        "detail": {
+          "url": "/art/v4/gift-cartridge-panic-button-detail.1760ccc191ab.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 18125,
+          "sha256": "1760ccc191abf940ba5006d380278a1ea3c6c8991faa80805da6287852f07ca7"
+        },
+        "silhouette": {
+          "url": "/art/v4/gift-cartridge-panic-button-silhouette.9338c718b586.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 1322,
+          "sha256": "9338c718b5863a18f5ffa42f114d90194b9416fa2416908d5643f728d710ac79"
+        }
+      },
+      "sources": [],
+      "credits": "Original VOIDLINE vector illustration and motion",
+      "rights": "Art drawn for VOIDLINE. Character references have their respective creators; no official affiliation.",
+      "newlyDrawn": [
+        "optical miniature",
+        "object geometry",
+        "shutoff-wheel",
+        "safety-cover",
+        "release-button",
+        "lag-smoke",
+        "dial-needle"
+      ],
+      "description": "“That hit never registered.” The puff forms a Wi-Fi signal, then the bars break apart.",
+      "acquisitionPolicy": "legacy-free",
+      "artRevision": "cartridge-01",
+      "edition": "cartridge-01",
+      "presentation": "Original layered artwork with named mechanical or textile parts",
+      "storyboard": "A handwheel opens and the amber guard flips on its bolted hinge. The red release clicks into the barrel. The dial falls and three broken amber signal arcs stutter out of the ember before the guard resets."
+    },
+    {
+      "id": "gift-cartridge-last-resort",
+      "assetKind": "layered-svg",
+      "reference": null,
+      "name": "Still Early",
+      "type": "gift",
+      "series": "Copium Cartridges",
+      "material": "Smoked jade glass, nacre, rose gold and pink opal",
+      "alt": "A nacre-wrapped cigar cartridge with a rose-gold band, an ivory pressure dial and a pink opal in the jade flank. Rose smoke traces a rising price chart.",
+      "artVersion": 4,
+      "restingState": "Complete static layered illustration",
+      "animationStates": [
+        "rest",
+        "hover/focus response",
+        "explicit preview",
+        "inspection",
+        "acknowledged receipt reveal",
+        "reduced-motion still",
+        "unavailable/retired"
+      ],
+      "motion": {
+        "duration": 2210,
+        "layers": [
+          {
+            "name": "chart-smoke",
+            "origin": [
+              219,
+              128
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0.08
+              },
+              {
+                "at": 0.14,
+                "scaleX": 0.5,
+                "scaleY": 0.2,
+                "opacity": 0
+              },
+              {
+                "at": 0.32,
+                "scaleX": 0.72,
+                "scaleY": 0.65,
+                "opacity": 0.78
+              },
+              {
+                "at": 0.51,
+                "scaleX": 1,
+                "scaleY": 1,
+                "opacity": 1
+              },
+              {
+                "at": 0.61,
+                "scaleX": 1.04,
+                "scaleY": 1.01,
+                "opacity": 0.9
+              },
+              {
+                "at": 0.78,
+                "x": 2,
+                "y": -2,
+                "scaleX": 1.1,
+                "scaleY": 1.045,
+                "opacity": 0.27
+              },
+              {
+                "at": 0.91,
+                "x": 3,
+                "y": -4,
+                "opacity": 0
+              },
+              {
+                "at": 1,
+                "opacity": 0.08
+              }
+            ]
+          },
+          {
+            "name": "tip-ember",
+            "origin": [
+              219,
+              145
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0.54
+              },
+              {
+                "at": 0.16,
+                "opacity": 0.66
+              },
+              {
+                "at": 0.31,
+                "opacity": 1
+              },
+              {
+                "at": 0.55,
+                "opacity": 0.93
+              },
+              {
+                "at": 0.77,
+                "opacity": 0.68
+              },
+              {
+                "at": 1,
+                "opacity": 0.54
+              }
+            ]
+          },
+          {
+            "name": "rose-wheel",
+            "origin": [
+              50,
+              101
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.1,
+                "rotate": 5
+              },
+              {
+                "at": 0.28,
+                "rotate": -48
+              },
+              {
+                "at": 0.58,
+                "rotate": -48
+              },
+              {
+                "at": 0.82,
+                "rotate": 4
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "dial-needle",
+            "origin": [
+              112,
+              148.5
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.18
+              },
+              {
+                "at": 0.4,
+                "rotate": 33
+              },
+              {
+                "at": 0.53,
+                "rotate": 27
+              },
+              {
+                "at": 0.72,
+                "rotate": 18
+              },
+              {
+                "at": 0.88,
+                "rotate": -3
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "shell-shutter",
+            "origin": [
+              154,
+              130
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.14,
+                "scaleY": 1.03
+              },
+              {
+                "at": 0.37,
+                "scaleY": 0.33,
+                "rotate": -5
+              },
+              {
+                "at": 0.64,
+                "scaleY": 0.35,
+                "rotate": -5
+              },
+              {
+                "at": 0.83,
+                "scaleY": 1.04
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "rose-opal",
+            "origin": [
+              164,
+              150
+            ],
+            "frames": [
+              {
+                "at": 0
+              },
+              {
+                "at": 0.23
+              },
+              {
+                "at": 0.44,
+                "x": 0.8,
+                "y": -4.5,
+                "rotate": -9
+              },
+              {
+                "at": 0.56,
+                "x": 1,
+                "y": -4,
+                "rotate": -7
+              },
+              {
+                "at": 0.69,
+                "x": 0.4,
+                "y": -3.2,
+                "rotate": -4
+              },
+              {
+                "at": 0.83,
+                "scaleY": 0.96,
+                "scaleX": 1.02
+              },
+              {
+                "at": 1
+              }
+            ]
+          },
+          {
+            "name": "rose-flash",
+            "origin": [
+              164,
+              145
+            ],
+            "frames": [
+              {
+                "at": 0,
+                "opacity": 0.16
+              },
+              {
+                "at": 0.29,
+                "x": -1.3,
+                "opacity": 0.05
+              },
+              {
+                "at": 0.47,
+                "x": 0.1,
+                "y": -0.4,
+                "opacity": 0.95
+              },
+              {
+                "at": 0.63,
+                "x": 1.4,
+                "opacity": 0.29
+              },
+              {
+                "at": 0.8,
+                "opacity": 0.06
+              },
+              {
+                "at": 1,
+                "opacity": 0.16
+              }
+            ]
+          }
+        ]
+      },
+      "variants": {
+        "mini": {
+          "url": "/art/v4/gift-cartridge-last-resort-mini.817ada10b770.svg",
+          "width": 24,
+          "height": 24,
+          "bytes": 2120,
+          "sha256": "817ada10b770967e419780fb34358bd46c266fdfd4c44931f7d4738f626bd71d"
+        },
+        "card": {
+          "url": "/art/v4/gift-cartridge-last-resort-card.29cf52f452ac.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 15415,
+          "sha256": "29cf52f452ac21b5cd4306f319de8cf4d5fb7e3b0a1b5a4b5585ee0b2bb29627"
+        },
+        "detail": {
+          "url": "/art/v4/gift-cartridge-last-resort-detail.3c467083ce14.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 19884,
+          "sha256": "3c467083ce147ff05e6d733b3a1b4867813357b02b59abb484429ee81963a952"
+        },
+        "silhouette": {
+          "url": "/art/v4/gift-cartridge-last-resort-silhouette.2f71fd0390fc.svg",
+          "width": 256,
+          "height": 256,
+          "bytes": 1064,
+          "sha256": "2f71fd0390fcaada326c43357f4e2cd080cab618011bbe37baf0b24451725329"
+        }
+      },
+      "sources": [],
+      "credits": "Original VOIDLINE vector illustration and motion",
+      "rights": "Art drawn for VOIDLINE. Character references have their respective creators; no official affiliation.",
+      "newlyDrawn": [
+        "optical miniature",
+        "object geometry",
+        "chart-smoke",
+        "tip-ember",
+        "rose-wheel",
+        "dial-needle",
+        "shell-shutter",
+        "rose-opal",
+        "rose-flash"
+      ],
+      "description": "“The chart just needs more time.” The line finally goes up. Granted, it’s made of smoke.",
+      "acquisitionPolicy": "legacy-free",
+      "artRevision": "cartridge-01",
+      "edition": "cartridge-01",
+      "presentation": "Original layered artwork with named mechanical or textile parts",
+      "storyboard": "The ivory dial ticks up. Its scalloped shutter uncovers a pink opal while a rose-colored puff climbs, dips and climbs again from the lit tip. The smoke fades and the shutter seats itself."
     }
   ]
 }

@@ -5,8 +5,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const dir=path.join(__dirname,'../dist');
 const tests=[],test=(name,run)=>tests.push([name,run]);
 const held=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return{resolve,promise};};
-async function fixture(){
- const dom=new JSDOM(fs.readFileSync(path.join(dir,'art-review.html'),'utf8'),{runScripts:'outside-only',url:'https://voidline.example/art-review.html'});
+async function fixture(query=''){
+ const dom=new JSDOM(fs.readFileSync(path.join(dir,'art-review.html'),'utf8'),{runScripts:'outside-only',url:'https://voidline.example/art-review.html'+query});
  const w=dom.window,d=w.document,$=id=>d.getElementById(id);
  const rows=[
   {id:'gift-test',name:'<img src=x onerror=bad>',type:'gift',series:'Paper',material:'Brass',alt:'A parcel',detailURL:'/gift-detail.000011112222.svg'},
@@ -38,6 +38,25 @@ test('search, type and series reuse the same cards, scope counts and escape text
  a.choose('ar-search','steel');assert.equal(cards[0].hidden,true);assert.equal(cards[1].hidden,false);assert.match(a.$('ar-count').textContent,/1 of 2 objects · 1 decoration · 0 gifts/);
  a.choose('ar-search','');a.choose('ar-series','Paper');assert.match(a.$('ar-count').textContent,/0 decorations · 1 gift/);
  a.choose('ar-type','earned');assert.equal(a.$('ar-empty').hidden,false);a.choose('ar-type','all');assert.equal(cards[0],grid.children[0]);assert.equal(a.calls.fetches.length,0);a.close();
+});
+test('a series link opens its matching gifts and an unknown series keeps the full gallery',async()=>{
+ const scoped=await fixture('?series=Paper');
+ assert.equal(scoped.$('ar-series').value,'Paper');
+ assert.match(scoped.$('ar-count').textContent,/1 of 2 objects/);
+ assert.equal(scoped.$('ar-grid').querySelector('[data-art-open="gift-test"]').hidden,false);
+ scoped.close();
+ const unknown=await fixture('?series=Unreleased');
+ assert.equal(unknown.$('ar-series').value,'all');
+ assert.match(unknown.$('ar-count').textContent,/2 objects/);
+ unknown.close();
+});
+test('an item link opens its inspection at rest and restores focus to its card',async()=>{
+ const a=await fixture('?item=gift-test');await a.tick();
+ assert(a.$('ar-dialog').open);assert.equal(a.$('ar-title').textContent,a.rows[0].name);
+ assert.deepEqual(a.calls.loads,['gift-test']);assert.deepEqual(a.calls.plays,[]);
+ a.$('ar-close').click();assert.equal(a.d.activeElement.dataset.artOpen,'gift-test');a.close();
+ const hidden=await fixture('?series=Paper&item=badge-test');
+ assert(!hidden.$('ar-dialog').open);assert.deepEqual(hidden.calls.loads,[]);hidden.close();
 });
 test('a slow initial load retains a poster, known version and actual size variants; source URLs are checked',async()=>{
  const a=await fixture(),wait=held();a.model.prepare=()=>wait.promise;
