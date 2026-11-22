@@ -1,0 +1,36 @@
+VOIDLINE • accessibility evidence • candidate 32
+
+Method
+Read the shipped CSS and evaluate the shipped theme.js palette generator in JSDOM. Independently calculate WCAG sRGB relative luminance using the 0.04045 breakpoint and the (L1+0.05)/(L2+0.05) ratio. The custom light example uses background #fafafa and accent #712a7a. High contrast is the shipped override over Graphite. All figures below are contrast ratios to 1. Ratios are rounded only for display.
+
+Pair                                 Graphite default    Midnight dark     Custom light    High contrast
+Incoming message                                14.02            12.53            15.57            15.99
+Outgoing message                                12.19            12.61            16.01            13.90
+Incoming timestamp                               6.92             6.14             5.53            11.24
+Outgoing timestamp                               6.01             6.18             5.68             9.77
+Group author                                    12.35            10.66             7.27            13.69
+Studio label/select tab idle                     7.70             6.82             6.00            12.50
+Studio bio and save status                      12.13            10.54            11.98            15.60
+Studio selected tab                             12.37            10.55            13.90            14.11
+Studio look tile label                          16.71            15.64            18.62            19.05
+Primary action                                  12.98            16.22             9.07            14.39
+Rail active icon/mark                           10.27             9.27             6.87            11.39
+Selected conversation label                     11.67            10.89            14.72            13.30
+Focus ring on modal                             13.74            11.85             7.89            15.24
+Focus ring on raised surface                    10.90             8.98             6.49            12.08
+Selected look tile mark                         14.72            13.31             8.69            16.31
+Active tab control border                        3.77             3.71             3.16             6.10
+
+Minimum measured ordinary text 5.53:1. Minimum sampled focus outline 6.49:1. Minimum selected-tab edge 3.16:1. Normal-sized text target 4.5:1; sampled non-text control indicators target 3:1.
+
+Source mapping
+dist/home.css supplies shell tokens, high-contrast overrides, timeline body, timestamps, selected navigation, incoming/outgoing backgrounds and the general 2px focus outline with 3px offset. dist/appearance.css supplies the resolved primary button colors; theme.js supplies custom palettes. dist/profiles-panel.css supplies studio tab, status, bio, look tile and focused/reordering selectors. The two new studio controls use a 2px outline with 2px offset. The selected look also exposes aria-pressed and a check mark.
+
+Keyboard and targets
+Badge earlier/later use native buttons with 44px minimum width and height and restore focus after a move. Section reset has a 44px minimum height. Base primary/secondary actions are at least 44px high. Coarse-pointer message actions and reaction buttons declare 44px minima; fine-pointer hover actions may use 32px. Studio section tabs declare 40px height and preview tabs 36px on desktop; below or at 760px section tabs and pane-switcher buttons become 44px, preview tabs 40px. These are CSS minima, not target dimensions measured on a device.
+
+Responsive source checks
+320px and 390px activate the single-column messenger shell and single-pane studio; small phones wrap badge move controls under each slot (520px rule). The 320px view additionally uses the narrower-than-380px studio controls. 768px uses the single-column messenger shell; the studio changes to its two-pane grid above 760px. 1440px uses the desktop shell and the studio width is capped at 1160px. Under 860px the layout accounts for safe-area insets and the reported visual viewport for keyboard changes.
+
+Scope
+Static CSS/palette and fixture evidence. Pixel rendering, focus traversal by assistive technology, clipping with zoom or a virtual keyboard, arbitrary user-uploaded imagery, every custom palette or composite overlay and physical Android/iOS/PC behavior were outside this measurement. Forced-colors delegates the resulting palette to the system.

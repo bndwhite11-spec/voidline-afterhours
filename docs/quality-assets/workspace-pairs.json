@@ -1,0 +1,161 @@
+{
+  "environment": "Node v24.22.1, jsdom, local workerd/D1/R2; no browser painting or external transport",
+  "units": "milliseconds",
+  "guestCheckpoint": "First queryable login form on /chats. guestRequests counts completed local HTTP responses; guestRequestStarts and guestByKind count requests started by that point.",
+  "order": [
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline",
+    "baseline",
+    "candidate"
+  ],
+  "builds": {
+    "baseline": {
+      "sha256": "42f493d1d3130060a65405bf2e74786883030aeac9c293aa07ee19d70b6d2e71",
+      "runs": [
+        {
+          "timings": {
+            "guestEntry": 716,
+            "signupToWorkspace": 477,
+            "profileOpen": 57,
+            "collectionOpen": 126,
+            "giftInspect": 9,
+            "loginToWorkspace": 405
+          },
+          "guestRequests": 44,
+          "guestRequestStarts": 44,
+          "guestByKind": {
+            "document": 1,
+            "script": 24,
+            "style": 17,
+            "api": 2,
+            "other": 0
+          },
+          "signOutDefault": "createAccount"
+        },
+        {
+          "timings": {
+            "guestEntry": 203,
+            "signupToWorkspace": 392,
+            "profileOpen": 43,
+            "collectionOpen": 74,
+            "giftInspect": 5,
+            "loginToWorkspace": 385
+          },
+          "guestRequests": 44,
+          "guestRequestStarts": 44,
+          "guestByKind": {
+            "document": 1,
+            "script": 24,
+            "style": 17,
+            "api": 2,
+            "other": 0
+          },
+          "signOutDefault": "createAccount"
+        },
+        {
+          "timings": {
+            "guestEntry": 189,
+            "signupToWorkspace": 378,
+            "profileOpen": 33,
+            "collectionOpen": 73,
+            "giftInspect": 5,
+            "loginToWorkspace": 384
+          },
+          "guestRequests": 44,
+          "guestRequestStarts": 44,
+          "guestByKind": {
+            "document": 1,
+            "script": 24,
+            "style": 17,
+            "api": 2,
+            "other": 0
+          },
+          "signOutDefault": "createAccount"
+        }
+      ],
+      "medians": {
+        "guestEntry": 203,
+        "signupToWorkspace": 392,
+        "profileOpen": 43,
+        "collectionOpen": 74,
+        "giftInspect": 5,
+        "loginToWorkspace": 385
+      }
+    },
+    "candidate": {
+      "sha256": "d0fdf95cd29151278769ea6bf7b4618347f32314f2865098c08e763848278024",
+      "runs": [
+        {
+          "timings": {
+            "guestEntry": 169,
+            "signupToWorkspace": 657,
+            "profileOpen": 83,
+            "collectionOpen": 98,
+            "giftInspect": 5,
+            "loginToWorkspace": 401
+          },
+          "guestRequests": 14,
+          "guestRequestStarts": 14,
+          "guestByKind": {
+            "document": 1,
+            "script": 6,
+            "style": 5,
+            "api": 2,
+            "other": 0
+          },
+          "signOutDefault": "login"
+        },
+        {
+          "timings": {
+            "guestEntry": 83,
+            "signupToWorkspace": 557,
+            "profileOpen": 63,
+            "collectionOpen": 72,
+            "giftInspect": 4,
+            "loginToWorkspace": 388
+          },
+          "guestRequests": 14,
+          "guestRequestStarts": 14,
+          "guestByKind": {
+            "document": 1,
+            "script": 6,
+            "style": 5,
+            "api": 2,
+            "other": 0
+          },
+          "signOutDefault": "login"
+        },
+        {
+          "timings": {
+            "guestEntry": 96,
+            "signupToWorkspace": 491,
+            "profileOpen": 87,
+            "collectionOpen": 119,
+            "giftInspect": 5,
+            "loginToWorkspace": 332
+          },
+          "guestRequests": 14,
+          "guestRequestStarts": 14,
+          "guestByKind": {
+            "document": 1,
+            "script": 6,
+            "style": 5,
+            "api": 2,
+            "other": 0
+          },
+          "signOutDefault": "login"
+        }
+      ],
+      "medians": {
+        "guestEntry": 96,
+        "signupToWorkspace": 557,
+        "profileOpen": 83,
+        "collectionOpen": 98,
+        "giftInspect": 5,
+        "loginToWorkspace": 388
+      }
+    }
+  }
+}
