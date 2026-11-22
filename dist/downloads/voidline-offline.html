@@ -196,6 +196,72 @@ img, svg { max-width: 100%; }
 .vh-password-field { position: relative; display: flex; align-items: center; margin-top: 7px; }
 .vh-password-field input { padding-right: 72px !important; margin-top: 0 !important; }
 .vh-password-field>.vh-text-button { position: absolute; right: 4px; min-width: 60px; min-height: 42px; padding: 5px 9px; color: var(--vh-copy); font-size: calc(0.75rem * var(--vl-text-scale)); text-align: center; }
+
+/* Password guidance stays in place while the meter settles into its next state. */
+.vh-password-feedback {
+  --vh-password-color: var(--vh-muted);
+  --vh-password-default-progress: 0%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding-top: 11px;
+  color: var(--vh-muted);
+  font-size: calc(0.75rem * var(--vl-text-scale));
+  font-weight: 400;
+  line-height: 1.5;
+}
+.vh-password-feedback[data-strength="short"] { --vh-password-color: #F18B92; --vh-password-default-progress: 24%; }
+.vh-password-feedback[data-strength="weak"] { --vh-password-color: #F18B92; --vh-password-default-progress: 40%; }
+.vh-password-feedback[data-strength="fair"] { --vh-password-color: #E8C66E; --vh-password-default-progress: 68%; }
+.vh-password-feedback[data-strength="strong"] { --vh-password-color: #8FD3AB; --vh-password-default-progress: 100%; }
+.vh-password-meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--vh-line);
+}
+.vh-password-meter-fill {
+  display: block;
+  width: var(--vh-password-progress, var(--vh-password-default-progress));
+  height: 100%;
+  border-radius: inherit;
+  color: var(--vh-password-color);
+  background-color: currentColor;
+  box-shadow: inset 0 1px 0 #FFFFFF20;
+  transition: width 440ms cubic-bezier(.22, 1, .36, 1), color 280ms ease;
+}
+.vh-password-caption { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.vh-password-strength {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--vh-password-color);
+  font-weight: 600;
+  transition: color 280ms ease;
+}
+.vh-password-strength::before { content: ""; flex: 0 0 5px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.vh-password-length { flex-shrink: 0; color: var(--vh-muted); font-variant-numeric: tabular-nums; font-size: inherit; font-weight: 400; }
+.vh-password-hint { min-height: 3em; margin: -2px 0 0; color: var(--vh-muted); font-size: inherit; font-weight: 400; line-height: 1.5; text-wrap: pretty; }
+.vh-password-field input[data-strength] { --vh-password-color: var(--vh-accent); transition: border-color 220ms ease, box-shadow 220ms ease; }
+.vh-password-field input[data-strength="short"], .vh-password-field input[data-strength="weak"] { --vh-password-color: #F18B92; }
+.vh-password-field input[data-strength="fair"] { --vh-password-color: #E8C66E; }
+.vh-password-field input[data-strength="strong"] { --vh-password-color: #8FD3AB; }
+.vh-password-field input[data-strength]:focus { border-color: var(--vh-password-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--vh-password-color) 10%, transparent); }
+.vh-password-field input[data-strength]:focus-visible { outline-color: var(--vh-password-color); }
+.vh-password-field.is-invalid input, .vh-password-field input[aria-invalid="true"] { border-color: #F18B92; }
+.vh-password-field.is-valid input { border-color: #8FD3AB; }
+.vh-field-feedback { display: block; min-height: 1.5em; margin: 7px 0 0; color: var(--vh-muted); font-size: calc(0.75rem * var(--vl-text-scale)); line-height: 1.5; font-weight: 400; transition: color 220ms ease; }
+.vh-field .vh-field-feedback.is-error { color: #F18B92; }
+.vh-field .vh-field-feedback.is-success { color: #8FD3AB; }
+@media (max-width: 390px) { .vh-password-caption { gap: 8px; } }
+@media (forced-colors: active) {
+  .vh-password-feedback, .vh-password-field input[data-strength] { --vh-password-color: CanvasText !important; }
+  .vh-password-meter { height: 5px; border: 1px solid CanvasText; background: Canvas; }
+  .vh-password-meter-fill { background: Highlight; box-shadow: none; }
+  .vh-password-field.is-invalid input, .vh-password-field input[aria-invalid="true"], .vh-password-field.is-valid input { border-color: CanvasText; }
+  .vh-field .vh-field-feedback.is-error, .vh-field .vh-field-feedback.is-success { color: CanvasText; }
+}
 .vh-auth-card .vh-recovery-code { display: block; width: 100%; min-height: 98px; resize: none; padding: 14px; background: var(--vh-bg); border: 1px solid var(--vh-control-line); border-radius: 8px; color: var(--vh-text); font: calc(0.9375rem * var(--vl-text-scale))/1.7 ui-monospace, monospace; overflow-wrap: anywhere; }
 .vh-auth-card>.vh-primary, .vh-auth-card>.vh-secondary { width: 100%; margin-top: 10px; }
 .vh-note, .vh-session-status { color: var(--vh-muted); font-size: calc(0.8125rem * var(--vl-text-scale)); line-height: 1.65; overflow-wrap: anywhere; }
@@ -3046,9 +3112,68 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   function brand() {return '<span class="vh-wordmark">'+mark+'<span><b>VOIDLINE</b><small>AFTERHOURS</small></span></span>';}
   function topbar() {return `<header class="vh-topbar"><button data-home="home" aria-label="Voidline home">${brand()}</button>${state.account && state.phase!=='loading'?`<button class="vh-quick-search" data-home="search">${icon('search')}<span>Search Voidline</span><kbd>Ctrl / ⌘ K</kbd></button>${writerHandoff?'<button id="home-tab-switch" class="vh-text-button" data-home="secure-handoff-review">Tab switch request</button>':''}<button class="vh-icon-button" data-home="you" aria-label="Account settings">${icon('you')}</button>`:'<span class="vh-edition">CHATS · SERVERS · YOUR PEOPLE</span>'}</header>`;}
   function googleAuthHTML(){if(!state.config?.google?.configured)return '';const returnTo=location.pathname+location.search+(credentialToken('verify-email')?'#you':location.hash);return `<div class="vh-auth-separator"><span>or</span></div><a class="vh-google" href="${esc((state.config.google.signInPath||'/api/auth/google/start')+'?returnTo='+encodeURIComponent(returnTo))}" target="_top">Continue with Google</a>${credentialToken('verify-email')?'<p class="vh-field-help">After signing in with Google, reopen your email link to confirm it.</p>':''}`;}
+  const passwordServerErrors=new WeakMap();
   function passwordField(label,name,autocomplete='current-password',confirm=false) {
-    const id='home-'+name;
-    return `<label class="vh-field" for="${id}">${label}<div class="vh-password-field"><input id="${id}" name="${name}" type="password" autocomplete="${autocomplete}" minlength="12" maxlength="128" ${confirm?'':'required'}><button class="vh-text-button" type="button" data-home="toggle-password" data-input="${id}" aria-controls="${id}" aria-pressed="false">Show</button></div></label>`;
+    const id='home-'+name,mode=name==='passwordConfirm'?'confirm':autocomplete==='new-password'?'new':'current';
+    const feedback=mode==='new'?`<div class="vh-password-feedback" id="${id}-feedback" data-password-feedback data-strength="empty"><div class="vh-password-meter" aria-hidden="true"><span class="vh-password-meter-fill"></span></div><div class="vh-password-caption"><span class="vh-password-strength" data-password-strength role="status" aria-live="polite" aria-atomic="true">Password strength</span><span class="vh-password-length" data-password-length>12 character minimum</span></div><p class="vh-password-hint" data-password-hint>Try a few unrelated words. Use 12–128 characters.</p></div>`:`<p class="vh-field-feedback" id="${id}-feedback" data-password-feedback aria-live="polite" aria-atomic="true">${mode==='confirm'?'Re-enter your password.':''}</p>`;
+    return `<label class="vh-field" for="${id}">${label}<div class="vh-password-field"><input id="${id}" name="${name}" type="password" autocomplete="${autocomplete}" minlength="12" maxlength="128" data-password-input data-password-mode="${mode}" aria-describedby="${id}-feedback" ${confirm?'':'required'}><button class="vh-text-button" type="button" data-home="toggle-password" data-input="${id}" aria-controls="${id}" aria-pressed="false">Show</button></div>${feedback}</label>`;
+  }
+  // Guidance stays on this device and never changes the server's password policy.
+  function passwordStrength(value) {
+    const length=value.length;
+    if(!length)return {level:'empty',label:'Password strength',hint:'Try a few unrelated words. Use 12–128 characters.'};
+    if(length<12)return {level:'short',label:'Too short',hint:`Add ${12-length} more ${length===11?'character':'characters'} to reach the minimum.`};
+    if(length>128)return {level:'short',label:'Too long',hint:'Use no more than 128 characters.'};
+    const normalized=value.normalize('NFKC').toLowerCase(),compact=normalized.replace(/[^\p{L}\p{N}]/gu,''),unique=new Set(normalized.replace(/\s/gu,'')).size;
+    const predictable=unique<5||/^(.{1,32})\1+$/u.test(normalized)||!!compact&&/^(.{1,32})\1+$/u.test(compact)||/(?:012345|123456|234567|345678|456789|987654|abcdef|qwerty|asdfgh|zxcvbn)/.test(compact)||/^(?:password|p[a4@]ssw[o0]rd|letmein|welcome|admin|iloveyou|voidline)\d*$/i.test(compact);
+    if(predictable)return {level:'weak',label:'Easy to guess',hint:'Try unrelated words instead of common or repeated patterns.'};
+    const varied=/[\p{L}]/u.test(value)&&/[\p{N}\p{P}\p{S}]/u.test(value);
+    if((length>=16&&unique>=8)||(length>=14&&unique>=10&&varied))return {level:'strong',label:'Strong password',hint:'Long and varied. Keep it unique to this account.'};
+    return {level:'fair',label:'Good start',hint:'Add another word to make your password stronger.'};
+  }
+  function updatePasswordFeedback(input,{validate=false,message=''}={}) {
+    const mode=input?.dataset?.passwordMode;if(!mode)return true;
+    const field=input.closest('.vh-field'),feedback=field?.querySelector('[data-password-feedback]');if(!feedback)return true;
+    if(message)passwordServerErrors.set(input,message);
+    message=passwordServerErrors.get(input)||'';
+    if(validate)input.dataset.passwordValidated='true';
+    const value=input.value,checked=input.dataset.passwordValidated==='true';let invalid=false,matched=false;
+    if(mode==='new'){
+      const result=passwordStrength(value),level=message?'weak':result.level;
+      feedback.dataset.strength=level;input.dataset.strength=level;
+      const label=feedback.querySelector('[data-password-strength]');if(label.textContent!==(message?'Choose another password':result.label))label.textContent=message?'Choose another password':result.label;
+      feedback.querySelector('[data-password-length]').textContent=value.length?`${value.length} ${value.length===1?'character':'characters'}`:'12 character minimum';
+      feedback.querySelector('[data-password-hint]').textContent=message||(checked&&!value?'Enter a password to continue.':result.hint);
+      invalid=!!message||checked&&(value.length<12||value.length>128);
+    }else if(mode==='confirm'){
+      const primary=input.form?.querySelector('[data-password-mode="new"]'),password=primary?.value||'';
+      matched=!!value&&password.length>=12&&password.length<=128&&value===password;
+      invalid=checked&&!matched;
+      feedback.textContent=matched?'Passwords match':invalid?(value?'Your passwords don’t match yet.':'Re-enter your password to continue.'):'Re-enter your password.';
+      input.dataset.strength=matched?'strong':invalid?'short':'empty';
+    }else{
+      invalid=!!message||checked&&(value.length<12||value.length>128);
+      feedback.textContent=message||(invalid?(!value?'Enter your password.':value.length<12?'Your password needs at least 12 characters.':'Use no more than 128 characters.'):'');
+      input.dataset.strength=invalid?'short':'empty';
+    }
+    feedback.classList.toggle('is-error',invalid);feedback.classList.toggle('is-success',matched);
+    field.querySelector('.vh-password-field')?.classList.toggle('is-invalid',invalid);
+    field.querySelector('.vh-password-field')?.classList.toggle('is-valid',matched);
+    if(invalid)input.setAttribute('aria-invalid','true');else input.removeAttribute('aria-invalid');
+    return !invalid;
+  }
+  function passwordInputChanged(input,{edited=true}={}) {
+    if(!input?.dataset?.passwordMode)return;
+    if(edited)passwordServerErrors.delete(input);
+    updatePasswordFeedback(input);
+    if(input.dataset.passwordMode==='new'){
+      const confirmation=input.form?.querySelector('[data-password-mode="confirm"]');if(confirmation)updatePasswordFeedback(confirmation);
+    }
+  }
+  function validatePasswordFields(form) {
+    let firstInvalid;
+    for(const input of form.querySelectorAll?.('[data-password-input]')||[])if(!updatePasswordFeedback(input,{validate:true})&&!firstInvalid)firstInvalid=input;
+    firstInvalid?.focus();return !firstInvalid;
   }
   function credentialToken(kind){const token=new URLSearchParams((location.hash||'').slice(1)).get(kind);return token&&/^[a-f0-9]{64}$/.test(token)?token:null;}
   function passwordMethods(){return state.authentication?.methods||['password'];}
@@ -3060,7 +3185,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     const copy=emailReset?'This link changes your account password. Encrypted-message recovery is separate.':register?'Choose a username and password to get started.':emailRequest?'We can send a reset link to the verified private email on your account.':recover?'Use the recovery code you saved when you created your account.':'Log in to your chats, communities and profile.';
     const kind=emailReset?'email-reset':emailRequest?'email-request':register?'register':recover?'recover':'login';
     const usernameField=emailReset?'':`<label class="vh-field">${register||recover?'Username':'Username or verified email'}${register?'<span>3–24 letters, numbers or underscores.</span>':''}<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" ${register||recover?'minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}"':'maxlength="254"'} required autofocus></label>`;
-    return `<main id="home-main" class="vh-auth" tabindex="-1"><section class="vh-auth-intro">${authIllustration()}<h1>${title}</h1><p>${copy}</p></section><section class="vh-auth-card" aria-label="${title}">${recover||emailRequest||emailReset?'':`<div class="vh-auth-tabs" role="group" aria-label="Account access"><button data-home="auth-login" class="${register?'':'is-active'}" aria-pressed="${!register}">Log in</button><button data-home="auth-register" class="${register?'is-active':''}" aria-pressed="${register}">Create account</button></div>`}${credentialToken('verify-email')?'<p class="vh-note">Sign in to the account that requested this email change, then confirm verification.</p>':''}<form data-home-form="${kind}" class="vh-form">${usernameField}${register?'<label class="vh-field">Display name<input name="displayName" autocomplete="nickname" minlength="2" maxlength="32" required></label>':''}${recover?'<label class="vh-field">Recovery code<input name="recoveryCode" autocomplete="off" spellcheck="false" required minlength="64" maxlength="64"></label>':''}${emailRequest?'':passwordField(register?'Password':recover||emailReset?'New password':'Password','password',register||recover||emailReset?'new-password':'current-password')}${register||recover||emailReset?`<p class="vh-field-help">Use 12–128 characters. You can use a password manager.</p>${passwordField('Confirm password','passwordConfirm','new-password')}`:''}<p class="vh-error" data-form-error role="alert">${esc(state.error||'')}</p><button class="vh-primary" type="submit">${emailRequest?'Send reset link':register?'Create account':recover||emailReset?'Reset password':'Log in'}</button></form>${recover||emailRequest||emailReset?'':googleAuthHTML()}<div class="vh-auth-footer">${emailReset?'<button class="vh-text-button" data-home="auth-cancel-reset">Cancel reset and log in</button>':recover||emailRequest?`<button class="vh-text-button" data-home="auth-login">Back to login</button>${emailRequest?'<button class="vh-text-button" data-home="auth-recover">Use a saved recovery code</button>':state.config?.email?.configured?'<button class="vh-text-button" data-home="auth-email-recover">Use verified email instead</button>':''}`:register?'<p>Your username is public. No email or phone number is required.</p>':`<button class="vh-text-button" data-home="${state.config?.email?.configured?'auth-email-recover':'auth-recover'}">Forgot your password?</button>`}</div><nav class="vh-auth-help" aria-label="Help and policies"><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html" target="_blank" rel="noopener noreferrer" aria-label="Install VOIDLINE on iOS, Android or PC">Install app</a><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html#privacy" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html#terms" target="_blank" rel="noopener noreferrer">Terms</a><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html#recovery" target="_blank" rel="noopener noreferrer">Recovery help</a></nav></section></main>`;
+    return `<main id="home-main" class="vh-auth" tabindex="-1"><section class="vh-auth-intro">${authIllustration()}<h1>${title}</h1><p>${copy}</p></section><section class="vh-auth-card" aria-label="${title}">${recover||emailRequest||emailReset?'':`<div class="vh-auth-tabs" role="group" aria-label="Account access"><button data-home="auth-login" class="${register?'':'is-active'}" aria-pressed="${!register}">Log in</button><button data-home="auth-register" class="${register?'is-active':''}" aria-pressed="${register}">Create account</button></div>`}${credentialToken('verify-email')?'<p class="vh-note">Sign in to the account that requested this email change, then confirm verification.</p>':''}<form data-home-form="${kind}" class="vh-form">${usernameField}${register?'<label class="vh-field">Display name<input name="displayName" autocomplete="nickname" minlength="2" maxlength="32" required></label>':''}${recover?'<label class="vh-field">Recovery code<input name="recoveryCode" autocomplete="off" spellcheck="false" required minlength="64" maxlength="64"></label>':''}${emailRequest?'':passwordField(register?'Password':recover||emailReset?'New password':'Password','password',register||recover||emailReset?'new-password':'current-password')}${register||recover||emailReset?`${passwordField('Confirm password','passwordConfirm','new-password')}`:''}<p class="vh-error" data-form-error role="alert">${esc(state.error||'')}</p><button class="vh-primary" type="submit">${emailRequest?'Send reset link':register?'Create account':recover||emailReset?'Reset password':'Log in'}</button></form>${recover||emailRequest||emailReset?'':googleAuthHTML()}<div class="vh-auth-footer">${emailReset?'<button class="vh-text-button" data-home="auth-cancel-reset">Cancel reset and log in</button>':recover||emailRequest?`<button class="vh-text-button" data-home="auth-login">Back to login</button>${emailRequest?'<button class="vh-text-button" data-home="auth-recover">Use a saved recovery code</button>':state.config?.email?.configured?'<button class="vh-text-button" data-home="auth-email-recover">Use verified email instead</button>':''}`:register?'<p>Your username is public. No email or phone number is required.</p>':`<button class="vh-text-button" data-home="${state.config?.email?.configured?'auth-email-recover':'auth-recover'}">Forgot your password?</button>`}</div><nav class="vh-auth-help" aria-label="Help and policies"><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/install.html" target="_blank" rel="noopener noreferrer" aria-label="Install VOIDLINE on iOS, Android or PC">Install app</a><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html#privacy" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html#terms" target="_blank" rel="noopener noreferrer">Terms</a><a href="https://voidline-afterhours.pipedcactus1.chatgpt.site/help.html#recovery" target="_blank" rel="noopener noreferrer">Recovery help</a></nav></section></main>`;
   }
   function accountRecovery() {
     return `<main id="home-main" class="vh-auth" tabindex="-1"><section class="vh-auth-intro">${mark}<h1>Save your recovery code</h1><p>This code can reset your account password if you forget it. Keep it in your password manager or another safe place.</p></section><section class="vh-auth-card"><label class="vh-field">Recovery code<textarea id="home-account-recovery" class="vh-recovery-code" readonly spellcheck="false" rows="3">${esc(state.accountRecovery||'')}</textarea></label><p class="vh-note">It is shown once. This account code does not replace your separate encrypted-message recovery keys.</p><div class="vh-dialog-actions"><button class="vh-secondary" data-home="copy-account-recovery">${icon('copy')} Copy code</button><button class="vh-primary" data-home="finish-recovery">I saved it — continue</button></div></section></main>`;
@@ -3233,7 +3358,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   function time(value) {const date=new Date(value);return Number.isFinite(date.getTime())?date.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'Time unavailable';}
   function closeDialog(restore=true){if(restore&&extensions.some(module=>module.beforeCloseDialog?.()===false))return false;if(restore&&dialog?.open&&dialog.querySelector('[data-invite-preview]')&&inviteToken(location.href))history.replaceState(null,'','/chats#chats');state.attachmentUpload?.abort();state.attachmentUpload=null;cancelVoice();for(const url of mediaURLs)URL.revokeObjectURL(url);mediaURLs.clear();if(reauthContinuation){reauthContinuation.reject(Error('Password confirmation was cancelled.'));reauthContinuation=null;}if(secureProviderAuth){const pending=secureProviderAuth;secureProviderAuth=null;pending.resolve(null);}if(recoveryAcknowledgement){const resolve=recoveryAcknowledgement;recoveryAcknowledgement=null;resolve(false);}state.dialogGeneration++;if(dialog?.open)dialog.close();if(restore&&priorFocus?.isConnected)priorFocus.focus();priorFocus=null;}
   function showDialog(title,copy,html){if(secureProviderAuth){const pending=secureProviderAuth;secureProviderAuth=null;pending.resolve(null);}if(recoveryAcknowledgement){const resolve=recoveryAcknowledgement;recoveryAcknowledgement=null;resolve(false);}if(reauthContinuation&&reauthContinuation.ticket!==undefined){reauthContinuation.reject(Error('Password confirmation was replaced.'));reauthContinuation=null;}state.attachmentUpload?.abort();state.attachmentUpload=null;cancelVoice();for(const url of mediaURLs)URL.revokeObjectURL(url);mediaURLs.clear();state.dialogGeneration++;if(!dialog.open)priorFocus=document.activeElement;dialog.innerHTML=`<button class="vh-icon-button vh-dialog-close" data-home="close-dialog" aria-label="Close dialog">${icon('close')}</button><div class="vh-dialog-body"><h2 id="home-dialog-title">${esc(title)}</h2>${copy?`<p>${esc(copy)}</p>`:''}${html}</div>`;dialog.setAttribute('aria-labelledby','home-dialog-title');if(!dialog.open)dialog.showModal();const focusTicket=state.dialogGeneration;requestAnimationFrame(()=>{if(dialog.open&&focusTicket===state.dialogGeneration)(dialog.querySelector('[autofocus]')||dialog.querySelector('button,input'))?.focus();});return state.dialogGeneration;}
-  function errorNode(error,form){if(error.code==='passkey_required'){showDialog('Passkey verification required','Your account is still signed in. In Devices & Security, verify with a registered passkey, then retry this action.',`${formError}<button class="vh-primary" data-home="passkey-verify">Verify with passkey</button><button class="vh-secondary" data-home="security">Devices & Security</button>`);return;}if(error.code==='reauthentication_required'){reauthenticateDialog();return;}const node=form?.querySelector('[data-form-error]')||dialog.querySelector('[data-form-error]');if(node)node.textContent=error.message;else announce(error.message);}
+  function errorNode(error,form){if(form&&['weak_password','invalid_password'].includes(error.code)){const input=form.querySelector('[data-password-mode="new"]')||form.querySelector('[data-password-mode="current"]');if(input){updatePasswordFeedback(input,{validate:true,message:error.message});input.focus();return;}}if(error.code==='passkey_required'){showDialog('Passkey verification required','Your account is still signed in. In Devices & Security, verify with a registered passkey, then retry this action.',`${formError}<button class="vh-primary" data-home="passkey-verify">Verify with passkey</button><button class="vh-secondary" data-home="security">Devices & Security</button>`);return;}if(error.code==='reauthentication_required'){reauthenticateDialog();return;}const node=form?.querySelector('[data-form-error]')||dialog.querySelector('[data-form-error]');if(node)node.textContent=error.message;else announce(error.message);}
   const formError='<p class="vh-error" data-form-error role="alert"></p>';
   // Native standard messaging is a separate, explicitly acknowledged product mode.
   // Matrix room IDs, drafts, ciphertext and retries never enter these routes.
@@ -3811,7 +3936,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   async function confirmEmail(){const token=credentialToken('verify-email'),current=guard(),ticket=state.dialogGeneration;if(!token)return announce('This email link is unavailable.');try{await request('/api/auth/email/verify',{token});if(!current()||ticket!==state.dialogGeneration)return;history.replaceState(null,'',location.pathname+location.search+'#you');closeDialog();announce('Private recovery email verified.');}catch(error){if(current())errorNode(error);}}
   async function logout(){const current=guard();try{await request('/api/auth/logout',{});if(!current())return;sessionEvents?.postMessage({type:'signed-out',accountId:state.account.id});await disconnectSecure(false);if(!current())return;lock();state.phase='welcome';history.replaceState(null,'',location.pathname);render();announce('Signed out. Account content is locked.');}catch(error){if(current())showDialog('Sign-out could not finish.','The server could not invalidate this session. Retry to sign out completely.',`<p class="vh-error">${esc(error.message)}</p><button class="vh-primary" data-home="logout">Retry sign out</button>`);}}
   async function revoke(id){const current=guard();try{await request('/api/auth/devices/'+encodeURIComponent(id)+'/revoke',{});if(!current())return;if(id===state.session.id){sessionEvents?.postMessage({type:'signed-out',accountId:state.account.id});lock();state.phase='welcome';render();}else await security();}catch(error){if(current())errorNode(error);}}
-  async function submit(form){if(form.dataset.homeForm==='native-message')return sendNative().catch(error=>announce(error.message));if(form.dataset.busy)return;form.dataset.busy='true';form.setAttribute('aria-busy','true');const submitButton=form.querySelector('[type="submit"]'),priorSubmit=submitButton?.textContent;if(submitButton){submitButton.disabled=true;submitButton.setAttribute('aria-busy','true');}const data=Object.fromEntries(new FormData(form)),kind=form.dataset.homeForm,credentialOwner=['password-change','password-set','delete-account'].includes(kind)?{}:null;if(credentialOwner){state.generation++;state.credentialsBusy=true;credentialSubmission=credentialOwner;}const current=guard(),ticket=state.dialogGeneration;if(['login','register','recover','email-reset','email-request'].includes(kind)){state.authBusy=true;if(submitButton)submitButton.textContent=kind==='register'?'Creating account…':kind==='recover'?'Resetting password…':'Logging in…';}const node=form.querySelector('[data-form-error]');if(node)node.textContent='';try{
+  async function submit(form){if(form.dataset.homeForm==='native-message')return sendNative().catch(error=>announce(error.message));if(form.dataset.busy||!validatePasswordFields(form))return;form.dataset.busy='true';form.setAttribute('aria-busy','true');const submitButton=form.querySelector('[type="submit"]'),priorSubmit=submitButton?.textContent;if(submitButton){submitButton.disabled=true;submitButton.setAttribute('aria-busy','true');}const data=Object.fromEntries(new FormData(form)),kind=form.dataset.homeForm,credentialOwner=['password-change','password-set','delete-account'].includes(kind)?{}:null;if(credentialOwner){state.generation++;state.credentialsBusy=true;credentialSubmission=credentialOwner;}const current=guard(),ticket=state.dialogGeneration;if(['login','register','recover','email-reset','email-request'].includes(kind)){state.authBusy=true;if(submitButton)submitButton.textContent=kind==='register'?'Creating account…':kind==='recover'?'Resetting password…':'Logging in…';}const node=form.querySelector('[data-form-error]');if(node)node.textContent='';try{
     if(['login','register','recover'].includes(kind)){
       if(offline)throw Error('Open the online app to access your account.');
       if(kind!=='login'&&!/^[a-zA-Z][a-zA-Z0-9_]{2,23}$/.test(String(data.username||'').trim()))throw Error('Use a username with 3–24 letters, numbers or underscores.');
@@ -4261,7 +4386,15 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     document.addEventListener('toggle',event=>{if(event.target.matches?.('.vh-native-more')&&event.target.open)dismissNativeMenus({except:event.target});},true);
     document.addEventListener('click',event=>{nativeMenuClick(event);touchMessageActions(event);const button=event.target.closest('button,a');if(!button)return;if(button.dataset.nativeAction){event.preventDefault();Promise.resolve(nativeAction(button.dataset.nativeAction,button.dataset.event,button)).catch(error=>announce(error.message));}else if(button.dataset.secureAction){event.preventDefault();Promise.resolve(secureAction(button.dataset.secureAction,button.dataset.event,button)).catch(error=>announce(error.message));}else if(button.dataset.home){event.preventDefault();Promise.resolve(action(button.dataset.home,button)).catch(error=>announce(error.message));}else if(button.dataset.homeNative){event.preventDefault();closeDialog();openNativeConversation(button.dataset.homeNative).catch(error=>announce(error.message));}else if(button.dataset.homeRoom){event.preventDefault();closeDialog();openSecureRoom(button.dataset.homeRoom);}else if(button.dataset.homeCommunity){event.preventDefault();closeDialog();openCommunity(button.dataset.homeCommunity,null,true);}else if(button.dataset.homeChannel){event.preventDefault();closeDialog();openChannel(button.dataset.homeChannel);}else if(button.dataset.verifyUser){event.preventDefault();compareDevice(button.dataset.verifyUser,button.dataset.verifyDevice);}else if(button.dataset.homeVerification){event.preventDefault();verificationAction(button.dataset.homeVerification);}else if(button.dataset.homeRecovery){event.preventDefault();const resolve=recoveryAcknowledgement;recoveryAcknowledgement=null;if(resolve?.flow&&resolve.flow.ticket===state.dialogGeneration)resolve.flow.ticket=state.dialogGeneration+1;resolve?.(button.dataset.homeRecovery==='saved');closeDialog();}else if(button.dataset.homeRevoke){event.preventDefault();revoke(button.dataset.homeRevoke);}});
     document.addEventListener('submit',event=>{if(!event.target.dataset.homeForm)return;event.preventDefault();submit(event.target);});
-    document.addEventListener('input',event=>{if(event.target.id==='home-native-input')captureNativeDraft();if(event.target.id==='home-search')searchResults(event.target.value);if(event.target.id==='home-secure-input')captureSecureDraft();});
+    document.addEventListener('input',event=>{passwordInputChanged(event.target);if(event.target.id==='home-native-input')captureNativeDraft();if(event.target.id==='home-search')searchResults(event.target.value);if(event.target.id==='home-secure-input')captureSecureDraft();});
+    document.addEventListener('change',event=>passwordInputChanged(event.target));
+    document.addEventListener('focusin',event=>passwordInputChanged(event.target,{edited:false}));
+    document.addEventListener('focusout',event=>{const input=event.target;if(input.dataset?.passwordMode&&(input.value||input.dataset.passwordValidated))updatePasswordFeedback(input,{validate:true});});
+    document.addEventListener('invalid',event=>{
+      const input=event.target;if(!input.dataset?.passwordMode)return;
+      event.preventDefault();updatePasswordFeedback(input,{validate:true});
+      if(input.form?.querySelector(':invalid')===input)input.focus();
+    },true);
     document.addEventListener('compositionstart',event=>{
       if(event.target.id==='home-native-input'||event.target.id==='home-secure-input')composingInputs.add(event.target);
     });
