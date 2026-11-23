@@ -107,6 +107,22 @@ async function run(){
         await dialog.getByText('How to obtain',{exact:true}).click();
         assert.match(await dialog.innerText(),/Choice Capsule/);
         assert.equal(await dialog.locator('[data-vc-action="claim"]').count(),0);
+        await dialog.locator('#vc-inspection-scene > .va-asset svg').waitFor();
+        const layout=await dialog.locator('.cl-model-detail').evaluate(detail=>{
+          const rect=selector=>detail.querySelector(selector).getBoundingClientRect();
+          const frame=rect('#vc-inspection-frame'),backdrop=rect('#vc-inspection-frame > .va-backdrop');
+          const artwork=rect('#vc-inspection-scene > .va-asset'),stage=rect('.vc-stage-column'),info=rect('.cl-model-info');
+          return {artWidth:artwork.width,artHeight:artwork.height,
+            frameWidth:frame.width,frameHeight:frame.height,
+            backdropError:Math.max(...['left','right','top','bottom'].map(edge=>Math.abs(frame[edge]-backdrop[edge]))),
+            columns:getComputedStyle(detail).gridTemplateColumns.trim().split(/\s+/).length,
+            sideBySide:info.left>=stage.right-1&&Math.abs(info.top-stage.top)<2,
+            stacked:info.top>=stage.bottom-1};
+        });
+        assert(layout.artWidth>=210&&layout.artHeight>=210,'Foreground SVG wrapper is undersized: '+JSON.stringify(layout));
+        assert(layout.backdropError<=2,'Backdrop must cover the frame: '+JSON.stringify(layout));
+        if(width>720)assert(layout.columns===2&&layout.sideBySide,'Desktop model details must appear beside the stage: '+JSON.stringify(layout));
+        else assert(layout.columns===1&&layout.stacked,'Mobile model details must appear beneath the stage: '+JSON.stringify(layout));
         await page.screenshot({path:join(directory,'catalog-'+width+'.png')});
         await dialog.locator('[data-home="close-dialog"]').click();
         await card('gift-cartridge-rain-check').getByRole('button',{name:/^Inspect /}).click();
@@ -132,7 +148,7 @@ async function run(){
         assert.deepEqual(errors,[]);
         assert.equal(posts.filter(([p,s])=>p==='/api/capsules/check-in'&&s<300).length,1);
         assert.equal(posts.filter(([p,s])=>p==='/api/cosmetics/claim'&&s<300).length,1);
-        results.push({width,height,emptyBeforeOwnClaim:true,editionsInFamily:2,familyDesigns:12,ownedCopies:1,utcDays:1,requestLists:2});
+        results.push({width,height,layout,emptyBeforeOwnClaim:true,editionsInFamily:2,familyDesigns:12,ownedCopies:1,utcDays:1,requestLists:2});
       }catch(error){
         console.error(String(error.stack||error).split('\n').slice(0,6).join('\n'));
         await page.screenshot({path:join(directory,'failure-'+width+'.png'),timeout:3000}).catch(()=>{});
