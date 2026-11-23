@@ -18,12 +18,12 @@ codesign --force --sign - "$app"
 xcrun simctl install "$udid" "$app"
 xcrun simctl launch "$udid" "$bundle"
 doc="$(xcrun simctl get_app_container "$udid" "$bundle" data)/Documents"
-for ((i=0;i<50;i++)); do
+for ((i=0;i<65;i++)); do
   if [[ -f "$doc/media.json" ]]; then
     cp "$doc/media.json" "$proof/"
     cat "$proof/media.json"
-    python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["passed"] and len(r["checks"])==9' "$proof/media.json"
-    echo 'PASS nine calls to the exact production capture-policy delegate using real WKSecurityOrigin and WKFrameInfo values.'
+    python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r["passed"] and len(r["checks"])==15' "$proof/media.json"
+    echo 'PASS fifteen calls to the exact production capture-policy delegate using real WKSecurityOrigin and WKFrameInfo values.'
     exit 0
   fi
   sleep 2
