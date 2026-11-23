@@ -22,6 +22,8 @@ async function client({signedIn=false,configured=true}={}){
   if(url==='/api/auth/config')body={configured:true,google:{configured:false},matrix:{configured:false},encryption:{available:false},email:{configured,registration:'verified-email'}};
   else if(url==='/api/auth/session'){body=signedIn?session():{error:{code:'sign_in_required',message:'Log in to continue.'}};if(!signedIn)status=401;}
   else if(url==='/api/auth/recover'){body={...session(),recoveryCode:'b'.repeat(64)};signedIn=true;}
+  else if(url==='/api/auth/devices')body={devices:[]};
+  else if(url==='/api/security/passkeys')body={passkeys:[]};
   else if(url==='/api/auth/email')body={email:null,verifiedAt:null,deliveryConfigured:true};
   else if(url==='/api/auth/email/code/request')body={accepted:true,challengeId,email:call.body.email,expiresAt:Date.now()+600000};
   else if(url==='/api/auth/email/code/verify')body={verified:true,email};
@@ -35,7 +37,7 @@ async function client({signedIn=false,configured=true}={}){
  const click=action=>{const button=d.querySelector('[data-home="'+action+'"]');assert(button,action);button.click();};
  const type=(name,value)=>{const field=form().elements.namedItem(name);assert(field,name);field.value=value;field.dispatchEvent(new w.Event('input',{bubbles:true}));return field;};
  const recover=async()=>{if(configured){click('auth-email-recover');click('auth-recover');}else click('auth-recover');await until(()=>form('recover'));};
- const emailVerification=async()=>{await until(()=>d.querySelector('[data-home="email-settings"]'));click('email-settings');await until(()=>form('email-code-request'));type('email',email);form().requestSubmit();await until(()=>form('email-code-verify'));};
+ const emailVerification=async()=>{await until(()=>d.querySelector('[data-home="security"]'));click('security');await until(()=>d.querySelector('[data-home="email-settings"]'));click('email-settings');await until(()=>form('email-code-request'));type('email',email);form().requestSubmit();await until(()=>form('email-code-verify'));};
  return {w,d,calls,errors,form,click,type,recover,emailVerification,state:()=>w.VoidHome.state,end:()=>w.close()};
 }
 function fillRecovery(f,identifier,code){f.type('username',identifier);f.type('recoveryCode',code);f.type('password',password);f.type('passwordConfirm',password);}

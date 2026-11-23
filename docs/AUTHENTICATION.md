@@ -121,7 +121,7 @@ requiring exactly 64 hex characters. The server's account-bound hash and one-use
 checks remain unchanged. Email enrollment uses a separate 8-digit code; its form
 ignores pasted whitespace, preserves leading zeroes and requires exactly eight
 ASCII digits before sending. Native input limits leave room for those formatting
-characters, so browser validation cannot clip a correctly copied code first.
+characters, allowing normally formatted copies to be normalized before validation.
 
 ## Sessions, passkeys and owner access
 
