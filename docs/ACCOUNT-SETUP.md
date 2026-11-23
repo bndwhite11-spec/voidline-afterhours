@@ -17,3 +17,10 @@ See [AUTHENTICATION.md](AUTHENTICATION.md) for architecture, exact configuration
 legacy password migration, recovery behavior, passkey/device management and test
 limits. See [OWNER-BOOTSTRAP.md](OWNER-BOOTSTRAP.md) for verified owner binding.
 Account recovery and encrypted-message key recovery are separate operations.
+
+If you use a saved account recovery code, enter your username or verified email
+and the latest full 64-character code. Spaces, hyphens and letter case are
+handled by the recovery form. A successful recovery, password change or email
+password reset replaces that code; save the replacement shown on screen.
+The 8-digit code emailed when adding an address belongs in the email verification
+dialog. It does not reset your password or replace your saved recovery code.
