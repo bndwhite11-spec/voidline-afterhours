@@ -17,6 +17,13 @@ export async function verifiedCallSignal(matrixCrypto,event){
   const devices=await matrixCrypto.getUserDeviceInfo([sender],true);
   return devices.get(sender)?.get(device)?.getIdentityKey()===key;
 }
+export async function verifiedCallDevice(matrixCrypto,peer,{deviceId,identityKey}={}){
+  if(typeof deviceId!=='string'||!deviceId||typeof identityKey!=='string'||!identityKey)return false;
+  const devices=await matrixCrypto.getUserDeviceInfo([peer],true),selected=devices.get(peer)?.get(deviceId);
+  if(!selected||selected.getIdentityKey()!==identityKey)return false;
+  const trust=await matrixCrypto.getDeviceVerificationStatus(peer,deviceId);
+  return !!trust?.isVerified();
+}
 export function relayConfiguration(result) {
   const urls = (Array.isArray(result?.uris) ? result.uris : []).filter(uri =>
     typeof uri==='string' && /^turns?:(?:\[[0-9a-f:]+\]|[a-z0-9.-]+)(?::\d{1,5})?(?:\?transport=(?:udp|tcp))?$/i.test(uri));
@@ -50,20 +57,24 @@ export function createSecureCalls({device,user,allow,send,relay,onChange=()=>{},
     c.local=null;c.remote=null;c.phase='ended';if(notify)publish(c,reason);
   }
   function envelope(c,action,extra={}){return {v:1,id:c.id,action,from:device,to:c.otherDevice||null,...extra};}
-  async function signal(c,action,extra={}){current(c);await send(c.room,envelope(c,action,extra));current(c);}
+  const selectedDevice=c=>({deviceId:c.otherDevice||null,identityKey:c.otherKey||null});
+  async function signal(c,action,extra={}){current(c);await send(c.room,envelope(c,action,extra),selectedDevice(c));current(c);}
   function end(reason='Call ended.',remoteReason='hangup'){
     const c=active;if(!c)return;
     const payload=envelope(c,'end',{reason:remoteReason});
-    cleanup(c,reason);if(c.sent||c.inbound)Promise.resolve().then(()=>send(c.room,payload)).catch(()=>{});
+    cleanup(c,reason);if(c.sent||c.inbound)Promise.resolve().then(()=>send(c.room,payload,selectedDevice(c))).catch(()=>{});
   }
   function timer(c,delay,message,reason){clearTimeout(c.timeout);c.timeout=setTimeout(()=>{if(active===c)end(message,reason);},delay);}
-  async function eligible(c){const who=await within(allow(c.room),12000,'Could not verify calling access.');current(c);if(!who||who===user||(c.peer&&who!==c.peer))throw err('The participants in this call changed.');c.peer=who;}
+  async function eligible(c){const who=await within(allow(c.room,selectedDevice(c)),12000,'Could not verify calling access.');current(c);if(!who||who===user||(c.peer&&who!==c.peer))throw err('The participants in this call changed.');c.peer=who;}
   async function mediaAndConnection(c) {
     await eligible(c);
     const config=relayConfiguration(await within(relay(),10000,'The TURN service did not respond.'));current(c);
     const stream=await media.getUserMedia({audio:true,video:c.kind==='video'});
     if(active!==c||closed){for(const t of stream.getTracks())t.stop();throw err('Call ended.');}
-    c.local=stream;const pc=c.pc=new Peer(config);
+    c.local=stream;
+    // Capture permission can stay pending while the selected device is revoked.
+    // Revalidate its identity before creating transports with the new stream.
+    await eligible(c);const pc=c.pc=new Peer(config);
     for(const t of stream.getTracks())pc.addTrack(t,stream);
     pc.ontrack=event=>{
       if(active!==c)return;
@@ -121,7 +132,9 @@ export function createSecureCalls({device,user,allow,send,relay,onChange=()=>{},
       const pc=await mediaAndConnection(c);const desc=await description(c,'offer',pc);
       c.sent=true;await signal(c,'offer',{kind,description:desc});
       if(c.phase==='preparing')phase(c,'calling');
-      timer(c,RING_MS,'No answer.','timeout');
+      // The answer/transport can arrive before the offer's HTTP acknowledgement.
+      // Never overwrite its media timeout (or a connected call) with No answer.
+      if(!c.otherDevice&&!c.connected)timer(c,RING_MS,'No answer.','timeout');
     }catch(error){if(active===c)end(error?.name==='NotAllowedError'?'Microphone or camera permission was denied.':error.code==='VOID_CALL'?error.message:'Call setup failed. Check device verification, hardware and service connectivity.','failed');}
   }
   async function answer(){
@@ -137,14 +150,14 @@ export function createSecureCalls({device,user,allow,send,relay,onChange=()=>{},
     seen.set(id,now());
     for(const [key,t] of seen)if(t<now()-2*RING_MS||seen.size>256)seen.delete(key);
   }
-  async function incoming({room,sender,content:b,time}){
+  async function incoming({room,sender,senderKey,content:b,time}){
     if(closed||!supported()||!b||b.v!==1||!uuid(b.id)||!Number.isFinite(time)||time>now()+10000||now()-time>RING_MS||typeof b.from!=='string'||!b.from||b.from.length>255)return;
     if(b.to!=null && b.to!==device)return;
     if(sender===user)return;
     if(!active && b.action==='end'){remember(b.id);return;}
     if(b.action==='offer'){
       if(active||seen.has(b.id)||!['voice','video'].includes(b.kind)||!safeSDP(b.description,'offer'))return;
-      const c=open(room,b.id,b.kind,true);c.peer=sender;c.otherDevice=b.from;
+      const c=open(room,b.id,b.kind,true);c.peer=sender;c.otherDevice=b.from;c.otherKey=senderKey||null;
       remember(b.id);
       try{
         await eligible(c);relayConfiguration(await within(relay(),10000,'The TURN service did not respond.'));current(c);
@@ -176,9 +189,9 @@ export function createSecureCalls({device,user,allow,send,relay,onChange=()=>{},
       }catch{if(active===c)end('The relay connection could not be restored.','failed');}return;
     }
     if(b.action==='answer'&&!c.inbound&&!c.otherDevice&&safeSDP(b.description,'answer')){
-      c.otherDevice=b.from;
+      c.otherDevice=b.from;c.otherKey=senderKey||null;
       try{await eligible(c);await c.pc.setRemoteDescription(b.description);current(c);
-        await send(c.room,envelope(c,'selected',{to:null,selected:b.from}));current(c);
+        await send(c.room,envelope(c,'selected',{to:null,selected:b.from}),selectedDevice(c));current(c);
         if(!c.connected){phase(c,'connecting');timer(c,RING_MS,'The media connection timed out.','failed');}
       }catch{if(active===c)end('The call could not connect.','failed');}
     }
