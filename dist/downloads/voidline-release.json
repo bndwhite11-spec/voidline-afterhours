@@ -1,6 +1,6 @@
 {
-  "version": "1.0.10",
-  "tag": "v1.0.10",
+  "version": "1.0.11",
+  "tag": "v1.0.11",
   "android": {
     "filename": "VOIDLINE-Android.apk",
     "url": "/downloads/VOIDLINE-Android.apk",
@@ -17,10 +17,9 @@
     "url": "/downloads/VOIDLINE-Windows-x64.zip",
     "architecture": "x64",
     "signed": false,
-    "bytes": 158360531,
-    "sha256": "a00b2ccd9ddbc47103fab5ffc121cce20c889e01951e98ecac5d790607cd5b6f",
-    "version": "1.0.0",
-    "reuseTag": "v1.0.2"
+    "bytes": 158360590,
+    "sha256": "042ea944176914da1cb4c4450fa479cc275c86e6cbb33c6a121906be457cb8b5",
+    "version": "1.0.1"
   },
   "ios": {
     "nativeAvailable": false,

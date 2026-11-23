@@ -3,8 +3,10 @@
 import * as matrix from 'matrix-js-sdk';
 import {initAsync as loadWasm,Attachment,EncryptedAttachment} from '@matrix-org/matrix-sdk-crypto-wasm';
 import {decodeRecoveryKey} from 'matrix-js-sdk/lib/crypto-api/recovery-key.js';
-import {AllDevicesIsolationMode} from 'matrix-js-sdk/lib/crypto-api/index.js';
+import {AllDevicesIsolationMode,CryptoEvent} from 'matrix-js-sdk/lib/crypto-api/index.js';
 import loglevel from 'loglevel';
+import {createSecureCalls,CALL_EVENT} from './secure-calls.js';
+import {callPanel} from './call-panel.js';
 import {openVault} from './secure-vault.js';
 import {createLocalSaved} from './local-saved.js';
 import {enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,prepareEncryptedPasswordChange} from './encrypted-enrollment.js';
@@ -37,6 +39,8 @@ function publicSigningPayload(raw,userId){
 
 export function create(options={},injected={}) {
  const deps={...defaultDeps,...injected};
+ const cryptoEvents=deps.sdk.CryptoEvent??CryptoEvent;
+ let calls=null,callUI=null;
  let intent=0,client=null,epoch=0,releaseLock=null,lockPromise=null,secret=null,secretEpoch=-1,initializing=null,vault=null,tokenBinding='',savedRoomId=null,savedRoomOpening=null,mediaRequest=null,remoteSession=null,secretKeyId=null,recoveryJob=null;
  let state={phase:'locked',userId:null,deviceId:null,error:''};
  let handoffName=null,handoffChannel=null,handoffBusy=false,indexConnection=null;
@@ -92,6 +96,7 @@ export function create(options={},injected={}) {
  }
  async function clearConnection({revokeSession=false}={}){
   const cleanupEpoch=++epoch,old=client,pendingInit=initializing,oldRelease=releaseLock,oldLock=lockPromise,oldVault=vault,session=remoteSession;
+  calls?.close();calls=null;callUI?.remove();callUI=null;
   client=null;releaseLock=null;lockPromise=null;vault=null;tokenBinding='';savedRoomId=null;savedRoomOpening=null;mediaRequest=null;remoteSession=null;recoveryJob=null;oldVault?.close();
   handoffChannel?.close();handoffChannel=null;handoffRequests.clear();indexJobs.clear();indexConnection=null;
   for(const remove of listeners.splice(0))remove();
@@ -202,6 +207,34 @@ export function create(options={},injected={}) {
    deviceKeysApproved=true;
    crypto.globalBlacklistUnverifiedDevices=true;
    crypto.setDeviceIsolationMode(new deps.AllDevicesIsolationMode(true));
+   if(options.callsEnabled && expectedUserId===identity.user_id && expectedDeviceId===identity.device_id && options.callPermission){
+    const enabledClient=activeClient;
+    async function allowCall(roomId){
+      const {room,users}=await requireEncrypted(roomId,{verify:true});
+      const peer=users.length===2&&users.find(id=>id!==identity.user_id);
+      const directIds=Object.values(enabledClient.getAccountData?.('m.direct')?.getContent?.()||{}).flat();
+      if(!peer||(!directIds.includes(roomId)&&!room.getDMInviter?.())||enabledClient.getIgnoredUsers?.().includes(peer))throw fail('VOID_CALL','Calls require an accepted, verified one-to-one conversation.');
+      await options.callPermission(peer,identity.device_id);if(!owns())throw fail('VOID_CALL','The calling account changed.');return peer;
+    }
+    callUI=options.onCall?null:callPanel(()=>calls);
+    const manager=calls=createSecureCalls({device:identity.device_id,user:identity.user_id,allow:allowCall,
+      send:async(roomId,content)=>{await allowCall(roomId);return enabledClient.sendEvent(roomId,CALL_EVENT,content);},
+      relay:()=>enabledClient.turnServer(),onChange:options.onCall||callUI.update});
+    let queue=Promise.resolve();
+    subscribe(activeClient,deps.sdk.RoomEvent.Timeline,(event,room,atStart,removed)=>{
+      if(!room||atStart||removed||!event.isEncrypted?.()||!Number.isFinite(event.getTs?.())||Date.now()-event.getTs()>45000)return;
+      queue=queue.then(async()=>{
+        if(!owns()||calls!==manager)return;await enabledClient.decryptEventIfNeeded(event);
+        if(event.getType()!==CALL_EVENT||event.isDecryptionFailure?.())return;
+        const trust=await crypto.getEncryptionInfoForEvent(event);
+        if(!owns()||trust?.shieldColour!==0)return;
+        await manager.incoming({room:room.roomId,sender:event.getSender(),time:event.getTs(),content:event.getContent()});
+      }).catch(()=>{});
+    });
+    if(deps.sdk.RoomMemberEvent?.Membership)subscribe(enabledClient,deps.sdk.RoomMemberEvent.Membership,()=>manager.recheck());
+    subscribe(enabledClient,cryptoEvents.UserTrustStatusChanged,()=>manager.recheck());
+    subscribe(enabledClient,cryptoEvents.DevicesUpdated,()=>manager.recheck());
+   }
    subscribe(activeClient,deps.sdk.ClientEvent.Sync,sync=>{
     if(!owns()||client!==activeClient)return;
     emitState({phase:['PREPARED','SYNCING'].includes(sync)?'ready':'syncing',userId:identity.user_id,deviceId:identity.device_id,error:sync==='ERROR'?'Connection interrupted. Encrypted sends are paused.':''});
@@ -209,9 +242,9 @@ export function create(options={},injected={}) {
    subscribe(client,deps.sdk.RoomEvent.Timeline,(event,room)=>{if(owns()&&client===activeClient)options.onEvent?.({roomId:room?.roomId,eventId:event.getId?.()});});
    if(deps.sdk.ClientEvent.Room)subscribe(activeClient,deps.sdk.ClientEvent.Room,room=>{if(owns()&&client===activeClient)options.onEvent?.({type:'rooms-changed',roomId:room?.roomId});});
    if(deps.sdk.RoomEvent.MyMembership)subscribe(activeClient,deps.sdk.RoomEvent.MyMembership,(room,membership)=>{if(owns()&&client===activeClient)options.onEvent?.({type:'membership-changed',roomId:room?.roomId,membership});});
-   subscribe(client,deps.sdk.CryptoEvent.VerificationRequestReceived,request=>trackVerification(request));
-   subscribe(client,deps.sdk.CryptoEvent.UserTrustStatusChanged,()=>{if(owns())options.onEvent?.({type:'trust-changed'});});
-   subscribe(client,deps.sdk.CryptoEvent.DevicesUpdated,()=>{if(owns())options.onEvent?.({type:'devices-changed'});});
+   subscribe(client,cryptoEvents.VerificationRequestReceived,request=>trackVerification(request));
+   subscribe(client,cryptoEvents.UserTrustStatusChanged,()=>{if(owns())options.onEvent?.({type:'trust-changed'});});
+   subscribe(client,cryptoEvents.DevicesUpdated,()=>{if(owns())options.onEvent?.({type:'devices-changed'});});
    emitState({phase:'syncing',userId:identity.user_id,deviceId:identity.device_id});
    await activeClient.startClient({initialSyncLimit:50,lazyLoadMembers:true,pollTimeout:30000});
    if(!owns()||client!==activeClient)throw fail('VOID_ACCOUNT_CHANGED','Connection was cancelled.');
@@ -223,11 +256,12 @@ export function create(options={},injected={}) {
   if(!room||room.getMyMembership()!=='join')throw fail('VOID_MEMBERSHIP','Join this conversation before opening it.');
   const crypto=ticket.client.getCrypto();
   if(!crypto||!await crypto.isEncryptionEnabledInRoom(roomId))throw fail('VOID_PLAINTEXT','This is a legacy unencrypted conversation. Protected messaging is blocked.');
+  let users=[];
   if(verify){
    const setting=await ticket.client.getStateEvent(roomId,'m.room.encryption','');unchanged(ticket);
    if(setting.algorithm!=='m.megolm.v1.aes-sha2')throw fail('VOID_CRYPTO','The conversation has no supported encryption setting.');
    const members=await ticket.client.getJoinedRoomMembers(roomId);unchanged(ticket);
-   const users=Object.keys(members.joined||{});
+   users=Object.keys(members.joined||{});
    if(users.length>MAX_PARTICIPANTS)throw fail('VOID_LIMIT','This conversation exceeds the supported participant limit. Remove excess participants before sending.');
    if(!users.includes(state.userId))throw fail('VOID_MEMBERSHIP','Your membership is no longer active.');
    const targets=room.getEncryptionTargetMembers?await room.getEncryptionTargetMembers():room.getJoinedMembers?.();unchanged(ticket);
@@ -244,7 +278,7 @@ export function create(options={},injected={}) {
     }
    }
   }
-  unchanged(ticket);return {ticket,room,crypto};
+  unchanged(ticket);return {ticket,room,crypto,users};
  }
  async function listRooms(){
   const ticket=current(),result=[],direct=ticket.client.getAccountData?.('m.direct')?.getContent?.()||{},directIds=new Set(Object.values(direct).flatMap(ids=>Array.isArray(ids)?ids.filter(id=>typeof id==='string'):[]));
@@ -345,6 +379,14 @@ export function create(options={},injected={}) {
   if(event.getType()==='m.room.message'){
    const attachment=actual.file&&actual.file.v==='v2'?{name:cleanString(actual.filename||actual.body,255),mime:safeMime(actual.info?.mimetype),size:Number.isSafeInteger(actual.info?.size)?actual.info.size:null,kind:actual.msgtype==='m.image'?'image':actual.msgtype==='m.audio'?'audio':'file',durationMs:Number.isFinite(actual.info?.duration)?actual.info.duration:null}:null;
    return {...base,type:'text',text:attachment?'':cleanString(actual.body),replyToId:actualRelation['m.in_reply_to']?.event_id||null,threadRootId:actualRelation.rel_type==='m.thread'?actualRelation.event_id:null,edited:editing,replaces:editing?relation.event_id:null,...(attachment?{attachment,hasAttachment:true}:{})};
+  }
+  if(event.getType()===CALL_EVENT&&content.v===1){
+   if(content.action==='offer'&&['voice','video'].includes(content.kind))return {...base,type:'call',text:content.kind==='voice'?'Voice call invitation':'Video call invitation'};
+   if(content.action==='end'){
+    const text={timeout:'Call went unanswered.',declined:'Call declined.',failed:'Call connection ended.',hangup:'Call ended.'}[content.reason];
+    if(typeof text==='string')return {...base,type:'call',text};
+   }
+   return null;
   }
   if(event.getType()==='io.voidline.reaction')return {...base,type:'reaction',text:cleanString(content.reaction,16),target:cleanString(content.target,300),active:content.active!==false};
   if(event.getType()==='io.voidline.saved')return {...base,type:content.kind==='bookmark'?'bookmark':'note',...(content.kind==='bookmark'?{sourceRoomId:cleanString(content.sourceRoomId,300),sourceEventId:cleanString(content.sourceEventId,300)}:{text:cleanString(content.text)})};
@@ -684,7 +726,7 @@ export function create(options={},injected={}) {
   for(const room of ticket.client.getRooms()){const encrypted=await ticket.client.getCrypto().isEncryptionEnabledInRoom(room.roomId);unchanged(ticket);if(encrypted){await ticket.client.getCrypto().forceDiscardSession(room.roomId);unchanged(ticket);}}
   return {deviceId,revoked:true,synchronizationRequired:true};
  }
- return Object.freeze({connect,disconnect,requestWriterHandoff,respondToWriterHandoff,status:()=>({...state}),listRooms,listInvitations,invitation,acceptInvitation,declineInvitation,blockUser,leaveRoom,roomMembers,inviteParticipant,cancelInvitation,removeParticipant,createRoom,timeline,older,sendText,react,edit,deleteMessage,jumpToEvent,getRoomPermissions,getPins,setPinned,sendAttachment,downloadAttachment,saveDraft,getDraft,listDrafts,clearDraft,pendingSends,retryPending,saveNote,saveMessage,savedMessages,listSaved:savedMessages,removeSaved,search,indexHistory,devices,fingerprint,verifyFingerprint,requestVerification,acceptVerification,startVerification,confirmVerification,setupRecovery,restoreRecovery,securityStatus,revokeDevice});
+ return Object.freeze({callsAvailable:()=>!!calls?.supported(),startCall:(room,kind)=>{if(!calls?.supported())throw fail('VOID_CALL','Calling is unavailable on this device.');return calls.start(room,kind);},connect,disconnect,requestWriterHandoff,respondToWriterHandoff,status:()=>({...state}),listRooms,listInvitations,invitation,acceptInvitation,declineInvitation,blockUser,leaveRoom,roomMembers,inviteParticipant,cancelInvitation,removeParticipant,createRoom,timeline,older,sendText,react,edit,deleteMessage,jumpToEvent,getRoomPermissions,getPins,setPinned,sendAttachment,downloadAttachment,saveDraft,getDraft,listDrafts,clearDraft,pendingSends,retryPending,saveNote,saveMessage,savedMessages,listSaved:savedMessages,removeSaved,search,indexHistory,devices,fingerprint,verifyFingerprint,requestVerification,acceptVerification,startVerification,confirmVerification,setupRecovery,restoreRecovery,securityStatus,revokeDevice});
 }
 const api=Object.freeze({create,createLocalSaved,enrollEncryptedMessaging,getEncryptedEnrollmentStatus,clearEncryptedEnrollment,prepareEncryptedPasswordChange,limits:Object.freeze({maxParticipants:MAX_PARTICIPANTS,maxInvites:MAX_PARTICIPANTS-1})});
 if(typeof window!=='undefined')window.VoidSecureMessenger=api;

@@ -11,8 +11,8 @@
   <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
   <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
   <key>LSRequiresIPhoneOS</key><true/>
-  <key>NSMicrophoneUsageDescription</key><string>Record a voice note when you choose to record one in VOIDLINE.</string>
-  <key>NSCameraUsageDescription</key><string>Take a photo only when you choose the camera in VOIDLINE's upload picker.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Record a voice note or use your microphone when you start or answer a VOIDLINE call.</string>
+  <key>NSCameraUsageDescription</key><string>Use the camera when you choose a photo upload or start or answer a VOIDLINE video call.</string>
   <key>NSPhotoLibraryUsageDescription</key><string>Choose photos or GIFs to upload when you open VOIDLINE's image picker.</string>
   <key>NSPhotoLibraryAddUsageDescription</key><string>Save an image to Photos only when you choose that option in the share sheet.</string>
   <key>UILaunchScreen</key><dict/>

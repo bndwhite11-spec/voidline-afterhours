@@ -110,8 +110,9 @@ async function until(check, description) {
     // The conversation list can finish while the collection artwork is still loading.
     w.VoidHome.state.nativeListLoaded=true;
     doc.querySelector('[data-home="you"]').click();
+    await until(()=>doc.querySelector('[data-home="logout"]'),'basic profile while optional artwork is stalled');
+    assert.equal(w.VoidFeatures.ready('collection'),false);
     interrupted.release();
-    await until(()=>doc.querySelector('[data-home="logout"]'),'profile from first tap');
     assert.equal(w.location.hash,'#you');
     w.history.back();
     await until(()=>w.VoidHome.state.view==='collection','back to original collection route');
@@ -120,6 +121,32 @@ async function until(check, description) {
     assert.deepEqual(interrupted.errors,[]);
     console.log('PASS a profile tap during collection route restoration wins and preserves back/forward history');
   } finally { interrupted.release(); interrupted.dom.window.close(); }
+  const sidebarCase=fixture({signedIn:true});
+  try {
+    const {w}=sidebarCase, doc=w.document;
+    await until(()=>w.VoidHome?.state.phase==='ready' && w.VoidHome.state.nativeListLoaded,'signed-in conversation list');
+    const state=w.VoidHome.state;
+    state.nativeConversations=Array.from({length:45},(_,i)=>({id:'row-'+i,title:'Conversation '+i,kind:'group',participants:[]}));
+    w.VoidHome.refreshChrome();
+    const selector='.vh-sidebar-scroll';
+    const proto=w.HTMLElement.prototype,original=proto.getBoundingClientRect;
+    proto.getBoundingClientRect=function(){
+      if(this.matches('[data-home-native]')){
+        const list=this.closest(selector),index=[...list.querySelectorAll('[data-home-native]')].indexOf(this);
+        const top=index*50-list.scrollTop;return {top,bottom:top+50};
+      }
+      return original.call(this);
+    };
+    const list=doc.querySelector(selector);
+    list.scrollTop=630;
+    const anchor=doc.querySelector('[data-home-native="row-12"]');
+    assert.equal(anchor.getBoundingClientRect().top,-30);
+    state.nativeConversations.unshift({id:'new-arrival',title:'New activity',kind:'group',participants:[]});
+    w.VoidHome.refreshChrome();
+    assert.equal(doc.querySelector(selector).scrollTop,680);
+    assert.equal(doc.querySelector('[data-home-native="row-12"]').getBoundingClientRect().top,-30);
+    console.log('PASS incoming activity preserves the visible sidebar anchor across a replaced list');
+  } finally { sidebarCase.dom.window.close(); }
   const restored=fixture({signedIn:true,fail:'/native-outbox.js',route:'#collection'});
   try {
     const {w,assets,calls}=restored,doc=w.document;

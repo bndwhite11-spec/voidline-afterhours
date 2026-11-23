@@ -4,7 +4,7 @@ import {randomBytes} from 'node:crypto';
 // Runs entirely through the delivered client. Authenticated reads and D1 queries
 // independently cross-check the component being exercised. The account switch
 // deliberately reuses one document to exercise local identity cleanup, too.
-export async function verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,sender,beforeLogout,seeStage,requests}) {
+export async function verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,sender,registerForm,beforeLogout,seeStage,requests}) {
   const recipient={username:'quality_recipient',password:randomBytes(26).toString('hex')};
   const scope='[data-vc-action="section"][data-section="collector"]';
   const requestPanel='[data-vc-action="section"][data-section="requests"]';
@@ -18,7 +18,7 @@ export async function verifyCollectibleTransfer({action,click,element,until,$,ev
   }
   async function login(person){
     const form=await element('[data-home-form="login"]');
-    fill(form,{username:person.username,password:person.password});submit(form);
+    fill(form,{username:person.login||person.username,password:person.password});submit(form);
     await until(()=>state().phase==='ready'&&state().account?.username===person.username);
   }
   async function recover(){
@@ -36,8 +36,10 @@ export async function verifyCollectibleTransfer({action,click,element,until,$,ev
   const qty=()=>one('SELECT count(*) AS n FROM gift_instances WHERE catalog_id=?',opening.modelId);
   const showcase=()=>one('SELECT count(*) n FROM gift_showcase WHERE account_id=? AND instance_id=?',sender.id,copy);
   assert.equal((await showcase()).n,1);
-  seeStage('recipient-signup'); await logout();await action('auth-register');
-  const register=await element('[data-home-form="register"]');fill(register,{...recipient,displayName:'Recipient fixture',passwordConfirm:recipient.password});
+  seeStage('recipient-signup');await logout();
+  const {form:register,login:verifiedLogin}=await registerForm(recipient.username+'@example.test');
+  fill(register,{...recipient,displayName:'Recipient fixture',passwordConfirm:recipient.password});
+  recipient.login=verifiedLogin;
   submit(register);await action('finish-recovery');
   await until(()=>state().phase==='ready'&&state().account?.username===recipient.username&&!$('[data-home="finish-recovery"]'));
   const recipientId=state().account.id;assert.notEqual(recipientId,sender.id);

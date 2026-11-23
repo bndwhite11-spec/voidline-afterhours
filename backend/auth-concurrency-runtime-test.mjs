@@ -1,5 +1,6 @@
 // Submit real account forms concurrently to a single isolated production auth Worker.
 import assert from 'node:assert/strict';
+import {randomBytes,createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
@@ -10,8 +11,12 @@ const {Miniflare}=await import(pathToFileURL(wrangler.resolve('miniflare')));
 const root=new URL('../',import.meta.url),origin='https://accounts.test';
 const bundle=await build({stdin:{resolveDir:root.pathname,contents:"import {handleAuthRequest} from './worker/auth.mjs';export default {fetch(r,e){return handleAuthRequest(r,e)}}" },bundle:true,format:'esm',platform:'browser',target:'es2022',write:false});
 const runtime=new Miniflare({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-05-15',d1Databases:{DB:'isolated-auth-concurrency'},d1Persist:false});
+const challenges=new Map();
 async function submit(path,username){
- const response=await runtime.dispatchFetch(origin+'/api/auth/'+path,{method:'POST',headers:{origin,'content-type':'application/json','x-voidline-auth':'1'},body:JSON.stringify({username,displayName:username,password:'Independent test account pass '+username})});
+ const credentials = path==='register'
+  ? {username,displayName:username,emailToken:challenges.get(username)}
+  : {login:username+'@example.test'};
+ const response=await runtime.dispatchFetch(origin+'/api/auth/'+path,{method:'POST',headers:{origin,'content-type':'application/json','x-voidline-auth':'1'},body:JSON.stringify({...credentials,password:'Independent test account pass '+username})});
  const isJSON=response.headers.get('content-type')?.includes('application/json');
  let data={};
  if(isJSON)data=await response.json();
@@ -29,6 +34,12 @@ try{
   for(const sql of migration.split('--> statement-breakpoint').filter(part=>part.trim()))await db.prepare(sql).run();
  }
  const people=['test_moon','test_comet','test_quasar'];
+ for(const person of people) {
+  const token=randomBytes(32).toString('hex');
+  await db.prepare('INSERT INTO auth_registration_challenges(token_hash,email,expires_at) VALUES(?,?,?)')
+   .bind(createHash('sha256').update(token).digest('hex'),person+'@example.test',Date.now()+600000).run();
+  challenges.set(person,token);
+ }
  const first=await Promise.all(people.map(person=>submit('register',person)));
  console.log('Concurrent registration statuses:',first.map(r=>r.status).join(', '));
  assert(first.some(r=>r.status===201));

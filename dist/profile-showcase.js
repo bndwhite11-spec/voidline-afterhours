@@ -23,6 +23,7 @@
   const itemFor=id=>catalog.find(row=>row.id===id);
   const rowFor=id=>metadata.get(id);
   const shortID=id=>'Instance '+(id.length>22?'…'+id.slice(-10):id);
+  const editionFor=row=>row?.model?.editionLabel||itemFor(row?.catalog_id)?.editionLabel||window.VoidCosmetics?.editionLabel?.(itemFor(row?.catalog_id))||'';
   const titleFor=row=>row?.name||itemFor(row?.catalog_id)?.name||'Gift item';
   function seed(value){for(const row of value?.showcase||[]){const id=row.instance_id??row.instanceId;if(!validID(id))continue;metadata.set(id,{...metadata.get(id),...row,id,catalog_id:row.catalog_id??metadata.get(id)?.catalog_id});}}
   seed(profile);
@@ -33,7 +34,7 @@
    slots=normalize(next);detailSerial++;error='';notice=message||'Showcase draft updated. Save profile to publish it.';detailInstance=null;renderSlots(focus);onChange(value());
   }
   const slotAt=number=>slots.find(row=>row.slot===number);
-  function sourceCopy(row){return row?.origin_kind==='claim'?'Collected by you':row?.origin_kind==='legacy-claim'?'Preserved collection item':row?.origin_kind==='gift'?'Received gift':'Owned gift';}
+  function sourceCopy(row){const source=({claim:'Collected by you','legacy-claim':'Preserved collection item',gift:'Received gift',transfer:'Accepted transfer',capsule:'Choice Capsule',milestone:'Participation milestone'})[row?.origin_kind]||'Owned gift';return [editionFor(row),source].filter(Boolean).join(' · ');}
   function senderAvailable(row){return !!row?.sender_username||row?.senderDisclosureAvailable===true;}
   function slotHTML(number){
    const slot=slotAt(number),row=slot?rowFor(slot.instanceId):null,name=slot?titleFor(row):'Empty slot';
@@ -63,7 +64,7 @@
   }
   function pickerHTML(){
    const selected=slotAt(pickerSlot),row=selected?rowFor(selected.instanceId):null;
-   return `<header class="ps-picker-heading"><div><h4>${selected?`Replace ${esc(titleFor(row))}`:'Choose an owned gift'}</h4><p>${selected?`The item in position ${pickerSlot} stays yours when replaced.`:`The selected instance will appear in position ${pickerSlot}.`}</p></div><button type="button" class="vh-text-button" data-ps-action="close-picker">Close picker</button></header><label class="vh-field">Gift design<select data-ps-filter><option value="">All owned gift designs</option>${catalog.filter(row=>row.type==='gift').map(row=>`<option value="${esc(row.id)}" ${designFilter===row.id?'selected':''}>${esc(row.name)}</option>`).join('')}</select></label><div data-ps-results aria-busy="${loading}"></div><p class="ps-fine">Only owned instances are offered. Choosing one changes this draft, not ownership.</p>`;
+   return `<header class="ps-picker-heading"><div><h4>${selected?`Replace ${esc(titleFor(row))}`:'Choose an owned gift'}</h4><p>${selected?`The item in position ${pickerSlot} stays yours when replaced.`:`The selected instance will appear in position ${pickerSlot}.`}</p></div><button type="button" class="vh-text-button" data-ps-action="close-picker">Close picker</button></header><label class="vh-field">Gift design<select data-ps-filter><option value="">All owned gift designs</option>${catalog.filter(row=>row.type==='gift').map(row=>`<option value="${esc(row.id)}" ${designFilter===row.id?'selected':''}>${esc(row.name)}${row.editionLabel?' · '+esc(row.editionLabel):''}</option>`).join('')}</select></label><div data-ps-results aria-busy="${loading}"></div><p class="ps-fine">Only owned instances are offered. Choosing one changes this draft, not ownership.</p>`;
   }
   function renderPicker(){
    const host=root?.querySelector('[data-ps-picker]');if(!host)return;

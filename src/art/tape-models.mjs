@@ -203,12 +203,18 @@ function screw(x,y,v,angle){
 function shadow(v) {
   return `<g opacity=".29">${e(131,196,94,5.7,'#1f2324')+e(135,195,68,3.8,'#151a1c')}</g>`;
 }
-function face(p,v,variant){
+function padSpring(v){
+ const a=settings[v];
+ return part('transport-pad',d('M108 178l4-4h23l4 4-5-1.6h-21Z',a.lip,a.edge,.7)
+   +d('M113 171.9l20.5-.1 1.6 3.7-23.5.2Z',v==='clear'?'#ce9f66':'#a28367',a.edge,.7)
+   +l('M115 173.5l3-.3m2.1.1 2.8-.2m2.4.1 3.6-.3',a.bright,.65));
+}
+function face(p,v,variant,finish=true){
   const a=settings[v],detail=variant!=='card',isClear=v==='clear';
   let shell=outer(p,v);
   if(isClear)shell+=clearInterior(p,detail)+reel(p,v,79,'supply',detail)+reel(p,v,171,'takeup',detail)+clearFrame(p,detail);
   else shell+=(v==='graphite'?paperLabel(p,v,detail):v==='splice'?repairLabel(p,detail):v==='metal'?machineLabel(p,detail):printLabel(p,detail))+slot(p,v);
-  shell+=headPlate(p,v,detail);
+  shell+=headPlate(p,v,detail)+(finish?padSpring(v):'');
   if(isClear){
     // The clear head shield has a cut-in guide exposing the amber leader at y=166.
     shell+=d('M92 162H155L153 169H91Z','#486e5d',a.edge,1.1)+l('M94 166h58','#b99c73',2.15)
@@ -267,6 +273,6 @@ const specs=[
  ['press','gift-tape-night-press','Mulberry shell, two-color screen print and warm registration foil.','A plum cassette printed with a gold moon and thin wavy horizons; the right hub carries a foil registration cross.','The screen-printed moon stays still while a small foil registration cross advances with the winding hub.']
 ];
 for(const [variant,id,material,alt,storyboard] of specs){
-  tapeModels[id]={material,alt,storyboard,mini:miniature(variant),body:(p,size)=>face(p,variant,size),
-    silhouette:`<g transform="rotate(-5 128 128)">${d('M35 63H210Q219 63 222 72L229 183Q231 194 218 196L34 199Q24 198 22 190L22 76Q23 65 35 63Z','#10171b')}</g>`,motion:rigs[variant]};
+  tapeModels[id]={material,alt,storyboard,mini:miniature(variant),body:(p,size,finish=true)=>face(p,variant,size,finish),historicalMotion:rigs[variant],
+    silhouette:`<g transform="rotate(-5 128 128)">${d('M35 63H210Q219 63 222 72L229 183Q231 194 218 196L34 199Q24 198 22 190L22 76Q23 65 35 63Z','#10171b')}</g>`,motion:{...rigs[variant],layers:[...rigs[variant].layers,layer('transport-pad',[123,178],[{at:.12},{at:.24,y:1.2,scaleY:.75},{at:.53,y:1.4,scaleY:.70},{at:.68,y:-.5},{at:.84,y:.2}])]}};
 }

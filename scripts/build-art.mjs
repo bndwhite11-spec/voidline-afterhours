@@ -7,11 +7,12 @@ import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {JSDOM} from 'jsdom';
 import {validateLayeredScene} from '../src/art/layered-format.mjs';
-import {artCatalog,artSVG,artVersion,priorArtSVG,studioCatalog,published32ArtSVG,studioIds,curatedIds} from '../src/art/catalog.mjs';
+import {artCatalog,artSVG,artVersion,priorArtSVG,studioCatalog,published32ArtSVG,studioIds,curatedIds,emblemIds,priorModelArtSVG} from '../src/art/catalog.mjs';
 import {legacyPresentations} from '../src/collectibles/legacy-presentations.mjs';
 import {giftBases} from '../src/art/gift-bases.mjs';
 import {telegramReferences} from '../src/art/telegram-references.mjs';
 import {research,RESEARCH_REVIEWED_AT} from '../src/art/research.mjs';
+import {collectibleModels,collectibleFamilies} from '../src/collectibles/models.mjs';
 import {COSMETICS,BADGE_DEFINITIONS} from '../worker/cosmetics.mjs';
 const partial=process.argv.includes('--partial'),requireWeb=!partial||process.argv.includes('--require-web-sources'),root=new URL('../',import.meta.url),destination=new URL('../dist/art/v'+artVersion+'/',import.meta.url),client={};
 const published32Source=id=>{const s=studioCatalog[id].sourceArt;return {edition:'Site 32',creator:s.creator,license:s.license,sourceURL:s.sourceURL,licenseURL:s.licenseURL,sha256:s.sha256,...(s.components?{components:s.components}:{}),changes:s.changes};};
@@ -45,7 +46,7 @@ for(const id of ids){
   const digest=hash(svg),file=id+'-'+variant+'.'+digest.slice(0,12)+'.svg';await writeFile(new URL(file,folder),svg);variants[variant]={url:'/art/v'+artVersion+'/'+file,width:variant==='mini'?24:256,height:variant==='mini'?24:256,bytes:Buffer.byteLength(svg),sha256:digest};}
  const history=[];
  if(studioIds.includes(id))history.push(priorArtSVG);
- if(curatedIds.includes(id))history.push(published32ArtSVG);
+ if(curatedIds.includes(id)||emblemIds.includes(id))history.push(published32ArtSVG);
  for(const archived of history)for(const variant of Object.keys(variants)){
   const previous=archived(id,variant),digest=hash(previous),file=id+'-'+variant+'.'+digest.slice(0,12)+'.svg';
   if(variants[variant].sha256!==digest)await writeFile(new URL(file,folder),previous);
@@ -65,13 +66,18 @@ for(const id of ids){
  if(layered){
   const {assetKind,familyId,tier,backdrop,motif,description,acquisitionPolicy,artRevision}=a;
   Object.assign(record,{assetKind,familyId,tier,backdrop,motif,description,acquisitionPolicy,artRevision,edition:artRevision,
-    ...(curatedIds.includes(id)?{archivedSource:published32Source(id)}:{}),
+    ...(curatedIds.includes(id)||emblemIds.includes(id)?{archivedSource:published32Source(id)}:{}),
     restingState:'Complete static layered illustration',presentation:'Original layered artwork with named mechanical or textile parts',storyboard:a.storyboard,
     credits:'Original VOIDLINE vector illustration and motion',rights:'Art drawn for VOIDLINE. Character references have their respective creators; no official affiliation.',
     newlyDrawn:['optical miniature','object geometry',...a.motion.layers.map(layer=>layer.name)]});
   if(!record.storyboard||record.storyboard.length<12)throw Error('Missing storyboard '+id);
  }
- manifest.items.push(record);client[id]={id,assetKind:record.assetKind,...(record.archivedSource?{archivedSource:{creator:record.archivedSource.creator,sourceURL:record.archivedSource.sourceURL,license:record.archivedSource.license}}:{}),...(a.edition?{edition:a.edition}:{}),reference,name:a.name,type:a.type,series:a.series,material:a.material,alt:a.alt,...(layered?{acquisitionPolicy:a.acquisitionPolicy,familyId:a.familyId,tier:a.tier,backdrop:a.backdrop,motif:a.motif,description:a.description,artRevision:a.artRevision,miniURL:variants.mini.url}:{motion:a.motion}),cardURL:variants.card.url,detailURL:variants.detail.url,silhouetteURL:variants.silhouette.url,detailBytes:variants.detail.bytes,detailSHA256:variants.detail.sha256,...(web?{sourceArt:web}:layered?{}:{mini:a.mini})};
+ const definition=COSMETICS.find(row=>row.id===id)||BADGE_DEFINITIONS.find(row=>row.id===id);
+ const collectionFamilyId=definition?.collectionFamilyId||a.familyId;
+ const familyName=collectionFamilyId==='copium-cartridge'?'Copium Cartridges':collectibleFamilies[collectionFamilyId]?.name;
+ const discovery={acquisition:definition?.requirement||definition?.acquisition||'',editionLabel:definition?.editionLabel||'',collectionFamilyId,familyName,weight:collectibleModels[id]?.weight};
+ Object.assign(record,discovery);
+ manifest.items.push(record);client[id]={id,...discovery,assetKind:record.assetKind,...(record.archivedSource?{archivedSource:{creator:record.archivedSource.creator,sourceURL:record.archivedSource.sourceURL,license:record.archivedSource.license}}:{}),...(a.edition?{edition:a.edition}:{}),reference,name:a.name,type:a.type,series:a.series,material:a.material,alt:a.alt,...(layered?{acquisitionPolicy:a.acquisitionPolicy,familyId:a.familyId,tier:a.tier,backdrop:a.backdrop,motif:a.motif,description:a.description,artRevision:a.artRevision,miniURL:variants.mini.url}:{motion:a.motion}),cardURL:variants.card.url,detailURL:variants.detail.url,silhouetteURL:variants.silhouette.url,detailBytes:variants.detail.bytes,detailSHA256:variants.detail.sha256,...(web?{sourceArt:web}:layered?{}:{mini:a.mini})};
 }
 await writeFile(new URL('manifest.json',folder),JSON.stringify(manifest,null,2)+'\n');
 const compiled=await build({stdin:{contents:`import {installArt} from './src/art/client.mjs';installArt(${JSON.stringify(client)},${artVersion});`,resolveDir:root.pathname,sourcefile:'collectible-art-entry.mjs',loader:'js'},bundle:true,format:'iife',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'none'});
@@ -91,7 +97,8 @@ for(const archive of archives){
   try{bytes=await readFile(new URL(filename,folder));}
   catch(error){
    if(error.code!=='ENOENT')throw error;
-   bytes=await readFile(new URL('../src/art/historical-variants/'+filename,import.meta.url));
+   const earlyMaster=priorModelArtSVG(id,variant);
+   bytes=earlyMaster&&hash(earlyMaster)===record.sha256?Buffer.from(earlyMaster):await readFile(new URL('../src/art/historical-variants/'+filename,import.meta.url));
    await writeFile(new URL(filename,folder),bytes);
   }
   if(hash(bytes)!==record.sha256)throw Error('Frozen artwork failed its digest in '+table+': '+id);

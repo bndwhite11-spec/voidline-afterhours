@@ -15,7 +15,7 @@
     if (document.documentElement.dataset.offline === 'true' || location.protocol === 'file:') return true;
     if (window.VoidTheme?.state?.().effectiveReducedMotion || document.documentElement.classList?.contains('vh-reduced-motion')) return true;
     const route = location.pathname + location.search + location.hash;
-    if (/\/(?:api\/auth|auth\/callback|oauth\/callback)(?:\/|\?|$)/i.test(route) || /(?:[?#&])(?:verify-email|reset-password|code|oauth_state|auth_error)=/i.test(route)) return true;
+    if (/\/(?:api\/auth|auth\/callback|oauth\/callback)(?:\/|\?|$)/i.test(route) || /(?:[?#&])(?:verify-email|signup-email|reset-password|code|oauth_state|auth_error)=/i.test(route)) return true;
     try { if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true; } catch (_) { /* A bounded static fallback still works. */ }
     try { if (sessionStorage.getItem(SEEN_KEY) === '1') return true; } catch (_) { /* Optional session preference; never needed for access. */ }
     return false;

@@ -18,7 +18,7 @@ async function until(predicate) {
   assert.ok(predicate(), 'The account form completed its asynchronous update.');
 }
 
-async function client({ hash = '', rejections = {} } = {}) {
+async function client({ hash = '', rejections = {}, email = {configured:false} } = {}) {
   const errors = [], calls = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', error => errors.push(error));
@@ -38,8 +38,9 @@ async function client({ hash = '', rejections = {} } = {}) {
     const request = { url: String(url), method: options.method || 'GET', body: options.body ? JSON.parse(options.body) : undefined };
     calls.push(request);
     let status = 200, body;
-    if (url === '/api/auth/config') body = { configured: true, matrix: { configured: false }, encryption: { available: false }, google: { configured: false }, email: { configured: false } };
+    if (url === '/api/auth/config') body = { configured: true, matrix: { configured: false }, encryption: { available: false }, google: { configured: false }, email };
     else if (url === '/api/auth/session') { status = 401; body = { error: { code: 'sign_in_required', message: 'Log in to continue.' } }; }
+    else if (url === '/api/auth/register/email') { status=202; body={accepted:true}; }
     else if (rejections[url]) { status = 400; body = { error: rejections[url] }; }
     else if (url === '/api/auth/login') { status = 401; body = { error: { code: 'invalid_credentials', message: 'The username or password is incorrect.' } }; }
     else throw Error('Unexpected account request: ' + url);
@@ -62,6 +63,30 @@ async function client({ hash = '', rejections = {} } = {}) {
   return { dom, window, document, calls, errors, form, input, type, blur, register, feedback, close: () => window.close() };
 }
 
+test('verified signup requests a private email before collecting a password; existing users have a legacy sign-in option',async()=>{
+ const app=await client({email:{configured:true,registration:'verified-email'}});try{
+  app.register();assert.equal(app.form().dataset.homeForm,'signup-email-request');assert.equal(app.input('password'),null);
+  app.type('email','new@example.test');app.form().dispatchEvent(new app.window.Event('submit',{bubbles:true,cancelable:true}));
+  await until(()=>app.form().textContent.includes('Check your inbox'));
+  assert.equal(app.calls.find(x=>x.url==='/api/auth/register/email').body.email,'new@example.test');
+  app.document.querySelector('[data-home="auth-login"]').click();assert.equal(app.input('username').type,'email');
+  app.document.querySelector('[data-home="auth-legacy-login"]').click();assert.equal(app.input('username').type,'text');
+ }finally{app.close();}
+ const token='a'.repeat(64),finish=await client({hash:'#signup-email='+token,email:{configured:true,registration:'verified-email'},rejections:{'/api/auth/register':{code:'username_taken',message:'Choose another username.'}}});
+ try{
+  assert.equal(finish.form().dataset.homeForm,'register');
+  for(const [name,value] of Object.entries({username:'right_user',displayName:'Right User',password:'Very private test password',passwordConfirm:'Very private test password'}))finish.type(name,value);
+  finish.form().dispatchEvent(new finish.window.Event('submit',{bubbles:true,cancelable:true}));
+  await until(()=>finish.calls.some(x=>x.url==='/api/auth/register'));
+  assert.equal(finish.calls.find(x=>x.url==='/api/auth/register').body.emailToken,token);
+ }finally{finish.close();}
+});
+test('when delivery is unavailable signup explains the outage while sign-in stays usable',async()=>{
+ const app=await client({email:{configured:false,registration:'verified-email'}});try{
+  app.register();assert.equal(app.form(),null);assert.match(app.document.body.textContent,/Email delivery is temporarily unavailable/);
+  app.document.querySelector('[data-home="auth-login"]').click();assert.equal(app.form().dataset.homeForm,'login');
+ }finally{app.close();}
+});
 test('new passwords move through quiet, short, weak, fair and strong feedback without replacing the input', async () => {
   const app = await client();
   try {

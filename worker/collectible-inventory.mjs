@@ -1,9 +1,11 @@
 /** Account projections. Catalog identity, ownership period and private history are separate. */
+import {cartridgeDesigns} from '../src/collectibles/cartridge-designs.mjs';
 import {collectibleFamilies} from '../src/collectibles/models.mjs';
 import {models,familyName,legacyOnlySQL,capsuleModelIdsJSON,collectibleDisplay} from '../src/collectibles/presentation.mjs';
 import {AuthError} from './auth.mjs';
 
 const q=(db,sql,...args)=>db.prepare(sql).bind(...args);
+const freeCartridges=['gift-copium-cartridge',...Object.keys(cartridgeDesigns)];
 const acceptedTransfer=`t.id=(SELECT last.id FROM gift_transfers last WHERE last.instance_id=i.id AND last.state='accepted' AND last.recipient_id=i.owner_id ORDER BY last.handled_at DESC,last.rowid DESC LIMIT 1)`;
 export function acquisitionTime(alias='i'){
  return `COALESCE(${alias}.acquired_at,(SELECT MAX(h.handled_at) FROM gift_transfers h WHERE h.instance_id=${alias}.id AND h.recipient_id=${alias}.owner_id AND h.state='accepted'),${alias}.created_at)`;
@@ -27,7 +29,10 @@ export async function inventorySummary(db,userId){
  const discoveredModelIds=discovery.results.map(r=>r.model_id),known=new Set(discoveredModelIds);
  const modelCounts=Object.fromEntries(counts.results.map(r=>[r.catalog_id,r.copies]));
  const totalCopies=counts.results.reduce((sum,r)=>sum+r.copies,0),newArrivals=counts.results.reduce((sum,r)=>sum+r.unseen,0);
- const families=Object.values(collectibleFamilies).map(({id,modelIds})=>({familyId:id,ownedModels:modelIds.filter(m=>modelCounts[m]>0).length,discoveredModels:modelIds.filter(m=>known.has(m)).length,totalModels:modelIds.length,copies:modelIds.reduce((sum,m)=>sum+(modelCounts[m]||0),0)}));
+ const families=Object.values(collectibleFamilies).map(({id,modelIds})=>{
+  const designs=id==='copium-cartridge'?[...modelIds,...freeCartridges]:modelIds;
+  return {familyId:id,ownedModels:designs.filter(m=>modelCounts[m]>0).length,discoveredModels:designs.filter(m=>known.has(m)).length,totalModels:designs.length,copies:designs.reduce((sum,m)=>sum+(modelCounts[m]||0),0)};
+ });
  return {designs:counts.results.map(r=>({cosmetic_id:r.catalog_id,claimed_at:r.first_owned_at})),summary:{totalCopies,modelCounts,discoveredModelIds,newArrivals,unacknowledgedCount:newArrivals,duplicateCopies:totalCopies-counts.results.length,families}};
 }
 const badFilter=()=>{throw new AuthError(400,'invalid_filter','Choose an available collection filter.');};
@@ -39,6 +44,7 @@ export function ownerFilters(params,ownerId){
  if(family==='legacy'){where.push('i.'+legacyOnlySQL);args.push(capsuleModelIdsJSON);}
  if(tier||family&&family!=='legacy'){
   const ids=models.filter(m=>(!family||family===m.familyId)&&(!tier||tier.toLowerCase()===m.tier.toLowerCase())).map(m=>m.id);
+  if(family==='copium-cartridge'&&!tier)ids.push(...freeCartridges);
   where.push('i.catalog_id IN (SELECT value FROM json_each(?))');args.push(JSON.stringify(ids));
  }
  if(params.get('duplicate')==='1')where.push(`EXISTS(SELECT 1 FROM gift_instances other WHERE other.owner_id=i.owner_id AND other.catalog_id=i.catalog_id AND (${acquisitionTime('other')},other.id)<(${periodTime},i.id))`);

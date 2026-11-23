@@ -1,5 +1,5 @@
 import {authenticate,validateSessionMutation,authRateLimit,readBody,AuthError} from './auth.mjs';
-import {activeEditionId,ensureEditionStatement,qualifyingAction,weekAt,expiryClock,validateTables,modelAt,randomDraw,issuingEnabled,openingEnabled} from './capsule-rules.mjs';
+import {activeEditionId,ensureEditionStatement,collectorEdition,collectorAction,qualifyingAction,weekAt,expiryClock,validateTables,modelAt,randomDraw,issuingEnabled,openingEnabled} from './capsule-rules.mjs';
 
 const q=(db,sql,...binds)=>db.prepare(sql).bind(...binds);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{
@@ -25,15 +25,21 @@ const capsuleSelect=`SELECT c.*,o.id AS opening_id,o.opened_at,o.acknowledged_at
   LEFT JOIN capsule_openings o ON o.capsule_id=c.id`;
 async function overview(env,user,offset) {
   const db=env.DB, clock=await q(db,'SELECT '+expiryClock+' AS ms').first(),week=weekAt(clock.ms);
-  const [rows,count,stampCount,welcome]=await Promise.all([
+  const active=activeEditionId(env),collector=active===collectorEdition;
+  const [rows,count,stamps,welcome,milestone]=await Promise.all([
     q(db,capsuleSelect+' WHERE c.account_id=? ORDER BY c.earned_at DESC,c.id DESC LIMIT 50 OFFSET ?',user.id,offset).all(),
     q(db,'SELECT COUNT(*) n FROM collectible_capsules WHERE account_id=?',user.id).first(),
-    q(db,'SELECT COUNT(*) n FROM capsule_stamps WHERE account_id=? AND utc_week=?',user.id,week.key).first(),
-    q(db,"SELECT id FROM collectible_capsules WHERE account_id=? AND source='welcome' AND period='onboarding' LIMIT 1",user.id).first()
+    q(db,"SELECT COUNT(*) n, COUNT(CASE WHEN utc_day=date(?/1000,'unixepoch') THEN 1 END) today FROM capsule_stamps WHERE account_id=? AND utc_week=?",clock.ms,user.id,week.key).first(),
+    q(db,"SELECT id FROM collectible_capsules WHERE account_id=? AND source='welcome' AND period='onboarding' LIMIT 1",user.id).first(),
+    q(db,"SELECT id FROM collectible_capsules WHERE account_id=? AND source='weekly' AND edition_id=? LIMIT 1",user.id,collectorEdition).first()
   ]);
   await requireActor(db,user);
   return {capsules:rows.results.map(detailCapsule),page:{offset,limit:50,total:count.n,hasMore:offset+50<count.n},
-    progress:{days:Math.min(3,stampCount.n),required:3,weekStart:week.weekStart,nextWeek:week.nextWeek,qualifyingAction},
+    activeEditionId:active,
+    progress:{days:Math.min(3,stamps.n),required:3,weekStart:week.weekStart,nextWeek:week.nextWeek,
+      checkedInToday:stamps.today>0,checkInAvailable:collector&&issuingEnabled(env),
+      milestone:{modelId:'gift-copium-cartridge',earned:!!milestone,available:collector&&issuingEnabled(env)},
+      qualifyingAction:collector?collectorAction:qualifyingAction},
     welcomeEligible:!welcome,issuingEnabled:issuingEnabled(env),openingEnabled:openingEnabled(env)};
 }
 async function capsuleView(db,user,id) {
@@ -66,6 +72,19 @@ async function reconcile(env,user) {
     q(db,`INSERT INTO collectible_capsules(id,account_id,source,period,edition_id,earned_at)
       SELECT ?,?,'welcome','onboarding',?,${expiryClock} WHERE ${actorSQL}
       ON CONFLICT(account_id,source,period) DO NOTHING`,crypto.randomUUID(),user.id,editionId,user.sessionId,user.id)
+  ]);
+  return overview(env,user,0);
+}
+// Proof of present participation is this authenticated, CSRF-checked action.
+// Only the UTC date is used for awards. The client supplies no time or chat content.
+async function checkIn(env,user) {
+  need(activeEditionId(env)===collectorEdition&&issuingEnabled(env),503,'check_in_unavailable','Daily check-in is currently unavailable.');
+  const db=env.DB;
+  await db.batch([
+    ensureEditionStatement(db,collectorEdition,actorSQL,user.sessionId,user.id),
+    q(db,`INSERT INTO capsule_stamps(account_id,utc_day,utc_week,committed_at,edition_id)
+      SELECT ?,date('now'),date('now','-6 days','weekday 1'),${expiryClock},? WHERE ${actorSQL}
+      ON CONFLICT(account_id,utc_day) DO NOTHING`, user.id,collectorEdition,user.sessionId,user.id)
   ]);
   return overview(env,user,0);
 }
@@ -145,6 +164,7 @@ export async function handleCapsulesRequest(request,env) {
     const body=await readBody(request);
     await validateSessionMutation(request,user,body);
     await authRateLimit(request,db,'capsule_mutation',80,Date.now(),user.id);
+    if (id==='check-in'&&!action) {verifyBody(body,[]);return json(await checkIn(env,user));}
     if (id==='reconcile'&&!action) { verifyBody(body,[]);return json(await reconcile(env,user)); }
     need(capsuleID(id)&&['open','ack'].includes(action),404,'capsule_unavailable','This capsule action is unavailable.');
     const view=await capsuleView(db,user,id);

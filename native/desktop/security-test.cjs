@@ -83,12 +83,20 @@ test('microphone request uses native consent and actual check-handler mediaType 
   assert.equal(h.state.check(wc, 'media', ORIGIN, { mediaType: 'video', isMainFrame: true }), false);
   assert.equal(h.state.check(wc, 'media', 'https://evil.test', { mediaType: 'audio', isMainFrame: true }), false);
 });
-test('foreign frames, camera, screen capture and special permissions are denied without prompts', async () => {
+test('foreign frames, screen capture and special permissions are denied without prompts', async () => {
   const h = harness(); await h.desktop.start(); const wc = h.state.windows[0].webContents;
-  for (const [permission, details] of [['media', { mediaTypes: ['video'] }], ['display-capture', {}], ['geolocation', {}], ['media', { mediaTypes: ['audio'], isMainFrame: false }], ['notifications', { requestingUrl: 'https://evil.test' }]]) {
+  for (const [permission, details] of [['media', { mediaTypes: ['video'], isMainFrame: false }], ['display-capture', {}], ['geolocation', {}], ['media', { mediaTypes: ['audio'], isMainFrame: false }], ['notifications', { requestingUrl: 'https://evil.test' }]]) {
     let result; await h.state.request(wc, permission, value => { result = value; }, { requestingUrl: ORIGIN, isMainFrame: true, ...details }); assert.equal(result, false);
   }
   assert.equal(h.state.dialogs.length, 0);
+});
+test('a top-level video call requests both AV permissions without implicitly extending an audio grant', async () => {
+  const h = harness(); await h.desktop.start(); const wc = h.state.windows[0].webContents;
+  h.state.response=1; let allowed=false;
+  await h.state.request(wc,'media',v=>{allowed=v;},{requestingUrl:ORIGIN+'/',isMainFrame:true,mediaTypes:['audio','video']});
+  assert(allowed);assert.equal(h.state.check(wc,'media',ORIGIN,{mediaType:'video',isMainFrame:true}),true);
+  assert.equal(h.state.check(wc,'media',ORIGIN,{mediaType:'audio',isMainFrame:true}),true);
+  assert.equal(h.state.check(wc,'media',ORIGIN,{mediaType:'video',isMainFrame:false}),false);
 });
 test('revocation rejects pending approvals and reloads to stop existing microphone tracks', async () => {
   const h = harness(); await h.desktop.start(); const win = h.state.windows[0]; let resolve;

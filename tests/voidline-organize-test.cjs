@@ -16,6 +16,22 @@ function client(){
  const form=(kind,values,dataset={})=>{const button=node('submit');return{dataset:{voForm:kind,...dataset},values:{...values},isConnected:true,querySelector:()=>button,reset(){for(const key of Object.keys(this.values))this.values[key]='';}};};
  return{state,home,events,emitted,calls,toasts,replies,nodes,vault,vaultNotes,context,api:context.window.VoidOrganize,seam:context.window.__org,form,setForm:form=>{currentForm=form;},setSaveFailure:value=>{saveFailure=value;},get renders(){return renders;}};
 }
+test('a stalled gift lookup and a failed friend lookup leave chat results usable, with scoped retry',async()=>{
+ const a=client(),gifts=deferred();
+ a.replies.set('/api/cosmetics/inventory',gifts.promise);
+ a.replies.set('/api/social?limit=1',()=>{throw Error('Unavailable');});
+ a.replies.set('/api/messages/conversations?limit=30&filter=unread',{conversations:[{id:'first',kind:'dm',title:'Live conversation',unreadCount:1,lastMessage:{id:'m1',text:'First'}}],page:{}});
+ const loading=a.seam.inbox();await new Promise(resolve=>setImmediate(resolve));
+ assert.match(a.nodes.get('vo-results').innerHTML,/Live conversation/);
+ assert.match(a.nodes.get('vo-requests').innerHTML,/Retry friend requests/);
+ assert.match(a.nodes.get('vo-requests').innerHTML,/Loading gift requests/);
+ const before=a.calls.length;a.replies.set('/api/social?limit=1',{counts:{incoming:2}});
+ await a.seam.action({dataset:{vo:'retry-inbox-source',source:'social'}});
+ assert.deepEqual(a.calls.slice(before).map(call=>call.route),['/api/social?limit=1']);
+ assert.match(a.nodes.get('vo-requests').innerHTML,/2 friend requests/);
+ gifts.resolve({pendingGifts:1});await loading;
+ assert.match(a.nodes.get('vo-requests').innerHTML,/1 gift request/);
+});
 test('opening Inbox is read-only and request counts come from real account responses',async()=>{const a=client();a.replies.set('/api/social?limit=1',{counts:{incoming:2}});a.replies.set('/api/cosmetics/inventory',{pendingGifts:3});await a.seam.inbox();assert.ok(a.calls.every(c=>c.body===undefined));assert.match(a.nodes.get('vo-requests').innerHTML,/2 friend requests/);assert.match(a.nodes.get('vo-requests').innerHTML,/3 gift requests/);assert.match(a.nodes.get('dialog').innerHTML,/does not mark anything read/);});
 test('reopening Search restores its submitted page and link filter under current permissions',async()=>{
  const a=client();a.seam.search();const url='/api/messages/search?limit=30&offset=30&q=needle&has=links';

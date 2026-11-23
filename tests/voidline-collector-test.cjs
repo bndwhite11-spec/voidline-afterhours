@@ -21,8 +21,9 @@ function fixture({reduced=false,media='fail',opened=false}={}){
  w.VoidCollectibleArt={prepare:async()=>media==='slow'?await mediaLoad.promise:media==='fail'?{svg:null}:{svg:true},stop(){},preview:async()=>({played:false,reason:'unsupported'})};
  const app={state:uiState,guard(){const id=uiState.account.id;return ()=>id===uiState.account?.id;},announce(text){announcements.push(text);},request:async(path,body)=>{
   requests.push({path,body,account:uiState.account?.id});
-  if(path==='/api/capsules')return {capsules:[{...capsule,openedAt:flags.won?3:0}],progress:{required:3,days:1,nextWeek:3456,qualifyingAction:'Post to a Standard community channel.'},welcomeEligible:true};
+  if(path==='/api/capsules')return {capsules:[{...capsule,openedAt:flags.won?3:0}],progress:{required:3,days:flags.checked?2:1,nextWeek:3456,checkInAvailable:true,checkedInToday:!!flags.checked,milestone:{modelId:'gift-copium-cartridge',available:true,earned:false},qualifyingAction:'Record community participation or check in.'},welcomeEligible:true};
   if(path==='/api/capsules/reconcile')return {};
+  if(path==='/api/capsules/check-in'){flags.checked=true;return {};}
   if(path.startsWith('/api/cosmetics/instances?'))return {total:1,instances:[{id:'owned-a',catalog_id:model.id,is_new:true}]};
   if(path.endsWith('/open')){if(flags.delayed)await flags.delayed.promise;if(flags.lost==='before'){flags.lost=false;throw Error('lost before commit');}flags.won=true;if(flags.lost){flags.lost=false;throw Error('lost response');}return {opening:receipt()};}
   if(path.endsWith('/ack'))return {opening:{...receipt(),acknowledgedAt:20}};
@@ -40,6 +41,21 @@ function fixture({reduced=false,media='fail',opened=false}={}){
 }
 cases.push(['frozen historical contents precede one user-confirmed opening and reduced-motion result',async()=>{
  const f=fixture({reduced:true});try{await f.choose();assert.match(f.text(),/frog-frozen-1/);assert.match(f.text(),/97\.8%/);assert.match(f.text(),/2\.2%/);assert.equal(f.opens().length,0);await f.click('[data-cl="open"]');await wait(()=>f.has('[data-cl-state="result"]'));const o=f.receipt();assert.equal(f.opens().length,1);assert.equal(f.opens()[0].body.familyId,'frog');assert(f.opens()[0].body.clientId);assert.equal(f.has('[data-cl-state="result"]').dataset.instance,o.instanceId);assert.match(f.text(),/New model discovered/);await f.click('[data-cl="view-copy"]');await f.click('[data-cl="display"]');await f.click('[data-cl="gift"]');assert.equal(f.browserMoves[0][2],o.instanceId);assert.equal(f.browserMoves[1][1],o.instanceId);assert.equal(f.browserMoves[2][1],o.instanceId);assert.equal(f.announcements.length,1);await f.click('[data-cl="replay"]');assert.equal(f.opens().length,1);assert.equal(f.announcements.length,1);}finally{f.end();}
+}]);
+cases.push(['an old receipt retains its original name, odds, revision and archived poster after an art update',async()=>{
+ const f=fixture({opened:true});
+ try{
+  const committed=f.receipt().model,digest='a'.repeat(64);
+  committed.artRevision='first-edition';
+  committed.originalArt={card:{sha256:digest,url:'/art/v4/frog-model-card.aaaaaaaaaaaa.svg'},detail:{sha256:'b'.repeat(64)}};
+  f.host.model=()=>({...committed,name:'Later design',artRevision:'new-edition'});
+  f.w.VoidCollectibleArt.items=()=>[{id:committed.id,cardURL:'/art/v4/frog-model-card.cccccccccccc.svg',detailSHA256:'d'.repeat(64)}];
+  await f.panel();
+  assert.match(f.text(),/Desk Green/);assert.doesNotMatch(f.text(),/Later design/);
+  assert.match(f.text(),/first-edition/);assert.match(f.text(),/97\.8%/);
+  assert.equal(f.has('.cl-original-poster').getAttribute('src'),committed.originalArt.card.url);
+  assert(!f.has('[data-cl="replay"]'));assert(f.has('[data-cl="view-copy"]'));
+ }finally{f.end();}
 }]);
 cases.push(['post-commit response loss recovers by GET; reopening a transferred receipt has no ownership buttons',async()=>{
  const f=fixture();try{f.flags.lost=true;await f.choose();await f.click('[data-cl="open"]');await wait(()=>f.has('[data-cl-state="result"]'));assert.equal(f.opens().length,1);f.flags.owned=false;await f.click('[data-cl="replay"]');await wait(()=>f.text().includes('Historical award'));assert(!f.has('[data-cl="display"]'));assert(!f.has('[data-cl="view-copy"]'));assert(!f.has('[data-cl="gift"]'));assert.equal(f.opens().length,1);}finally{f.end();}
@@ -68,5 +84,30 @@ cases.push(['a late response after switching account cannot present or acknowled
 }]);
 cases.push(['server-wide family and copy counts precede paginated filtered rows; viewing a tile never acknowledges it',async()=>{
  const f=fixture();try{await f.client.open();assert.match(f.main.textContent,/212 owned copies/);assert.match(f.main.textContent,/1 of 6 models owned/);await f.click('[data-cl="mode"][data-mode="arrivals"]');await wait(()=>f.has('[data-copy="owned-a"]'));assert(f.requests.some(r=>r.path.includes('arrival=1')));assert(f.main.textContent.includes('New arrival'));assert(!f.requests.some(r=>r.path.endsWith('/seen')));await f.click('[data-copy="owned-a"]');assert.equal(f.browserMoves.at(-1)[2],'owned-a');}finally{f.end();}
+}]);
+cases.push(['My gifts opens exact owned copies independently of the earning service',async()=>{
+ const f=fixture();
+ try{
+  await f.client.open({surface:'copies'});
+  assert(f.has('[data-copy="owned-a"]'));
+  assert(!f.requests.some(r=>r.path==='/api/capsules'));
+  assert(!f.has('[data-cl="mode"][data-mode="models"]'));
+  await f.click('[data-copy="owned-a"]');
+  assert.equal(f.browserMoves.at(-1)[2],'owned-a');
+ }finally{f.end();}
+}]);
+cases.push(['Earn displays a guaranteed milestone and checks in only after a deliberate click',async()=>{
+ const f=fixture();
+ try{
+  await f.client.open({surface:'earn'});
+  assert(!f.requests.some(r=>r.path.startsWith('/api/cosmetics/instances?')));
+  assert(!f.has('[data-cl="mode"]'));
+  assert.match(f.main.textContent,/Guaranteed reward/);
+  assert(!f.requests.some(r=>r.body));
+  await f.click('[data-cl="check-in"]');
+  await wait(()=>f.main.textContent.includes('Today’s participation is recorded.'));
+  assert.equal(f.requests.filter(r=>r.path==='/api/capsules/check-in').length,1);
+  assert(!f.has('[data-cl="check-in"]'));
+ }finally{f.end();}
 }]);
 (async()=>{let pass=0;for(const [name,test] of cases){try{await test();pass++;console.log('PASS '+name);}catch(e){process.exitCode=1;console.error('FAIL '+name,e);}}console.log(pass+'/'+cases.length+' collector interactions passed in jsdom with controlled HTTP and motion.');})();

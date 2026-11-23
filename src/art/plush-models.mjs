@@ -222,7 +222,21 @@ function cords() {
     +path('M115 171l3 1-1 5-2-1ZM155 163l3-.5 1 4-2 .8Z','#ada997','#464c45',.75)
     +oval(118,149,1.8,1.3,'#a49a83')+oval(152,149,1.8,1.3,'#a49a83'));
 }
-function scene(p,variant,detail) {
+// Sewn details are drawn between the torso and the armholes, attached to the
+// same upper-body pivot. Each fabric creases differently during its gesture.
+const tailoring={
+  original:['M108 170q7 3 16 1l-.8 5-14.2.5Z','M111 172q5 1.5 10 .3',[109,170],5],
+  hoodie:['M101 192q17 6 34 3l15-2-2.5 4.5q-25 5-48.5-2Z','M105 195q19 4 38 .4',[123,194],-4],
+  helmet:['M149 160l21-4 1 6-21 4Z','M154 161l10-2m-5-.6.7 3.6',[153,160],4],
+  patchwork:['M116 184l12-6 8 5-4.5 11-13 2Z','M118 185l3-1m2-2 3-1m7 5-2 4m-8 3-3 .4',[121,185],-8],
+  silver:['M155 182q8-4 14-15-1 12-12 18Z','M157 182l8-8m-7 7 3-.9',[157,183],6],
+  velvet:['M110 188q7-6 10-20 4 19-4.5 26Z','M114 187q3-5 4-10',[116,177],-7]
+};
+function garmentFinish(v){
+  const [fold,stitches]=tailoring[v],t=looks[v];
+  return group('garment-finish',path(fold,t.coat[2])+seam(stitches,t.light,'1.25 1.15',1.25));
+}
+function scene(p,variant,detail,finish=true) {
   const look=looks[variant], detailed=detail!=='card';
   const isHood=variant==='hoodie',isVelvet=variant==='velvet',isHelmet=variant==='helmet';
   let head='';
@@ -234,11 +248,11 @@ function scene(p,variant,detail) {
   const strings=isHood?cords():'';
   const shadow=oval(126,230,77,6.3,'#111920')+oval(129,230,66,3.1,'#0c1117');
   return textiles(p,look)+`<g opacity=".32">${shadow}</g>`+path(seatShape,paint(p,'twill'),look.edge,1.6)
-    +group('upper',torso(p,variant,detailed)+neck+group('head',head)+arm(p,variant,'right',detailed)+arm(p,variant,'left',detailed)+strings)+feet(p,variant,detailed);
+    +group('upper',torso(p,variant,detailed)+(finish?garmentFinish(variant):'')+neck+group('head',head)+arm(p,variant,'right',detailed)+arm(p,variant,'left',detailed)+strings)+feet(p,variant,detailed);
 }
 const lArm=[88,148],rArm=[172,145],headJoint=[130,137],seat=[128,208];
 const pose=(name,origin,...frames)=>({name,origin,frames:[{at:0},...frames,{at:1}]});
-function motion(v){
+function motion(v,finish=true){
   const body=pose('upper',seat,{at:.12,y:1.1},{at:.24,scaleY:.964,scaleX:1.023},{at:.5,scaleY:.99},{at:.73,scaleY:1.013},{at:.85,scaleY:.997});
   const head=pose('head',headJoint,{at:.15,rotate:-.6},{at:.31,rotate:3.5,y:1},{at:.56,rotate:1.8},{at:.74,rotate:-1.4},{at:.88,rotate:.4});
   const gesture=(...frames)=>pose('left-arm',lArm,...frames);
@@ -271,6 +285,7 @@ function motion(v){
     pose('hood',[128,132],{at:.14,scaleY:.98},{at:.24,scaleY:1.72},{at:.34,scaleY:3.43},{at:.42,scaleY:3.40},{at:.52,scaleY:1.74},{at:.60,scaleY:.91},{at:.67,scaleY:1.05},{at:.74,scaleY:1}),
     gesture({at:.14,rotate:-3},{at:.32,rotate:115},{at:.42,rotate:118},{at:.58,rotate:6},{at:.65,rotate:15},{at:.73,rotate:65},{at:.79,rotate:52},{at:.85,rotate:64},{at:.92,rotate:-2}),
     pose('right-arm',rArm,{at:.17,rotate:3},{at:.31,rotate:-102},{at:.42,rotate:-106},{at:.56,rotate:-16},{at:.65,rotate:3})];
+  if(finish){const [,,origin,angle]=tailoring[v];layers.push(pose('garment-finish',origin,{at:.22},{at:.46,rotate:angle,scaleY:.80},{at:.61,rotate:-angle*.3,scaleY:1.07},{at:.83}));}
   return {duration:2500,layers};
 }
 
@@ -309,6 +324,7 @@ const descriptions={
 export const plushModels=Object.fromEntries(Object.entries(descriptions).map(([variant,[id,material,alt,storyboard]])=>[id,{
   material,alt,storyboard,mini:glyph(variant),
   silhouette:path(silhouettes[variant]||silhouettes.original,'#10171b'),
-  body:(prefix,renderVariant='detail')=>scene(prefix,variant,renderVariant),
+  body:(prefix,renderVariant='detail',finish=true)=>scene(prefix,variant,renderVariant,finish),
+  historicalMotion:motion(variant,false),
   motion:motion(variant)
 }]));

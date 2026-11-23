@@ -5,10 +5,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const dir=path.join(__dirname,'../dist');
 const tests=[],test=(name,run)=>tests.push([name,run]);
 const held=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return{resolve,promise};};
-async function fixture(query=''){
+async function fixture(query='',items){
  const dom=new JSDOM(fs.readFileSync(path.join(dir,'art-review.html'),'utf8'),{runScripts:'outside-only',url:'https://voidline.example/art-review.html'+query});
  const w=dom.window,d=w.document,$=id=>d.getElementById(id);
- const rows=[
+ const rows=items||[
   {id:'gift-test',name:'<img src=x onerror=bad>',type:'gift',series:'Paper',material:'Brass',alt:'A parcel',detailURL:'/gift-detail.000011112222.svg'},
   {id:'badge-test',name:'Shield',type:'badge',series:'Originals',material:'Steel',alt:'A shield',detailURL:'/badge-detail.333344445555.svg'}
  ];
@@ -49,6 +49,19 @@ test('a series link opens its matching gifts and an unknown series keeps the ful
  assert.equal(unknown.$('ar-series').value,'all');
  assert.match(unknown.$('ar-count').textContent,/2 objects/);
  unknown.close();
+});
+test('a family link combines existing and capsule editions and opens the exact account design',async()=>{
+ const items=[
+  {id:'free-copy',name:'Rain Check',type:'gift',series:'Internet Relics',collectionFamilyId:'copium-cartridge',familyName:'Copium Cartridges',editionLabel:'Free edition',acquisition:'Free to collect.'},
+  {id:'rolled-copy',name:'Last Excuse',type:'gift',series:'Choice Capsule',collectionFamilyId:'copium-cartridge',familyName:'Copium Cartridges',editionLabel:'Capsule edition',weight:50,acquisition:'Choose this family when opening an eligible capsule.'},
+  {id:'other-copy',name:'Terminal',type:'gift',series:'Technology',collectionFamilyId:'pocket-terminal',familyName:'Pocket Terminal'}
+ ];
+ const a=await fixture('?family=copium-cartridge&item=rolled-copy',items.map(item=>({...item,detailURL:'/test.111122223333.svg'})));await a.tick();
+ assert.deepEqual([...a.$('ar-grid').children].filter(row=>!row.hidden).map(row=>row.dataset.artOpen),['free-copy','rolled-copy']);
+ assert.match(a.$('ar-detail-series').textContent,/Capsule edition/);
+ assert.match(a.$('ar-acquisition').textContent,/0\.5% within this family/);
+ assert.equal(a.$('ar-app-item').getAttribute('href'),'/chats#collection/item/rolled-copy');
+ a.$('ar-close').click();a.open('free-copy');assert.equal(a.$('ar-acquisition').textContent,'Free to collect.');a.close();
 });
 test('an item link opens its inspection at rest and restores focus to its card',async()=>{
  const a=await fixture('?item=gift-test');await a.tick();

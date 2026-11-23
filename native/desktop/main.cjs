@@ -53,28 +53,31 @@ function createDesktop(electron) {
     event.preventDefault();
     if (event.isMainFrame !== false) void openExternal(url).catch(() => {});
   }
-  function permissionKey(permission, details) {
-    if (permission === 'notifications') return 'notifications';
-    if (permission === 'media' && (details?.mediaType === 'audio' || (Array.isArray(details?.mediaTypes) && details.mediaTypes.length && details.mediaTypes.every(t => t === 'audio')))) return 'microphone';
-    return null;
+  function permissionKeys(permission, details) {
+    if (permission === 'notifications') return ['desktop notifications'];
+    if (permission !== 'media') return [];
+    const types = Array.isArray(details?.mediaTypes) ? details.mediaTypes : [details?.mediaType];
+    if (!types.length || types.some(type => !['audio', 'video'].includes(type))) return [];
+    return [...new Set(types.map(type => type === 'audio' ? 'microphone' : 'camera'))];
   }
   function setupSession(ses) {
     ses.setPermissionCheckHandler((wc, permission, requestingOrigin, details) => {
-      const key = permissionKey(permission, details);
-      return Boolean(trustedContents(wc) && isAppUrl(requestingOrigin) && details?.isMainFrame !== false && key && grants.has(key));
+      const keys = permissionKeys(permission, details);
+      return Boolean(trustedContents(wc) && isAppUrl(requestingOrigin) && details?.isMainFrame !== false && keys.length && keys.every(key => grants.has(key)));
     });
     ses.setPermissionRequestHandler(async (wc, permission, callback, details) => {
-      const key = permissionKey(permission, details);
-      if (!trustedContents(wc) || !isAppUrl(details?.requestingUrl || details?.securityOrigin) || details?.isMainFrame === false || !key) return callback(false);
-      if (grants.has(key)) return callback(true);
+      const keys = permissionKeys(permission, details);
+      if (!trustedContents(wc) || !isAppUrl(details?.requestingUrl || details?.securityOrigin) || details?.isMainFrame === false || !keys.length) return callback(false);
+      if (keys.every(key => grants.has(key))) return callback(true);
+      const label = keys.join(' and ');
       const requestEpoch = grantEpoch;
       try {
         const { response } = await dialog.showMessageBox(window, {
-          type: 'question', title: `Allow ${key}?`, message: `Allow VOIDLINE to use ${key === 'microphone' ? 'your microphone' : 'desktop notifications'} during this session?`,
+          type: 'question', title: `Allow ${label}?`, message: `Allow VOIDLINE to use ${label} during this session?`,
           detail: 'You can revoke this permission in the VOIDLINE desktop menu. Closing the app clears this permission.',
           buttons: ['Don’t allow', 'Allow'], defaultId: 0, cancelId: 0, noLink: true
         });
-        if (response === 1 && requestEpoch === grantEpoch && trustedContents(wc)) { grants.add(key); callback(true); }
+        if (response === 1 && requestEpoch === grantEpoch && trustedContents(wc)) { keys.forEach(key => grants.add(key)); callback(true); }
         else callback(false);
       } catch { callback(false); }
     });
@@ -144,7 +147,7 @@ function createDesktop(electron) {
       { label: 'VOIDLINE', submenu: [
         { label: 'Retry connection / Home', click: () => { if (window) void loadHome(); } },
         { label: 'Open VOIDLINE in browser', click: () => { void openExternal(HOME).catch(() => {}); } },
-        { label: 'Revoke microphone and notifications (reloads app)', click: () => { grantEpoch++; grants.clear(); if (window) void loadHome(); } },
+        { label: 'Revoke camera, microphone and notifications (reloads app)', click: () => { grantEpoch++; grants.clear(); if (window) void loadHome(); } },
         { type: 'separator' }, { role: 'quit' }
       ] },
       { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },

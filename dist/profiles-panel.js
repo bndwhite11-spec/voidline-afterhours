@@ -158,10 +158,17 @@
   if(id===identity&&dirty)return beforeCloseDialog();
   const current=guard(),ticket=app.showDialog('Profile','', '<div id="vp-profile-result" role="status">Loading profile…</div>');
   try{
-   const [response]=await Promise.all([app.request('/api/profiles/'+encodeURIComponent(id)),app.loadFeature?.('collection')]);
+   const response=await app.request('/api/profiles/'+encodeURIComponent(id));
    if(!current()||ticket!==state().dialogGeneration)return;
    const node=$('vp-profile-result');if(node)node.innerHTML=profileCard(response.profile,{compact});
    if(id===identity)cached=response.profile;
+   if(node && app.loadFeature && !window.VoidCollectibleArt){
+    void app.loadFeature('collection').then(()=>{
+     if(current()&&ticket===state().dialogGeneration&&node.isConnected&&!node.contains(document.activeElement))node.innerHTML=profileCard(response.profile,{compact});
+    },()=>{
+     if(current()&&ticket===state().dialogGeneration&&node.isConnected)node.insertAdjacentHTML('beforeend',`<p class="vp-fine">Profile artwork could not load. <button type="button" class="vh-text-button" data-vp-action="retry-profile" data-account="${esc(id)}" data-compact="${compact?'true':'false'}">Retry artwork</button></p>`);
+    });
+   }
   }catch(reason){
    if(!current()||ticket!==state().dialogGeneration)return;
    const node=$('vp-profile-result');if(!node)return;

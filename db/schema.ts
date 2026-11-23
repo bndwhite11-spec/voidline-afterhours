@@ -400,3 +400,13 @@ export const profileSavedLooks = sqliteTable("profile_saved_looks", {
 export const profileSaveState = sqliteTable("profile_save_state", {
  accountId:text("account_id").primaryKey().references(()=>liveAccounts.id,{onDelete:"cascade"}),revision:integer("revision").notNull().default(0),writeToken:text("write_token").notNull().default(""),
 },t=>[check("profile_save_state_revision",sql`${t.revision}>=0`)]);
+
+// A signup challenge proves a mailbox before any account or credential is created.
+export const authRegistrationChallenges = sqliteTable("auth_registration_challenges", {
+ tokenHash: text("token_hash").primaryKey(),
+ email: text("email").notNull(),
+ expiresAt: integer("expires_at").notNull(),
+}, t => [
+ index("auth_registration_expiry").on(t.expiresAt),
+ index("auth_registration_email").on(t.email),
+]);

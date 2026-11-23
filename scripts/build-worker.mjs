@@ -455,7 +455,9 @@ await mkdir(studyDirectory,{recursive:true});
 for(const family of ['chudjak-plush','pepe-keycap','midnight-tape','copium-reserve','copium-cartridges']){
   await cp(path.join(root,'docs','collectible-proof',family+'.mp4'),path.join(studyDirectory,family+'.mp4'));
 }
-await cp(path.join(root,'docs/collectible-proof/copium-cartridges.png'),path.join(studyDirectory,'copium-cartridges.png'));
+for(const file of ['copium-cartridges.png','profile-emblems.png','choice-v3-models.png']){
+ await cp(path.join(root,'docs/collectible-proof',file),path.join(studyDirectory,file));
+}
 await collect(output);
 if (!assets['/index.html']) throw new Error('Missing dist/index.html. Existing static client source must be retained.');
 for(const [legacy,target]of Object.entries(legacyArtAliases)){if(!assets[target]||assets[legacy])throw new Error('Invalid artwork compatibility target: '+legacy);}
@@ -485,6 +487,7 @@ async function serveVoidline(request, env, ctx) {
   if (url.pathname==='/api/realtime') return handleRealtimeRequest(request,env);
   if (url.pathname.startsWith('/api/media/')) return apiResponse(request,env,ctx,handleMediaRequest);
   if (url.pathname.startsWith('/api/auth/')) return apiResponse(request,env,ctx,handleAuthRequest);
+  if (url.pathname==='/api/encryption/policy/decision') return handleMatrixRoomPolicy(request,env);
   if (url.pathname==='/api/encryption'||url.pathname.startsWith('/api/encryption/')) return apiResponse(request,env,ctx,handleEncryptionRequest);
   if (url.pathname==='/api/notifications'||url.pathname.startsWith('/api/notifications/')) return apiResponse(request,env,ctx,handleNotificationsRequest);
   if (url.pathname.startsWith('/api/security/')) return apiResponse(request,env,ctx,handleSecurityRequest);
@@ -519,7 +522,7 @@ async function serveVoidline(request, env, ctx) {
     'etag': asset.etag,
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
-    'permissions-policy': 'camera=(), microphone=(self), geolocation=(), display-capture=()',
+    'permissions-policy': 'camera='+((pageRoute||pathname==='/'||pathname==='/index.html')&&env.MATRIX_CALLS_ENABLED==='1'?'(self)':'()')+', microphone=(self), geolocation=(), display-capture=()',
     'content-security-policy': "default-src 'none'; manifest-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'" + matrixConnectOrigin(env) + "; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'self' https://chatgpt.com https://chat.openai.com; form-action 'self'; upgrade-insecure-requests",
   };
   const androidPackage=pathname==='/downloads/VOIDLINE-Android.apk';
@@ -570,7 +573,7 @@ await mkdir(path.join(output, '.openai'), { recursive: true });
 await mkdir(runtimeDirectory, { recursive: true });
 await rm(path.join(output, 'server/wrangler.json'), { force: true });
 await rm(path.join(output, 'server/.wrangler'), { recursive: true, force: true });
-const compiled=await build({stdin:{contents:`import {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfileLooks} from './worker/profile-looks.mjs';\nimport {handleCapsulesRequest} from './worker/capsules.mjs';\nimport {handleGiftCollectionsRequest} from './worker/gift-collections.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
+const compiled=await build({stdin:{contents:`import {handleMatrixRoomPolicy} from './worker/matrix-room-policy.mjs';\nimport {handleNativeReleaseRequest} from './worker/native-releases.mjs';\nimport {handleAccountExportRequest} from './worker/account-export.mjs';\nimport {handleOperationsMCP,scheduleMaintenance} from './worker/operations.mjs';\nimport {handleMediaRequest} from './worker/media.mjs';\nimport {handleRealtimeRequest} from './worker/realtime.mjs';\nimport {handleLiveRequest} from './worker/index.mjs';\nimport {handleEncryptionRequest} from './worker/encryption.mjs';\nimport {handleNotificationsRequest,scheduleNotificationDelivery} from './worker/notifications.mjs';\nimport {handleMessagesRequest} from './worker/messages.mjs';\nimport {handleAuthRequest} from './worker/auth.mjs';\nimport {handlePasskeyRequest as handleSecurityRequest} from './worker/passkeys.mjs';\nimport {handleAdminRequest} from './worker/admin.mjs';\nimport {handleOrganizeRequest} from './worker/organize.mjs';\nimport {handleProfileLooks} from './worker/profile-looks.mjs';\nimport {handleCapsulesRequest} from './worker/capsules.mjs';\nimport {handleGiftCollectionsRequest} from './worker/gift-collections.mjs';\nimport {handleProfilesRequest} from './worker/profiles.mjs';\nimport {handleCosmeticsRequest} from './worker/cosmetics.mjs';\nimport {handleSocialRequest} from './worker/social.mjs';\n${runtime}`,resolveDir:root,sourcefile:'voidline-entry.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false,minify:true,legalComments:'inline'});
 const bundle=compiled.outputFiles[0].text;
 const nextBundle = path.join(runtimeDirectory, 'worker-build.next');
 await writeFile(nextBundle, bundle);

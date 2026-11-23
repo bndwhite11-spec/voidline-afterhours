@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {artCatalog,artSVG,artVersion,studioIds,priorArtSVG,published32ArtSVG,studioCatalog,curatedIds} from '../src/art/catalog.mjs';
+import {artCatalog,artSVG,artVersion,studioIds,priorArtSVG,published32ArtSVG,studioCatalog,curatedIds,emblemIds} from '../src/art/catalog.mjs';
 import {assertSafeWebSVG,inspectRaster} from '../src/art/web-art.mjs';
 import {giftBases} from '../src/art/gift-bases.mjs';
 import {telegramReferences} from '../src/art/telegram-references.mjs';
@@ -28,7 +28,7 @@ test('the registry preserves released IDs and product names while separating ear
 test('each source-image master uses a credited raster and bounded fingerprinted thumbnail; original masters have their own grade',()=>{
  const startup=readFileSync(new URL('../dist/collectible-art.js',import.meta.url),'utf8');assert(!/data:image\/(?:png|jpeg|webp);base64,/.test(startup),'Raster bytes must remain outside startup JavaScript');
  for(const [id,item]of Object.entries(artCatalog)){
-  if(item.assetKind==='layered-svg'){assert(collectibleModels[id]||curatedIds.includes(id)||Object.hasOwn(cartridgeDesigns,id),id);assert(!item.sourceArt);continue;}
+  if(item.assetKind==='layered-svg'){assert(collectibleModels[id]||emblemIds.includes(id)||curatedIds.includes(id)||Object.hasOwn(cartridgeDesigns,id),id);assert(!item.sourceArt);continue;}
   const source=item.sourceArt;assert(source,id+': cannot silently fall back to generated illustration');assert.equal(source.id,id);assert.equal(source.kind,'Downloaded web image');
   for(const key of ['sourceURL','creator','license','changes'])assert(typeof source[key]==='string'&&source[key].trim(),id+':'+key);
   for(const key of ['sourceURL','licenseURL','usageURL'])if(source[key])assert.equal(new URL(source[key]).protocol,'https:',id+':'+key);
@@ -106,12 +106,30 @@ test('lightweight thumbnails and bounded one-shot image reveals preserve a compl
  }
  for(const preset of ['turn','unseal','fan','split','fold','shutter','slide','wobble'])assert(giftPresets.has(preset),'Archived source-image reveal remains available: '+preset);
 });
+test('profile emblems use distinct optical masters and retain published source bytes',()=>{
+ const miniatures=new Set();
+ for(const id of emblemIds){
+  const row=manifest.items.find(item=>item.id===id);
+  assert.equal(row.artRevision,'enamel-01');assert.equal(row.type,artCatalog[id].type);
+  const cosmetic=COSMETICS.find(entry=>entry.id===id);
+  if(cosmetic){assert.equal(cosmetic.description,row.description);assert.equal(cosmetic.finish,row.material);assert(!cosmetic.artwork);}
+  assert.equal(row.archivedSource.sha256,studioCatalog[id].sourceArt.sha256);
+  assert(!miniatures.has(artCatalog[id].mini));miniatures.add(artCatalog[id].mini);
+  for(const variant of Object.keys(row.variants)){
+   const previous=published32ArtSVG(id,variant),digest=hash(previous);
+   const filename=id+'-'+variant+'.'+digest.slice(0,12)+'.svg';
+   assert.equal(hash(readFileSync(new URL('../dist/art/v4/'+filename,import.meta.url))),digest);
+   assert.notEqual(row.variants[variant].sha256,digest);
+  }
+ }
+ assert.equal(miniatures.size,10);
+});
 test('Studio 01 preserves historical pixels and edition-paired miniatures for open clients',()=>{
  const frozen=JSON.parse(readFileSync(new URL('../src/art/pre-studio-fingerprints.json',import.meta.url),'utf8'));
  assert.deepEqual(Object.keys(frozen).sort(),[...studioIds].sort());
  for(const id of studioIds){
   const item=studioCatalog[id],current=manifest.items.find(row=>row.id===id);
-  assert.equal(item.edition,'Studio 01');if(!curatedIds.includes(id))assert.equal(current.storyboard,item.storyboard);
+  assert.equal(item.edition,'Studio 01');if(!curatedIds.includes(id)&&!emblemIds.includes(id))assert.equal(current.storyboard,item.storyboard);
   for(const [variant,fingerprint] of Object.entries(frozen[id])){
    const bytes=readFileSync(new URL('../dist/art/v4/'+id+'-'+variant+'.'+fingerprint+'.svg',import.meta.url));
    assert.equal(hash(bytes).slice(0,12),fingerprint);assert.equal(bytes.toString(),priorArtSVG(id,variant));

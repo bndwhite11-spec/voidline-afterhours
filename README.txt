@@ -8,7 +8,7 @@ The messenger now loads optional tools when needed, confirms friend requests
 before sending, and preserves the open conversation during profile and search
 navigation. Eight collectibles have revised artwork and motion. See
 docs/QUALITY-RELEASE.md for measured results, known limits and rollback.
-Android 1.0.3 and Windows 1.0.0 use the updated web interface.
+Android 1.0.3 and Windows 1.0.1 use the updated web interface.
 
 Create a native account with a unique username and a 12–128-character password.
 New accounts have zero communities, conversations, sample contacts, gifts,

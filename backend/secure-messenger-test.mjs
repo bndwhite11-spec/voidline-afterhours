@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {fixture} from './secure-fixture.mjs';
+import {create} from '../src/secure-messenger.js';
+import {CryptoEvent} from 'matrix-js-sdk/lib/crypto-api/index.js';
 import {initAsync} from '@matrix-org/matrix-sdk-crypto-wasm';
 await initAsync();
 
@@ -7,6 +9,17 @@ const cases=[];const test=(name,fn)=>cases.push([name,fn]);
 const wait=()=>{let resolve;return {promise:new Promise(r=>{resolve=r;}),resolve:v=>resolve(v)};};
 function event(id,content,{sender='@member:matrix.example',time=100,type='m.room.message',redacted=false}={}){return {getId:()=>id,getSender:()=>sender,getTs:()=>time,isRedacted:()=>redacted,isEncrypted:()=>true,getContent:()=>content,getType:()=>type};}
 
+test('adapter subscribes to actual Crypto API event names when the SDK top-level namespace omits them',async()=>{
+ const f=fixture();const sdk={...f.deps.sdk};delete sdk.CryptoEvent;
+ const app=create({}, {...f.deps,sdk});
+ try{
+  await app.connect({homeserver:'https://matrix.example',accountId:'app-account',accessToken:'isolated-token',storagePassword:'local vault test passphrase'});
+  assert.equal(app.status().phase,'ready');
+  assert(f.latest.listenerCount(CryptoEvent.VerificationRequestReceived)>0);
+  assert(f.latest.listenerCount(CryptoEvent.UserTrustStatusChanged)>0);
+  assert(f.latest.listenerCount(CryptoEvent.DevicesUpdated)>0);
+ }finally{await app.disconnect();}
+});
 test('explicit connection validates server identity, encrypts the account/device scoped store, and serializes writers',async()=>{
  const f=fixture();try{await f.connect();assert.equal(f.app.status().phase,'ready');const init=f.calls.find(c=>c[0]==='initCrypto')[1];assert.equal(init.useIndexedDB,true);assert.match(init.cryptoDatabasePrefix,/app-account/);assert.match(init.cryptoDatabasePrefix,/DEV/);assert.equal(init.storagePassword,'private vault passphrase');assert.equal(f.crypto.globalBlacklistUnverifiedDevices,true);
  assert.ok(f.calls.find(c=>c[0]==='isolation')[1].strict);assert.equal(f.latest.opts.disableVoip,true);assert.equal(f.latest.opts.accessToken,'MEMORY_TOKEN');

@@ -1,3 +1,4 @@
+import {withLegacyRegistration} from './legacy-account-fixture.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
@@ -16,6 +17,7 @@ async function authenticator(){
 }
 class Adapter{constructor(db){this.db=db;this.queue=Promise.resolve();}prepare(sql){const db=this.db;return {bind(...values){const p=db.prepare(sql);return {first:async()=>p.get(...values)||null,all:async()=>({results:p.all(...values)}),run:async()=>({meta:{changes:p.run(...values).changes},success:true})};}};}batch(steps){const task=this.queue.then(async()=>{this.db.exec('BEGIN');try{const result=[];for(const step of steps)result.push(await step.run());this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}});this.queue=task.catch(()=>{});return task;}}
 async function fixture(){const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');for(const entry of JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url))).entries)sqlite.exec(readFileSync(new URL('../drizzle/'+entry.tag+'.sql',import.meta.url),'utf8'));let time=Date.now();const env={DB:new Adapter(sqlite),VOIDLINE_ORIGIN:origin},auth=createAuthService({now:()=>time}),security=createPasskeyService({now:()=>time});
+ auth.handleAuthRequest=withLegacyRegistration(auth.handleAuthRequest);
  function browser(){const cookies=new Map();let session;return {get session(){return session;},async call(path,body,expected=200){const headers={...(cookies.size?{cookie:[...cookies].map(([k,v])=>k+'='+v).join('; ')}:{})};if(body!==undefined)Object.assign(headers,{origin,'content-type':'application/json','x-voidline-auth':'1','x-voidline-csrf':session?.csrfToken||''});const response=await(path.startsWith('/api/auth/')?auth.handleAuthRequest:security.handlePasskeyRequest)(new Request(origin+path,{method:body===undefined?'GET':'POST',headers,...(body===undefined?{}:{body:JSON.stringify({...body,...(session?{expectedAccountId:session.account.id}:{})})})}),env),data=await response.json();assert.equal(response.status,expected,`${path}: ${data.error?.code}`);for(const v of response.headers.getSetCookie()){const [k,value]=v.split(';')[0].split('=');value?cookies.set(k,value):cookies.delete(k);}if(data.account)session=data;return data;}};}
  const client=browser();await client.call('/api/auth/register',{username:'passkey_owner',displayName:'Passkey test',password},201);return {sqlite,env,client,auth,advance:ms=>time+=ms,time:()=>time};}
 const cases=[],test=(name,fn)=>cases.push([name,fn]);
