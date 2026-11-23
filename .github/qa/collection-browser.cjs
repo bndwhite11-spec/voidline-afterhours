@@ -1,8 +1,11 @@
 'use strict';
 // Run from a built VOIDLINE checkout, using only ephemeral workerd D1/R2.
-// The browser targets a reserved HTTPS origin intercepted by the isolated Worker.
+// The real browser sends HTTPS over loopback to a private Worker transport.
 const assert=require('node:assert/strict');
-const {readFile,mkdir,writeFile}=require('node:fs/promises');
+const {readFile,mkdir,writeFile,mkdtemp,rm}=require('node:fs/promises');
+const {tmpdir}=require('node:os');
+const {createServer}=require('node:https');
+const {execFileSync}=require('node:child_process');
 const {createRequire}=require('node:module');
 const {randomBytes}=require('node:crypto');
 const {resolve,join}=require('node:path');
@@ -13,10 +16,29 @@ async function run(){
   const fromProject=createRequire(join(root,'package.json'));
   const {Miniflare}=createRequire(fromProject.resolve('wrangler'))('miniflare');
   const {verificationMailbox}=await import(pathToFileURL(join(root,'scripts/verification-mailbox.mjs')));
-  const origin='https://qa.voidline.example';
-  let unexpected=0,browser;
+  let unexpected=0,browser,runtime;
+  const posts=[],apiLog=[],certDir=await mkdtemp(join(tmpdir(),'voidline-local-https-'));
+  execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1','-keyout',join(certDir,'key.pem'),'-out',join(certDir,'cert.pem')],{stdio:'ignore'});
+  const server=createServer({key:await readFile(join(certDir,'key.pem')),cert:await readFile(join(certDir,'cert.pem'))},async(req,res)=>{
+    try{
+      assert(req.url.startsWith('/')&&!req.url.startsWith('//'));
+      const url=new URL(req.url,origin),headers=new Headers();
+      for(const [key,val] of Object.entries(req.headers))if(typeof val==='string')headers.set(key,val);
+      headers.set('accept-encoding','identity');
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      const method=req.method;
+      const resp=await runtime.dispatchFetch(url.href,{method,headers,redirect:'manual',body:chunks.length?Buffer.concat(chunks):undefined});
+      for(const [key,val] of resp.headers)if(!['content-encoding','content-length','set-cookie','transfer-encoding'].includes(key))res.setHeader(key,val);
+      const cookies=resp.headers.getSetCookie();if(cookies.length)res.setHeader('set-cookie',cookies);
+      if(method==='POST')posts.push([url.pathname,resp.status]);
+      if(url.pathname.startsWith('/api/'))apiLog.push([method,url.pathname.replace(/[0-9a-f-]{28,}/g,'…'),resp.status]);
+      const bytes=Buffer.from(await resp.arrayBuffer());res.writeHead(resp.status);res.end(bytes);
+    }catch(error){if(!res.headersSent)res.writeHead(502);res.end();if(!res.destroyed)console.error('Local bridge error',error.name);}
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const origin='https://127.0.0.1:'+server.address().port;
   const mailbox=verificationMailbox(origin,()=>{unexpected++;return new Response(null,{status:502});});
-  const runtime=new Miniflare({modules:true,script:await readFile(join(root,'dist/server/index.js'),'utf8'),
+  runtime=new Miniflare({modules:true,script:await readFile(join(root,'dist/server/index.js'),'utf8'),
     compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['MEDIA'],
     bindings:{...mailbox.bindings,CAPSULE_COLLECTOR_EDITION:'1'},outboundService:request=>mailbox.exchange(request)});
   const directory=resolve(process.env.QA_EVIDENCE||'qa-evidence'),results=[];
@@ -51,37 +73,11 @@ async function run(){
     browser=await require('playwright')[engine].launch({headless:true});
     await mkdir(directory,{recursive:true});
     for(const [person,width,height] of [[first,1440,900],[second,390,844]]){
-      const ctx=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,isMobile:width<500,hasTouch:width<500,serviceWorkers:'block',reducedMotion:'reduce'});
-      const page=await ctx.newPage(),errors=[],posts=[];
+      const ctx=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,isMobile:width<500,hasTouch:width<500,serviceWorkers:'block',ignoreHTTPSErrors:true,reducedMotion:'reduce'});
+      const page=await ctx.newPage(),errors=[];posts.length=0;apiLog.length=0;
       page.on('pageerror',e=>errors.push(e.name));
       page.setDefaultTimeout(15000);
-      await ctx.route('**/*',async route=>{
-        const request=route.request(),url=new URL(request.url());
-        if(url.origin!==origin){unexpected++;return route.abort();}
-        const headers=new Headers(await request.allHeaders());
-        headers.set('accept-encoding','identity');
-        const method=request.method();
-        const resp=await runtime.dispatchFetch(request.url(),{method,headers,body:method==='GET'||method==='HEAD'?undefined:request.postDataBuffer()});
-        const outgoing=Object.fromEntries(resp.headers);delete outgoing['content-length'];delete outgoing['content-encoding'];delete outgoing['set-cookie'];
-        const cookies=resp.headers.getSetCookie();
-        // Playwright fulfill() collapses multi-value headers, which WebKit
-        // interprets differently. Deliver each Worker-issued cookie separately
-        // to this browser's real cookie jar, retaining scope and expiry.
-        if(cookies.length){
-          const sessionCookies=cookies.map(raw=>{
-            const [pair,...bits]=raw.split(';').map(s=>s.trim());
-            const offset=pair.indexOf('='),attrs=new Map(bits.map(s=>s.split('=').map(x=>x.toLowerCase())));
-            assert(attrs.has('secure')&&attrs.get('path')==='/'&&!attrs.has('domain'));
-            return {name:pair.slice(0,offset),value:pair.slice(offset+1),domain:url.hostname,path:'/',
-              httpOnly:attrs.has('httponly'),secure:true,sameSite:attrs.get('samesite')==='strict'?'Strict':'Lax',
-              expires:Math.floor(Date.now()/1000)+Number(attrs.get('max-age'))};
-          });
-          await ctx.addCookies(sessionCookies);
-        }
-        if(method==='POST')posts.push([url.pathname,resp.status]);
-        const bytes=Buffer.from(await resp.arrayBuffer());
-        await route.fulfill({status:resp.status,headers:outgoing,body:bytes});
-      });
+      await ctx.route(url=>url.origin!==origin,route=>{unexpected++;return route.abort();});
       try{
         await page.goto(origin+'/chats',{waitUntil:'domcontentloaded'});
         const form=page.locator('[data-home-form="login"]');
@@ -99,12 +95,13 @@ async function run(){
         await tab('browse').click();
         await page.locator('.vc-family-picker > summary').click();
         await page.locator('[data-vc-action="discover-family"][data-family="Copium Cartridges"]').click();
+        await page.waitForFunction(()=>/^12 designs\b/.test(document.querySelector('#vc-result-count')?.textContent||''));
         const card=id=>page.locator('.vc-card[data-design-id="'+id+'"]:visible');
         await card('gift-cartridge-rain-check').waitFor();
         assert.match(await card('gift-cartridge-rain-check').innerText(),/free edition/i);
         const capsule='gift-edition-cartridge-text-back';
         assert.match(await card(capsule).innerText(),/capsule edition/i);
-        assert.equal(await page.locator('.vc-card:visible').count(),12);
+        assert.equal(await page.locator('#vc-design-grid > .vc-card:visible').count(),12);
         await card(capsule).getByRole('button',{name:/^Inspect /}).click();
         const dialog=page.locator('#home-dialog[open]');
         await dialog.getByText('How to obtain',{exact:true}).click();
@@ -140,14 +137,14 @@ async function run(){
         console.error(String(error.stack||error).split('\n').slice(0,6).join('\n'));
         await page.screenshot({path:join(directory,'failure-'+width+'.png'),timeout:3000}).catch(()=>{});
         const headers=await page.locator('h1,h2,h3,#home-dialog[open] [role="alert"]').allTextContents().catch(()=>[]);
-        console.error('Fixture stage evidence',JSON.stringify({width,headers:headers.slice(0,12),errors,posts}));
+        console.error('Fixture stage evidence',JSON.stringify({width,headers:headers.slice(0,12),errors,posts,apiLog:apiLog.slice(-9)}));
         throw error;
       }finally{await ctx.unrouteAll({behavior:'wait'});await ctx.close();}
     }
     assert.equal(unexpected,0);
-    const result={engine,version:browser.version(),environment:'Browser with intercepted HTTPS to local workerd/D1/R2, private mailbox; no production or physical device',results};
+    const result={engine,version:browser.version(),environment:'Real loopback HTTPS to local workerd/D1/R2, private mailbox; no production or physical device',results};
     await writeFile(join(directory,'results.json'),JSON.stringify(result,null,2));
     console.log(JSON.stringify(result));
-  }finally{await browser?.close();await runtime.dispose();}
+  }finally{await browser?.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await runtime.dispose();await rm(certDir,{recursive:true,force:true});}
 }
 run().catch(error=>{console.error(error);process.exitCode=1;});

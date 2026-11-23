@@ -331,7 +331,21 @@
   const d=button.dataset,inspection=!!$('home-dialog')?.open&&!!$('vc-inspection-scene'),profileReturn=inspection?returnToProfile:null;
   if(d.vcAction==='badge-display')return editBadgeDisplay();
   if(d.vcAction==='owned-decorations'){kindFilter='badge';seriesFilter='all';searchQuery='';return collection('collected','owned','',true);}
-  if(d.vcAction==='discover-family'){seriesFilter=d.family;searchQuery='';return collection('gifts','all');}
+  if(d.vcAction==='discover-family'){
+   seriesFilter=d.family;searchQuery='';
+   const picker=button.closest('.vc-family-picker'),grid=$('vc-design-grid');
+   const panel=grid?.parentElement;
+   if(!picker||!panel||!panel.contains(picker))return collection('gifts','all');
+   kindFilter='gift';badgeFilter='all';view='gifts';
+   panel.querySelector('[data-vc-search]').value='';
+   panel.querySelector('[data-vc-kind]').value=kindFilter;
+   panel.querySelector('[data-vc-series]').value=seriesFilter;
+   panel.querySelector('.vc-category-filters')?.remove();
+   panel.querySelector('.vc-series-copy')?.remove();
+   paintBrowse();
+   picker.open=false;picker.querySelector('summary').focus({preventScroll:true});
+   return;
+  }
   if(d.vcAction==='browse-series')return browseRelatedSeries(d.item);
   const actions={section:()=>openSection(d.section),'toggle-play':()=>{if(!inspectPlayer)return;const paused=button.textContent==='Resume';if(paused)inspectPlayer.resume?.();else inspectPlayer.pause?.();button.textContent=paused?'Pause':'Resume';},preview:()=>playArtwork($(d.stage||'vc-inspection-scene'),d.item),'earned-inspect':()=>inspectEarned(d.item),filter:()=>collection('badges',d.filter),'reset-filters':()=>{badgeFilter='all';seriesFilter='all';searchQuery='';return collection(hubSection==='collected'?'collected':'browse','all');},'unwrap-animation':()=>playReveal(),return:()=>backToCollection(d.item),instances:()=>inventoryPanel(0,d.filter||instanceFilter),'organize-gifts':()=>window.VoidGiftCollections?.open?.(),'group-instance':()=>window.VoidGiftCollections?.openInstance?.(d.instance),'instances-page':()=>inventoryPanel(Number(d.offset)||0),badges:badgeDirectory,'transfer-form':()=>reviewOwnedTransfer(d.instance),'transfer-receipt':()=>transferReceipt(d.transfer),transfers:()=>showTransferInbox(d.box||'inbox'),'transfers-page':()=>showTransferInbox(transferBox,Number(d.offset)||0),'transfer-open':()=>receivedGift(button,true),'transfer-decline':()=>mutate(`/transfers/${encodeURIComponent(d.transfer)}/decline`,{},button,()=>showTransferInbox()),'transfer-cancel':()=>mutate(`/transfers/${encodeURIComponent(d.transfer)}/cancel`,{},button,()=>showTransferInbox('sent')),showcase:()=>window.VoidProfilesPanel?.edit?window.VoidProfilesPanel.edit({section:'showcase',instanceId:d.instance}):showcaseDialog(d.instance),'inspect-instance':()=>openItem(d.item,{instanceId:d.instance}),'clear-showcase':()=>mutate('/showcase',{slots:[]},button,()=>inventoryPanel()),tab:()=>{seriesFilter='all';searchQuery='';badgeFilter='all';return collection(d.tab);},inspect:()=>inspect(d.item),retry:()=>collection(view),claim:()=>mutate('/claim',{cosmeticId:d.item},button,()=>inspection?inspect(d.item,{returnTo:profileReturn}):collection(view)),equip:()=>mutate('/equip',{cosmeticId:d.item},button,()=>inspection?inspect(d.item,{returnTo:profileReturn}):collection(view)),unequip:()=>mutate('/equip',{cosmeticId:null},button,()=>collection(view)),'send-form':()=>sendForm(d.item),inbox:()=>inbox(d.box||'inbox'),page:()=>inbox(giftBox,Number(d.offset)||0),open:()=>receivedGift(button),decline:()=>mutate(`/gifts/${encodeURIComponent(d.gift)}/decline`,{},button,()=>inbox('inbox',page))};return actions[d.vcAction]?.();
  }
