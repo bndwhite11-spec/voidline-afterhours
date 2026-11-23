@@ -16,7 +16,7 @@ function provider(env){
 // This is a local configuration check. Provider acceptance is known only after sending.
 export function mailTransportConfigured(env){return provider(env)!==null;}
 async function onlyActiveSender(fetcher,headers,signal){
- const response=await fetcher('https://api.brevo.com/v3/senders',{method:'GET',headers,signal,redirect:'error'});
+ const response=await fetcher('https://api.brevo.com/v3/senders',{method:'GET',headers,signal,redirect:'manual'});
  if(!response.ok)return null;
  const data=await response.json();
  if(!Array.isArray(data?.senders)||(data.count!==undefined&&data.count>data.senders.length))return null;
@@ -47,7 +47,7 @@ export async function sendTransactionalEmail(env,{to,subject,text},fetcher=fetch
   }else{
    body={from:env.EMAIL_FROM,to:[to],subject,text};
   }
-  const response=await fetcher(endpoint,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify(body),signal,redirect:'error'});
+  const response=await fetcher(endpoint,{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify(body),signal,redirect:'manual'});
   return response.ok;
  }catch{
   // Provider responses and exceptions can include private addresses or content.

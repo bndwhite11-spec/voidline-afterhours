@@ -8,7 +8,7 @@ for(const env of [resend,{...resend,EMAIL_PROVIDER:'resend'},both]){
  assert.equal(mailTransportConfigured(env),true);
  const sent=await sendTransactionalEmail(env,message,async(url,request)=>{
   calls.push(url);
-  assert.equal(request.method,'POST');assert.equal(request.redirect,'error');assert(request.signal instanceof AbortSignal);
+  assert.equal(request.method,'POST');assert.equal(request.redirect,'manual');assert(request.signal instanceof AbortSignal);
   const data=JSON.parse(request.body);
   if(env.EMAIL_PROVIDER==='brevo'){
    assert.equal(url,'https://api.brevo.com/v3/smtp/email');assert(!request.headers.authorization);assert.equal(request.headers['api-key'],'fixture-brevo');
