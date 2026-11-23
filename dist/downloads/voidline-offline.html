@@ -3262,7 +3262,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   function lock({suspend=false}={}) {
     if(state.account)state.authView='login';
     window.VoidTheme?.reset?.();if(!window.VoidTheme)for(const node of[document.documentElement,document.body]){node.dataset.vhSimpleProfiles='false';node.classList?.remove('vh-high-contrast','vh-reduced-motion');}writerHandoff=null;requestWriterSwitch=null;secureConnectionMarker=null;clearNativeState(suspend);for(const module of extensions)module.onLock?.();state.accountRecovery=null;
-    pendingEmailCode=null;state.generation++;state.dialogGeneration++;reviewedAttachment=null;if(recoveryAcknowledgement){recoveryAcknowledgement(false);recoveryAcknowledgement=null;}controller?.abort();controller=null;
+    clearLoginChallenge();pendingEmailCode=null;state.generation++;state.dialogGeneration++;reviewedAttachment=null;if(recoveryAcknowledgement){recoveryAcknowledgement(false);recoveryAcknowledgement=null;}controller?.abort();controller=null;
     const secure=state.secure;state.secure=null;state.secureStatus=null;state.secureRooms=[];state.secureInvitations=[];state.secureRoomId=null;state.secureThreadRoot=null;state.secureMessages=[];state.secureOutbox=[];state.securePermissions={};state.secureDraftIssue='';state.secureDrafts.clear();state.verification=null;if(secure?.disconnect)Promise.resolve(secure.disconnect({revokeSession:false})).catch(()=>{});
     if(reauthContinuation){reauthContinuation.reject(Error('Account verification was cancelled.'));reauthContinuation=null;}
     state.account=null;state.session=null;state.authentication=null;state.csrf='';state.communities=[];state.channels=[];state.members=[];state.messages=[];state.communityId=null;state.channelId=null;state.readPositions.clear();state.error='';state.drawer=false;closeDialog(false);if(dialog)dialog.innerHTML='';
@@ -3353,9 +3353,40 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   async function signupSignoutContinue(){if(signupSignoutPending||!signupLinkPresent()||!state.account)return;const token=credentialToken('signup-email');if(!token)return announce('This signup link is invalid.');signupSignoutPending=true;for(const button of dialog.querySelectorAll('button'))button.disabled=true;dialog.setAttribute('aria-busy','true');announce('Signing out before continuing signup…');try{await logout({signupToken:token,signupTicket:state.dialogGeneration});}finally{signupSignoutPending=false;dialog.removeAttribute('aria-busy');}}
   function passwordMethods(){return state.authentication?.methods||['password'];}
   function authIllustration(){return `<div class="vh-auth-art" aria-hidden="true"><svg viewBox="0 0 480 320" focusable="false"><defs><linearGradient id="vh-auth-metal" x1="0" y1="0" x2=".75" y2="1"><stop stop-color="#f1f0e8"/><stop offset=".28" stop-color="#aeb8bf"/><stop offset=".44" stop-color="#e6ebeb"/><stop offset=".49" stop-color="#667580"/><stop offset="1" stop-color="#a6b1b7"/></linearGradient><linearGradient id="vh-auth-edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#48535e"/><stop offset=".5" stop-color="#242e37"/><stop offset="1" stop-color="#596772"/></linearGradient><linearGradient id="vh-auth-paper" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e2ddcf"/><stop offset="1" stop-color="#bdb9ab"/></linearGradient></defs><path d="M33 269h414" stroke="#2b313a"/><ellipse cx="248" cy="255" rx="155" ry="18" fill="#000" opacity=".24"/><g transform="rotate(-5 245 235)"><path d="m80 212 240-19 60 56-240 24Z" fill="#7a7c77"/><path d="m80 207 241-19 60 56-241 24Z" fill="url(#vh-auth-paper)" stroke="#f3ecdb" stroke-width="1.2"/><path d="m321 188-5 39 65 17Z" fill="#c6c4b8"/><path d="m316 227 22-14 43 31" fill="none" stroke="#928f83"/><path d="m105 222 62-5m-55 14 43-3" stroke="#656b65" stroke-width="1.3"/><text x="123" y="254" fill="#414a43" font-size="10" font-family="ui-monospace,monospace" letter-spacing="1.7">AFTERHOURS</text><path d="m245 249 43-4" stroke="#68745c" stroke-width="3"/></g><path d="M95 234c-36-10-49 17-23 28 16 7 34-9 24-18-11-10-28 5-21 10" fill="none" stroke="#697780" stroke-width="5"/><path d="M95 232c-36-10-49 17-23 28 16 7 34-9 24-18-11-10-28 5-21 10" fill="none" stroke="#c1c9cc" stroke-width="2"/><g transform="translate(155 6) rotate(-7 100 120)"><path d="m106 22 29 17-68 40v94l39 23v31l-75-43V65Z" fill="url(#vh-auth-edge)" stroke="#121a21" stroke-width="2"/><path d="m98 12 29 17-68 40v94l39 23v31l-75-43V55Z" fill="url(#vh-auth-metal)" stroke="#cbd2d3" stroke-width="1"/><path d="m23 55 8 10v119l-8-10Z" fill="#677780"/><path d="m59 69 8 10v94l-8-10Z" fill="#364650"/><path d="m98 186 8 10v31l-8-10Z" fill="#36434e"/><path d="m114 37 75 44v94l-75 44v-31l39-23V92l-39-24Z" fill="url(#vh-auth-edge)" stroke="#121a21" stroke-width="2"/><path d="m106 27 75 44v94l-75 44v-31l39-23V82l-39-24Z" fill="url(#vh-auth-metal)" stroke="#cbd2d3" stroke-width="1"/><path d="m181 71 8 10v94l-8-10Z" fill="#35424c"/><path d="m106 178 8 10v31l-8-10Z" fill="#53616c"/><path d="m83 92 30-17v55l-30 18Z" fill="url(#vh-auth-edge)" stroke="#111a20" stroke-width="1.3"/><path d="m77 84 30-17v55l-30 18Z" fill="url(#vh-auth-metal)" stroke="#cbd2d3" stroke-width="1"/><path d="m107 67 6 8v55l-6-8Z" fill="#495964"/><path d="m25 56 72-41m11 15 70 41M60 70v90m48 20 34-20" fill="none" stroke="#f5f3e9" stroke-width="1" opacity=".7"/><path d="m31 94 9-5m-9 9 9-5m116 27 10-6m-10 11 10-6m-45 73 11-6" stroke="#5d6a71" stroke-width=".8" opacity=".6"/></g></svg></div>`;}
+  let loginChallenge=null;
+  const loginChallengeKey='voidline.pending-login-code.v1';
+  function clearLoginChallenge(){
+    loginChallenge=null;
+    try{sessionStorage.removeItem(loginChallengeKey);}catch(_){}
+  }
+  function restoreLoginChallenge(){
+    if(signupLinkPresent()||credentialToken('reset-password')||credentialToken('verify-email'))return;
+    try{
+      const stored=JSON.parse(sessionStorage.getItem(loginChallengeKey)||'null');
+      if(stored&&typeof stored.challengeId==='string'&&stored.challengeId.length<=128&&Number.isFinite(stored.expiresAt)&&stored.expiresAt>Date.now())loginChallenge=stored;
+      else clearLoginChallenge();
+    }catch(_){}
+  }
+  function storeLoginChallenge(result){
+    if(result.requiresEmailCode!==true||typeof result.challengeId!=='string'||!result.challengeId||!Number.isFinite(result.expiresAt))throw Error('The sign-in code could not be confirmed. Try signing in again.');
+    loginChallenge={challengeId:result.challengeId,expiresAt:result.expiresAt,email:result.email||''};
+    // Only a tab-scoped reference is needed to resume after switching to a mail app.
+    try{sessionStorage.setItem(loginChallengeKey,JSON.stringify({challengeId:result.challengeId,expiresAt:result.expiresAt}));}catch(_){}
+  }
+  function loginCodePage(){
+    const expired=loginChallenge.expiresAt<=Date.now();
+    return `<main id="home-main" class="vh-auth" tabindex="-1"><section class="vh-auth-intro">${authIllustration()}<h1>Check your email</h1><p>Enter the 8-digit code sent to ${loginChallenge.email?esc(loginChallenge.email):'your verified email'} to finish signing in.</p></section>
+      <section class="vh-auth-card" aria-label="Verify sign-in"><form class="vh-form" data-home-form="login-email-code">
+        <label class="vh-field">Sign-in code<input name="code" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="one-time-code" spellcheck="false" aria-describedby="login-code-expiry" required autofocus></label>
+        <p class="vh-field-help" id="login-code-expiry">${expired?'This code has expired. Sign in again to request another.':'Expires at '+esc(time(loginChallenge.expiresAt))+'. Use your most recent code.'}</p>
+        ${formError}<button class="vh-primary" type="submit"${expired?' disabled':''}>Verify and log in</button>
+        <div class="vh-auth-footer"><button type="button" class="vh-text-button" data-home="login-code-resend"${expired?' disabled':''}>Send another code</button><button type="button" class="vh-text-button" data-home="login-code-back">Back to login</button></div>
+      </form></section></main>`;
+  }
   function welcome() {
     if(offline)return `<main id="home-main" class="vh-auth" tabindex="-1"><section class="vh-auth-card"><span class="vh-eyebrow">OFFLINE COPY</span><h1>Your saved archive</h1><p>Account sign-in and online conversations are available in the hosted app.</p><a class="vh-primary" href="https://voidline-afterhours.pipedcactus1.chatgpt.site/" target="_blank" rel="noopener noreferrer">Open Voidline</a><button class="vh-secondary" data-home="data">Review previous local archive</button></section></main>`;
     if(signupLinkPresent()&&(signupInspection?.token!==credentialToken('signup-email')||signupInspection?.status!=='ready'))return signupLinkWelcome();
+    if(loginChallenge&&!signupLinkPresent()&&!credentialToken('reset-password'))return loginCodePage();
     const strictEmail=state.config?.email?.registration==='verified-email',verifiedSignup=!!credentialToken('signup-email');
     const view=verifiedSignup?'register':state.authView,register=view==='register',recover=view==='recover',emailRequest=view==='email-recover',emailReset=!!credentialToken('reset-password');
     const emailStart=strictEmail&&register&&!verifiedSignup,legacyLogin=view==='legacy-login',emailLogin=strictEmail&&!legacyLogin&&!register&&!recover&&!emailReset;
@@ -4089,7 +4120,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
   function createInvite(){showDialog('Create invitation','Invitation links grant access to this server and its existing history. Share only with the people you choose.',`<form class="vh-form" data-home-form="invite" data-id="${esc(state.communityId)}"><label class="vh-field">Maximum uses<input name="maxUses" type="number" min="1" max="100" value="1" required></label><label class="vh-field">Expires after<select name="expiresInHours"><option value="1">1 hour</option><option value="24">1 day</option><option value="168" selected>7 days</option></select></label>${formError}<button class="vh-primary" type="submit">Create invitation</button></form>`);}
   function quickSearch(){showDialog('Search Voidline','Only servers and channels your account can access appear here.',`<label class="vh-field">Search<input id="home-search" type="search" autofocus autocomplete="off" placeholder="A server or channel"></label><div id="home-search-results" class="vh-result-list"></div>`);searchResults('');}
   function searchResults(query){const term=query.toLocaleLowerCase().trim(),n=$('home-search-results');if(!n)return;const communities=state.communities.filter(c=>c.name.toLocaleLowerCase().includes(term)),channels=state.channels.filter(c=>c.name.toLocaleLowerCase().includes(term));n.innerHTML=communities.map(c=>`<button class="vh-nav-item" data-home-community="${esc(c.id)}">${icon('servers')}<span>${esc(c.name)}</span></button>`).join('')+channels.map(c=>`<button class="vh-nav-item" data-home-channel="${esc(c.id)}"><span>#</span><span>${esc(c.name)} <small>${esc(community()?.name)}</small></span></button>`).join('')+(!communities.length&&!channels.length?'<p>No accessible locations match. Create a server or join with an invite to begin.</p>':'')+'<p class="vh-fineprint">Channel results cover your open server. Message search will run on your device when encrypted messaging is available.</p>';}
-  function authView(view) {if(state.authBusy)return;if(view!=='register'&&signupLinkPresent()){history.replaceState(null,'',location.pathname+location.search);signupInspection=null;}state.authView=view;state.error='';state.generation++;render();$('home-main')?.focus();}
+  function authView(view) {if(state.authBusy)return;clearLoginChallenge();if(view!=='register'&&signupLinkPresent()){history.replaceState(null,'',location.pathname+location.search);signupInspection=null;}state.authView=view;state.error='';state.generation++;render();$('home-main')?.focus();}
   function togglePassword(button) {const input=$(button.dataset.input);if(!input)return;const visible=input.type==='password';input.type=visible?'text':'password';button.textContent=visible?'Hide':'Show';button.setAttribute('aria-pressed',String(visible));input.focus();}
   async function acceptSession(data,{recovery=false,returnTo='home'}={}) {
     resolveSuspendedSession(data);lock();state.account=data.account;restoreExpiredDraft();state.session=data.session;state.authentication=data.authentication||null;state.csrf=data.csrfToken;state.error='';state.recoveryReturn=returnTo;for(const module of extensions)module.onAccount?.(state.account);
@@ -4191,6 +4222,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
       if(kind==='recover')payload.recoveryCode=String(data.recoveryCode||'').trim();
       const result=await request('/api/auth/'+kind,payload);if(!current())return;
       form.reset?.();data.password='';data.passwordConfirm='';payload.password='';
+      if(kind==='login'&&result.requiresEmailCode){storeLoginChallenge(result);state.phase='welcome';state.error='';render();root.querySelector('[name="code"]')?.focus();return;}
       if(kind==='register'&&payload.emailToken){signupInspection=null;history.replaceState(null,'',location.pathname+location.search);}
       await acceptSession(result,{recovery:kind!=='login'});
       return;
@@ -4206,6 +4238,26 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     }
     if(kind==='email-reset'){
       const token=credentialToken('reset-password');if(!token)throw Error('This reset link is unavailable. Request a new one.');if(data.password!==data.passwordConfirm)throw Error('The passwords do not match.');if(String(data.password||'').length<12||String(data.password||'').length>128)throw Error('Use a password of 12–128 characters.');const result=await request('/api/auth/password/reset',{token,password:data.password});if(!current())return;history.replaceState(null,'',location.pathname+location.search);await acceptSession(result,{recovery:true});return;
+    }
+    if(kind==='login-email-code'){
+      const pending=loginChallenge;if(!pending||state.account)return;
+      const resend=submitter?.dataset.home==='login-code-resend';
+      if(pending.expiresAt<=Date.now())throw Error('This sign-in code expired. Go back to login to request a new code.');
+      const code=String(data.code||'').trim();
+      if(!resend&&!/^[0-9]{8}$/.test(code))throw Error('Enter the 8 digits from your email.');
+      state.authBusy=true;const controls=[...form.querySelectorAll('button')];
+      controls.forEach(button=>button.disabled=true);
+      if(submitButton)submitButton.textContent=resend?'Sending code…':'Verifying…';
+      try{
+        const result=await request('/api/auth/login/code/'+(resend?'resend':'verify'),resend?{challengeId:pending.challengeId}:{challengeId:pending.challengeId,code});
+        if(!current()||loginChallenge!==pending||state.account)return;
+        if(resend){storeLoginChallenge(result);render();root.querySelector('[name="code"]')?.focus();announce('A new sign-in code was sent.');}
+        else{
+          if(!result.session?.id||!result.account?.id||!result.csrfToken)throw Error('Your sign-in could not be confirmed. Try again.');
+          clearLoginChallenge();form.reset();await acceptSession(result);
+        }
+      }finally{state.authBusy=false;controls.forEach(button=>button.disabled=false);if(submitButton)submitButton.textContent=priorSubmit;}
+      return;
     }
     if(kind==='email-code-request'||kind==='email-code-verify'){
       const resend=submitter?.value==='resend',verify=kind==='email-code-verify'&&!resend;
@@ -4399,7 +4451,7 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
     if(configuration.status==='rejected')throw configuration.reason;
     state.config=configuration.value;
     if(session.status==='rejected')throw session.reason;
-    const data=session.value;resolveSuspendedSession(data);state.account=data.account;restoreExpiredDraft();state.session=data.session;state.authentication=data.authentication||null;state.csrf=data.csrfToken;for(const module of extensions)module.onAccount?.(state.account);await enterWorkspace();signupSessionPrompt();}catch(error){if(generation!==state.generation)return;if(error.status===401||error.status===403)resolveSuspendedSession(null);state.phase='welcome';state.error=error.status===401?'':error.message;render();if(signupLinkPresent())await inspectSignup();}}
+    const data=session.value;clearLoginChallenge();resolveSuspendedSession(data);state.account=data.account;restoreExpiredDraft();state.session=data.session;state.authentication=data.authentication||null;state.csrf=data.csrfToken;for(const module of extensions)module.onAccount?.(state.account);await enterWorkspace();signupSessionPrompt();}catch(error){if(generation!==state.generation)return;if(error.status===401||error.status===403)resolveSuspendedSession(null);if(error.status===401&&state.config?.email?.registration==='verified-email')restoreLoginChallenge();state.phase='welcome';state.error=error.status===401?'':error.message;render();if(signupLinkPresent())await inspectSignup();}}
   async function copy(text,label){try{await navigator.clipboard.writeText(text);announce(label);}catch(_){showDialog('Copy this text.','Your browser did not allow clipboard access. Select and copy below.',`<label class="vh-field">Text<textarea readonly autofocus>${esc(text)}</textarea></label>`);}}
   function action(name,button){
     const intent=++featureIntent, feature=Object.hasOwn(actionFeatures,name)&&actionFeatures[name];
@@ -4410,6 +4462,8 @@ var VoidMediaValidation=(()=>{var w=Object.defineProperty;var _=Object.getOwnPro
       if(!window.VoidFeatures && !offline) { location.reload(); return; }
       return enterWorkspace(!!state.accountRecovery);
     }
+    if(name==='login-code-back')return authView('login');
+    if(name==='login-code-resend')return submit(button.form,button);
     if(name==='auth-legacy-login')return authView('legacy-login');
     if(name==='auth-restart-signup'){if(state.authBusy)return;signupInspection=null;history.replaceState(null,'',location.pathname+location.search);return authView('register');}
     if(name==='auth-retry-signup')return inspectSignup();

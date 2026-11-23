@@ -4,7 +4,7 @@ import {randomBytes} from 'node:crypto';
 // Runs entirely through the delivered client. Authenticated reads and D1 queries
 // independently cross-check the component being exercised. The account switch
 // deliberately reuses one document to exercise local identity cleanup, too.
-export async function verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,sender,registerForm,beforeLogout,seeStage,requests}) {
+export async function verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,sender,registerForm,loginWithPassword,beforeLogout,seeStage,requests}) {
   const recipient={username:'quality_recipient',password:randomBytes(26).toString('hex')};
   const scope='[data-vc-action="section"][data-section="collector"]';
   const requestPanel='[data-vc-action="section"][data-section="requests"]';
@@ -17,8 +17,7 @@ export async function verifyCollectibleTransfer({action,click,element,until,$,ev
     await element('[data-home-form="login"]');
   }
   async function login(person){
-    const form=await element('[data-home-form="login"]');
-    fill(form,{username:person.login||person.username,password:person.password});submit(form);
+    await loginWithPassword(person.login||person.username,person.password);
     await until(()=>state().phase==='ready'&&state().account?.username===person.username);
   }
   async function recover(){

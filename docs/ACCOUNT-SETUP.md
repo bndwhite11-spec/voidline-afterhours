@@ -1,6 +1,6 @@
 # Voidline account setup
 
-To create a password account, enter a private email and open the single-use link within ten minutes. Choose a unique public username and a 12–128-character password. Save the offline recovery code in a password manager. New accounts start empty. Sign in with the verified email and password.
+To create a password account, enter a private email and open the single-use link within ten minutes. Choose a unique public username and a 12–128-character password. Save the offline recovery code in a password manager. New accounts start empty. For each new email-and-password sign-in, enter your password, then enter the eight-digit login code in the browser where you started. The code expires after ten minutes. Resending replaces the previous code. Your existing session stays open when you return to the app.
 
 For an older account without a verified email, select **Use a username for an older account** and sign in with your existing password. Open **Devices & security**, enter a private address you control and request a verification code. Open the email from VOIDLINE and enter its eight digits in the app while signed in to the same account. You can keep signing in by username until verification succeeds. The account keeps its ID, profile, chats and gifts. Other sessions are revoked after verification. Your current device stays signed in.
 

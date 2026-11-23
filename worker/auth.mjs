@@ -8,6 +8,7 @@ export {hashPassword} from './passwords.mjs';
 const SESSION_COOKIE='__Host-voidline_session',CSRF_COOKIE='__Host-voidline_csrf';
 const SESSION_SECONDS=7*24*60*60;
 
+const LOGIN_COOKIE='__Host-voidline_login_challenge';
 const OAUTH_COOKIE='__Host-voidline_oauth';
 const googleKeys=createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 const GOOGLE_AUTH='https://accounts.google.com/o/oauth2/v2/auth',GOOGLE_TOKEN='https://oauth2.googleapis.com/token';
@@ -35,7 +36,7 @@ const random=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toSt
 export async function authHash(value){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(value))),n=>n.toString(16).padStart(2,'0')).join('');}
 const cookie=(name,value,httpOnly=true,seconds=SESSION_SECONDS)=>`${name}=${value}; Path=/; Max-Age=${seconds}; Secure; SameSite=Lax${httpOnly?'; HttpOnly':''}`;
 const readCookie=(request,name)=>{const values=(request.headers.get('cookie')||'').split(';').map(v=>v.trim()).filter(v=>v.startsWith(name+'='));return values.length===1?values[0].slice(name.length+1):'';};
-const clearCookies=()=>[cookie(SESSION_COOKIE,'',true,0),cookie(CSRF_COOKIE,'',false,0),cookie('__Host-voidline_oauth','',true,0)];
+const clearCookies=()=>[cookie(SESSION_COOKIE,'',true,0),cookie(CSRF_COOKIE,'',false,0),cookie('__Host-voidline_oauth','',true,0),cookie(LOGIN_COOKIE,'',true,0)];
 function responseCookies(response,cookies){for(const value of cookies)response.headers.append('set-cookie',value);return response;}
 function matrixConfiguration(env){let homeserver=null;try{const url=new URL(env?.MATRIX_HOMESERVER||'');if(url.protocol==='https:'&&url.pathname==='/'&&!url.username&&!url.password&&!url.search&&!url.hash)homeserver=url.origin;}catch{}return {configured:!!homeserver,homeserver};}
 export function publicAccount(account){return {id:account.id,username:account.username||null,displayName:account.display_name,bio:account.bio,status:account.status,theme:account.theme,avatar:account.avatar,needsOnboarding:!account.onboarding_complete};}
@@ -88,17 +89,18 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
   if(now()-session.last_active_at>60000)await query(env.DB,'UPDATE auth_sessions SET last_active_at=? WHERE id=? AND revoked_at IS NULL',now(),session.id).run();
   return {id:session.account_id,sessionId:session.id,csrfHash:session.csrf_hash,reauthenticatedAt:session.reauthenticated_at,session};
  }
- async function sessionPlan(request,db,accountId,time,{revokeAll=false,credentialGuard=null,reauthenticatedAt=time,verifiedLogin}={}){
+ async function sessionPlan(request,db,accountId,time,{revokeAll=false,credentialGuard=null,reauthenticatedAt=time,verifiedLogin,loginProof=null}={}){
   const expiresAt=time+SESSION_SECONDS*1000;
   const token=random(),csrf=random(),id=crypto.randomUUID(),deviceName=deviceLabel(request.headers.get('user-agent')||'');
   const loginGuard=verifiedLogin===undefined?'':verifiedLogin===null?' AND NOT EXISTS(SELECT 1 FROM account_emails WHERE account_id=? AND verified_at IS NOT NULL)':' AND EXISTS(SELECT 1 FROM account_emails WHERE account_id=? AND email=? AND verified_at IS NOT NULL)';
-  const accountGuard="EXISTS(SELECT 1 FROM live_accounts WHERE id=? AND account_status='active')"+loginGuard;
+  const proofGuard=loginProof?" AND EXISTS(SELECT 1 FROM auth_login_codes WHERE challenge_hash=? AND code_hash=?)":"";
+  const accountGuard="EXISTS(SELECT 1 FROM live_accounts WHERE id=? AND account_status='active')"+loginGuard+proofGuard;
   const guard=' AND '+accountGuard+(credentialGuard?' AND EXISTS(SELECT 1 FROM auth_credentials WHERE account_id=? AND password_hash=? AND change_marker=?)':'');
-  const binds=[accountId,...(verifiedLogin===undefined?[]:verifiedLogin===null?[accountId]:[accountId,verifiedLogin]),...(credentialGuard?[accountId,credentialGuard.password_hash,credentialGuard.change_marker]:[])],writes=[];
+  const binds=[accountId,...(verifiedLogin===undefined?[]:verifiedLogin===null?[accountId]:[accountId,verifiedLogin]),...(loginProof?[loginProof.hash,loginProof.claim]:[]),...(credentialGuard?[accountId,credentialGuard.password_hash,credentialGuard.change_marker]:[])],writes=[];
   if(revokeAll)writes.push(query(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND revoked_at IS NULL'+guard,time,accountId,...binds));
   const previous=readCookie(request,SESSION_COOKIE);if(/^[a-f0-9]{64}$/.test(previous))writes.push(query(db,'UPDATE auth_sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL'+guard,time,await authHash(previous),...binds));
   writes.push(query(db,'INSERT INTO auth_sessions(id,account_id,token_hash,csrf_hash,device_name,created_at,last_active_at,reauthenticated_at,expires_at) SELECT ?,?,?,?,?,?,?,?,? WHERE '+accountGuard+(credentialGuard?' AND EXISTS(SELECT 1 FROM auth_credentials WHERE account_id=? AND password_hash=? AND change_marker=?)':''),id,accountId,await authHash(token),await authHash(csrf),deviceName,time,time,reauthenticatedAt,expiresAt,...binds));
-  return {writes,cookies:[cookie(SESSION_COOKIE,token),cookie(CSRF_COOKIE,csrf,false),cookie('__Host-voidline_oauth','',true,0)],session:{id,deviceName,createdAt:time,lastActiveAt:time,reauthenticatedAt,expiresAt,mfaVerifiedAt:0},csrfToken:csrf};
+  return {writes,cookies:[cookie(SESSION_COOKIE,token),cookie(CSRF_COOKIE,csrf,false),cookie('__Host-voidline_oauth','',true,0),cookie(LOGIN_COOKIE,'',true,0)],session:{id,deviceName,createdAt:time,lastActiveAt:time,reauthenticatedAt,expiresAt,mfaVerifiedAt:0},csrfToken:csrf};
  }
  async function authSuccess(db,accountId,plan,{status=200,recoveryCode,needsVerifiedEmail}={}){const account=await query(db,'SELECT * FROM live_accounts WHERE id=?',accountId).first();return responseCookies(json({account:publicAccount(account),session:plan.session,csrfToken:plan.csrfToken,...(needsVerifiedEmail?{authentication:{methods:['password'],needsVerifiedEmail:true}}:{}),...(recoveryCode?{recoveryCode}:{})},status),plan.cookies);}
  async function verifyGoogleToken(token,env,nonce){
@@ -114,12 +116,82 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
   requireAuth(emailConfigured(env),503,'email_not_configured','Email delivery has not been configured. Your existing login remains available.');
   const origin=configuration(env).origin,verify=kind==='verify',signup=kind==='signup';
   const link=origin+'/#'+(signup?'signup-email=':verify?'verify-email=':'reset-password=')+token;
-  const subject=kind==='code'?'Your VOIDLINE verification code':signup?'Create your Voidline account':verify?'Verify your Voidline email':'Reset your Voidline password';
-  const text=kind==='code'
+  const subject=kind==='login'?'Your VOIDLINE sign-in code':kind==='code'?'Your VOIDLINE verification code':signup?'Create your Voidline account':verify?'Verify your Voidline email':'Reset your Voidline password';
+  const text=kind==='login'?'Enter this sign-in code in the VOIDLINE browser where you entered your password: '+token+'\n\nIf you did not try to sign in, do not share this code. Review your account security.':kind==='code'
    ? 'Enter this verification code in the VOIDLINE account where you requested it: '+token+'\n\nIt expires in 10 minutes. If you did not request this code, ignore this email.'
    : (signup?'Choose a public username and a password for your private verified email: ':verify?'Confirm this email address for your Voidline account: ':'Reset your Voidline password: ')+link+'\n\nThis link expires in 10 minutes and can be used once. If you did not request it, ignore this email. No existing password is revealed.';
   const accepted=await sendTransactionalEmail(env,{to,subject,text},fetcher);
   requireAuth(accepted,503,'email_unavailable','The email service could not accept this request. Please retry.');
+ }
+ // Every verified password login completes only through a proof tied to this
+ // browser, the current credential version and the account's verified mailbox.
+ const loginSource=`EXISTS(SELECT 1 FROM live_accounts a JOIN auth_credentials c ON c.account_id=a.id
+  JOIN account_emails e ON e.account_id=a.id WHERE a.id=? AND a.account_status='active'
+  AND c.change_marker=? AND e.email=? AND e.verified_at IS NOT NULL)`;
+ async function sendLoginChallenge(request,env,record,prior=null){
+  requireAuth(emailConfigured(env),503,'login_email_unavailable','Email sign-in codes are unavailable. Try again when email delivery is restored.');
+  const db=env.DB,time=now(),account=record.account_id,email=record.verified_email,marker=record.change_marker;
+  await authRateLimit(request,db,'login-email-send',3,time,account);
+  const challengeId=random(),browserKey=random(),code=newEmailCode();
+  const [challengeHash,browserHash,codeHash]=await Promise.all([
+   authHash(challengeId),authHash(browserKey),emailCodeHash(challengeId,account,browserKey,code)
+  ]);
+  // Resends cannot extend the lifetime of the password confirmation.
+  const expiresAt=prior?.expires_at??time+emailCodeLifetime;
+  const commitTime=now();
+  const source=[account,marker,email],writes=[query(db,'DELETE FROM auth_login_codes WHERE expires_at<=?',commitTime)];
+  if(prior){
+   writes.push(query(db,`UPDATE auth_login_codes SET challenge_hash=?,browser_hash=?,code_hash=?,attempts=0
+    WHERE challenge_hash=? AND browser_hash=? AND expires_at>? AND `+loginSource,
+    challengeHash,browserHash,codeHash,prior.challenge_hash,prior.browser_hash,commitTime,...source));
+  }else{
+   const previous=readCookie(request,LOGIN_COOKIE);
+   if(/^[a-f0-9]{64}$/.test(previous))writes.push(query(db,'DELETE FROM auth_login_codes WHERE browser_hash=?',await authHash(previous)));
+   writes.push(query(db,`INSERT INTO auth_login_codes(challenge_hash,browser_hash,code_hash,account_id,email,credential_marker,expires_at)
+    SELECT ?,?,?,?,?,?,? WHERE `+loginSource,challengeHash,browserHash,codeHash,account,email,marker,expiresAt,...source));
+  }
+  const result=await db.batch(writes);
+  requireAuth(result.at(-1).meta.changes===1,400,'login_challenge_expired','Start sign-in again to request a fresh code.');
+  try{await deliverEmail(env,email,'login',code);}catch{
+   await query(db,'DELETE FROM auth_login_codes WHERE challenge_hash=?',challengeHash).run();
+   throw new AuthError(503,'login_email_unavailable','The sign-in email could not be sent. Start sign-in again.');
+  }
+  return responseCookies(json({requiresEmailCode:true,challengeId,email,expiresAt},202),[cookie(LOGIN_COOKIE,browserKey,true,Math.max(1,Math.ceil((expiresAt-now())/1000)))]);
+ }
+ async function completePasswordChallenge(request,env,resend){
+  requireAuth(request.method==='POST',405,'method_not_allowed','Use the sign-in form.');
+  validateOrigin(request);
+  requireAuth(request.headers.get('x-voidline-auth')==='1',403,'request_denied','Use the sign-in form.');
+  const db=env.DB,time=now(),body=await readBody(request),browserKey=readCookie(request,LOGIN_COOKIE);
+  await authRateLimit(request,db,'login-code-requests',40,time);
+  const invalid=resend?'login_challenge_expired':'invalid_login_code';
+  const message=resend?'Start sign-in again to request a new code.':'This code is incorrect, expired, or replaced. Use your most recent sign-in code.';
+  requireAuth(typeof body.challengeId==='string'&&/^[a-f0-9]{64}$/.test(body.challengeId)&&/^[a-f0-9]{64}$/.test(browserKey),400,invalid,message);
+  const hash=await authHash(body.challengeId),browserHash=await authHash(browserKey);
+  const row=await query(db,`SELECT t.*,c.change_marker,c.password_hash,e.email AS verified_email FROM auth_login_codes t
+   JOIN auth_credentials c ON c.account_id=t.account_id AND c.change_marker=t.credential_marker
+   JOIN live_accounts a ON a.id=t.account_id AND a.account_status='active'
+   JOIN account_emails e ON e.account_id=t.account_id AND e.email=t.email AND e.verified_at IS NOT NULL
+   WHERE t.challenge_hash=? AND t.browser_hash=? AND t.expires_at>?`,hash,browserHash,time).first();
+  requireAuth(row,400,invalid,message);
+  if(resend)return sendLoginChallenge(request,env,row,row);
+  await authRateLimit(request,db,'login-code-guesses',10,time,row.account_id);
+  requireAuth(typeof body.code==='string'&&/^[0-9]{8}$/.test(body.code),400,invalid,message);
+  const supplied=await emailCodeHash(body.challengeId,row.account_id,browserKey,body.code);
+  const claim='login-used:'+crypto.randomUUID(),plan=await sessionPlan(request,db,row.account_id,time,{
+   credentialGuard:row,verifiedLogin:row.email,loginProof:{hash,claim}
+  });
+  const commitTime=now();
+  const match='challenge_hash=? AND browser_hash=? AND attempts<5 AND expires_at>?';
+  const args=[hash,browserHash,commitTime],source=[row.account_id,row.change_marker,row.email];
+  const result=await db.batch([
+   query(db,'UPDATE auth_login_codes SET attempts=attempts+1 WHERE '+match+' AND code_hash<>?',...args,supplied),
+   query(db,'UPDATE auth_login_codes SET code_hash=? WHERE '+match+' AND code_hash=? AND '+loginSource,claim,...args,supplied,...source),
+   ...plan.writes,
+   query(db,'DELETE FROM auth_login_codes WHERE challenge_hash=? AND code_hash=?',hash,claim)
+  ]);
+  requireAuth(result[1].meta.changes===1&&result.at(-2).meta.changes===1,400,invalid,message);
+  return authSuccess(db,row.account_id,plan);
  }
  async function issueEmailToken(db,accountId,email,kind,time){const token=random(),hash=await authHash(token);await query(db,'DELETE FROM auth_email_tokens WHERE expires_at<?',time).run();await query(db,'INSERT INTO auth_email_tokens(token_hash,account_id,kind,email,expires_at,created_at) VALUES(?,?,?,?,?,?)',hash,accountId,kind,email,time+10*60000,time).run();return {token,hash};}
  async function requestVerifiedResetForAccount(request,env,accountId){
@@ -139,6 +211,7 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
 
    requireAuth(env?.DB?.prepare&&env.DB.batch,503,'backend_unavailable','The account service is unavailable.');
    const db=env.DB,time=now();
+   if(path==='/api/auth/login/code/verify'||path==='/api/auth/login/code/resend')return await completePasswordChallenge(request,env,path.endsWith('/resend'));
    if(['/api/auth/password/reset/request','/api/auth/password/reset'].includes(path)){
     requireAuth(request.method==='POST',405,'method_not_allowed','Use the recovery form.');validateOrigin(request);requireAuth(request.headers.get('x-voidline-auth')==='1',403,'request_denied','Use the recovery form in this app.');
     const body=await readBody(request);await authRateLimit(request,db,'email-recovery',8,time);
@@ -239,7 +312,8 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
       requireAuth(changed.meta?.changes===1,401,'invalid_credentials','The username or password is incorrect.');
       Object.assign(record,{password_hash:upgraded.hash,salt:upgraded.salt,algorithm:upgraded.algorithm,iterations:upgraded.iterations,change_marker:marker});
      }
-     const plan=await sessionPlan(request,db,record.account_id,time,{credentialGuard:record,verifiedLogin:record.verified_email||null});const results=await db.batch(plan.writes);requireAuth(results.at(-1)?.meta?.changes===1,401,'invalid_credentials','The username or password is incorrect.');return authSuccess(db,record.account_id,plan,{needsVerifiedEmail:!record.verified_email});
+     if(record.verified_email)return await sendLoginChallenge(request,env,record);
+     const plan=await sessionPlan(request,db,record.account_id,time,{credentialGuard:record,verifiedLogin:null});const results=await db.batch(plan.writes);requireAuth(results.at(-1)?.meta?.changes===1,401,'invalid_credentials','The username or password is incorrect.');return authSuccess(db,record.account_id,plan,{needsVerifiedEmail:!record.verified_email});
     }
     const validCode=typeof body.recoveryCode==='string'&&/^[a-f0-9]{64}$/i.test(body.recoveryCode.trim());
     const recoveryHash=await authHash((record?.account_id||'unknown')+':'+(validCode?body.recoveryCode.trim().toLowerCase():''));
