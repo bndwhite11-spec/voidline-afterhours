@@ -25,7 +25,7 @@ function fixture(options={}){
 }
 
 test('free catalog stays unowned until an acknowledged explicit claim',async()=>{
- const app=fixture();await app.extension.onAccount();await app.seam.collection();assert.equal(app.seam.summary().owned.length,0);assert.match(app.nodes.get('dialog').innerHTML,/Add to collection/);assert.match(app.nodes.get('dialog').innerHTML,/free decorations, legacy gifts and earned capsule models/);
+ const app=fixture();await app.extension.onAccount();await app.seam.collection();assert.equal(app.seam.summary().owned.length,0);assert.match(app.nodes.get('dialog').innerHTML,/Add to collection/);assert.match(app.nodes.get('dialog').innerHTML,/Discover/);
  app.replies.set('/api/cosmetics/inventory',{owned:[{cosmetic_id:'angel'}],equippedId:null,giftsEnabled:true,pendingGifts:0});app.replies.set('/api/cosmetics/claim',{owned:[{cosmetic_id:'angel'}],equippedId:null,giftsEnabled:true,pendingGifts:0});await app.seam.mutate('/claim',{cosmeticId:'angel'},app.node(),()=>app.seam.collection());assert.equal(app.seam.summary().owned[0],'angel');
 });
 test('failed collection writes keep ownership and equipped state unchanged',async()=>{
@@ -101,7 +101,7 @@ test('filtering preserves the actual matched poster nodes and restores temporari
  assert.equal(grid.children.length,2);assert.equal(grid.querySelector('[data-design-id="angel"] img'),angel);assert.equal(grid.querySelector('[data-design-id="gift-rose"] img'),rose);
 });
 test('dedicated collection is a page and preserves search, type, series, scroll and focus across inspection and return',async()=>{
- const catalog=[{id:'angel',type:'badge',category:'originals',series:'VOIDLINE Originals',name:'404 Angel',finish:'Aluminium',description:'Feathers'},{id:'gift-rose',type:'gift',category:'gifts',series:'Afterhours Objects',name:'Chrome Rose',finish:'Nickel',description:'Folded rose'}],app=fixture({page:true,catalog});await app.extension.onAccount();await app.seam.collection();assert.equal(app.state.view,'collection');assert.equal(app.nodes.has('dialog'),false);assert.match(app.nodes.get('home-main').innerHTML,/Browse designs/);assert.equal(app.extension.navHTML(),'');
+ const catalog=[{id:'angel',type:'badge',category:'originals',series:'VOIDLINE Originals',name:'404 Angel',finish:'Aluminium',description:'Feathers'},{id:'gift-rose',type:'gift',category:'gifts',series:'Afterhours Objects',name:'Chrome Rose',finish:'Nickel',description:'Folded rose'}],app=fixture({page:true,catalog});await app.extension.onAccount();await app.seam.collection();assert.equal(app.state.view,'collection');assert.equal(app.nodes.has('dialog'),false);assert.match(app.nodes.get('home-main').innerHTML,/Discover/);assert.equal(app.extension.navHTML(),'');
  const kind=app.node();kind.value='gift';kind.setAttribute('data-vc-kind','');app.listeners.get('change')({target:kind});const series=app.node();series.value='Afterhours Objects';series.setAttribute('data-vc-series','');app.listeners.get('change')({target:series});const search=app.nodes.get('vc-design-search');search.dataset.vcSearch='';search.value='rose';app.listeners.get('input')({target:search});app.nodes.get('home-main').scrollTop=312;
  const cached=app.extension.pageHTML();assert.match(cached,/value="rose"/);assert.match(cached,/value="gift" selected/);assert.match(cached,/Afterhours Objects" selected/);assert.match(cached,/Chrome Rose/);assert.doesNotMatch(cached,/>404 Angel</);
  app.seam.inspect('gift-rose');await app.seam.action({dataset:{vcAction:'return',item:'gift-rose'}});assert.equal(app.nodes.get('home-main').scrollTop,312);assert.equal(app.document.activeElement.dataset.item,'gift-rose');app.extension.onPageLeave();app.state.view='chats';app.state.view='collection';await app.extension.onPage();assert.match(app.extension.pageHTML(),/value="rose"/);assert.equal(app.seam.summary().kindFilter,'gift');assert.equal(app.seam.summary().seriesFilter,'Afterhours Objects');assert.equal(app.calls.filter(call=>call.body).length,0);
@@ -110,8 +110,21 @@ test('loaded gift and earned page contents survive unrelated application rerende
  const app=fixture({page:true});await app.extension.onAccount();app.replies.set('/api/cosmetics/gifts?box=sent&offset=0',{gifts:[{id:'gift-one',catalog_id:'gift-rose',recipient_username:'recipient',state:'pending',created_at:1}],total:1,page:{hasMore:false}});await app.seam.inbox('sent');assert.match(app.extension.pageHTML(),/To @recipient/);assert.doesNotMatch(app.extension.pageHTML(),/Loading gifts…/);app.bridge.render();assert.match(app.nodes.get('home-main').innerHTML,/To @recipient/);
  app.replies.set('/api/cosmetics/badges',{definitions:[{id:'profile-authored',name:'Profile Authored',description:'Authored profile',requirement:'A real committed profile.'}],awards:[]});await app.cosmetics.badgeDirectory();assert.match(app.extension.pageHTML(),/A real committed profile/);assert.match(app.extension.pageHTML(),/Not earned/);app.bridge.render();assert.match(app.nodes.get('home-main').innerHTML,/A real committed profile/);assert.doesNotMatch(app.nodes.get('home-main').innerHTML,/Loading badge directory…/);
 });
+test('collection navigation, edition labels and gift requests stay consistent when inventory stalls',async()=>{
+ const {JSDOM}=require('jsdom'),app=fixture({page:true}),slow=held();
+ app.replies.set('/api/cosmetics/inventory',slow.promise);
+ app.replies.set('/api/cosmetics/gifts?box=inbox&offset=0',{gifts:[{id:'r',catalog_id:'gift-rose',state:'pending',sender_username:'river',created_at:1}],total:1,page:{hasMore:false}});
+ await app.seam.inbox();
+ const markup=JSDOM.fragment(app.extension.pageHTML());
+ assert.deepEqual([...markup.querySelectorAll('.vc-hub-tabs button')].map(b=>b.textContent),['My gifts','Discover','Earn','Requests']);
+ assert.equal(markup.querySelector('.vc-hub-tabs [aria-current="page"]').textContent,'Requests');
+ assert.match(markup.querySelector('#vc-gift-list').textContent,/@river/);
+ assert(markup.querySelector('[data-vc-action="open"]'));
+ slow.resolve({owned:[]});await new Promise(resolve=>setImmediate(resolve));
+ assert.match(app.extension.pageHTML(),/Free edition/);
+});
 test('a late page response cannot replace a newer section or enter its cached markup',async()=>{
- const app=fixture({page:true}),slow=held();await app.extension.onAccount();app.replies.set('/api/cosmetics/gifts?box=inbox&offset=0',slow.promise);const pending=app.seam.inbox();await app.seam.collection('browse');slow.resolve({gifts:[{id:'late',catalog_id:'gift-rose',sender_username:'late_sender',state:'pending',created_at:1}],total:1,page:{hasMore:false}});await pending;assert.equal(app.seam.summary().activePanel,'browse');assert.doesNotMatch(app.extension.pageHTML(),/late_sender|Loading gifts/);assert.match(app.extension.pageHTML(),/Browse designs/);
+ const app=fixture({page:true}),slow=held();await app.extension.onAccount();app.replies.set('/api/cosmetics/gifts?box=inbox&offset=0',slow.promise);const pending=app.seam.inbox();await app.seam.collection('browse');slow.resolve({gifts:[{id:'late',catalog_id:'gift-rose',sender_username:'late_sender',state:'pending',created_at:1}],total:1,page:{hasMore:false}});await pending;assert.equal(app.seam.summary().activePanel,'browse');assert.doesNotMatch(app.extension.pageHTML(),/late_sender|Loading gifts/);assert.match(app.extension.pageHTML(),/Discover/);
 });
 test('inspection failures target the visible dialog rather than the collection page under it',async()=>{
  const app=fixture({page:true});await app.extension.onAccount();await app.seam.collection();assert.ok(app.nodes.has('vc-page-error'));app.seam.inspect('angel');app.replies.set('/api/cosmetics/claim',()=>{throw Error('Claim unavailable');});await app.seam.mutate('/claim',{cosmeticId:'angel'},app.node());assert.equal(app.nodes.get('vc-error').textContent,'Claim unavailable');assert.equal(app.nodes.get('vc-page-error').textContent,'');assert.equal((app.extension.pageHTML().match(/id="vc-error"/g)||[]).length,0);
@@ -139,7 +152,7 @@ test('retired owned designs preserve their ownership label and inspection withou
  const app=fixture({page:true,catalog:[{id:'gift-rose',type:'gift',name:'Chrome Rose',series:'Afterhours Objects',finish:'Nickel',description:'Folded metal',active:false}]});app.replies.set('/api/cosmetics/inventory',{owned:[{cosmetic_id:'gift-rose'}],instances:[{id:'owned-retired',catalog_id:'gift-rose'}]});await app.extension.onAccount();await app.seam.collection('collected');assert.match(app.extension.pageHTML(),/Collected · Retired design/);app.seam.inspect('gift-rose');assert.match(app.nodes.get('dialog').innerHTML,/Existing ownership is preserved/);assert.match(app.nodes.get('dialog').innerHTML,/1 owned instance/);assert.doesNotMatch(app.nodes.get('dialog').innerHTML,/data-vc-action="send-form"|Add to collection · Free/);assert.equal(app.calls.filter(call=>call.body).length,0);
 });
 test('closed inspection markup cannot redirect a page claim into a stale profile callback',async()=>{
- const app=fixture({page:true});await app.extension.onAccount();await app.seam.collection();let profileReturns=0;app.seam.inspect('angel',{returnTo:()=>profileReturns++});app.nodes.get('home-dialog').open=false;app.replies.set('/api/cosmetics/claim',{owned:[{cosmetic_id:'angel'}],equippedId:null});await app.seam.action({dataset:{vcAction:'claim',item:'angel'}});assert.equal(profileReturns,0);assert.equal(app.state.view,'collection');assert.match(app.extension.pageHTML(),/Collected/);assert.equal(app.nodes.get('home-dialog').open,false);
+ const app=fixture({page:true});await app.extension.onAccount();await app.seam.collection();let profileReturns=0;app.seam.inspect('angel',{returnTo:()=>profileReturns++});app.nodes.get('home-dialog').open=false;app.replies.set('/api/cosmetics/claim',{owned:[{cosmetic_id:'angel'}],equippedId:null});await app.seam.action({dataset:{vcAction:'claim',item:'angel'}});assert.equal(profileReturns,0);assert.equal(app.state.view,'collection');assert.match(app.extension.pageHTML(),/Discover/);assert.equal(app.nodes.get('home-dialog').open,false);
 });
 test('account switching clears cached collection content and its prior filter context',async()=>{
  const app=fixture({page:true});app.replies.set('/api/cosmetics/inventory',{owned:[{cosmetic_id:'angel'}],equippedId:'angel'});await app.extension.onAccount();await app.seam.collection('collected');assert.match(app.extension.pageHTML(),/Equipped/);app.extension.onLock();app.state.account={id:'account-b'};app.replies.set('/api/cosmetics/inventory',{owned:[],equippedId:null});await app.extension.onAccount();assert.doesNotMatch(app.extension.pageHTML(),/Equipped|value="rose"/);await app.seam.collection('collected');assert.match(app.extension.pageHTML(),/Your collection starts empty/);assert.equal(app.seam.summary().owned.length,0);
@@ -160,7 +173,19 @@ test('a terminal transfer missing from bootstrap uses its participant receipt wi
  assert.match(html,/Accepted gift receipt/);assert.match(html,/Replay gift/);assert.doesNotMatch(html,/View owned copy|data-vc-action="transfer-open"/);
  assert.equal(f.calls.filter(r=>r.route.endsWith('/open')).length,1);
 });
-(async()=>{test('the actual expanded catalog exposes recognizable names and keeps former names searchable without changing ownership',async()=>{
+(async()=>{test('a signed-in design link opens the exact item or server-defined award without a collection mutation',async()=>{
+ const app=fixture({page:true});
+ await app.extension.onAccount();
+ assert.equal(await app.cosmetics.openDesign('gift-rose'),true);
+ assert.match(app.nodes.get('dialog').innerHTML,/Chrome Rose/);
+ app.replies.set('/api/cosmetics/badges',{definitions:[{id:'profile-authored',name:'Profile Authored',description:'Known requirement',requirement:'Save a profile.'}],awards:[]});
+ assert.equal(await app.cosmetics.openDesign('profile-authored'),true);
+ assert.match(app.nodes.get('dialog').innerHTML,/Profile Authored/);
+ assert.equal(await app.cosmetics.openDesign('does-not-exist'),false);
+ assert.equal(await app.cosmetics.openDesign('bad/path'),false);
+ assert.equal(app.calls.filter(call=>call.body).length,0);
+});
+test('the actual expanded catalog exposes recognizable names and keeps former names searchable without changing ownership',async()=>{
  const {COSMETICS}=await import('../worker/cosmetics.mjs');const app=fixture({page:true,catalog:COSMETICS});await app.extension.onAccount();await app.seam.collection();
  assert.match(app.extension.pageHTML(),new RegExp('49 decorations · '+COSMETICS.filter(item=>item.type==='gift').length+' gifts'));assert.equal(app.seam.summary().owned.length,0);
  const input=app.node();input.dataset.vcSearch='';
@@ -169,7 +194,7 @@ test('a terminal transfer missing from bootstrap uses its participant receipt wi
  for(const [id,name]of [['meme-chud','CHUD'],['meme-wojak','Wojak'],['meme-soyjak','Soyjak'],['meme-gigachad','Gigachad'],['meme-cope-seethe','Cope & Seethe'],['meme-pepe','Pepe']]){input.value=name;app.listeners.get('input')({target:input});assert(app.nodes.get('vc-design-grid').innerHTML.includes('data-item="'+id+'"'),name);app.seam.inspect(id);assert(app.nodes.get('dialog').innerHTML.includes('<h3>'+app.bridge.esc(name)+'</h3>'));app.bridge.closeDialog();}
  assert.equal(app.calls.filter(call=>call.body).length,0);assert.equal(app.seam.summary().owned.length,0);
 });
-test('the original Copium Cartridge opens its five free designs in Browse with normal gift actions',async()=>{
+test('the Copium family keeps original free designs and distinguishes capsule editions in Discover',async()=>{
  const {COSMETICS}=await import('../worker/cosmetics.mjs');
  const {JSDOM}=require('jsdom');
  const app=fixture({page:true,catalog:COSMETICS});
@@ -188,13 +213,21 @@ test('the original Copium Cartridge opens its five free designs in Browse with n
  assert.equal(results.querySelector('[data-vc-series]').value,'Copium Cartridges');
  assert.equal(results.querySelector('[data-vc-kind]').value,'gift');
  const cards=[...results.querySelectorAll('[data-design-id]')];
- assert.deepEqual(cards.map(card=>card.dataset.designId).sort(),ids.slice().sort());
+ const capsuleIDs=COSMETICS.filter(item=>item.familyId==='copium-cartridge').map(item=>item.id);
+ assert.deepEqual(cards.map(card=>card.dataset.designId).sort(),['gift-copium-cartridge',...ids,...capsuleIDs].sort());
+ for(const card of cards){
+  const label=card.querySelector('.vc-series').textContent;
+  if(capsuleIDs.includes(card.dataset.designId)){
+   assert.match(label,/Capsule edition/);
+   assert.equal(card.querySelector('[data-vc-action="claim"]'),null);
+  }else assert.match(label,/Free edition/);
+ }
  for(const card of cards){
   const catalogDesign=COSMETICS.find(item=>item.id===card.dataset.designId);
   assert.equal(card.querySelector('h3').textContent,catalogDesign.name);
   assert.equal(card.querySelector('.vc-art-button').getAttribute('aria-label'),'Inspect '+catalogDesign.name);
  }
- assert.equal(results.querySelectorAll('[data-vc-action="claim"]').length,5);
+ assert.equal(results.querySelectorAll('[data-vc-action="claim"]').length,6);
  const design=results.querySelector('[data-vc-action="inspect"][data-item="gift-cartridge-rain-check"]');
  await app.seam.action(design);
  const send=JSDOM.fragment(app.nodes.get('dialog').innerHTML).querySelector('[data-vc-action="send-form"]');

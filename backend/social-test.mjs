@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
-import {handleAuthRequest} from '../worker/auth.mjs';
+import {handleAuthRequest as productionAuth} from '../worker/auth.mjs';
+import {withLegacyRegistration} from './legacy-account-fixture.mjs';
+const handleAuthRequest=withLegacyRegistration(productionAuth);
 import {handleSocialRequest} from '../worker/social.mjs';
 
 const origin='https://social-test.example';

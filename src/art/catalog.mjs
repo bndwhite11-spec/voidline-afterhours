@@ -1,3 +1,4 @@
+import {opticalEmblems} from './profile-emblems.mjs';
 import {originals,earned} from './badges-originals.mjs';
 import {culture} from './badges-culture.mjs';
 import {gifts} from './gifts.mjs';
@@ -12,6 +13,9 @@ import {plushModels} from './plush-models.mjs';
 import {tapeModels} from './tape-models.mjs';
 import {tankModels} from './tank-models.mjs';
 import {keycapModels} from './keycap-models.mjs';
+import {cartridgeEditions} from './cartridge-editions.mjs';
+import {terminalEditions} from './terminal-editions.mjs';
+import {volumeEditions} from './volume-editions.mjs';
 import {cartridgeDesigns} from '../collectibles/cartridge-designs.mjs';
 import {weatherCartridges} from './cartridges-weather.mjs';
 import {signalCartridges} from './cartridges-signal.mjs';
@@ -28,7 +32,7 @@ const legacy={...originals,...culture,...extras,...genre,...gifts,...telegramCha
 const previousCatalog=Object.fromEntries(Object.entries(legacy).map(([id,a])=>[id,webSources[id]?createWebArt(a,webSources[id]):a]));
 export const studioIds=Object.freeze(Object.keys(studioObjects));
 const expansion=Object.fromEntries(Object.entries({...tapeModels,...tankModels}).filter(([id])=>Object.hasOwn(collectibleModels,id)));
-const modelArtwork={...plushModels,...keycapModels,...expansion};
+const modelArtwork={...plushModels,...keycapModels,...expansion,...cartridgeEditions,...terminalEditions,...volumeEditions};
 const originalsByModel=Object.fromEntries(Object.entries(modelArtwork).map(([id,art])=>{
  const model=collectibleModels[id];
  if(!model)throw Error('Unknown model master '+id);
@@ -51,7 +55,15 @@ const cartridges=Object.fromEntries(Object.entries(cartridgeDesigns).map(([id,de
  if(!master)throw Error('Missing cartridge artwork '+id);
  return [id,{...master,...design,type:'gift',assetKind:'layered-svg',edition:design.artRevision}];
 }));
-export const artCatalog=Object.freeze({...studioCatalog,...revised,...originalsByModel,...cartridges});
+export const emblemIds=Object.freeze(Object.keys(opticalEmblems));
+const emblems=Object.fromEntries(emblemIds.map(id=>{
+ const {name,type,series}=studioCatalog[id];
+ return [id,{...opticalEmblems[id],name,type,series,acquisitionPolicy:type==='earned'?'earned':'legacy-free'}];
+}));
+const originalFinish=Object.fromEntries(Object.entries(originalsByModel).filter(([,art])=>art.historicalMotion).map(([id,art])=>
+ [id,{...art,motion:art.historicalMotion,body:(p,variant)=>art.body(p,variant,false)}]));
+export const priorModelArtSVG=(id,variant)=>Object.hasOwn(originalFinish,id)?artSVG(id,variant,originalFinish):null;
+export const artCatalog=Object.freeze({...studioCatalog,...emblems,...revised,...originalsByModel,...cartridges});
 const xml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export {artVersion};
 export function artSVG(id,variant='detail',registry=artCatalog){

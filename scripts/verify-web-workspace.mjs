@@ -13,6 +13,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 import {CookieJar, JSDOM, VirtualConsole, requestInterceptor} from 'jsdom';
 import {IDBFactory, IDBKeyRange} from 'fake-indexeddb';
+import {verificationMailbox} from './verification-mailbox.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -22,7 +23,7 @@ const origin = 'https://quality.voidline.example';
 const args = parseArgs({options: {
   baseline:{type:'string'}, candidate:{type:'string',default:resolve(root,'dist/server/index.js')},
   pairs:{type:'string',default:'1'}, output:{type:'string'}, collectibles:{type:'boolean'},
-  'collectible-transfer':{type:'boolean'}, expanded:{type:'boolean'}, 'lost-opening-response':{type:'boolean'}, 'reduced-motion':{type:'boolean'}, 'missing-art':{type:'boolean'},
+  'collectible-transfer':{type:'boolean'},'collector-edition':{type:'boolean'}, expanded:{type:'boolean'}, 'lost-opening-response':{type:'boolean'}, 'reduced-motion':{type:'boolean'}, 'missing-art':{type:'boolean'},
 }}).values;
 const pairCount=Number(args.pairs);
 assert(Number.isInteger(pairCount) && pairCount>0 && pairCount<=20,'Choose 1–20 repetitions.');
@@ -40,10 +41,11 @@ const delay = ms=>new Promise(done=>setTimeout(done,ms));
 
 async function run(script) {
   let outbound=0, stage='setup', dom;
+  const mailbox=verificationMailbox(origin,()=>{outbound++;return new Response(null,{status:502});});
   const runtime = new Miniflare({
     modules:true,script,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],
-    bindings:{CAPSULE_EXPANDED_FAMILIES:args.expanded?'1':'0'},d1Databases:['DB'],r2Buckets:['MEDIA'],d1Persist:false,r2Persist:false,
-    outboundService:()=>{outbound++;return new Response(null,{status:502});},
+    bindings:{...mailbox.bindings,CAPSULE_COLLECTOR_EDITION:args['collector-edition']?'1':'0',CAPSULE_EXPANDED_FAMILIES:args.expanded?'1':'0'},d1Databases:['DB'],r2Buckets:['MEDIA'],d1Persist:false,r2Persist:false,
+    outboundService:request=>mailbox.exchange(request),
   });
   const jar=new CookieJar(), seen=[], clientErrors=[];
   const timings={};
@@ -121,7 +123,18 @@ async function run(script) {
     assert.equal(response.status,200,'Authorized data should be available');
     return response.json();
   }
-  const username='quality_guest', password=randomBytes(26).toString('hex');
+  async function registerForm(email){
+    await action('auth-register');
+    await until(()=>$('[data-home-form="register"]')||$('[data-home-form="signup-email-request"]'));
+    const form=$('[data-home-form="signup-email-request"]');
+    if(!form)return {form:await element('[data-home-form="register"]'),login:undefined}; // Older baseline build
+    fill(form,{email});form.dispatchEvent(event('submit'));await until(()=>mailbox.has(email));
+    await until(()=>!form.dataset.busy);
+    dom.window.history.replaceState(null,'','/chats'+new URL(mailbox.take(email)).hash);
+    await action('auth-register');
+    return {form:await element('[data-home-form="register"]'),login:email};
+  }
+  const username='quality_guest',email=username+'@example.test',password=randomBytes(26).toString('hex');
   const bio='Բարեւ • مرحبا 🎛️', message='Բարեւ workspace • مرحبا';
   const communityName='Fixture workshop';
   try {
@@ -148,8 +161,7 @@ async function run(script) {
     });
     guestRequests=seen.length;
     guestByKind={...started};guestRequestStarts=Object.values(guestByKind).reduce((sum,n)=>sum+n,0);
-    await action('auth-register');
-    const signup=await element('[data-home-form="register"]');
+    const {form:signup,login:verifiedLogin}=await registerForm(email);
     fill(signup,{username,displayName:'Quality fixture',password,passwordConfirm:password});
     await measure('signupToWorkspace',async()=>{
       signup.dispatchEvent(event('submit'));
@@ -180,6 +192,7 @@ async function run(script) {
 
     await measure('collectionOpen',async()=>{
       await action('cosmetics-collection');
+      await click('[data-vc-action="section"][data-section="browse"]');
       await element('#vc-design-search');await element('[data-vc-action="inspect"][data-item="gift-rose"]');
     });
     stage='collectionFilter';
@@ -201,7 +214,7 @@ async function run(script) {
     if(args.collectibles||args['collectible-transfer']){
       stage='capsule:enter';
       const {verifyCollectibleFlow}=await import('./verify-collectible-flow.mjs');
-      collectionResult=await verifyCollectibleFlow({action,click,element,until,$,event,json,one,accountId:id,observe:name=>{stage='capsule:'+name;}});
+      collectionResult=await verifyCollectibleFlow({action,click,element,until,$,event,json,one,accountId:id,familyId:args['collector-edition']?'copium-cartridge':'pepe-keycap',observe:name=>{stage='capsule:'+name;}});
       if(args['lost-opening-response'])assert.ok(lostOpeningResponse,'Lost reply must follow a committed opening');
     }
     stage='communityCreate';await action('create');
@@ -231,7 +244,7 @@ async function run(script) {
     assert.equal((await exchange('/api/auth/session')).status,401,'Server should revoke the signed-out session');
     signOutDefault=$('[data-home-form="login"]')?'login':'createAccount';
     if(signOutDefault==='createAccount')await action('auth-login');
-    const login=await element('[data-home-form="login"]');fill(login,{username,password});
+    const login=await element('[data-home-form="login"]');fill(login,{username:verifiedLogin||username,password});
     await measure('loginToWorkspace',async()=>{
       login.dispatchEvent(event('submit'));
       await until(()=>state()?.account?.id===id&&state().communities?.some(item=>item.id===room.id));
@@ -239,7 +252,7 @@ async function run(script) {
     if(args['collectible-transfer']){
       const {verifyCollectibleTransfer}=await import('./verify-collectible-transfer.mjs');
       transferResult=await verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,
-        sender:{id,username,password},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
+        registerForm,sender:{id,username,password,login:verifiedLogin},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
     }
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_accounts')).n,args['collectible-transfer']?2:1);
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_messages WHERE author_id=?',id)).n,1);

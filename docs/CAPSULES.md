@@ -4,6 +4,22 @@ An active, onboarded account can claim one welcome capsule. This includes users 
 
 A Standard community-channel post earns one stamp on its UTC date. Replies and posts with attachments qualify. Reaching three different dates in one Monday-to-Sunday UTC week creates one capsule automatically. Read receipts, heartbeats, DMs, invites, edits and background polling do not qualify. Private text is never inspected to compute eligibility. Each capsule gives one collectible from a family the user selects before confirming. Duplicate copies are distinct, transferable instances. Capsules themselves stay with their earning accounts and do not expire.
 
+## Collector edition
+
+With migration `0012_collector_edition` applied and `CAPSULE_COLLECTOR_EDITION=1`, new capsules carry `afterhours-choice.v3`. The original four families retain their probability distributions. Their updated artwork is pinned in family table revision 2. Earlier earned capsules continue to open and replay against their own immutable database table and artwork references.
+
+| Selected family | Models in tier order | Conditional probabilities |
+| --- | --- | --- |
+| Copium Cartridges · Capsule Edition | They’ll Text Back, One More Game, Next in Queue, It Was Lag, Still Early, Last Excuse | 50%, 28%, 14%, 6%, 1.5%, 0.5% |
+| Pocket Terminal | Greenline, Amber Relay, Field Service, Glass Console | 50%, 30%, 15%, 5% |
+| Egoist’s Volume | Marginalia, Clasped Copy, Night Binding, Opal Frontispiece | 50%, 30%, 15%, 5% |
+
+The original green Copium Cartridge and its five free siblings retain their separate design IDs and ownership records. Choosing the cartridge family in Discover or My gifts can show both free and capsule editions. Only the six models above enter a cartridge capsule draw.
+
+Accounts earning a v3 capsule can also check in from Earn on three separate UTC days in a Monday-to-Sunday week. The same daily stamp covers a deliberate check-in or an eligible Standard community post. A check-in uses a current session, CSRF protection and the server’s UTC date. It does not inspect encrypted traffic, record conversation metadata or assert that the participant sent a message. The first completed v3 week also grants one separately owned, transferable copy of the original green Copium Cartridge. The database awards this milestone atomically with the weekly capsule, with no draw or further claim. Transferring the gift does not reset milestone eligibility.
+
+Turning off the collector edition changes future issuance. Keep its migration, frozen tables and static artwork available so existing receipts, pending transfers and unopened capsules remain usable. Both pause switches continue to apply.
+
 ## What the server records
 
 | Event | Required evidence | Committed effect |

@@ -3,17 +3,27 @@ import firstArt from '../src/collectibles/choice-v1-assets.json' with {type:'jso
 import workshopTables from '../src/collectibles/choice-v2-tables.json' with {type:'json'};
 import workshopArt from '../src/collectibles/choice-v2-assets.json' with {type:'json'};
 
+import collectorTables from '../src/collectibles/choice-v3-tables.json' with {type:'json'};
+import collectorArt from '../src/collectibles/choice-v3-assets.json' with {type:'json'};
+
 // To change a published distribution, introduce a new edition and table version.
 // An earned capsule permanently references its immutable database edition.
 export const choiceEdition = 'afterhours-choice.v1';
 const expandedEdition='afterhours-choice.v2';
-export const activeEditionId=env=>env.CAPSULE_EXPANDED_FAMILIES==='1'?expandedEdition:choiceEdition;
+export const collectorEdition='afterhours-choice.v3';
+export function activeEditionId(env) {
+  if (env.CAPSULE_COLLECTOR_EDITION==='1') return collectorEdition;
+  return env.CAPSULE_EXPANDED_FAMILIES==='1'?expandedEdition:choiceEdition;
+}
+export const collectorAction='Check in here or post in a Standard community channel on three different UTC days, Monday through Sunday. Either action records one day. Checking in works with any chat privacy setting.';
 export const qualifyingAction = 'Post a Standard message in a community channel on three different UTC days, Monday through Sunday. Replies count. Reading and direct messages do not add a day.';
 const attachOriginalArt=(families,art)=>families.map(family=>({...family,models:family.models.map(model=>({
   ...model,originalArt:art[model.id]
 }))}));
 export const releaseTables = attachOriginalArt(firstTables,firstArt);
 export const expandedReleaseTables = [...releaseTables,...attachOriginalArt(workshopTables,workshopArt)];
+
+export const collectorReleaseTables = attachOriginalArt(collectorTables,collectorArt);
 
 export function validateTables(families) {
   if (!Array.isArray(families) || !families.length || families.length>16) throw Error('Invalid capsule family tables');
@@ -36,7 +46,8 @@ export function validateTables(families) {
 }
 const frozenEditions = new Map([
   [choiceEdition,JSON.stringify(validateTables(releaseTables))],
-  [expandedEdition,JSON.stringify(validateTables(expandedReleaseTables))]
+  [expandedEdition,JSON.stringify(validateTables(expandedReleaseTables))],
+  [collectorEdition,JSON.stringify(validateTables(collectorReleaseTables))]
 ]);
 
 export function modelAt(draw,models) {
@@ -66,8 +77,12 @@ export function weekAt(ms) {
 }
 
 export function ensureEditionStatement(db,editionId,authorizedSQL,...args) {
+  // Do not create this edition if a rollout reaches a DB before its policy migration.
+  const migrationGate=editionId===collectorEdition
+    ? " AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='collector_first_week_keepsake')"
+    : '';
   return db.prepare(`INSERT INTO capsule_editions(id,families_json)
-    SELECT ?,? WHERE ${authorizedSQL} AND NOT EXISTS(SELECT 1 FROM capsule_editions WHERE id=?)
+    SELECT ?,? WHERE ${authorizedSQL}${migrationGate} AND NOT EXISTS(SELECT 1 FROM capsule_editions WHERE id=?)
     ON CONFLICT(id) DO NOTHING`).bind(editionId,frozenEditions.get(editionId),...args,editionId);
 }
 

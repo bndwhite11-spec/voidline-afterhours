@@ -20,7 +20,7 @@ native distribution is prepared.
   links open in the system browser; file/data/custom-scheme navigation is denied.
 - WebKit's file-input UI serves profile and attachment selection. Microphone
   access remains prompted by iOS/WebKit and is restricted to the main application
-  origin. WebRTC camera/video and device-motion capture are denied. The upload
+  origin. WebRTC microphone and camera requests prompt only from the trusted top-level app origin. Device-motion capture is denied. The upload
   picker's user-selected Take Photo option has its own narrowly scoped camera
   usage description; photo selection/saving also carries explicit usage text.
 - Authenticated WebKit downloads use a private temporary file and the native
@@ -138,7 +138,7 @@ reviewed server session handoff; merely opening an external browser does not
 authenticate this WebKit container. Do not enable an embedded Google OAuth flow
 or weaken provider/owner checks to conceal that integration requirement.
 
-This wrapper does not implement APNs/background push, calls or screen sharing.
+Foreground web calls use WebRTC when the deployed messaging service enables calling. Background ringing, CallKit, APNs and screen sharing are unavailable.
 It preserves the site's truthful Standard/Matrix security distinction and
 requires internet for live messaging. A signed wrapper does not complete the
 separately unconfigured Matrix/E2EE service.

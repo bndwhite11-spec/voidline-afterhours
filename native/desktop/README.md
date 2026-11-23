@@ -32,7 +32,7 @@ Pinned inputs, verified on 19 November 2026:
 | Electron stable | 45.4.1 |
 | @electron/packager | 20.3.0 |
 | @electron/fuses | 2.1.3 |
-| Application | 1.0.0 |
+| Application | 1.0.1 |
 
 The official Electron Windows archive is downloaded from its versioned GitHub
 release and checked against the pinned SHA-256 from that release's
@@ -46,7 +46,7 @@ new security release; test and rebuild the downloadable binary. There is no
 automatic updater in this first version.
 
 The build verifies Windows x64 PE headers, app ASAR contents against reviewed
-source, security fuse settings and full ZIP CRC integrity. The 13 focused tests
+source, security fuse settings and full ZIP CRC integrity. The focused tests
 execute the actual main-process event handlers with an injected Electron mock.
 They cover URL and origin validation, current Electron navigation/permission
 event shapes, renderer isolation, downloads, revocation races, offline states,
@@ -68,11 +68,10 @@ and window lifetime. These tests do **not** execute Chromium or Windows.
   into the existing service uses the same account and backend; it does not
   import another browser's cookies. The wrapper stores no embedded accounts,
   authentication tokens, service keys or passwords.
-- Audio-only microphone requests and desktop notifications require a native
-  confirmation. Grants last until quit or revocation. Revoking permissions
-  fences pending dialogs and reloads the page to end existing microphone
-  streams. Camera, screen sharing, USB, location and other special permissions
-  are denied. Ordinary file selection uses Chromium's native picker.
+- The trusted app requests native approval for camera, microphone and desktop
+  notifications. Separate camera and microphone grants last until quit or
+  revocation. Revoking permissions cancels pending approvals and reloads the
+  page to stop active capture. Screen sharing, USB and location are denied. Ordinary file selection uses Chromium's native picker.
 - Downloads must originate from the app and keep an HTTPS redirect chain
   (own-origin blob downloads are supported). A native Save dialog chooses the
   destination; files never run automatically.
@@ -84,12 +83,12 @@ in force. This package does not add E2EE, native calls, or a new push transport.
 
 ## Release limitations
 
-This first portable release has **no publisher Authenticode certificate** and
+This portable release has **no publisher Authenticode certificate** and
 is not distributed through Microsoft Store. Windows may show an unknown-publisher
 warning. Do not bypass organization policy. Distribute it through the project's
 official release assets with `SHA256SUMS`. Keep Electron security updates current.
 
-No Windows machine was available for execution during this build. Real Windows
+Version 1.0.1 was packaged on Linux. Real Windows
 startup, SmartScreen, screen reader behavior, file dialogs, audio, notification
 delivery, OAuth provider flows and passkeys require device testing. Some Google
 OAuth providers reject embedded user agents; use the menu's **Open VOIDLINE in

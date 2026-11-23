@@ -208,11 +208,19 @@ function vapor(kind,t) {
   return T(G('nozzle-vapor',curl,'opacity="0"')+G('vapor-tail',thread,'opacity="0"'),x,y);
 }
 const scenes={'field-enamel':fieldDetail,'sight-glass':glassDetail,'field-repair':repairDetail,'kiln-white':kilnDetail};
-function draw(id,kind,variant) {
+function regulator(id,t){
+  const metal=url(id,t.hardware);
+  const sleeve=P('M114 78l18 1-.6 10.3-18.5-1.1Z',metal,'stroke="'+t.ink+'" stroke-width="1"')
+    +P('M117 80l12 .7-.4 5.8-12.1-.6Z',t.shadow);
+  return sleeve+G('regulator-piston',P('M117.5 82l10.8.5-.3 3-11-.6Z',t.coat)
+    +L('M119 82.8l7.7.4',t.accent,1.15))
+    +L('M115 87l15 .9',t.ink,1);
+}
+function draw(id,kind,variant,finish=true) {
   const t=field[kind],detail=variant!=='card';
   const collar=P('M106 75q15 4 34-1v4q-18 5-34 1Z',url(id,t.hardware));
   const construction=frame(id,t,kind)+foot(id,t,kind)+core(id,t,kind,detail)+scenes[kind](id,t,detail)
-    +collar+wheel(id,t,kind)+gauge(id,t,kind,detail)+vapor(kind,t);
+    +collar+wheel(id,t,kind)+gauge(id,t,kind,detail)+(finish?regulator(id,t):'')+vapor(kind,t);
   return defs(id,t)+'<g transform="translate(-10 -14) scale(1.08)">'+construction+'</g>';
 }
 function mark(kind,t) {
@@ -236,7 +244,7 @@ const movement={
  'field-repair':[1740,-23,42,.38,'The field-repaired wing knob tips up. A patched joint exhales while the gauge overshoots once and falls back.'],
  'kiln-white':[1830,-55,61,.43,'A copper handwheel meters a short plume. The cobalt gauge responds and light passes across the glazed shoulder.']
 };
-function motion(kind) {
+function motion(kind,finish=true) {
   const [duration,rotation,peak,beat]=movement[kind];
   const repair=kind==='field-repair';
   const knob=layer('wheel',[92,59],[{at:.12,rotate:3},{at:.29,rotate:rotation,y:repair?-2.7:0},{at:.54,rotate:rotation*.94,y:repair?-2.5:0},{at:.72,rotate:6},{at:.87,rotate:-2}]);
@@ -251,6 +259,7 @@ function motion(kind) {
   const extras=[];
   if(kind==='sight-glass')extras.push(layer('sight-float',[124,148],[{at:.24,y:-1},{at:.5,y:9},{at:.69,y:3},{at:.84,y:-1.8}]));
   if(kind==='kiln-white')extras.push(layer('kiln-seam',[119,108],[{at:.34,opacity:0},{at:.51,opacity:.84},{at:.69,opacity:.42},{at:.84,opacity:0}]));
+  if(finish)extras.push(layer('regulator-piston',[123,84],[{at:.17},{at:beat,y:-2.9},{at:.51,y:-1.2},{at:.66,y:.5},{at:.78,y:-.3}]));
   return {duration,layers:[knob,needle,vent,tail,...extras]};
 }
 function silhouette(kind) {
@@ -271,7 +280,7 @@ const designEntries=[
   ['gift-tank-field-repair','field-repair'],['gift-tank-kiln-white','kiln-white']
 ];
 export const tankModels=Object.freeze(Object.fromEntries(designEntries.map(([id,kind])=>[id,{
-  mini:mark(kind,field[kind]),body:(prefix,variant='detail')=>draw(prefix,kind,variant),
+  mini:mark(kind,field[kind]),body:(prefix,variant='detail',finish=true)=>draw(prefix,kind,variant,finish),historicalMotion:motion(kind,false),
   silhouette:silhouette(kind),
   motion:motion(kind),storyboard:movement[kind][4]
 }])));

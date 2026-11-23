@@ -114,7 +114,7 @@ export async function enrollEncryptedMessaging({accountId,password,request,creat
     await saveEnvelope(envelope,{accountId,homeserver:config.homeserver,userId:session.userId,deviceId:session.deviceId,accessToken:session.accessToken},deps);vault=envelope.vault;persisted=true;current();
    }
    if(!created){await saveEnvelope(envelope,session,deps);vault=envelope.vault;current();}
-   messenger=createSecureMessenger({onState});if(!messenger?.connect)throw fail('VOID_ENROLLMENT_CONNECTION','The encrypted client could not initialize.');
+   messenger=createSecureMessenger({onState,callsEnabled:config.callsEnabled===true});if(!messenger?.connect)throw fail('VOID_ENROLLMENT_CONNECTION','The encrypted client could not initialize.');
    await messenger.connect({homeserver:config.homeserver,accountId,accessToken:session.accessToken,storagePassword,expectedUserId:expected,expectedDeviceId:session.deviceId});current();connected=true;
    const wrapped=Object.freeze({...messenger,async disconnect(options={}){const result=await messenger.disconnect(options);if(options.revokeSession===true&&(result?.revocation?.status==='confirmed'||result?.revocation==='confirmed'))await clearEncryptedEnrollment({accountId,homeserver:config.homeserver},deps);return result;}});
    return {messenger:wrapped,session:{userId:session.userId,deviceId:session.deviceId,homeserver:config.homeserver},resumed:!created};

@@ -1,3 +1,4 @@
+import {editionThreeFamilies} from './edition-three-families.mjs';
 import {workshopFamilies} from './workshop-families.mjs';
 // Stable identity and collector copy. Art modules supply geometry, never odds.
 const model = (id, name, material, description, alt, setting) => ({
@@ -60,13 +61,14 @@ const keycaps = [
 const tiers = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
 const weights = [5000, 2800, 1400, 600, 150, 50];
 const familyDefinitions = [
-  { id: 'chudjak-plush', name: 'Chudjak Plush', entries: plush },
-  { id: 'pepe-keycap', name: 'Pepe Keycap', entries: keycaps },
-  ...workshopFamilies
+  { id: 'chudjak-plush', name: 'Chudjak Plush', entries: plush, tableRevision: 2 },
+  { id: 'pepe-keycap', name: 'Pepe Keycap', entries: keycaps, tableRevision: 2 },
+  ...workshopFamilies.map(family=>({...family,tableRevision:2})),
+  ...editionThreeFamilies
 ];
 
-export const collectibleFamilies = Object.freeze(Object.fromEntries(familyDefinitions.map(({ id, name, entries }) =>
-  [id, Object.freeze({ id, name, modelIds: Object.freeze(entries.map(m => m.id)), tableVersion: id + '.v1' })]
+export const collectibleFamilies = Object.freeze(Object.fromEntries(familyDefinitions.map(({ id, name, entries, tableRevision = 1 }) =>
+  [id, Object.freeze({ id, name, modelIds: Object.freeze(entries.map(m => m.id)), tableVersion: id + '.v' + tableRevision })]
 )));
 export const collectibleModels = Object.freeze(Object.fromEntries(familyDefinitions.flatMap(({ id: familyId, entries, tiers: familyTiers = tiers, weights: familyWeights = weights }) =>
   entries.map(({ setting, ...entry }, index) => {
@@ -74,7 +76,7 @@ export const collectibleModels = Object.freeze(Object.fromEntries(familyDefiniti
     return [entry.id, Object.freeze({
       ...entry, familyId, tier: familyTiers[index], weight: familyWeights[index],
       backdrop: Object.freeze({ name, center, edge, motifColor, foreground }), motif,
-      artRevision: 'atelier-01', acquisitionPolicy: 'capsule-only'
+      artRevision: 'atelier-02', acquisitionPolicy: 'capsule-only'
     })];
   })
 )));

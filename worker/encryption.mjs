@@ -40,10 +40,25 @@ export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>f
    if(path.length===1&&path[0]==='config'&&request.method==='GET'){
     const password=await q(db,'SELECT 1 AS present FROM auth_credentials WHERE account_id=?',user.id).first();
     const policy=await matrixPolicyHealth(env,{accountId:user.id});
-    return json({policy,configured:config.configured,provider:'synapse-jwt',credentialHomeserver:config.homeserver,homeserver:config.configured?config.homeserver:null,serverName:config.configured?config.serverName:null,requiresNativePassword:true,nativePasswordAvailable:!!password,encryptedDefaultReady:false,accountRestrictionsSynced:false,description:config.configured?'An encrypted service is configured. Device verification and recovery remain separate.':'Encrypted account enrollment is not configured. Standard messaging remains a separate choice.'});
+    return json({policy,callsEnabled:config.configured&&policy.configured&&env.MATRIX_CALLS_ENABLED==='1',configured:config.configured,provider:'synapse-jwt',credentialHomeserver:config.homeserver,homeserver:config.configured?config.homeserver:null,serverName:config.configured?config.serverName:null,requiresNativePassword:true,nativePasswordAvailable:!!password,encryptedDefaultReady:false,accountRestrictionsSynced:false,description:config.configured?'An encrypted service is configured. Device verification and recovery remain separate.':'Encrypted account enrollment is not configured. Standard messaging remains a separate choice.'});
    }
    need(config.configured,503,'encrypted_enrollment_unavailable','Encrypted account enrollment is not configured. Your existing account and Standard conversations remain available.');
    const identity=await expectedIdentity(user.id,config);need(identity.userId.length<=255,503,'encrypted_configuration_invalid','The encrypted service identity configuration is invalid.');
+   if(path.length===1&&path[0]==='call-permission'&&request.method==='GET'){
+    need(env.MATRIX_CALLS_ENABLED==='1' && (await matrixPolicyHealth(env,{accountId:user.id})).configured,503,'calling_unavailable','Calling is unavailable on this service.');
+    const peer=url.searchParams.get('peer'),device=url.searchParams.get('device');
+    need(typeof peer==='string'&&peer.length<=255&&typeof device==='string'&&device.length>=1&&device.length<=255,400,'invalid_call_recipient','Choose a verified direct conversation.');
+    const allowed=await q(db,`SELECT 1 AS allowed FROM matrix_account_links me
+      JOIN matrix_enrollment_issues own ON own.account_id=me.account_id
+      JOIN matrix_account_links target ON target.homeserver_origin=me.homeserver_origin AND target.account_id<>me.account_id
+      JOIN live_accounts other ON other.id=target.account_id
+      WHERE me.account_id=? AND me.homeserver_origin=? AND me.verified_at IS NOT NULL
+        AND own.session_id=? AND own.state='confirmed' AND own.matrix_device_id=?
+        AND target.matrix_user_id=? AND target.verified_at IS NOT NULL AND other.account_status='active'
+        AND EXISTS (SELECT 1 FROM social_requests r WHERE r.state='accepted' AND ((r.sender_id=me.account_id AND r.recipient_id=target.account_id) OR (r.sender_id=target.account_id AND r.recipient_id=me.account_id)))
+        AND NOT EXISTS (SELECT 1 FROM social_blocks b WHERE (b.blocker_id=me.account_id AND b.blocked_id=target.account_id) OR (b.blocker_id=target.account_id AND b.blocked_id=me.account_id)) LIMIT 1`,user.id,config.homeserver,user.sessionId,device,peer).first();
+    need(allowed,403,'call_unavailable','This device cannot call that participant.');return json({allowed:true});
+   }
    if(path.length===1&&path[0]==='recipient'&&request.method==='GET'){
     const username=normalizeUsername(url.searchParams.get('username'));
     const target=await q(db,`SELECT a.id,a.username,a.display_name,l.matrix_user_id FROM live_accounts a JOIN matrix_account_links l ON l.account_id=a.id AND l.verified_at IS NOT NULL AND l.homeserver_origin=? WHERE a.username=? AND a.account_status='active' AND EXISTS(SELECT 1 FROM social_requests r WHERE r.state='accepted' AND ((r.sender_id=? AND r.recipient_id=a.id) OR(r.recipient_id=? AND r.sender_id=a.id))) AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE(b.blocker_id=? AND b.blocked_id=a.id) OR(b.blocker_id=a.id AND b.blocked_id=?))`,config.homeserver,username,user.id,user.id,user.id,user.id).first();

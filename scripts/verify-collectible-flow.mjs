@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 // Use only the selectors and requests available to a signed-in collector. The
 // final SQL reads independently verify this exact copy in the isolated fixture.
-export async function verifyCollectibleFlow({action, click, element, until, $, event, json, one, accountId, observe}) {
+export async function verifyCollectibleFlow({action, click, element, until, $, event, json, one, accountId, familyId='pepe-keycap', observe}) {
   const section = '[data-vc-action="section"][data-section="collector"]';
   await action('cosmetics-collection');
   await click(section);
@@ -10,10 +10,10 @@ export async function verifyCollectibleFlow({action, click, element, until, $, e
   const welcome = await element('[data-cl="capsule"][data-id]');
   const capsuleId = welcome.dataset.id;
   welcome.click();
-  await click('[data-cl="family"][data-family="pepe-keycap"]');
+  await click('[data-cl="family"][data-family="'+familyId+'"]');
   const before = await json('/api/capsules/' + capsuleId);
-  const family = before.families.find(row => row.id === 'pepe-keycap');
-  assert.equal(family.tableVersion, 'pepe-keycap.v1');
+  const family = before.families.find(row => row.id === familyId);
+  assert.equal(family.tableVersion, familyId+'.v1');
   assert.deepEqual(family.models.map(item => item.weight), [5000, 2800, 1400, 600, 150, 50]);
   assert.equal(before.opening, null);
 

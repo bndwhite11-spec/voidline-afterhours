@@ -1,0 +1,751 @@
+[
+  {
+    "id": "chudjak-plush",
+    "name": "Chudjak Plush",
+    "tableVersion": "chudjak-plush.v2",
+    "models": [
+      {
+        "id": "gift-chudjak-original",
+        "name": "Original Chudjak",
+        "material": "Felt, cotton shirting and embroidered thread",
+        "description": "An unimpressed face behind thick glasses. One soft hand lifts for a reluctant wave.",
+        "alt": "Seated Chudjak doll with felt hair, thick glasses, sewn shirt and rounded feet.",
+        "familyId": "chudjak-plush",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Warm Desk",
+          "center": "#755d4b",
+          "edge": "#29232a",
+          "motifColor": "#a48971",
+          "foreground": "#fff4df"
+        },
+        "motif": "Seam marks",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-chudjak-midnight-hoodie",
+        "name": "Midnight Hoodie",
+        "material": "Charcoal jersey with ribbed cotton cuffs",
+        "description": "He tugs at a lined hood. The cords take a beat to settle against his chest.",
+        "alt": "Bespectacled Chudjak in a charcoal hood with a deep lining and two hanging drawstrings.",
+        "familyId": "chudjak-plush",
+        "tier": "Uncommon",
+        "weight": 2800,
+        "backdrop": {
+          "name": "Night Bus",
+          "center": "#45586c",
+          "edge": "#192431",
+          "motifColor": "#788da4",
+          "foreground": "#f3f6ff"
+        },
+        "motif": "Stitches",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-chudjak-helmet",
+        "name": "Helmet Chudjak",
+        "material": "Olive twill, webbing and padded felt",
+        "description": "A padded field helmet slips with the tilt of his head. One hand nudges it back.",
+        "alt": "Chudjak plush in a paneled olive helmet with a chin strap and a utility overshirt.",
+        "familyId": "chudjak-plush",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Field Dusk",
+          "center": "#60664c",
+          "edge": "#232a24",
+          "motifColor": "#919774",
+          "foreground": "#fcfae3"
+        },
+        "motif": "Stitched chevrons",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-chudjak-patchwork",
+        "name": "Patchwork Afterhours",
+        "material": "Pieced cotton with blanket-stitched repairs",
+        "description": "Cream, burgundy and graphite panels pull together in a brief self-hug. One knee wears a repair.",
+        "alt": "Patchwork Chudjak toy with a repaired knee, mismatched cuff and stitched fabric panels.",
+        "familyId": "chudjak-plush",
+        "tier": "Epic",
+        "weight": 600,
+        "backdrop": {
+          "name": "Burgundy Workshop",
+          "center": "#78515d",
+          "edge": "#321f2c",
+          "motifColor": "#b28785",
+          "foreground": "#fff4ee"
+        },
+        "motif": "Repair crosses",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-chudjak-silver-thread",
+        "name": "Silver Thread",
+        "material": "Dark velour, satin and silver embroidery",
+        "description": "A shoulder turn catches the silver embroidery. The zipper pull swings against the satin collar.",
+        "alt": "Chudjak in a dark satin bomber jacket with a separate zipper pull and silver stitching.",
+        "familyId": "chudjak-plush",
+        "tier": "Legendary",
+        "weight": 150,
+        "backdrop": {
+          "name": "Graphite Atelier",
+          "center": "#5c616c",
+          "edge": "#232531",
+          "motifColor": "#959cac",
+          "foreground": "#fbfaff"
+        },
+        "motif": "Thread loops",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-chudjak-velvet-eclipse",
+        "name": "Velvet Eclipse",
+        "material": "Violet velvet with moon-gray lining and woven trim",
+        "description": "He draws a velvet hood around his glasses, lowers it and gives a small wave.",
+        "alt": "Violet velvet Chudjak with a lined hood, a moon-gray interior and a familiar deadpan face.",
+        "familyId": "chudjak-plush",
+        "tier": "Mythic",
+        "weight": 50,
+        "backdrop": {
+          "name": "Eclipse Violet",
+          "center": "#61537d",
+          "edge": "#241d35",
+          "motifColor": "#a08ba9",
+          "foreground": "#fff5ff"
+        },
+        "motif": "Crescent stitches",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  },
+  {
+    "id": "pepe-keycap",
+    "name": "Pepe Keycap",
+    "tableVersion": "pepe-keycap.v2",
+    "models": [
+      {
+        "id": "gift-pepe-desk-green",
+        "name": "Desk Green",
+        "material": "Moss-green molded PBT, cream stem and brushed steel",
+        "description": "Raised sleepy eyes sit above a broad terracotta lip. A single press compresses the switch.",
+        "alt": "Sculpted green Pepe keycap with sleepy raised eyes, a cream stem and a grounded metal socket.",
+        "familyId": "pepe-keycap",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Warm Terminal",
+          "center": "#75664b",
+          "edge": "#282720",
+          "motifColor": "#a99870",
+          "foreground": "#fcfae9"
+        },
+        "motif": "Key legends",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-pepe-terminal-clear",
+        "name": "Terminal Clear",
+        "material": "Translucent jade polycarbonate and brass spring",
+        "description": "The stepped clear wall exposes the spring. A point of light rises through the jade as it releases.",
+        "alt": "Clear jade frog keycap with a visible internal stem and brass spring.",
+        "familyId": "pepe-keycap",
+        "tier": "Uncommon",
+        "weight": 2800,
+        "backdrop": {
+          "name": "Deep Jade",
+          "center": "#37695f",
+          "edge": "#162b2c",
+          "motifColor": "#70a497",
+          "foreground": "#f0fff6"
+        },
+        "motif": "Circuit traces",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-pepe-night-shift",
+        "name": "Night Shift",
+        "material": "Graphite and ivory two-shot plastic",
+        "description": "A small moon sits in the graphite cap. The far eye opens under load and settles back.",
+        "alt": "Graphite and ivory sculpted frog keycap with a crescent inset beside the raised eyes.",
+        "familyId": "pepe-keycap",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Ink Blue",
+          "center": "#4d5f7a",
+          "edge": "#1b2238",
+          "motifColor": "#8198b7",
+          "foreground": "#f5f7ff"
+        },
+        "motif": "Moons",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-pepe-porcelain-pond",
+        "name": "Porcelain Pond",
+        "material": "Ivory ceramic glaze, celadon and gold repair lines",
+        "description": "Painted reeds curl around the ceramic face. A fine gold seam catches the light on release.",
+        "alt": "Ivory glazed frog keycap with a celadon face and a fine gold repair seam.",
+        "familyId": "pepe-keycap",
+        "tier": "Epic",
+        "weight": 600,
+        "backdrop": {
+          "name": "Pond Mist",
+          "center": "#557675",
+          "edge": "#223737",
+          "motifColor": "#8db0a5",
+          "foreground": "#f6fff4"
+        },
+        "motif": "Ripples",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-pepe-meteor-core",
+        "name": "Meteor Core",
+        "material": "Faceted ironstone, polished nickel and amber resin",
+        "description": "A warm inclusion sits inside the cut mineral shell. One reflection circles the inset.",
+        "alt": "Dark faceted mineral frog cap with a bright amber inclusion and polished metal stem.",
+        "familyId": "pepe-keycap",
+        "tier": "Legendary",
+        "weight": 150,
+        "backdrop": {
+          "name": "Copper Dusk",
+          "center": "#805b4d",
+          "edge": "#342623",
+          "motifColor": "#bd8e70",
+          "foreground": "#fff6ea"
+        },
+        "motif": "Mineral facets",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-pepe-black-opal-eclipse",
+        "name": "Black Opal Eclipse",
+        "material": "Carved opal, silver and smoked metal",
+        "description": "The opal cap lifts clear of its stem, revealing an eclipse, then seats itself in the switch.",
+        "alt": "Dark opalescent frog keycap with a silver crescent over a smoked-metal switch housing.",
+        "familyId": "pepe-keycap",
+        "tier": "Mythic",
+        "weight": 50,
+        "backdrop": {
+          "name": "Plum Night",
+          "center": "#6a5573",
+          "edge": "#2c2034",
+          "motifColor": "#a38aaf",
+          "foreground": "#fff4ff"
+        },
+        "motif": "Crescents",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  },
+  {
+    "id": "midnight-tape",
+    "name": "Midnight Tape",
+    "tableVersion": "midnight-tape.v2",
+    "models": [
+      {
+        "id": "gift-tape-graphite-session",
+        "name": "Graphite Session",
+        "material": "Graphite ABS, cream paper and oxide tape",
+        "description": "The take-up hub gathers the recorded side while the supply pack unwinds.",
+        "alt": "Charcoal cassette with a cream label, open hub teeth and red oxide tape.",
+        "familyId": "midnight-tape",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Graphite Shelf",
+          "center": "#606970",
+          "edge": "#232a31",
+          "motifColor": "#87949a",
+          "foreground": "#f3fbfa"
+        },
+        "motif": "Cue dots",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tape-clear-leader",
+        "name": "Clear Leader",
+        "material": "Smoke-jade acrylic, copper guides and clear leader",
+        "description": "The clear wall exposes two unequal tape packs. An amber leader joint crosses the center window.",
+        "alt": "See-through jade cassette with exposed reels, metal tape guides and an amber splice.",
+        "familyId": "midnight-tape",
+        "tier": "Uncommon",
+        "weight": 2700,
+        "backdrop": {
+          "name": "Glass Booth",
+          "center": "#477776",
+          "edge": "#182e32",
+          "motifColor": "#80aba2",
+          "foreground": "#f1fffa"
+        },
+        "motif": "Signal lines",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tape-splice-repair",
+        "name": "Splice Repair",
+        "material": "Worn ochre plastic, splicing tape and ink",
+        "description": "Diagonal repair tape bridges a scuffed shell. A marked edit catches in the window, then slips through.",
+        "alt": "Ochre cassette with adhesive repair strips and a handwritten red splice mark.",
+        "familyId": "midnight-tape",
+        "tier": "Rare",
+        "weight": 1450,
+        "backdrop": {
+          "name": "Repair Bench",
+          "center": "#79614e",
+          "edge": "#30272a",
+          "motifColor": "#b39b77",
+          "foreground": "#fff5e6"
+        },
+        "motif": "Splice marks",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tape-brushed-deck",
+        "name": "Brushed Deck",
+        "material": "Brushed aluminum, machined hubs and steel screws",
+        "description": "A narrow reflection crosses the faceplate while the dark hubs take up the tape.",
+        "alt": "Pale metal cassette with four countersunk screws and dark machined reels.",
+        "familyId": "midnight-tape",
+        "tier": "Epic",
+        "weight": 650,
+        "backdrop": {
+          "name": "Machine Room",
+          "center": "#616a76",
+          "edge": "#242939",
+          "motifColor": "#919ba9",
+          "foreground": "#f5f6fc"
+        },
+        "motif": "Knurl lines",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tape-night-press",
+        "name": "Night Press",
+        "material": "Violet screen print, silver foil and gold ink",
+        "description": "A gold moon rests on the label. The foil registration cross turns with the take-up hub.",
+        "alt": "Violet art-label cassette with a printed horizon, gold moon and foil marks.",
+        "familyId": "midnight-tape",
+        "tier": "Legendary",
+        "weight": 200,
+        "backdrop": {
+          "name": "Night Printshop",
+          "center": "#67566e",
+          "edge": "#271e32",
+          "motifColor": "#a88dad",
+          "foreground": "#fff4fc"
+        },
+        "motif": "Register crosses",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  },
+  {
+    "id": "copium-reserve",
+    "name": "Copium Reserve Tank",
+    "tableVersion": "copium-reserve.v2",
+    "models": [
+      {
+        "id": "gift-tank-field-enamel",
+        "name": "Field Enamel",
+        "material": "Jade enameled steel, brass valve and gauge glass",
+        "description": "The handwheel cracks open. The needle lifts and a short plume dissolves above the regulator.",
+        "alt": "Jade pressure cylinder on a molded foot, with a brass handwheel and a cream gauge.",
+        "familyId": "copium-reserve",
+        "tier": "Common",
+        "weight": 5200,
+        "backdrop": {
+          "name": "Service Bay",
+          "center": "#586e62",
+          "edge": "#202f2b",
+          "motifColor": "#93a890",
+          "foreground": "#f6fff3"
+        },
+        "motif": "Calibration ticks",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tank-sight-glass",
+        "name": "Sight Glass",
+        "material": "Borosilicate glass, a brass cage and a ceramic float",
+        "description": "The liquid level and float settle behind the clear wall when the regulator opens.",
+        "alt": "Transparent reservoir in a brass cage with a visible float and liquid meniscus.",
+        "familyId": "copium-reserve",
+        "tier": "Uncommon",
+        "weight": 3000,
+        "backdrop": {
+          "name": "Gauge Room",
+          "center": "#506d75",
+          "edge": "#202e35",
+          "motifColor": "#82a4a8",
+          "foreground": "#f2fdff"
+        },
+        "motif": "Level marks",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tank-field-repair",
+        "name": "Field Repair",
+        "material": "Oxide-red steel, canvas straps and riveted patches",
+        "description": "The repaired wing knob lifts. A taped joint exhales above the khaki field strap.",
+        "alt": "Oxide-red cylinder with a riveted patch, khaki reinforcement and a repaired regulator.",
+        "familyId": "copium-reserve",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Salvage Yard",
+          "center": "#7b5e54",
+          "edge": "#322525",
+          "motifColor": "#af9171",
+          "foreground": "#fff7eb"
+        },
+        "motif": "Rivet pairs",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-tank-kiln-white",
+        "name": "Kiln White",
+        "material": "Ivory ceramic, copper wire and cobalt enamel",
+        "description": "The copper wheel meters a breath of vapor past the warm shoulder seam.",
+        "alt": "Ivory ceramic tank with copper reinforcement, a cobalt gauge and a grounded foot ring.",
+        "familyId": "copium-reserve",
+        "tier": "Epic",
+        "weight": 400,
+        "backdrop": {
+          "name": "Kiln Room",
+          "center": "#6e6258",
+          "edge": "#31272a",
+          "motifColor": "#aa978b",
+          "foreground": "#fff9ef"
+        },
+        "motif": "Firing rings",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  },
+  {
+    "id": "copium-cartridge",
+    "name": "Copium Cartridges · Capsule Edition",
+    "tableVersion": "copium-cartridge.v1",
+    "models": [
+      {
+        "id": "gift-edition-cartridge-text-back",
+        "name": "They’ll Text Back",
+        "material": "Storm glass, brass and copper silk",
+        "description": "An umbrella opens under pressure. Three vapor dots appear where a reply should be.",
+        "alt": "Blue glass cigar with a weather chamber, copper umbrella and a dial. Three typing dots rise from the ember.",
+        "familyId": "copium-cartridge",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Rain Window",
+          "center": "#426b84",
+          "edge": "#182a3c",
+          "motifColor": "#86a8be",
+          "foreground": "#eff8ff"
+        },
+        "motif": "Cue dots",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-edition-cartridge-one-more-game",
+        "name": "One More Game",
+        "material": "Indigo bellows, copper ferrules and ivory enamel",
+        "description": "A sprung sleeve compresses, pushes the gauge past its stop and exhales a retry curl.",
+        "alt": "Ribbed indigo cigar with a telescoping barrel, checker band and smoke curling back into an arrow.",
+        "familyId": "copium-cartridge",
+        "tier": "Uncommon",
+        "weight": 2800,
+        "backdrop": {
+          "name": "Replay Booth",
+          "center": "#5c5e82",
+          "edge": "#242638",
+          "motifColor": "#a29abb",
+          "foreground": "#f7f5ff"
+        },
+        "motif": "Register crosses",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-edition-cartridge-next-in-queue",
+        "name": "Next in Queue",
+        "material": "Violet glass, silver foil and tuned brass",
+        "description": "Three reeds flex behind a window and release one note of hold music.",
+        "alt": "Violet pressure cigar with a slotted reed window, silver fittings and a musical note of vapor.",
+        "familyId": "copium-cartridge",
+        "tier": "Rare",
+        "weight": 1400,
+        "backdrop": {
+          "name": "Exchange Room",
+          "center": "#685980",
+          "edge": "#292134",
+          "motifColor": "#ad97b8",
+          "foreground": "#fff2ff"
+        },
+        "motif": "Signal lines",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-edition-cartridge-it-was-lag",
+        "name": "It Was Lag",
+        "material": "Graphite enamel, amber resin and gold trim",
+        "description": "The guard lifts, the delayed needle jumps, and the interrupted conduit exhales a broken signal.",
+        "alt": "Gray cigar cartridge with an amber switch guard, a warning band and three broken signal arcs.",
+        "familyId": "copium-cartridge",
+        "tier": "Epic",
+        "weight": 600,
+        "backdrop": {
+          "name": "Relay Bench",
+          "center": "#715e48",
+          "edge": "#28262a",
+          "motifColor": "#bc9973",
+          "foreground": "#fff7ec"
+        },
+        "motif": "Calibration ticks",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-edition-cartridge-still-early",
+        "name": "Still Early",
+        "material": "Smoked jade, nacre, rose gold and pink opal",
+        "description": "Pressure exposes the mineral inclusion. A pink price line climbs briefly above the barrel.",
+        "alt": "Pearl-paneled jade cigar with an opal window and rose-gold gauge. A rosy vapor line climbs and fades.",
+        "familyId": "copium-cartridge",
+        "tier": "Legendary",
+        "weight": 150,
+        "backdrop": {
+          "name": "Market Close",
+          "center": "#576f6a",
+          "edge": "#202b33",
+          "motifColor": "#a8b29c",
+          "foreground": "#f0fff7"
+        },
+        "motif": "Level marks",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-edition-cartridge-last-excuse",
+        "name": "Last Excuse",
+        "material": "Blackened brass, amber glass and opal",
+        "description": "Two chambers trade pressure through a balancing link. Their opposing wisps cross at the opal seam.",
+        "alt": "A split-chamber cigar with amber and opal reservoirs, a balancing linkage and two crossing wisps.",
+        "familyId": "copium-cartridge",
+        "tier": "Mythic",
+        "weight": 50,
+        "backdrop": {
+          "name": "Balance Room",
+          "center": "#686477",
+          "edge": "#262432",
+          "motifColor": "#b5a5b8",
+          "foreground": "#fff6fb"
+        },
+        "motif": "Firing rings",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  },
+  {
+    "id": "pocket-terminal",
+    "name": "Pocket Terminal",
+    "tableVersion": "pocket-terminal.v1",
+    "models": [
+      {
+        "id": "gift-terminal-greenline",
+        "name": "Greenline",
+        "material": "Olive ABS, phosphor glass and steel",
+        "description": "A small disk seats in the drive and a green cursor blinks on the curved screen.",
+        "alt": "Olive pocket computer with a recessed disk slot, bright green CRT and separate keys.",
+        "familyId": "pocket-terminal",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Night Desk",
+          "center": "#4f6954",
+          "edge": "#18281f",
+          "motifColor": "#8da389",
+          "foreground": "#f1ffe7"
+        },
+        "motif": "Key legends",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-terminal-amber-relay",
+        "name": "Amber Relay",
+        "material": "Bakelite, thermal paper and amber glass",
+        "description": "The clamshell printer rolls a receipt through its brass feed.",
+        "alt": "Ochre handheld terminal with amber glass, a hinged case and a moving slip of paper.",
+        "familyId": "pocket-terminal",
+        "tier": "Uncommon",
+        "weight": 3000,
+        "backdrop": {
+          "name": "Print Desk",
+          "center": "#806239",
+          "edge": "#30251b",
+          "motifColor": "#ba9767",
+          "foreground": "#fff7e9"
+        },
+        "motif": "Register crosses",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-terminal-field-service",
+        "name": "Field Service",
+        "material": "Rubber bumpers, brushed alloy and blue LCD",
+        "description": "The antenna extends and a waveform crosses the field technician’s screen.",
+        "alt": "Reinforced blue-gray portable terminal with a telescoping antenna, exposed screws and a waveform.",
+        "familyId": "pocket-terminal",
+        "tier": "Rare",
+        "weight": 1500,
+        "backdrop": {
+          "name": "Signal Shack",
+          "center": "#4a677e",
+          "edge": "#172c39",
+          "motifColor": "#8aacca",
+          "foreground": "#ecfaff"
+        },
+        "motif": "Signal lines",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-terminal-glass-console",
+        "name": "Glass Console",
+        "material": "Amethyst polycarbonate and magnetic tape",
+        "description": "A tiny magnetic reel drives a second display beneath the translucent shell.",
+        "alt": "Clear violet pocket console with two inset screens and a visible tape reel.",
+        "familyId": "pocket-terminal",
+        "tier": "Epic",
+        "weight": 500,
+        "backdrop": {
+          "name": "Violet Booth",
+          "center": "#685581",
+          "edge": "#292135",
+          "motifColor": "#ae93be",
+          "foreground": "#fff4ff"
+        },
+        "motif": "Circuit traces",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  },
+  {
+    "id": "egoists-volume",
+    "name": "Egoist’s Volume",
+    "tableVersion": "egoists-volume.v1",
+    "models": [
+      {
+        "id": "gift-volume-marginalia",
+        "name": "Marginalia",
+        "material": "Ochre cover stock, cotton thread and copper ink",
+        "description": "The stitched cover parts to show a copper monograph in the page margin.",
+        "alt": "Ochre pocket zine with an exposed stitched spine, turned paper corner and copper marginal mark.",
+        "familyId": "egoists-volume",
+        "tier": "Common",
+        "weight": 5000,
+        "backdrop": {
+          "name": "Reading Table",
+          "center": "#776448",
+          "edge": "#2e271d",
+          "motifColor": "#aa9371",
+          "foreground": "#fff7df"
+        },
+        "motif": "Stitches",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-volume-clasped-copy",
+        "name": "Clasped Copy",
+        "material": "Cordovan leather, brass hardware and laid paper",
+        "description": "A small clasp turns out of its keyhole before the leather board opens.",
+        "alt": "Cordovan leather pocket book with an articulated brass clasp and a narrow keyhole.",
+        "familyId": "egoists-volume",
+        "tier": "Uncommon",
+        "weight": 3000,
+        "backdrop": {
+          "name": "Bookbindery",
+          "center": "#784c49",
+          "edge": "#331f20",
+          "motifColor": "#ba8780",
+          "foreground": "#fff0e5"
+        },
+        "motif": "Rivet pairs",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-volume-night-binding",
+        "name": "Night Binding",
+        "material": "Midnight vellum, silk ribbon and silver foil",
+        "description": "A silver thumb index catches the light and the ribbon follows the lifted page.",
+        "alt": "Midnight blue volume with a pale vellum insert, silver thumb index and a separate bookmark ribbon.",
+        "familyId": "egoists-volume",
+        "tier": "Rare",
+        "weight": 1500,
+        "backdrop": {
+          "name": "Night Shelf",
+          "center": "#4b5972",
+          "edge": "#1b2331",
+          "motifColor": "#8a9bb3",
+          "foreground": "#f1f4ff"
+        },
+        "motif": "Thread loops",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      },
+      {
+        "id": "gift-volume-opal-frontispiece",
+        "name": "Opal Frontispiece",
+        "material": "Ivory cloth, nacre and mirrored silver",
+        "description": "A nacre lens opens on a silver mirror page set inside the blue-black boards.",
+        "alt": "Blue-black pocket book with an ivory spine and an opal lens above a silver mirror page.",
+        "familyId": "egoists-volume",
+        "tier": "Epic",
+        "weight": 500,
+        "backdrop": {
+          "name": "Mirror Library",
+          "center": "#586f76",
+          "edge": "#222936",
+          "motifColor": "#9eb6b3",
+          "foreground": "#f2fff9"
+        },
+        "motif": "Firing rings",
+        "artRevision": "atelier-02",
+        "acquisitionPolicy": "capsule-only"
+      }
+    ]
+  }
+]

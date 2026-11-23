@@ -9,7 +9,7 @@ owner cannot administer the platform.
 
 ## Native accounts
 
-Registration needs no external provider. Usernames use NFKC, lowercase and a
+Password registration requires a verified private address. POST /api/auth/register/email delivers a ten-minute fragment link through Resend. Migration 0013 keeps its digest, address and expiry separate from account records. The password is chosen after opening the link. A transaction creates the immutable account, credential, verified private address and session while consuming all outstanding proofs for the mailbox. Token replay, concurrent signup, and uniqueness conflicts cannot create additional accounts. A delivery failure invalidates that token. Usernames use NFKC, lowercase and a
 unique database constraint: 3–24 ASCII letters, numbers or underscores, starting
 with a letter. Reserved staff/system terms are rejected. Display names remain
 separate. New accounts receive no memberships, messages, contacts, fabricated
@@ -37,7 +37,7 @@ by creating an isolated account after release. Use a sufficiently provisioned
 Worker or a compatible maintained authentication service if the hosted limit
 rejects the real hash. Do not reduce the password parameters to hide a failure.
 
-Native login accepts a username or a separately verified private email address.
+Native login uses verified email. Users with older password accounts without a verified address retain username login and the existing saved recovery code. Verifying an address disables username sign-in, revokes other local sessions, queues messaging session cleanup and invalidates outstanding reset and verification tokens for that account. The current device stays signed in. Changing an email does not re-encrypt local history or change the password.
 Generic credential errors avoid identifying private accounts. Authentication,
 recovery, signup and sensitive actions have bounded per-IP and/or per-account
 rate limits. The edge-derived IP is hashed into short-lived rate buckets; this
@@ -67,16 +67,14 @@ fresh `auth_time` before sensitive actions.
 A verified Google subject maps to an internal account ID. An email match never
 links another account. Google users choose a public username and display name;
 Google full name, email and photograph are not published automatically. A
-verified provider email can establish an unused private recovery address for
-that same account. Google-only users can reauthenticate with Google and set a
+new Google account requires a verified provider address that is available for that account. Existing provider identities retain their immutable account IDs. Google-only users can reauthenticate with Google and set a
 native password, which produces a saved recovery code and rotates sessions.
 There is no unauthenticated provider-linking endpoint.
 
 ## Email verification and password recovery
 
-Email is optional for registration. Configure **server secrets**
-`RESEND_API_KEY`, `EMAIL_FROM` and the exact HTTPS `VOIDLINE_ORIGIN` to enable
-verified-email recovery. Verify the sending domain in Resend, configure its
+New password accounts require a verified email. Configure **server secrets**
+`RESEND_API_KEY`, `EMAIL_FROM` and the exact HTTPS `VOIDLINE_ORIGIN` for signup, address changes and verified-email recovery. Verify the sending domain in Resend, configure its
 required DNS records and use an allowed sender. The Worker sends through
 Resend's HTTPS API; it does not expose a browser mail credential. A verification
 request requires recent authentication, and an owner recovery-address change

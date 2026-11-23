@@ -48,4 +48,22 @@ test('a linked identity cannot move to a different configured server merely by c
 test('recipient lookup exposes only verified accepted-friend mappings without blocks',async()=>{const f=await fixture();try{await f.enroll('bob');assert.equal((await f.call('alice','recipient?username=enroll_bob')).status,404);f.sqlite.prepare("INSERT INTO social_requests(id,sender_id,recipient_id,state,created_at,updated_at) VALUES(?,?,?,'accepted',?,?)").run(crypto.randomUUID(),'alice','bob',Date.now(),Date.now());const result=await f.ok('alice','recipient?username=enroll_bob');assert.equal(result.recipient.accountId,'bob');assert.equal(result.recipient.matrixUserId,'@v_'+await authHash('bob')+':messages.example');assert.equal(result.recipient.accessToken,undefined);f.sqlite.prepare('INSERT INTO social_blocks(blocker_id,blocked_id,created_at) VALUES(?,?,?)').run('bob','alice',Date.now());assert.equal((await f.call('alice','recipient?username=enroll_bob')).status,404);}finally{f.sqlite.close();}});
 test('first enrollment rejects preexisting service devices and an unreserved namespace stays unavailable',async()=>{const f=await fixture();try{f.env.MATRIX_JWT_NAMESPACE_RESERVED='0';assert.equal((await f.ok('alice','config')).configured,false);f.env.MATRIX_JWT_NAMESPACE_RESERVED='1';f.behavior.preexistingDevice=true;const result=await f.call('alice','enroll',{clientId:crypto.randomUUID()});assert.equal(result.status,409);assert.equal(result.data.error.code,'encrypted_identity_preexisting');assert.equal(f.sqlite.prepare('SELECT verified_at FROM matrix_account_links').get().verified_at,null);assert(f.calls.some(c=>c.url.endsWith('/logout')));}finally{f.sqlite.close();}});
 test('revocation while discovering remote login support prevents signing or sending a login JWT',async()=>{const f=await fixture();try{f.behavior.beforeFlows=()=>f.sqlite.prepare('UPDATE auth_sessions SET revoked_at=? WHERE id=?').run(Date.now(),f.users.get('alice').sessionId);const result=await f.call('alice','enroll',{clientId:crypto.randomUUID()});assert.equal(result.status,403);assert.equal(f.calls.some(c=>c.body?.type==='org.matrix.login.jwt'),false);assert.equal(result.data.accessToken,undefined);}finally{f.sqlite.close();}});
+test('calls require a current enrolled device, an accepted active friend and a working policy configuration',async()=>{
+ const f=await fixture();
+ try{
+  const me=await f.enroll('alice'),peer=await f.enroll('bob');
+  const route=device=>'call-permission?peer='+encodeURIComponent(peer.userId)+'&device='+encodeURIComponent(device);
+  assert.equal((await f.call('alice',route(me.deviceId))).status,503);
+  f.env.MATRIX_CALLS_ENABLED='1';f.env.MATRIX_ADMIN_TOKEN='test-only-synapse-service';
+  assert.equal((await f.call(null,route(me.deviceId))).status,401);
+  assert.equal((await f.call('alice',route(me.deviceId))).status,403);
+  f.sqlite.prepare("INSERT INTO social_requests(id,sender_id,recipient_id,state,created_at,updated_at) VALUES(?,?,?,'accepted',?,?)").run(crypto.randomUUID(),'alice','bob',1,1);
+  assert.equal((await f.call('alice',route(peer.deviceId))).status,403);
+  assert.deepEqual((await f.call('alice',route(me.deviceId))).data,{allowed:true});
+  f.sqlite.prepare("INSERT INTO social_blocks(blocker_id,blocked_id,created_at) VALUES(?,?,?)").run('bob','alice',1);
+  assert.equal((await f.call('alice',route(me.deviceId))).status,403);
+  f.sqlite.exec("DELETE FROM social_blocks; UPDATE live_accounts SET account_status='suspended' WHERE id='bob'");
+  assert.equal((await f.call('alice',route(me.deviceId))).status,403);
+ }finally{f.sqlite.close();}
+});
 let failures=0;for(const[name,run]of cases){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}console.log(`${cases.length-failures}/${cases.length} enrollment gateway checks passed. Actual JWT signing/verification, HTTP handlers and migrated SQLite; controlled Matrix transport, not a live Synapse or two-device E2EE test.`);process.exitCode=failures?1:0;

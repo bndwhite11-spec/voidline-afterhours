@@ -171,3 +171,16 @@ html.vh-reduced-motion .vc-art,html.vh-reduced-motion .vc-art *{animation:none!i
 .vc-earned-detail .vc-earned-inspection{display:grid;place-items:center;aspect-ratio:1;width:100%;max-width:260px;margin:0 auto}
 .vc-earned-detail .vc-earned-inspection>.vc-art{width:100%;height:100%}
 @container collection (max-width:550px){.vc-earned-detail{grid-template-columns:1fr;gap:18px}.vc-earned-detail .vc-earned-inspection{max-width:205px}.vc-instance-provenance>div{grid-template-columns:1fr;gap:2px}.vc-organization-actions{justify-content:flex-start}}
+
+.vc-family-picker,.vc-obtain{border-block:1px solid var(--vh-line);margin:12px 0 18px;padding:0 2px}
+.vc-family-picker summary,.vc-obtain summary{padding:13px 0;cursor:pointer;color:var(--vh-text);font-weight:600}
+.vc-family-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,165px),1fr));gap:6px;padding-bottom:14px}
+.vc-family-list button{display:flex;align-items:center;gap:10px;min-height:54px;padding:8px;text-align:start;background:var(--vh-side);border:1px solid var(--vh-line);color:var(--vh-text);border-radius:5px}
+.vc-family-list button:hover{border-color:var(--vh-muted)}
+.vc-family-list .vc-art{width:30px;height:30px;flex-shrink:0}
+.vc-family-list small,.vc-family-list b{display:block;line-height:1.45}
+.vc-family-list small{color:var(--vh-muted)}
+.vc-obtain p{margin:0 0 10px}
+.vc-obtain button{margin-bottom:9px}
+.vc-directory-links{display:flex;flex-wrap:wrap;gap:4px 18px;margin:16px 0 8px}
+.vc-directory-links button{min-height:44px}

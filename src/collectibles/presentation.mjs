@@ -1,3 +1,4 @@
+import {emblemPresentations} from './emblem-presentations.mjs';
 /** Catalog identity shared by account and receipt projections. Keep this module independent of the Worker. */
 import {collectibleModels,collectibleFamilies} from './models.mjs';
 import {cartridgeDesigns} from './cartridge-designs.mjs';
@@ -11,6 +12,7 @@ export const legacyOnlySQL='catalog_id NOT IN (SELECT value FROM json_each(?))';
 export const capsuleModelIdsJSON=JSON.stringify(models.map(model=>model.id));
 
 function legacyArt(id){
+ if(Object.hasOwn(emblemPresentations,id))return emblemPresentations[id];
  if(Object.hasOwn(cartridgeDesigns,id))return cartridgeDesigns[id];
  if(legacyPresentations[id])return legacyPresentations[id];
  const studio=studioObjects[id];
@@ -23,12 +25,12 @@ export function collectibleDisplay(id,legacy){
  const model=collectibleModels[id];
  if(model)return {
   id,name:model.name,modelName:model.name,familyId:model.familyId,familyName:familyName(model.familyId),
-  tier:model.tier,description:model.description,material:model.material,alt:model.alt,
+  tier:model.tier,editionLabel:'Capsule edition',description:model.description,material:model.material,alt:model.alt,
   backdrop:model.backdrop,motif:model.motif,artRevision:model.artRevision,acquisitionPolicy:model.acquisitionPolicy
  };
  const artwork=legacyArt(id),name=typeof legacy==='string'?legacy:legacy?.name;
  return {
-  id,...artwork,...(legacy?.description?{description:legacy.description}:{}),
+  id,...artwork,...(id==='gift-copium-cartridge'||Object.hasOwn(cartridgeDesigns,id)?{collectionFamilyId:'copium-cartridge',editionLabel:'Free edition'}:{}),...(legacy?.description?{description:legacy.description}:{}),
   name:name||artwork?.name||'Unavailable collectible',acquisitionPolicy:(name||artwork)?'legacy-free':'unavailable'
  };
 }

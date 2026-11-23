@@ -1,3 +1,4 @@
+import {withLegacyRegistration} from './legacy-account-fixture.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
@@ -16,6 +17,7 @@ function jar(){const values=new Map();return {values,header:()=>[...values].map(
 function fixture(){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');const journal=JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url),'utf8'));for(const entry of journal.entries)sqlite.exec(readFileSync(new URL('../drizzle/'+entry.tag+'.sql',import.meta.url),'utf8'));
  let time=Date.now();const env={DB:new Adapter(sqlite)},auth=createAuthService({now:()=>time});
+ auth.handleAuthRequest=withLegacyRegistration(auth.handleAuthRequest);
  const call=async(path,{browser,body,headers={},method}={})=>{const request=new Request(origin+path,{method:method||(body===undefined?'GET':'POST'),headers:{...(browser?{cookie:browser.header()}:{}),...(body===undefined?{}:{'content-type':'application/json',origin,'x-voidline-auth':'1'}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});const response=await auth.handleAuthRequest(request,env);browser?.apply(response);return response;};
  const register=async(username='night_one',browser=jar(),password=PASSWORD)=>{const response=await call('/api/auth/register',{browser,body:{username,displayName:'Night One',password}});assert.equal(response.status,201,await response.clone().text());const session=await response.json();return {browser,session};};
  const login=async(username='night_one',password=PASSWORD,browser=jar())=>{const response=await call('/api/auth/login',{browser,body:{username,password}});return {browser,response,session:response.ok?await response.json():null};};

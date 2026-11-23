@@ -268,15 +268,29 @@ function ornament(id,t,kind,detail) {
   }
 }
 
-function draw(id,kind,variant) {
+// Edge treatments belong to the moving skirt. The small bent contact remains
+// on the socket, flexing only while the stem reaches its electrical stop.
+const skirtFinishes={
+ desk:['M62 153l15 5m-14-2 10 3m-6-5 .9.4m3.8.9 1 .3','#d1cd9a'],
+ terminal:['M147 153l12-3 3-3 18-5m-23 9 5.6-1.6','#b4ffdb'],
+ night:['M79 160l16 5 6 .4 13-3.2m-15.5 3.2.3 2.5','#d4cbb5'],
+ pond:['M152 151l8-2 3 1 5-3.5 8-1.7m-13 5.2 1.5 2.1','#b48a51'],
+ meteor:['M149 152l8-5 10 .5 11-5m-21 4.5 4.5.9','#c89162'],
+ opal:['M148 152l6.5-5 9.4.5 7.7-4.3m-14.5 5.5 5-1.1','#9dd7cb']
+};
+function contactLeaf(id,t){
+ return part('contact-leaf',path('M143 188l6-2 7 2.5 8-3 .4 2-8.3 2.8-7.4-2.3-5.6 1.5Z',paint(id,'nickel'))
+   +ellipse(162.6,185.8,1.9,1.35,t.stem[0]));
+}
+function draw(id,kind,variant,finish=true) {
   const t=palettes[kind],detail=variant!=='card',opticalShadow=part('contact-shadow',
     ellipse(127,215,75,8,'#111720','opacity=".20"')+ellipse(129,214,59,4.9,'#10151b','opacity=".36"'));
   const stem=mechanism(id,t,kind);
   // Inside a clear cap the upper cross guide is visible through the apron.
   const clearGuide=kind==='terminal'?part('clear-guide',line('M74 149l14 5m67-7 16-4','#a6f2c9',2.3)):'';
-  return defs(id,t)+opticalShadow+socket(id,t,kind)+stem+
+  return defs(id,t)+opticalShadow+socket(id,t,kind)+stem+(finish?contactLeaf(id,t):'')+
     part('landing-shadow',path('M51 166Q57 161 64 162L99 176 202 151 209 154 112 182Q102 185 94 182Z','#152327'),'opacity=".42"')+
-    '<g transform="translate(0 -8)">'+part('keycap',capStructure(id,t,kind,detail)+clearGuide+face(id,t,kind,detail)+ornament(id,t,kind,detail))+'</g>';
+    '<g transform="translate(0 -8)">'+part('keycap',capStructure(id,t,kind,detail)+clearGuide+face(id,t,kind,detail)+ornament(id,t,kind,detail)+(finish?line(skirtFinishes[kind][0],skirtFinishes[kind][1],1.3):''))+'</g>';
 }
 
 function tiny(kind,t) {
@@ -336,7 +350,7 @@ const details = [
   ['meteor-core','meteor',1690,'The stone cap drops into its collar. A narrow seam lights and one reflection rounds the amber inclusion.'],
   ['black-opal-eclipse','opal',1890,'The cap presses, lifts clear of the guide, and shows an eclipse. The silver crescent and cap reconnect and settle.']
 ];
-function keyMotion(kind,duration) {
+function keyMotion(kind,duration,finish=true) {
   const points=press[kind];
   // Inherits Last Tab Open's fixed plate, independent stem, and one rebound.
   // Only Opal separates; during its lift the unlatched stem stays at full extension.
@@ -347,6 +361,7 @@ function keyMotion(kind,duration) {
     states('landing-shadow',[126,166],points.map(([at,y])=>({at,opacity:.42+y*.015,scaleX:1-y*.007}))),
     ...signatures[kind]
   ];
+  if(finish)layers.push(states('contact-leaf',[144,188],stem.map(([at,y])=>({at,rotate:-Math.max(0,y-3)*1.05}))));
   return {duration,layers};
 }
 
@@ -355,7 +370,8 @@ export const keycapModels=Object.freeze(Object.fromEntries(details.map(([suffix,
   return [id,{
     mini:tiny(kind,t),
     silhouette:path(socketOutline,'#121b23')+path(bezel,'#121b23')+'<g transform="translate(0 -8)">'+path(capOutline,'#121b23')+path(head,'#121b23')+'</g>',
-    body:(prefix,variant='detail')=>draw(prefix,kind,variant),
+    body:(prefix,variant='detail',finish=true)=>draw(prefix,kind,variant,finish),
+    historicalMotion:keyMotion(kind,duration,false),
     motion:keyMotion(kind,duration),storyboard
   }];
 })));

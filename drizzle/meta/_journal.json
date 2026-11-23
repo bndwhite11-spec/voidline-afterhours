@@ -85,6 +85,20 @@
       "when": 1795336586094,
       "tag": "0011_choice_capsules",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1795422986094,
+      "tag": "0012_collector_edition",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1795422986095,
+      "tag": "0013_verified_email_signup",
+      "breakpoints": true
     }
   ]
 }

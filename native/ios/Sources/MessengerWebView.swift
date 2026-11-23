@@ -174,7 +174,12 @@ struct MessengerWebView: UIViewRepresentable {
                      decisionHandler: @escaping (WKPermissionDecision) -> Void) {
             let trusted = origin.protocol == "https" && origin.host == VoidlinePolicy.host
                 && (origin.port == 0 || origin.port == 443) && frame.isMainFrame
-            decisionHandler(trusted && type == .microphone ? .prompt : .deny)
+            switch type {
+            case .microphone, .camera, .cameraAndMicrophone:
+                decisionHandler(trusted ? .prompt : .deny)
+            @unknown default:
+                decisionHandler(.deny)
+            }
         }
 
         func webView(_ webView: WKWebView, requestDeviceOrientationAndMotionPermissionFor origin: WKSecurityOrigin,

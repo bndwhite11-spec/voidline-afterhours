@@ -27,7 +27,7 @@
   const query=$('ar-search').value.trim().toLocaleLowerCase(),series=$('ar-series').value,type=$('ar-type').value,counts={badge:0,gift:0,earned:0};
   let total=0;
   for(const row of rows){
-   const show=(series==='all'||row.series===series)&&(type==='all'||row.type===type)&&(!query||[row.name,row.series,row.material,row.alt].join(' ').toLocaleLowerCase().includes(query));
+   const show=(series==='all'||row.series===series||('family:'+row.collectionFamilyId)===series)&&(type==='all'||row.type===type)&&(!query||[row.name,row.series,row.material,row.alt].join(' ').toLocaleLowerCase().includes(query));
    cards.get(row.id).hidden=!show;
    if(show){total++;counts[row.type]++;}
   }
@@ -85,10 +85,32 @@
   if(!prepared.svg){failure(prepared.reason);return;}
   notify('ready',motionOff()?'Reduced motion is on. The resting artwork is shown.':'Resting artwork');
  }
+ async function showAvailability(){
+  const row=selected,node=$('ar-availability');
+  node.hidden=true;node.textContent='';
+  if(!$('ar-obtain').open||!row||!Number.isInteger(row.weight))return;
+  try{
+   const response=await fetch('/api/capsules/availability',{credentials:'omit'});
+   if(!response.ok)throw Error();
+   const state=await response.json();
+   if(row!==selected||!$('ar-obtain').open)return;
+   const messages=[];
+   if(!state.issuance)messages.push('Earning new capsules is paused.');
+   if(!state.opening)messages.push('Opening capsules is paused. Owned copies and previous receipts are still available.');
+   if(state.edition!=='afterhours-choice.v3')messages.push('Only the families listed on your earned capsule are available to open.');
+   node.textContent=messages.join(' ');node.hidden=!messages.length;
+  }catch{
+   if(row===selected&&$('ar-obtain').open){node.textContent='Live availability could not be checked. Open Collection to retry.';node.hidden=false;}
+  }
+ }
+ $('ar-obtain').addEventListener('toggle',showAvailability);
  function open(id,button){
   const a=rows.find(row=>row.id===id);if(!a)return;
-  selected=a;origin=button;$('ar-loading').value='normal';
-  $('ar-title').textContent=a.name;$('ar-detail-series').textContent=(a.tier?a.tier+' · ':'')+types[a.type]+' · '+a.series;
+  $('ar-obtain').open=false;$('ar-availability').hidden=true;selected=a;origin=button;$('ar-loading').value='normal';
+  $('ar-title').textContent=a.name;$('ar-detail-series').textContent=[types[a.type],a.familyName||a.series,a.editionLabel,a.tier].filter(Boolean).join(' · ');
+  const odds=Number.isInteger(a.weight)?' '+(a.weight/100)+'% within this family in the current capsule edition.':'';
+  $('ar-acquisition').textContent=(a.acquisition||'See the collection for availability.')+odds;
+  $('ar-app-item').href='/chats#collection/item/'+encodeURIComponent(a.id);
   $('ar-alt').textContent=a.description||a.alt;$('ar-material').textContent=a.material;
   paintStage($('ar-plate'),a);
   $('ar-traits').textContent=a.familyId?a.backdrop.name+' · '+a.motif:'';
@@ -138,12 +160,18 @@
  });
  systemMotion?.addEventListener?.('change',()=>{$('ar-reduce').checked=!!window.VoidTheme?.state?.().reducedMotion||systemMotion.matches;motionChanged();});
  $('ar-reduce').checked=!!window.VoidTheme?.state?.().effectiveReducedMotion;motionChanged();
+ const familyOptions=new Map(rows.filter(a=>a.collectionFamilyId&&a.familyName).map(a=>[a.collectionFamilyId,a.familyName]));
+ if(familyOptions.size){
+  const group=document.createElement('optgroup');group.label='Families';
+  for(const [id,name] of familyOptions){const option=document.createElement('option');option.value='family:'+id;option.textContent=name;group.append(option);}
+  $('ar-series').append(group);
+ }
  for(const series of [...new Set(rows.map(a=>a.series))]){const option=document.createElement('option');option.value=series;option.textContent=series;$('ar-series').append(option);}
  $('ar-search').addEventListener('input',filter);$('ar-series').addEventListener('change',filter);$('ar-type').addEventListener('change',filter);
  const params=new URLSearchParams(window.location?.search||'');
  const family=params.get('family'),series=params.get('series');
- const initial=family&&rows.find(row=>row.familyId===family);
- if(initial){$('ar-series').value=initial.series;$('ar-type').value='gift';}
+ const initial=family&&rows.find(row=>row.collectionFamilyId===family||row.familyId===family);
+ if(initial){$('ar-series').value=familyOptions.has(family)?'family:'+family:initial.series;$('ar-type').value='gift';}
  else if(series&&rows.some(row=>row.series===series))$('ar-series').value=series;
  $('ar-credits').href='/art/v'+art.version+'/manifest.json';
  filter();

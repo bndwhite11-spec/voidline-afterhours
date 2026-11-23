@@ -12,6 +12,7 @@
     const $ = selector => document.querySelector(selector);
     let filters = {mode:'models',family:'',tier:'',sort:'family',offset:0};
     let state = null, pending = new Map(), busy = new Set(), screen = null, serial = 0, pageSeq = 0, playback = null, timer = null, audio = null, soundOpted = false;
+    let surface='library';
     let dirtyPage=false, capsuleOffset=0, returnFocus = null, savedTop = 0, soundOwner = '', lastPage = null;
     const announced = new Set();
     const id = () => app.state.account?.id;
@@ -58,7 +59,7 @@
       serial++;screen=null;stopAnimation();stopSound();
     }
     function reset(){
-      close();pageSeq++;state=null;lastPage=null;pending=new Map();busy=new Set();announced.clear();soundOwner='';soundOpted=false;dirtyPage=false;capsuleOffset=0;returnFocus=null;savedTop=0;
+      close();pageSeq++;surface='library';state=null;lastPage=null;pending=new Map();busy=new Set();announced.clear();soundOwner='';soundOpted=false;dirtyPage=false;capsuleOffset=0;returnFocus=null;savedTop=0;
       filters={mode:'models',family:'',tier:'',sort:'family',offset:0};
     }
     function visible(s) {return screen===s && s.valid() && s.node.isConnected && app.state.dialogGeneration===s.ticket;}
@@ -74,8 +75,17 @@
       const node=s.node.querySelector('[data-cl-error]');if(node)node.textContent=error?.message||'This action could not finish.';
     }
     function option(value,label,selected){return '<option value="'+esc(value)+'" '+(value===selected?'selected':'')+'>'+esc(label)+'</option>';}
+    function archivedPoster(item) {
+      const card=item.originalArt?.card;
+      if(!card||!item.originalArt?.detail||!/^[a-z0-9-]+$/.test(item.id)||!/^[a-f0-9]{64}$/.test(card.sha256))return '';
+      const url='/art/v4/'+item.id+'-card.'+card.sha256.slice(0,12)+'.svg';
+      if(card.url!==url)return '';
+      const current=stageArt()?.items?.().find(record=>record.id===item.id);
+      return current?.cardURL===url&&current.detailSHA256===item.originalArt.detail.sha256?'':url;
+    }
     function artStage(item,large=false) {
-      const html=host.art(item.id,large,item.name);
+      const original=archivedPoster(item);
+      const html=original?'<img class="cl-original-poster" src="'+esc(original)+'" alt="'+esc(item.alt||item.name)+'" width="256" height="256">':host.art(item.id,large,item.name);
       return '<div class="cl-art'+(large?' cl-art-lg':'')+'" data-cl-model="'+esc(item.id)+'">'+(stageArt()?.backdrop?.(item.id)||'')+'<div class="cl-object">'+html+'</div><span class="cl-art-missing" '+(html?'hidden':'')+'>Artwork unavailable · '+esc(item.name)+'</span></div>';
     }
     function formatModel(item) {
@@ -86,8 +96,9 @@
     function modelCard(item,copy){
       const copyId=copy?.id||'', count=host.summary()?.modelCounts?.[item.id]||0;
       const attrs='data-model="'+esc(item.id)+'" '+(copy?'data-copy="'+esc(copyId)+'"':'');
+      const edition=host.edition?.(item)||(item.acquisitionPolicy==='capsule-only'||item.familyId?'Capsule edition':'Free edition');
       const label=copy ? (copy.pending_transfer_id?'Transfer pending':copy.is_new?'New arrival':'Owned copy') : describeCopies(count);
-      return '<article class="cl-tile"><button class="cl-tile-open" data-cl="inspect" '+attrs+' aria-label="'+esc('Inspect '+item.name+(copy?' copy '+reference(copyId):''))+'">'+artStage(item)+'<span class="cl-tile-info"><span class="cl-kicker">'+esc(item.tier||'Legacy')+'</span><strong>'+esc(item.modelName||item.name)+'</strong><small>'+esc(label)+(copy?' · '+esc(reference(copyId)):'')+'</small></span></button></article>';
+      return '<article class="cl-tile"><button class="cl-tile-open" data-cl="inspect" '+attrs+' aria-label="'+esc('Inspect '+item.name+(copy?' copy '+reference(copyId):''))+'">'+artStage(item)+'<span class="cl-tile-info"><span class="cl-kicker">'+esc(edition+(item.tier?' · '+item.tier:''))+'</span><strong>'+esc(item.modelName||item.name)+'</strong><small>'+esc(label)+(copy?' · '+esc(reference(copyId)):'')+'</small></span></button></article>';
     }
     function capsuleRows(){
       if(!state)return '';
@@ -97,8 +108,15 @@
       const p=state.progress;
       let progress='';
       if(p?.qualifyingAction){
-        const days=Math.min(3,Math.max(0,Number(p.days)||0));
-        progress='<div class="cl-progress"><b>Weekly participation</b><span>'+days+' of '+esc(p.required||3)+' UTC days</span><progress value="'+days+'" max="3" aria-label="Qualifying days this week"></progress><small>'+esc(p.qualifyingAction)+' Next week starts '+esc(date(p.nextWeek))+'.</small></div>';
+        const required=Number(p.required)||3,days=Math.min(required,Math.max(0,Number(p.days)||0));
+        progress='<div class="cl-progress"><b>Weekly participation</b><span>'+days+' of '+esc(required)+' UTC days</span><progress value="'+days+'" max="'+required+'" aria-label="Qualifying days this week"></progress><small>'+esc(p.qualifyingAction)+' Next week starts '+esc(date(p.nextWeek))+'.</small>'+
+          (p.checkInAvailable?(p.checkedInToday?'<small>Today’s participation is recorded.</small>':button('check-in','Check in for today',online()?'':'disabled',true)):'')+'</div>';
+        const milestone=p.milestone;
+        if(milestone?.available||milestone?.earned){
+          const model=host.model(milestone.modelId);
+          progress+='<div class="cl-progress cl-milestone"><b>First weekly milestone</b><span>'+esc(milestone.earned?'Awarded':'Guaranteed reward')+'</span><small>Your first qualifying weekly capsule in this edition awards one original '+esc(model?.name||'Copium Cartridge')+' in addition to the capsule.</small>'+
+            (milestone.modelId?button('inspect','View reward','data-model="'+esc(milestone.modelId)+'"'):'')+'</div>';
+        }
       }
       const canReconcile=state.issuingEnabled!==false && state.welcomeEligible;
       const closed=rows.filter(c=>c.openedAt),hasPages=state.page?.total>50;
@@ -106,12 +124,13 @@
     }
     function allItems(){return host.items().filter(item=>item.type==='gift');}
     function familyList(){
-      const result=new Map();for(const item of allItems())if(item.familyId)result.set(item.familyId,item.familyName||host.familyName(item.familyId));
+      const result=new Map();for(const item of allItems())if(item.familyId)result.set(item.familyId,item.familyId==='copium-cartridge'?'Copium Cartridges':item.familyName||host.familyName(item.familyId));
       return result;
     }
     function tools(){
       const sum=host.summary()||{},family=familyList();
-      return '<div class="cl-modes" role="group" aria-label="Collection views">'+modes.map(([key,label])=>button('mode',label,'data-mode="'+key+'" aria-pressed="'+(filters.mode===key)+'"')).join('')+'</div>'+
+      const visibleModes=surface==='copies'?modes.filter(([key])=>key!=='models'):modes;
+      return '<div class="cl-modes" role="group" aria-label="Collection views">'+visibleModes.map(([key,label])=>button('mode',label,'data-mode="'+key+'" aria-pressed="'+(filters.mode===key)+'"')).join('')+'</div>'+
         '<div class="cl-filters"><label>Family<select data-cl-filter="family">'+option('','All families',filters.family)+[...family].map(([key,label])=>option(key,label,filters.family)).join('')+option('legacy','Legacy designs',filters.family)+'</select></label>'+
         '<label>Tier<select data-cl-filter="tier">'+option('','Any tier',filters.tier)+tiers.map(t=>option(t,t,filters.tier)).join('')+'</select></label>'+
         '<label>Sort<select data-cl-filter="sort">'+(filters.mode==='models'?[]:[['recent','Newest first'],['oldest','Oldest first']]).concat([['family','Family'],['rarity','Tier']]).map(([key,label])=>option(key,label,filters.sort)).join('')+'</select></label></div>'+
@@ -120,15 +139,18 @@
     function familiesHTML(items,rows) {
       const groups=new Map(),sum=host.summary()||{},known=new Map(allItems().map(i=>[i.id,i]));
       const add=(model,copy)=>{
-        const key=model.familyId||'legacy';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(modelCard(model,copy));
+        const key=model.familyId||(model.series==='Copium Cartridges'||model.id==='gift-copium-cartridge'?'copium-cartridge':'legacy');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(modelCard(model,copy));
       };
       if(rows) {
         for(const row of rows){const item=known.get(row.catalog_id)||{id:row.catalog_id,name:row.model?.name||row.name||'Unavailable model',familyId:row.family_id||'',tier:row.model?.tier};add(item,row);}
       }else for(const item of items)add(item,null);
-      if(!groups.size)return '<div class="vc-empty"><h3>'+({owned:'No copies here yet',arrivals:'No new arrivals',duplicates:'No duplicates yet',models:'No matching models'})[filters.mode]+'</h3><p>Try another family or view all models.</p></div>';
+      if(!groups.size){
+        const hint=filters.mode==='owned'&&!filters.family&&!filters.tier?'Find a free design in Discover, open an earned capsule, or accept a gift.':'Try another family or view.';
+        return '<div class="vc-empty"><h3>'+({owned:'No copies here yet',arrivals:'No new arrivals',duplicates:'No duplicates yet',models:'No matching models'})[filters.mode]+'</h3><p>'+hint+'</p></div>';
+      }
       return [...groups].map(([family,cards])=>{
         const info=sum.families?.find(f=>f.familyId===family);
-        return '<section class="cl-family"><header><h3>'+esc(family==='legacy'?'Legacy designs':host.familyName(family))+'</h3>'+(info?'<span>'+esc(info.ownedModels)+' of '+esc(info.totalModels)+' models owned</span>':'')+'</header><div class="cl-grid">'+cards.join('')+'</div></section>';
+        return '<section class="cl-family"><header><h3>'+esc(family==='legacy'?'Original gifts':family==='copium-cartridge'?'Copium Cartridges':host.familyName(family))+'</h3>'+(info?'<span>'+esc(info.ownedModels)+' of '+esc(info.totalModels)+' models owned</span>':'')+'</header><div class="cl-grid">'+cards.join('')+'</div></section>';
       }).join('');
     }
     function currentModels(){
@@ -146,16 +168,33 @@
       const audience=host.visibility();
       return '<details class="cl-sharing"><summary>Inventory privacy</summary><label>Full collectible inventory<select data-cl-visibility>'+[['private','Only me'],['friends','Friends'],['shared','Friends and shared communities'],['public','Public']].map(([key,label])=>option(key,label,audience)).join('')+'</select></label><p>The profile showcase has its own audience. Earning history and receipts stay private.</p></details>';
     }
-    async function open({force=false}={}){
+    function collectionLinks(){
+      if(surface==='earn')return '<div class="vc-directory-links"><button class="vh-text-button" data-vc-action="badges">Earned badge directory</button></div>';
+      if(surface==='copies')return '<div class="vc-directory-links"><button class="vh-text-button" data-vc-action="section" data-section="browse">Discover gifts</button><button class="vh-text-button" data-vc-action="section" data-section="collector">Earn capsules</button>'+
+        (window.VoidGiftCollections?'<button class="vh-text-button" data-vc-action="organize-gifts">Organize gifts</button>':'')+
+        '<button class="vh-text-button" data-vc-action="owned-decorations">My decorations</button></div>';
+      return '';
+    }
+    async function open({force=false,surface:next=surface}={}){
       const seq=++pageSeq,connected=online();
-      host.activate();
+      if(next!==surface){
+        surface=next;lastPage=null;rememberFilter();
+        if(next==='copies'){filters.mode='owned';filters.sort='recent';filters.family='';filters.tier='';}
+      }
+      host.activate(surface);
       if(!connected&&lastPage){host.page(offline+lastPage);return;}
       if(!connected){host.page(offline+button('reload','Try again'));return;}
-      const page=host.page('<p role="status">Loading collectibles…</p>'),valid=accountGuard();
+      const page=host.page('<p role="status">Loading collection…</p>'),valid=accountGuard();
       try{
-        const [caps,results]=await Promise.all([app.request('/api/capsules'+(capsuleOffset?'?offset='+capsuleOffset:'')),filters.mode==='models'?Promise.resolve(null):app.request(query()),host.refresh(force)]);
+        const [caps,results]=await Promise.all([
+          surface==='copies'?null:app.request('/api/capsules'+(capsuleOffset?'?offset='+capsuleOffset:'')),
+          surface==='earn'||filters.mode==='models'?null:app.request(query()),
+          surface==='earn'?null:host.refresh(force)
+        ]);
         if(!valid()||seq!==pageSeq||!host.active()||app.state.dialogGeneration!==page)return;
-        state=caps;lastPage=capsuleRows()+tools()+familiesHTML(currentModels(),results?.instances)+(results?.total>30?'<div class="vc-pagination">'+button('prev','Previous',filters.offset>0?'':'disabled')+'<span>'+esc(filters.offset+1)+'–'+esc(Math.min(filters.offset+30,results.total))+' of '+esc(results.total)+'</span>'+button('next','Next',filters.offset+30<results.total?'':'disabled')+'</div>':'')+sharing();
+        if(caps)state=caps;
+        const pages=results?.total>30?'<div class="vc-pagination">'+button('prev','Previous',filters.offset>0?'':'disabled')+'<span>'+esc(filters.offset+1)+'–'+esc(Math.min(filters.offset+30,results.total))+' of '+esc(results.total)+'</span>'+button('next','Next',filters.offset+30<results.total?'':'disabled')+'</div>':'';
+        lastPage=(surface==='copies'?'':capsuleRows())+(surface==='earn'?'':tools()+familiesHTML(currentModels(),results?.instances)+pages+sharing())+collectionLinks();
         host.page(lastPage);
         const container=document.getElementById('home-main');if(container){container.scrollTop=savedTop;if(returnFocus){const n=[...container.querySelectorAll('[data-cl]')].find(b=>returnFocus.every(([k,v])=>b.dataset[k]===v));n?.focus?.({preventScroll:true});}}returnFocus=null;
       }catch(error){if(valid()&&seq===pageSeq&&host.active()){host.page('<p class="cl-notice" role="alert">'+esc(error.message||'Your collection could not load.')+'</p>'+button('reload','Try again'));}}
@@ -181,8 +220,8 @@
     }
     function previewContents(s,modelId){
       const frozen=s.family?.models.find(model=>model.id===modelId);if(!frozen)return;
-      stopAnimation();const model={...frozen,...host.model(modelId),id:modelId};s.sample=modelId;
-      s.node.innerHTML='<section class="cl-sample">'+artStage(model,true)+'<h3>'+esc(model.name)+'</h3><p>'+esc(s.family.name)+' · '+esc(frozen.tier)+'</p><p>'+esc(model.description||'')+'</p><div class="cl-actions">'+button('sample-play','Play model')+button('sample-back','Back to capsule')+'</div><p data-cl-status role="status">Preview only. Your selected family is unchanged.</p></section>';
+      stopAnimation();const model={...host.model(modelId),...frozen,id:modelId};s.sample=modelId;
+      s.node.innerHTML='<section class="cl-sample">'+artStage(model,true)+'<h3>'+esc(model.name)+'</h3><p>'+esc(s.family.name)+' · '+esc(frozen.tier)+'</p><p>'+esc(model.description||'')+'</p><div class="cl-actions">'+(archivedPoster(model)?'<span>Original capsule artwork</span>':button('sample-play','Play model'))+button('sample-back','Back to capsule')+'</div><p data-cl-status role="status">Preview only. Your selected family is unchanged.</p></section>';
       s.node.querySelector('[data-cl="sample-back"]')?.focus();
     }
     async function playSample(s,b){
@@ -246,29 +285,30 @@
     }
     function resultModel(o){
       const original=o.model||{},live=host.model(o.modelId);
-      return {...original,...live,id:o.modelId,name:live?.name||original.name||o.modelId,familyName:live?.familyName||original.familyName||host.familyName(o.familyId)};
+      return {...live,...original,id:o.modelId,name:original.name||live?.name||o.modelId,familyName:original.familyName||live?.familyName||host.familyName(o.familyId)};
     }
     function resultMessage(o){if(!o.currentlyOwned)return 'Historical award · Transferred';if(o.discovery==='first')return 'New model discovered';return o.discovery==='returning'?'Added back to your collection':'Another copy added';}
-    function buttonsForResult(o){
+    function buttonsForResult(o,m){
       return (o.currentlyOwned?button('view-copy','View collectible','',true):'')+
         (o.currentlyOwned&&!o.currentlyReserved?button('display','Display on profile')+button('gift','Gift this copy'):'')+
-        button('replay','Replay reveal')+(!o.acknowledgedAt?button('ack','Mark seen'):'');
+        (archivedPoster(m)?'':button('replay','Replay reveal'))+(!o.acknowledgedAt?button('ack','Mark seen'):'');
     }
     function finish(s,reason=''){
       if(!visible(s)||!s.opening)return;const restoreFocus=s.node.contains(document.activeElement);stopAnimation();stopSound();
       const o=s.opening,m=resultModel(o);
-      const metadata=line('Backdrop',m.backdrop?.name||'Legacy')+line('Motif',m.motif||'None')+
-        line('Chance in this capsule',percent(o.weight,o.totalWeight))+line('Table',o.tableVersion)+line('Copy',reference(o.instanceId));
+      const metadata=line('Edition','Capsule edition')+line('Backdrop',m.backdrop?.name||'Legacy')+line('Motif',m.motif||'None')+
+        line('Chance in this capsule',percent(o.weight,o.totalWeight))+line('Table',o.tableVersion)+(m.artRevision?line('Artwork revision',m.artRevision):'')+line('Copy',reference(o.instanceId));
       const ownership=o.currentlyOwned?(o.currentlyReserved?'Transfer pending · You own this copy until acceptance.':'This copy is in your collection.'):'You received this copy here. It has since left your collection.';
       s.node.innerHTML='<div class="cl-result" data-cl-state="result" data-instance="'+esc(o.instanceId)+'" data-model="'+esc(o.modelId)+'">'+artStage(m,true)+
         '<div><p class="cl-kicker">'+esc(resultMessage(o))+'</p><h3>'+esc(m.name)+'</h3><p>'+esc(formatModel(m))+'</p>'+
-        '<p class="cl-result-note">'+esc(ownership)+'</p><div class="cl-actions">'+buttonsForResult(o)+'</div>'+
+        '<p class="cl-result-note">'+esc(ownership)+'</p><div class="cl-actions">'+buttonsForResult(o,m)+'</div>'+
         (reason?'<p class="cl-note">'+esc(reason)+'</p>':'')+'<dl class="cl-metadata">'+metadata+'</dl><p data-cl-error role="alert"></p></div></div>';
       if(restoreFocus)s.node.querySelector('[data-cl="view-copy"],[data-cl="replay"]')?.focus({preventScroll:true});
     }
     function committed(s,o,motion,announce=motion){
       s.opening=o;
       if(!announced.has(o.id)&&announce){announced.add(o.id);app.announce(resultMessage(o)+'. '+resultModel(o).name+'.');}
+      if(archivedPoster(resultModel(o))){finish(s,'Original capsule artwork. View the collectible to preview its current animation.');return;}
       if(!motion||reduced()||document.hidden){finish(s);return;}
       reveal(s);
     }
@@ -308,9 +348,9 @@
       if(k==='mode'){filters.mode=b.dataset.mode;if(!modes.some(([m])=>m===filters.mode))return;filters.sort=filters.mode==='models'?'family':'recent';rememberFilter();return open();}
       if(k==='next'||k==='prev'){savedTop=0;filters.offset=Math.max(0,filters.offset+(k==='next'?30:-30));return open();}
       if(k==='reload')return open({force:true});
-      if(k==='reconcile'){
+      if(k==='reconcile'||k==='check-in'){
         if(!online())return app.announce('Reconnect to collect an earned capsule.');if(b.disabled)return;b.disabled=true;const valid=accountGuard();
-        try{await app.request('/api/capsules/reconcile',{});if(valid()&&host.active())await open({force:true});}finally{if(b.isConnected)b.disabled=false;}return;
+        try{await app.request(k==='check-in'?'/api/capsules/check-in':'/api/capsules/reconcile',{});if(valid()&&host.active())await open({force:true});}finally{if(b.isConnected)b.disabled=false;}return;
       }
       if(k==='caps-prev'||k==='caps-next'){capsuleOffset=Math.max(0,capsuleOffset+(k==='caps-next'?50:-50));return open();}
       if(k==='capsule'){remember(b);return capsule(b.dataset.id);}

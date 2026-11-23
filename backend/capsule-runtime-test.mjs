@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
 import {authHash} from '../worker/auth.mjs';
-import {choiceEdition,modelAt,participationWrites,expandedReleaseTables,releaseTables,validateTables,weekAt} from '../worker/capsule-rules.mjs';
+import {choiceEdition,modelAt,participationWrites,collectorEdition,collectorReleaseTables,expandedReleaseTables,releaseTables,validateTables,weekAt} from '../worker/capsule-rules.mjs';
 const require=createRequire(import.meta.url),wranglerRequire=createRequire(require.resolve('wrangler'));
 const {Miniflare}=await import(pathToFileURL(wranglerRequire.resolve('miniflare')).href);
 const root=new URL('../',import.meta.url),origin='https://capsules.example';
@@ -25,6 +25,7 @@ const runtime={modules:true,script:compiled.outputFiles[0].text,compatibilityDat
 const mf=new Miniflare({d1Persist:false,workers:[
   {...runtime,name:'baseline',routes:['capsules.example/*']},
   {...runtime,name:'expanded',routes:['expanded.capsules.example/*'],bindings:{CAPSULE_EXPANDED_FAMILIES:'1'}},
+  {...runtime,name:'collector',routes:['collector.capsules.example/*'],bindings:{CAPSULE_COLLECTOR_EDITION:'1'}},
   {...runtime,name:'paused',routes:['paused.capsules.example/*'],bindings:{CAPSULE_ISSUANCE_PAUSED:'1',CAPSULE_OPENING_PAUSED:'1'}}
 ]});
 let deployment='baseline';
@@ -85,8 +86,8 @@ try {
   const capsule=(id,path='',body,expected=200)=>call(id,'/api/capsules'+path,body,expected).then(r=>r.data);
   const count=async(sql,...args)=>(await query(sql,...args).first()).n;
   const policyIds=(await query('SELECT model_id FROM collectible_model_policies ORDER BY model_id').all()).results.map(r=>r.model_id);
-  assert.deepEqual(policyIds,expandedReleaseTables.flatMap(f=>f.models.map(m=>m.id)).sort());
-  for(const family of expandedReleaseTables) {
+  assert.deepEqual(policyIds,collectorReleaseTables.flatMap(f=>f.models.map(m=>m.id)).sort());
+  for(const family of collectorReleaseTables) {
     let min=0;
     for (const model of family.models) {
       assert.equal(modelAt(min,family.models).id,model.id); min+=model.weight;
@@ -95,7 +96,7 @@ try {
     assert.equal(min,10000);assert.throws(()=>modelAt(10000,family.models));
   }
   assert.throws(()=>validateTables([{...releaseTables[0],models:[{...releaseTables[0].models[0],weight:1}]}]));
-  console.log('PASS frozen release content, guarded model IDs, integer bounds and all twelve hero and nine workshop outcomes');
+  console.log('PASS frozen release content, 35 guarded model IDs and both integer boundaries of every weighted outcome');
 
   await session('older');await session('incoming',false);await session('stranger');
   await capsule(null,'',undefined,401);
@@ -104,7 +105,10 @@ try {
   await call('older','/api/capsules/reconcile',{},403,{'x-voidline-csrf':''});
   await capsule('older','/reconcile',{expectedAccountId:'stranger'},409);
   await capsule('incoming','/reconcile',{},409);
-  const create=await call(null,'/api/auth/register',{username:'capsulelocal',displayName:'Local fixture',password:'Isolated-test-password-592!'},201);
+  const emailToken=toToken();
+  const tokenHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(emailToken))),n=>n.toString(16).padStart(2,'0')).join('');
+  await query('INSERT INTO auth_registration_challenges VALUES(?,?,?)',tokenHash,'capsulelocal@example.test',Date.now()+600000).run();
+  const create=await call(null,'/api/auth/register',{emailToken,username:'capsulelocal',displayName:'Local fixture',password:'Isolated-test-password-592!'},201);
   const localId=create.data.account.id;
   sessions.set(localId,{csrf:create.data.csrfToken,token:create.headers.get('set-cookie').match(/__Host-voidline_session=([a-f0-9]+)/)[1]});
   assert.equal((await capsule(localId,'/reconcile',{})).capsules.length,1);
@@ -201,6 +205,51 @@ try {
     assert.equal(result.tableVersion,['midnight-tape.v1','copium-reserve.v1'][i]);
     assert.match(result.model.originalArt.detail.sha256,/^[a-f0-9]{64}$/);deployment='expanded';
   }
+  deployment='collector';
+  assert.equal((await capsule('older',detail)).families.length,2);
+  assert.equal((await capsule('workshop','/'+(await capsule('workshop')).capsules[0].id)).families.length,4);
+  for(const familyId of ['copium-cartridge','pocket-terminal','egoists-volume']){
+    const who='collector-'+familyId; await session(who);
+    const award=(await capsule(who,'/reconcile',{})).capsules[0];
+    const view=await capsule(who,'/'+award.id);
+    assert.equal(view.capsule.editionId,collectorEdition);assert.deepEqual(view.families,collectorReleaseTables);
+    assert.deepEqual(view.families.slice(0,4).map(f=>f.models.map(m=>m.weight)),expandedReleaseTables.map(f=>f.models.map(m=>m.weight)));
+    await capsule(who,'/'+award.id+'/open',{familyId:'gift-cartridge-rain-check',clientId:crypto.randomUUID()},400);
+    const request={familyId,clientId:crypto.randomUUID()};
+    const responses=await Promise.all([capsule(who,'/'+award.id+'/open',request),capsule(who,'/'+award.id+'/open',request)]);
+    const won=responses[0].opening;
+    assert.equal(responses[1].opening.instanceId,won.instanceId);assert.equal(won.familyId,familyId);
+    assert.equal(won.model.artRevision,'atelier-02');assert.equal(won.model.originalArt.detail.sha256.length,64);
+    assert.equal(await count('SELECT COUNT(*) n FROM gift_instances WHERE capsule_id=?',award.id),1);
+    await call(who,'/api/cosmetics/claim',{cosmeticId:won.model.id},409);
+    await assert.rejects(query("INSERT INTO gift_instances(id,catalog_id,owner_id,origin_kind,created_at) VALUES(?,?,?,'claim',1)",crypto.randomUUID(),won.model.id,who).run(),/opening_required/);
+  }
+  const sharedDay=(await capsule('older','/check-in',{})).progress;
+  assert.equal(sharedDay.days,1,'A Standard post and a check-in on the same UTC day count once');
+  assert.equal(sharedDay.checkedInToday,true);
+  await session('checkin');
+  await capsule('checkin','/check-in',{utcDay:'2099-01-01'},400);
+  const checked=await Promise.all([capsule('checkin','/check-in',{}),capsule('checkin','/check-in',{})]);
+  assert(checked.every(s=>s.progress.days===1&&s.progress.checkedInToday&&s.progress.checkInAvailable));
+  // Seed two complete historical weeks in the isolated DB. The actual stamp trigger
+  // awards both weekly capsules, plus exactly one guaranteed gift over the lifetime.
+  for(const start of ['2026-01-05','2026-01-12']){
+    for(let i=0;i<3;i++){
+      const t=Date.parse(start)+i*86400000;
+      await query('INSERT INTO capsule_stamps(account_id,utc_day,utc_week,committed_at,edition_id) VALUES(?,?,?,?,?)',
+        'checkin',new Date(t).toISOString().slice(0,10),start,t,collectorEdition).run();
+    }
+  }
+  const after=await capsule('checkin');
+  assert.equal(after.capsules.filter(c=>c.source==='weekly').length,2);
+  assert.deepEqual(after.progress.milestone,{modelId:'gift-copium-cartridge',earned:true,available:true});
+  assert.equal(await count("SELECT COUNT(*) n FROM gift_instances WHERE owner_id='checkin' AND catalog_id='gift-copium-cartridge' AND origin_kind='milestone'"),1);
+  const byFamily=(await call('checkin','/api/cosmetics/instances?familyId=copium-cartridge')).data;
+  assert.equal(byFamily.instances[0].catalog_id,'gift-copium-cartridge');
+  assert.equal(byFamily.instances[0].origin_kind,'milestone');
+  await capsule('checkin','/check-in',{expectedAccountId:'older'},409);
+  deployment='baseline';await capsule('checkin','/check-in',{},503);
+  console.log('PASS v3 edition preserves two prior editions, old odds, 14 protected model IDs, concurrent opening integrity, check-in privacy and one guaranteed transferable lifetime reward');
   deployment='paused';
   const beforePause=(await capsule(localId)).capsules[0];
   await capsule(localId,'/'+beforePause.id+'/open',{familyId:'pepe-keycap',clientId:crypto.randomUUID()},503);
