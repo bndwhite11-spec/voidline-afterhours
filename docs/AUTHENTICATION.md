@@ -115,6 +115,14 @@ sessions. It is deliberately longer lived than a reset challenge. If a user
 loses every authentication method, the recovery code and a verified recovery
 channel, this app cannot recover the account automatically.
 
+The recovery form accepts a username or verified email. It removes whitespace
+and hyphen separators from the saved code and normalizes hex letter case before
+requiring exactly 64 hex characters. The server's account-bound hash and one-use
+checks remain unchanged. Email enrollment uses a separate 8-digit code; its form
+ignores pasted whitespace, preserves leading zeroes and requires exactly eight
+ASCII digits before sending. Native input limits leave room for those formatting
+characters, allowing normally formatted copies to be normalized before validation.
+
 ## Sessions, passkeys and owner access
 
 Opaque 256-bit session bearers use `__Host-` Secure, HttpOnly, SameSite=Lax
