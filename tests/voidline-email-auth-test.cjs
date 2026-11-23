@@ -73,6 +73,8 @@ async function client({ strict = true, hash = '', signedIn = false, handlers = {
       return response({ ...session(server.account), emailUpgradeRequired: true });
     }
     if (url === '/api/auth/logout') { server.signedIn = false; return response({ loggedOut: true }); }
+    if (url === '/api/auth/devices') return response({devices:[]});
+    if (url === '/api/security/passkeys') return response({passkeys:[]});
     if (url === '/api/auth/email') return response({ email: null, verifiedAt: null, deliveryConfigured: true });
     if (url === '/api/auth/login') return response({ error: { code: 'invalid_credentials', message: 'The email or password is incorrect.' } }, 401);
     if (String(url).startsWith('/api/messages/conversations')) return response({ conversations: [] });
@@ -187,14 +189,21 @@ test('pending sign-out cannot be duplicated or offer a misleading stay action', 
   }finally{app.close();}
 });
 
-test('older account can request, resend, correct a code and sign in by verified email',async()=>{
+async function openEmailSettings(app){
+  await until(()=>app.document.querySelector('[data-home="security"]'));
+  assert.equal(app.document.querySelector('#home-main [data-home="email-settings"]'),null);
+  app.click('security');await until(()=>app.document.querySelector('#home-dialog[open] [data-home="email-settings"]'));
+  app.click('email-settings');
+}
+
+test('older account can request, resend, correct a code and see its verified address confirmed',async()=>{
   let attempt=0;
   const app=await client({signedIn:true,hash:'#you',handlers:{
     '/api/auth/email/code/request':({body})=>({body:{accepted:true,challengeId:'challenge-'+(++attempt),email:body.email,expiresAt:Date.now()+600000}}),
     '/api/auth/email/code/verify':({body})=>body.code==='07234567'?{body:{verified:true,email}}:{status:400,body:{error:{code:'invalid_code',message:'The code is incorrect.'}}}
   }});
   try{
-    await until(()=>app.document.querySelector('[data-home="email-settings"]'));app.click('email-settings');
+    await openEmailSettings(app);
     await until(()=>app.form('email-code-request'));app.type('email',email);app.submit();
     await until(()=>app.form('email-code-verify'));
     const code=app.field('code');assert.equal(code.autocomplete,'one-time-code');assert.equal(code.type,'text');assert.equal(code.inputMode,'numeric');
@@ -217,20 +226,20 @@ test('stale session can confirm its password inline and change the destination b
     '/api/auth/reauthenticate':({body})=>{assert.equal(body.password,password);fresh=true;return{body:{reauthenticated:true}};}
   }});
   try{
-    await until(()=>app.document.querySelector('[data-home="email-settings"]'));app.click('email-settings');await until(()=>app.form('email-code-request'));
+    await openEmailSettings(app);await until(()=>app.form('email-code-request'));
     app.type('email',email);app.submit();await until(()=>app.field('emailPassword'));assert.equal(app.field('email').value,email);
     app.type('emailPassword',password);app.submit();await until(()=>app.form('email-code-verify'));
     app.click('email-code-change');await until(()=>app.form('email-code-request'));app.type('email','different@example.test');app.submit();await until(()=>app.form('email-code-verify'));
     assert.match(app.document.querySelector('#home-dialog').textContent,/different@example.test/);
     assert.equal(app.calls.filter(c=>c.url.endsWith('/code/verify')).length,0);
     assert.equal(app.calls.filter(c=>c.url.endsWith('/code/request')).some(c=>'emailPassword' in c.body||'password' in c.body),false);
-    app.click('close-dialog');app.click('email-settings');await until(()=>app.form('email-code-verify'));
+    app.click('close-dialog');await openEmailSettings(app);await until(()=>app.form('email-code-verify'));
   }finally{app.close();}
 });
 
 test('unconfigured mail delivery explains availability on old accounts without submitting anything',async()=>{
  const app=await client({signedIn:true,hash:'#you',handlers:{'/api/auth/email':()=>({body:{verifiedAt:null,deliveryConfigured:false}})}});
- try{await until(()=>app.document.querySelector('[data-home="email-settings"]'));app.click('email-settings');
+ try{await openEmailSettings(app);
  await until(()=>app.document.querySelector('#home-email-settings')?.textContent.includes('temporarily unavailable'));
  assert.equal(app.form('email-code-request'),null);assert.equal(app.calls.some(c=>c.url.includes('/code/')),false);
  }finally{app.close();}
