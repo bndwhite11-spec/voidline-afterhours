@@ -9,7 +9,7 @@ owner cannot administer the platform.
 
 ## Native accounts
 
-Password registration requires a verified private address. POST /api/auth/register/email delivers a ten-minute fragment link through Resend. Migration 0013 keeps its digest, address and expiry separate from account records. The password is chosen after opening the link. A transaction creates the immutable account, credential, verified private address and session while consuming all outstanding proofs for the mailbox. Token replay, concurrent signup, and uniqueness conflicts cannot create additional accounts. A delivery failure invalidates that token. Usernames use NFKC, lowercase and a
+Password registration requires a verified private address. POST /api/auth/register/email delivers a ten-minute fragment link through the configured mail provider. Migration 0013 keeps its digest, address and expiry separate from account records. The password is chosen after opening the link. A transaction creates the immutable account, credential, verified private address and session while consuming all outstanding proofs for the mailbox. Token replay, concurrent signup, and uniqueness conflicts cannot create additional accounts. A delivery failure invalidates that token. Usernames use NFKC, lowercase and a
 unique database constraint: 3–24 ASCII letters, numbers or underscores, starting
 with a letter. Reserved staff/system terms are rejected. Display names remain
 separate. New accounts receive no memberships, messages, contacts, fabricated
@@ -83,12 +83,11 @@ There is no unauthenticated provider-linking endpoint.
 
 New password accounts require a verified email. Configure **server secrets**
 `RESEND_API_KEY`, `EMAIL_FROM` and the exact HTTPS `VOIDLINE_ORIGIN` for signup, address changes and verified-email recovery. Verify the sending domain in Resend, configure its
-required DNS records and use an allowed sender. The Worker sends through
-Resend's HTTPS API; it does not expose a browser mail credential. A verification
+required DNS records and use an allowed sender. Operators can alternatively configure Brevo with a verified individual mailbox as described in [Account setup](ACCOUNT-SETUP.md). The Worker sends through the selected provider’s HTTPS API; it does not expose a browser mail credential. A verification
 request requires recent authentication, and an owner recovery-address change
 also requires recent user-verifying passkey proof.
 
-Older accounts can enroll a first verified private email from their existing authenticated session. The Worker sends an eight-digit code to the submitted mailbox through Resend. Enter the code in the account that requested it. Requesting a code leaves the previous login method and recovery settings in effect. Successful enrollment keeps the same account ID, profile, conversations and gift records. A temporary delivery problem leaves username sign-in available.
+Older accounts can enroll a first verified private email from their existing authenticated session. The Worker sends an eight-digit code to the submitted mailbox through the selected provider. Enter the code in the account that requested it. Requesting a code leaves the previous login method and recovery settings in effect. Successful enrollment keeps the same account ID, profile, conversations and gift records. A temporary delivery problem leaves username sign-in available.
 
 For link-based operations, a 256-bit random verification/reset token is delivered only through the actual
 provider. D1 stores its SHA-256 hash. Links carry the raw token in the URL

@@ -80,7 +80,7 @@ const compiledAssets=bundledAssetTable(),rasters=new Map();
 // and desktop packages stream verified R2 objects instead of duplicating them
 // inside the constrained Worker bundle.
 const release=JSON.parse(await readFile(path.join(dist,'downloads/voidline-release.json'),'utf8'));
-assert.equal(release.tag,'v1.0.13');
+assert.equal(release.tag,'v1.0.14');
 assert.equal(release.android.version,'1.0.3');
 assert.equal(release.android.versionCode,4);
 assert.equal(release.android.filename,'VOIDLINE-Android.apk');

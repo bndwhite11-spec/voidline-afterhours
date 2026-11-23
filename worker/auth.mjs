@@ -1,3 +1,4 @@
+import {mailTransportConfigured,sendTransactionalEmail} from './email-delivery.mjs';
 import {matrixPolicyStatement,matrixPolicySessionsStatement} from './matrix-policy.mjs';
 import {accountDeletionStatements,ACCOUNT_DELETION_RETENTION} from './account-deletion.mjs';
 /** Native accounts, optional Google OIDC, and opaque sessions. No message keys. */
@@ -60,7 +61,7 @@ export async function authRateLimit(request,db,action,maximum,now,identity=''){
  requireAuth(row.count<=maximum,429,'rate_limited','Too many attempts. Wait a minute and try again.');
 }
 function emailValue(value){requireAuth(typeof value==='string'&&value.length<=254,400,'invalid_email','Enter a valid email address.');const email=value.trim().toLowerCase();requireAuth(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)&&!/[\u0000-\u001f\u007f]/.test(email),400,'invalid_email','Enter a valid email address.');return email;}
-function emailConfigured(env){const config=configuration(env);return config.valid&&!!env?.RESEND_API_KEY&&!!env?.EMAIL_FROM;}
+function emailConfigured(env){const config=configuration(env);return config.valid&&mailTransportConfigured(env);}
 const emailCodeLifetime=10*60000;
 function newEmailCode(){
  const range=100000000,limit=Math.floor(0x100000000/range)*range,sample=new Uint32Array(1);
@@ -117,8 +118,8 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
   const text=kind==='code'
    ? 'Enter this verification code in the VOIDLINE account where you requested it: '+token+'\n\nIt expires in 10 minutes. If you did not request this code, ignore this email.'
    : (signup?'Choose a public username and a password for your private verified email: ':verify?'Confirm this email address for your Voidline account: ':'Reset your Voidline password: ')+link+'\n\nThis link expires in 10 minutes and can be used once. If you did not request it, ignore this email. No existing password is revealed.';
-  const response=await fetcher('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESEND_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.EMAIL_FROM,to:[to],subject,text}),signal:AbortSignal.timeout(15000)});
-  requireAuth(response.ok,503,'email_unavailable','The email service could not accept this request. Please retry.');
+  const accepted=await sendTransactionalEmail(env,{to,subject,text},fetcher);
+  requireAuth(accepted,503,'email_unavailable','The email service could not accept this request. Please retry.');
  }
  async function issueEmailToken(db,accountId,email,kind,time){const token=random(),hash=await authHash(token);await query(db,'DELETE FROM auth_email_tokens WHERE expires_at<?',time).run();await query(db,'INSERT INTO auth_email_tokens(token_hash,account_id,kind,email,expires_at,created_at) VALUES(?,?,?,?,?,?)',hash,accountId,kind,email,time+10*60000,time).run();return {token,hash};}
  async function requestVerifiedResetForAccount(request,env,accountId){
