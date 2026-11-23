@@ -64,7 +64,20 @@ async function run(){
         const resp=await runtime.dispatchFetch(request.url(),{method,headers,body:method==='GET'||method==='HEAD'?undefined:request.postDataBuffer()});
         const outgoing=Object.fromEntries(resp.headers);delete outgoing['content-length'];delete outgoing['content-encoding'];delete outgoing['set-cookie'];
         const cookies=resp.headers.getSetCookie();
-        if(cookies.length)outgoing['set-cookie']=cookies.join('\n');
+        // Playwright fulfill() collapses multi-value headers, which WebKit
+        // interprets differently. Deliver each Worker-issued cookie separately
+        // to this browser's real cookie jar, retaining scope and expiry.
+        if(cookies.length){
+          const sessionCookies=cookies.map(raw=>{
+            const [pair,...bits]=raw.split(';').map(s=>s.trim());
+            const offset=pair.indexOf('='),attrs=new Map(bits.map(s=>s.split('=').map(x=>x.toLowerCase())));
+            assert(attrs.has('secure')&&attrs.get('path')==='/'&&!attrs.has('domain'));
+            return {name:pair.slice(0,offset),value:pair.slice(offset+1),domain:url.hostname,path:'/',
+              httpOnly:attrs.has('httponly'),secure:true,sameSite:attrs.get('samesite')==='strict'?'Strict':'Lax',
+              expires:Math.floor(Date.now()/1000)+Number(attrs.get('max-age'))};
+          });
+          await ctx.addCookies(sessionCookies);
+        }
         if(method==='POST')posts.push([url.pathname,resp.status]);
         const bytes=Buffer.from(await resp.arrayBuffer());
         await route.fulfill({status:resp.status,headers:outgoing,body:bytes});
@@ -88,9 +101,9 @@ async function run(){
         await page.locator('[data-vc-action="discover-family"][data-family="Copium Cartridges"]').click();
         const card=id=>page.locator('.vc-card[data-design-id="'+id+'"]:visible');
         await card('gift-cartridge-rain-check').waitFor();
-        assert.match(await card('gift-cartridge-rain-check').innerText(),/Free edition/);
+        assert.match(await card('gift-cartridge-rain-check').innerText(),/free edition/i);
         const capsule='gift-edition-cartridge-text-back';
-        assert.match(await card(capsule).innerText(),/Capsule edition/);
+        assert.match(await card(capsule).innerText(),/capsule edition/i);
         assert.equal(await page.locator('.vc-card:visible').count(),12);
         await card(capsule).getByRole('button',{name:/^Inspect /}).click();
         const dialog=page.locator('#home-dialog[open]');
@@ -124,11 +137,12 @@ async function run(){
         assert.equal(posts.filter(([p,s])=>p==='/api/cosmetics/claim'&&s<300).length,1);
         results.push({width,height,emptyBeforeOwnClaim:true,editionsInFamily:2,familyDesigns:12,ownedCopies:1,utcDays:1,requestLists:2});
       }catch(error){
+        console.error(String(error.stack||error).split('\n').slice(0,6).join('\n'));
         await page.screenshot({path:join(directory,'failure-'+width+'.png'),timeout:3000}).catch(()=>{});
         const headers=await page.locator('h1,h2,h3,#home-dialog[open] [role="alert"]').allTextContents().catch(()=>[]);
         console.error('Fixture stage evidence',JSON.stringify({width,headers:headers.slice(0,12),errors,posts}));
         throw error;
-      }finally{await ctx.close();}
+      }finally{await ctx.unrouteAll({behavior:'wait'});await ctx.close();}
     }
     assert.equal(unexpected,0);
     const result={engine,version:browser.version(),environment:'Browser with intercepted HTTPS to local workerd/D1/R2, private mailbox; no production or physical device',results};
