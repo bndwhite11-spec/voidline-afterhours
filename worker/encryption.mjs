@@ -23,7 +23,31 @@ async function bodyJSON(request){
  need(body&&typeof body==='object'&&!Array.isArray(body),400,'invalid_request','Use an enrollment object.');return body;
 }
 async function expectedIdentity(accountId,config){const subject='v_'+await authHash(accountId);return {subject,userId:'@'+subject+':'+config.serverName};}
+// Public discovery only: never sign in, allocate a device or echo provider output.
+async function discoveryJSON(response){
+ if(response.status!==200){try{await response.body?.cancel();}catch{}return null;}
+ const reader=response.body?.getReader();if(!reader)return null;const parts=[];let size=0;
+ try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>65536){await reader.cancel();return null;}parts.push(value);}
+  const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.byteLength;}
+  const value=JSON.parse(new TextDecoder().decode(bytes));return value&&typeof value==='object'&&!Array.isArray(value)?value:null;
+ }catch{try{await reader.cancel();}catch{}return null;}
+}
 export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>fetch(...args)}={}){
+ async function discover(config,path,validate){
+  try{const response=await fetcher(config.homeserver+path,{method:'GET',headers:{accept:'application/json'},redirect:'error',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(12000)});
+   if(response.status!==200){try{await response.body?.cancel();}catch{}return 'unavailable';}
+   const data=await discoveryJSON(response);return data?validate(data):'invalid';
+  }catch{return 'unavailable';}
+ }
+ async function checkService(config){
+  const base={configured:config.configured,checkedAt:now(),enrollmentProven:false,encryptedDefaultReady:false,accountRestrictionsSynced:false};
+  if(!config.configured)return {...base,status:'not-configured',checks:{versions:'not-checked',login:'not-checked'}};
+  const [versions,login]=await Promise.all([
+   discover(config,'/_matrix/client/versions',data=>Array.isArray(data.versions)&&data.versions.length>0&&data.versions.length<=128&&data.versions.every(value=>typeof value==='string'&&/^(?:v\d{1,4}\.\d{1,4}|r\d{1,4}\.\d{1,4}\.\d{1,4})$/.test(value))?'valid':'invalid'),
+   discover(config,'/_matrix/client/v3/login',data=>Array.isArray(data.flows)&&data.flows.length<=128&&data.flows.every(flow=>flow&&typeof flow==='object'&&!Array.isArray(flow)&&typeof flow.type==='string'&&flow.type.length>0&&flow.type.length<=200)?data.flows.some(flow=>flow.type==='org.matrix.login.jwt')?'jwt-advertised':'not-advertised':'invalid')
+  ]);
+  return {...base,status:versions==='valid'&&login==='jwt-advertised'?'advertised':'unavailable',checks:{versions,login}};
+ }
  async function matrix(config,path,{token,body}={}){
   const response=await fetcher(config.homeserver+path,{method:body===undefined?'GET':'POST',headers:{accept:'application/json',...(token?{authorization:'Bearer '+token}:{}),...(body===undefined?{}:{'content-type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),redirect:'error',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(12000)});
   let data;try{data=await response.json();}catch{throw new AuthError(503,'encrypted_service_unavailable','The encrypted service returned an unreadable response.');}
@@ -32,11 +56,18 @@ export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>f
  async function logout(config,token){try{await matrix(config,'/_matrix/client/v3/logout',{token,body:{}});return 'confirmed';}catch{return 'unknown';}}
  async function markIssue(db,user,jti,state,deviceId=null){await q(db,'UPDATE matrix_enrollment_issues SET state=?,matrix_device_id=COALESCE(?,matrix_device_id),completed_at=? WHERE jti=? AND account_id=? AND session_id=?',state,deviceId,now(),jti,user.id,user.sessionId).run();}
  async function handleEncryptionRequest(request,env){
-  let inFlightToken=null,config=null,user=null,jti=null,deviceId=null,ownsIssue=false;
+  let inFlightToken=null,config=null,user=null,jti=null,deviceId=null,ownsIssue=false,preflight=false;
   try{
    const url=new URL(request.url),path=url.pathname.replace(/^\/api\/encryption\/?/,'').split('/').filter(Boolean);
+   preflight=path.length===1&&path[0]==='check';
    need(url.pathname==='/api/encryption'||url.pathname.startsWith('/api/encryption/'),404,'not_found','No encrypted enrollment action matches this request.');need(['GET','POST'].includes(request.method),405,'method_not_allowed','This method is unavailable.');
    user=await authenticate(request,env);const db=env.DB;config=configuration(env);
+   if(preflight&&request.method==='POST'){
+    const body=await bodyJSON(request);await validateSessionMutation(request,user,body);
+    need(Object.keys(body).every(key=>key==='expectedAccountId'),400,'invalid_request','Service checks use the configured encrypted service.');
+    await authRateLimit(request,db,'encrypted-service-check',3,now(),user.id);
+    return json(await checkService(config));
+   }
    if(path.length===1&&path[0]==='config'&&request.method==='GET'){
     const password=await q(db,'SELECT 1 AS present FROM auth_credentials WHERE account_id=?',user.id).first();
     const policy=await matrixPolicyHealth(env,{accountId:user.id});
@@ -99,7 +130,7 @@ export function createEncryptionService({now=()=>Date.now(),fetcher=(...args)=>f
    return json({accountId:user.id,homeserver:config.homeserver,userId:identity.userId,deviceId,accessToken:inFlightToken,enrollmentAttemptId:jti,expiresAt:Number.isSafeInteger(login.expires_in_ms)&&login.expires_in_ms>0?finalTime+login.expires_in_ms:null,accountRestrictionsSynced:false,encryptedDefaultReady:false});
   }catch(error){
    if(ownsIssue&&jti&&user&&env?.DB){let state='failed';if(inFlightToken&&config?.configured){const result=await logout(config,inFlightToken);state=result==='confirmed'?'revoked':'revocation_unknown';}else if(!(error instanceof AuthError)||error.code==='encrypted_service_unavailable')state='unknown';try{await markIssue(env.DB,user,jti,state,deviceId);}catch{/* A safe error response must not include credentials or database output. */}}
-   return json({error:{code:error instanceof AuthError?error.code:'encrypted_service_unavailable',message:error instanceof AuthError?error.message:'Encrypted enrollment could not finish. A remote device may have been created; review Devices before trying again.'}},error instanceof AuthError?error.status:503);
+   return json({error:{code:error instanceof AuthError?error.code:'encrypted_service_unavailable',message:error instanceof AuthError?error.message:preflight?'The encrypted service check could not finish. Try again later.':'Encrypted enrollment could not finish. A remote device may have been created; review Devices before trying again.'}},error instanceof AuthError?error.status:503);
   }finally{inFlightToken=null;/* No JWT, Matrix token or recovery key is persisted server-side. */}
  }
  return {handleEncryptionRequest};

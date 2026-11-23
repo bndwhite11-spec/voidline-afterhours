@@ -48,7 +48,7 @@
 
 * { box-sizing: border-box; }
 html, body { width: 100%; min-width: 0; min-height: 100%; margin: 0; }
-body { font-size: calc(0.875rem * var(--vl-text-scale)); line-height: 1.5; background: var(--vh-bg); }
+body { font-size: calc(1rem * var(--vl-text-scale)); line-height: 1.5; background: var(--vh-bg); }
 button, input, textarea, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 button { cursor: pointer; color: inherit; }
@@ -839,6 +839,31 @@ img, svg { max-width: 100%; }
 .vh-empty-row > svg { width: 19px; height: 19px; flex: none; color: var(--vh-muted); }
 .vh-empty-row:hover, .vh-empty-row:focus-visible { color: var(--vh-text); background: var(--vh-side); }
 .vh-first-home .vh-empty-utilities { gap: 4px 18px; margin-top: 12px; }
+.vh-first-home { max-width: 880px; }
+.vh-first-home>.vh-eyebrow { color: var(--vh-accent); }
+.vh-first-home>.vh-empty-actions { margin-bottom: 30px; }
+.vh-home-discover { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; gap: 16px; }
+.vh-home-card { padding: 22px; margin: 0; border: 1px solid var(--vh-line); border-radius: 16px; background: linear-gradient(145deg,var(--vh-side),var(--vh-bg)); }
+.vh-home-card-icon { display: grid; place-items: center; width: 36px; height: 36px; margin-bottom: 18px; border: 1px solid var(--vh-line); border-radius: 10px; color: var(--vh-accent); background: var(--vh-bg); }
+.vh-home-card-icon svg { width: 18px; height: 18px; }
+.vh-first-home .vh-home-card h2 { margin: 0 0 9px; font-size: calc(1rem * var(--vl-text-scale)); letter-spacing: -.02em; }
+.vh-first-home .vh-home-card p { margin: 0 0 16px; min-height: 4.5em; font-size: calc(.875rem * var(--vl-text-scale)); line-height: 1.5; }
+.vh-home-card .vh-empty-row { color: var(--vh-copy); padding: 9px 10px; margin-inline: -10px; width: calc(100% + 20px); }
+.vh-first-home .vh-empty-utilities { align-items: center; margin-top: 16px; }
+.vh-empty-utilities>span { color: var(--vh-muted); font-size: calc(.8125rem * var(--vl-text-scale)); line-height: 1.5; }
+.vh-chat-avatar { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; margin-right: 10px; border: 1px solid var(--vh-line); border-radius: 13px; color: var(--vh-accent); background: var(--vh-selected); font-size: calc(.875rem * var(--vl-text-scale)); font-weight: 650; }
+.vh-conversation-header>.vh-conversation-tools { display: flex; flex: 0 0 auto; align-items: center; gap: 3px; margin-left: auto; }
+.vh-conversation-menu { position: relative; font-size: calc(.875rem * var(--vl-text-scale)); }
+.vh-conversation-menu>summary { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; color: var(--vh-muted); cursor: pointer; list-style: none; }
+.vh-conversation-menu>summary::-webkit-details-marker { display: none; }
+.vh-conversation-menu>summary:hover, .vh-conversation-menu[open]>summary { color: var(--vh-text); background: var(--vh-surface); }
+.vh-conversation-menu>summary:focus-visible { outline: 2px solid var(--vh-accent); outline-offset: 2px; }
+.vh-conversation-menu>div { position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; display: grid; min-width: 230px; max-width: min(290px,80vw); padding: 6px; border: 1px solid var(--vh-line); border-radius: 12px; background: var(--vh-side); box-shadow: var(--vh-shadow-panel); }
+.vh-conversation-menu>div>button { min-height: 44px; padding: 10px 12px; border: 0; border-radius: 7px; color: var(--vh-copy); background: transparent; text-align: start; font-size: inherit; }
+.vh-conversation-menu>div>button:hover { color: var(--vh-text); background: var(--vh-surface); }
+@media(max-width:1100px) { .vh-home-discover { grid-template-columns: minmax(0,1fr); } .vh-first-home .vh-home-card p { min-height: 0; } }
+@media(max-width:860px) { .vh-home-discover { grid-template-columns: repeat(2,minmax(0,1fr)); } .vh-chat-avatar { width: 34px; height: 34px; flex-basis: 34px; margin-right: 5px; border-radius: 11px; } }
+@media(max-width:560px) { .vh-home-discover { grid-template-columns: minmax(0,1fr); } .vh-home-card { padding: 20px; } .vh-first-home .vh-empty-utilities { align-items: flex-start; flex-direction: column; } }
 .vh-community-summary { display: flex; gap: 10px; align-items: center; margin: 12px 0 20px; color: var(--vh-copy); }
 .vh-community-summary .vh-icon { flex: none; color: var(--vh-muted); }
 .vh-community-options { border-block: 1px solid var(--vh-line); margin-bottom: 18px; }

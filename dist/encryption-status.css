@@ -1,0 +1,14 @@
+.ves-status{--ves-border:color-mix(in srgb,currentColor 13%,transparent);font-size:calc(1rem * var(--vl-text-scale,1));max-width:42rem}
+.ves-row{display:grid;grid-template-columns:12px minmax(0,1fr);gap:12px;padding:16px 0;border-bottom:1px solid var(--ves-border)}
+.ves-row h3,.ves-service h3{margin:0 0 5px;font-size:.79em;font-weight:650;letter-spacing:.045em;text-transform:uppercase;opacity:.7}
+.ves-row strong{display:block;font-size:1em;line-height:1.4;font-weight:650}
+.ves-row p,.ves-service p,.ves-detail,.ves-footnote{margin:6px 0 0;font-size:.86em;line-height:1.65;overflow-wrap:anywhere;opacity:.78}
+.ves-dot{width:9px;height:9px;border-radius:50%;margin-top:6px;background:#89939f;box-shadow:0 0 0 3px color-mix(in srgb,#89939f 13%,transparent)}
+.ves-good{background:#38ae87;box-shadow:0 0 0 3px color-mix(in srgb,#38ae87 13%,transparent)}
+.ves-attention{background:#d9a052;box-shadow:0 0 0 3px color-mix(in srgb,#d9a052 13%,transparent)}
+.ves-neutral{background:#729cde;box-shadow:0 0 0 3px color-mix(in srgb,#729cde 13%,transparent)}
+.ves-detail{padding:10px 0}.ves-service{margin:12px 0 18px;padding:16px;border:1px solid var(--ves-border);border-radius:14px;background:color-mix(in srgb,currentColor 3%,transparent)}
+.ves-service button{margin-top:12px}.ves-status button{min-height:44px;white-space:normal}.ves-status button:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.ves-footnote{margin-top:18px}.ves-status .vh-dialog-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:430px){.ves-status .vh-dialog-actions button,.ves-service button{width:100%}.ves-row{gap:10px;padding:14px 0}}
+@media(forced-colors:active){.ves-dot{background:CanvasText;box-shadow:none}.ves-service,.ves-row{border-color:CanvasText}}

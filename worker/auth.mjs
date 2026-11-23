@@ -146,6 +146,15 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
     const result=await db.batch(writes);requireAuth(result[0]?.meta?.changes===1&&result[1]?.meta?.changes===1&&result.at(-2)?.meta?.changes===1,401,'invalid_reset','This reset link is unavailable or expired.');
     return authSuccess(db,token.account_id,plan,{recoveryCode:code});
    }
+   if(path==='/api/auth/register/email/inspect'){
+    requireAuth(request.method==='POST',405,'method_not_allowed','Use the signup link in this app.');
+    validateOrigin(request);requireAuth(request.headers.get('x-voidline-auth')==='1',403,'request_denied','Open the signup link in this app.');
+    const body=await readBody(request);await authRateLimit(request,db,'signup-email-inspect',20,now());
+    requireAuth(typeof body.emailToken==='string'&&/^[a-f0-9]{64}$/.test(body.emailToken),400,'invalid_signup_link','This signup link was used or expired. Request a new link.');
+    const digest=await authHash(body.emailToken),proof=await query(db,'SELECT email,expires_at FROM auth_registration_challenges WHERE token_hash=? AND expires_at>?',digest,now()).first();
+    requireAuth(proof,400,'invalid_signup_link','This signup link was used or expired. Request a new link.');
+    return json({email:proof.email,expiresAt:proof.expires_at});
+   }
    if(path==='/api/auth/register/email'){
     requireAuth(request.method==='POST',405,'method_not_allowed','Use the signup form.');
     validateOrigin(request);
