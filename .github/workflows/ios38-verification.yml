@@ -1,0 +1,32 @@
+name: VOIDLINE collector release on iPhone simulator
+on:
+  push:
+    branches: [verification/ios-collector-38]
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            qa/ios38
+            native/ios
+      - name: Boot iPhone and test trusted-origin capture policy
+        run: |
+          bash qa/ios38/boot.sh
+          bash qa/ios38/media.sh
+      - name: Launch native SwiftUI wrapper and inspect guest screen
+        if: ${{ !cancelled() }}
+        run: bash qa/ios38/native.sh
+      - name: Save guest screenshots and check results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: iphone-simulator-collector-38
+          path: ${{ runner.temp }}/voidline-ios-evidence
+          retention-days: 3
+          if-no-files-found: ignore
