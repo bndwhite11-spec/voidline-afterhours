@@ -1,0 +1,36 @@
+name: Private signed-in collection browser check
+on:
+  push:
+    branches: [verification/voidline-38]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --no-audit --no-fund && npm run build
+      - name: Install the browser only on this runner
+        run: |
+          npm install --prefix "$RUNNER_TEMP/browser" --no-audit --no-fund playwright@1.56.1
+          "$RUNNER_TEMP/browser/node_modules/.bin/playwright" install --with-deps ${{ matrix.engine }}
+      - name: Verify the signed-in collector with local D1 and a private mailbox
+        run: QA_ENGINE=${{ matrix.engine }} NODE_PATH="$RUNNER_TEMP/browser/node_modules" QA_EVIDENCE="$RUNNER_TEMP/collector-evidence" node .github/qa/collection-browser.cjs
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: private-collection-${{ matrix.engine }}
+          path: ${{ runner.temp }}/collector-evidence
+          if-no-files-found: ignore
+          retention-days: 3
