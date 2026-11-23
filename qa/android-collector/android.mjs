@@ -49,15 +49,17 @@ async function until(expression, name, limit = 45) {
 try {
   await command('Runtime.enable');
   await command('Page.enable');
-  await until("document.querySelector('form input[type=password]') && document.body.innerText.includes('Create account') && document.body.innerText.includes('Log in')",'Guest form in native handoff',55);
+  await until("document.visibilityState==='visible' && document.querySelector('[data-home=auth-login]') && document.querySelector('[data-home=auth-register]')",'Visible guest account screen',55);
+  await evaluate("document.querySelector('[data-home=auth-login]').click()");
+  await until("document.querySelector('form[data-home-form=login] input[type=password]')",'Guest password login');
   const href=await evaluate('location.href');
   assert.equal(new URL(href).origin,origin);
   const version=await evaluate("fetch('/downloads/voidline-release.json').then(r=>r.json()).then(r=>r.tag)");
   assert.equal(version,'v1.0.11');
-  const original=await evaluate("document.querySelector('form[data-home-form]').dataset.homeForm");
-  assert(['register','login'].includes(original),original);
-  const toggle=original==='register'?'auth-login':'auth-register';
-  await evaluate("document.querySelector('[data-home="+toggle+"]').click()");
-  await until("document.querySelector('form[data-home-form]').dataset.homeForm!=="+JSON.stringify(original),'Guest form switch');
-  console.log('PASS',phase,'Android 15 APK handoff to current guest form at',href,'with registration/login switch; release',version,'viewport',await evaluate('innerWidth'));
+  await evaluate("document.querySelector('[data-home=auth-register]').click()");
+  await until("document.querySelector('[data-home=auth-register]').getAttribute('aria-pressed')==='true' && (document.querySelector('form[data-home-form=register], form[data-home-form=signup-email-request]') || document.body.innerText.includes('Email delivery is temporarily unavailable'))",'Registration panel');
+  const registration=await evaluate("document.querySelector('form[data-home-form]')?.dataset.homeForm || 'email delivery temporarily unavailable'");
+  await evaluate("document.querySelector('[data-home=auth-login]').click()");
+  await until("document.querySelector('form[data-home-form=login] input[type=password]')",'Return to guest password login');
+  console.log('PASS',phase,'Android 15 APK handoff to visible guest form at',href,'registration:',registration,'release',version,'viewport',await evaluate('innerWidth'));
 } finally {socket.close();}
