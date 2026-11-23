@@ -15,6 +15,14 @@ with a letter. Reserved staff/system terms are rejected. Display names remain
 separate. New accounts receive no memberships, messages, contacts, fabricated
 notifications, earned badges or gifts.
 
+Before presenting the password form for a `#signup-email=` link, the client posts
+`{emailToken}` to `/api/auth/register/email/inspect`. This read-only check returns
+the verified private address and expiry only for a live challenge. Unknown,
+expired and consumed links return `invalid_signup_link`; inspection does not
+consume the proof or create an account/session. Previously delivered links can
+still be inspected if the mail service later becomes unavailable. The route
+requires the exact app Origin, JSON, the app request header and rate limits.
+
 Passwords accept 12–128 characters, allow password managers and pasting, and are
 hashed server-side using pinned `@noble/hashes` Argon2id v19. The stored algorithm
 is `argon2id-v19-m19456-t2-p1`: 19 MiB memory, two passes, one lane, a fresh random

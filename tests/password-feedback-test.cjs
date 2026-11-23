@@ -40,6 +40,7 @@ async function client({ hash = '', rejections = {}, email = {configured:false} }
     let status = 200, body;
     if (url === '/api/auth/config') body = { configured: true, matrix: { configured: false }, encryption: { available: false }, google: { configured: false }, email };
     else if (url === '/api/auth/session') { status = 401; body = { error: { code: 'sign_in_required', message: 'Log in to continue.' } }; }
+    else if (url === '/api/auth/register/email/inspect') { body={email:'new@example.test',expiresAt:Date.now()+600000}; }
     else if (url === '/api/auth/register/email') { status=202; body={accepted:true}; }
     else if (rejections[url]) { status = 400; body = { error: rejections[url] }; }
     else if (url === '/api/auth/login') { status = 401; body = { error: { code: 'invalid_credentials', message: 'The username or password is incorrect.' } }; }

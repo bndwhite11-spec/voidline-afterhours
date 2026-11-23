@@ -6,6 +6,19 @@ previous account, recovery, collection and migration protections remain.
 The production entry is dist/index.html with authored home/extension source.
 Historical sample app.js is not an executable production fallback.
 
+LOCAL PREVIEW
+  npm run build
+  npm run dev -- --port 4173
+The local runner applies the authored Drizzle statements through Miniflare D1,
+including complete SQL trigger bodies, and records each migration atomically.
+It never changes historical migration SQL or accesses remote D1.
+If an earlier manually initialized database has no migration history, it is
+refused without adoption or deletion. Keep that data and use a separate preview:
+  npm run dev -- --persist-to /tmp/voidline-feedback-preview --port 4173
+Both migration and server processes use the selected local persistence folder.
+The backup verification scripts require requirements-backup.txt in the Python
+environment used by python3; keep certificate verification enabled when installing.
+
 SOURCE BOUNDARIES
   dist/home.js/.css             navigation, native/Matrix views and composition
   dist/mobile.js/.css          install/share guidance and visible-viewport layout

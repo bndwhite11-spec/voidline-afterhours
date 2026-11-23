@@ -1,7 +1,7 @@
 // Created only when a call starts or a verified incoming invitation arrives.
 export function callPanel(controls) {
   let dialog=null,restore=null,title,peer,status,remote,local,accept,decline,mic,cam,end,close,sound;
-  const states={preparing:'Checking devices and TURN relay…',calling:'Invitation sent',ringing:'Incoming call', 'remote-ringing':'Ringing',answering:'Preparing microphone and relay…',connecting:'Connecting',connected:'Connected',reconnecting:'Reconnecting…'};
+  const states={preparing:'Preparing your call…',calling:'Invitation sent',ringing:'Incoming call', 'remote-ringing':'Ringing',answering:'Preparing your devices…',connecting:'Connecting',connected:'Connected',reconnecting:'Reconnecting…'};
   function remove(){if(!dialog)return;local.srcObject=null;remote.srcObject=null;dialog.remove();dialog=null;if(restore?.isConnected)restore.focus({preventScroll:true});restore=null;}
   function build(){
     restore=document.activeElement;dialog=document.createElement('dialog');dialog.className='vh-call-dialog';dialog.setAttribute('aria-labelledby','vh-call-title');
@@ -15,7 +15,12 @@ export function callPanel(controls) {
     const button=(name,fn,cls='vh-secondary')=>{const b=add('button',actions);b.type='button';b.className=cls;b.textContent=name;b.onclick=fn;return b;};
     accept=button('Answer',()=>controls().answer(),'vh-primary');decline=button('Decline',()=>controls().decline());
     mic=button('Mute microphone',()=>controls().toggle('mic'));cam=button('Pause camera',()=>controls().toggle('camera'));
-    sound=button('Play incoming audio',()=>remote.play().then(()=>{sound.hidden=true;}).catch(()=>{}));sound.hidden=true;
+    sound=button('Play incoming audio',()=>{
+      const playingDialog=dialog,playingRemote=remote,playingSound=sound,stream=remote.srcObject;
+      return playingRemote.play().then(()=>{
+        if(dialog===playingDialog&&remote===playingRemote&&sound===playingSound&&playingRemote.srcObject===stream)playingSound.hidden=true;
+      }).catch(()=>{});
+    });sound.hidden=true;
     end=button('End call',()=>controls().end(),'vh-danger');close=button('Close',remove);dialog.addEventListener('cancel',e=>{if(close.hidden)e.preventDefault();else remove();});
     document.body.append(dialog);dialog.showModal();
   }

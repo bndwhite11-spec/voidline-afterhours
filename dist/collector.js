@@ -123,8 +123,9 @@
       return '<section class="cl-drawer"><header><div><h3>Choice Capsules</h3><p>'+ready.length+' unopened'+(hasPages?' on this page':'')+' · Choose a family to receive one collectible.</p></div>'+ (canReconcile?button('reconcile','Claim welcome capsule',online()?'':'disabled',true):'')+'</header>'+progress+(ready.length?'<ul class="cl-capsules">'+ready.map(card).join('')+'</ul>':'')+(closed.length?'<details '+(closed.some(c=>!c.acknowledgedAt)?'open':'')+'><summary>Previous openings ('+closed.length+')</summary><ul class="cl-capsules">'+closed.map(card).join('')+'</ul></details>':'')+(hasPages?'<div class="vc-pagination">'+button('caps-prev','Previous capsules',capsuleOffset>0?'':'disabled')+'<span>'+esc(capsuleOffset+1)+'–'+esc(Math.min(capsuleOffset+50,state.page.total))+' of '+esc(state.page.total)+'</span>'+button('caps-next','Older capsules',state.page.hasMore?'':'disabled')+'</div>':'')+(state.issuingEnabled===false?'<p class="cl-notice">New capsule awards are temporarily paused.</p>':'')+'</section>';
     }
     function allItems(){return host.items().filter(item=>item.type==='gift');}
+    const familyKey=item=>item.familyId||item.collectionFamilyId||(item.series==='Copium Cartridges'||item.id==='gift-copium-cartridge'?'copium-cartridge':'legacy');
     function familyList(){
-      const result=new Map();for(const item of allItems())if(item.familyId)result.set(item.familyId,item.familyId==='copium-cartridge'?'Copium Cartridges':item.familyName||host.familyName(item.familyId));
+      const result=new Map();for(const item of allItems())if(familyKey(item)!=='legacy')result.set(familyKey(item),familyKey(item)==='copium-cartridge'?'Copium Cartridges':item.familyName||host.familyName(familyKey(item)));
       return result;
     }
     function tools(){
@@ -139,7 +140,7 @@
     function familiesHTML(items,rows) {
       const groups=new Map(),sum=host.summary()||{},known=new Map(allItems().map(i=>[i.id,i]));
       const add=(model,copy)=>{
-        const key=model.familyId||(model.series==='Copium Cartridges'||model.id==='gift-copium-cartridge'?'copium-cartridge':'legacy');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(modelCard(model,copy));
+        const key=familyKey(model);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(modelCard(model,copy));
       };
       if(rows) {
         for(const row of rows){const item=known.get(row.catalog_id)||{id:row.catalog_id,name:row.model?.name||row.name||'Unavailable model',familyId:row.family_id||'',tier:row.model?.tier};add(item,row);}
@@ -150,11 +151,11 @@
       }
       return [...groups].map(([family,cards])=>{
         const info=sum.families?.find(f=>f.familyId===family);
-        return '<section class="cl-family"><header><h3>'+esc(family==='legacy'?'Original gifts':family==='copium-cartridge'?'Copium Cartridges':host.familyName(family))+'</h3>'+(info?'<span>'+esc(info.ownedModels)+' of '+esc(info.totalModels)+' models owned</span>':'')+'</header><div class="cl-grid">'+cards.join('')+'</div></section>';
+        return '<section class="cl-family"><header><h3>'+esc(family==='legacy'?'Original gifts':family==='copium-cartridge'?'Copium Cartridges':host.familyName(family))+'</h3>'+(info?'<span>'+esc(info.ownedModels)+' of '+esc(info.totalModels)+' models owned'+(Number.isFinite(info.discoveredModels)?' · '+esc(info.discoveredModels)+' discovered':'')+'</span>':'')+'</header><div class="cl-grid">'+cards.join('')+'</div></section>';
       }).join('');
     }
     function currentModels(){
-      const selected=allItems().filter(i=>(!filters.family||(i.familyId||'legacy')===filters.family)&&(!filters.tier||String(i.tier).toLowerCase()===filters.tier.toLowerCase()));
+      const selected=allItems().filter(i=>(!filters.family||(filters.family==='legacy'?!i.familyId:familyKey(i)===filters.family))&&(!filters.tier||String(i.tier).toLowerCase()===filters.tier.toLowerCase()));
       const rank=item=>tiers.findIndex(t=>t.toLowerCase()===String(item.tier).toLowerCase());
       return selected.sort((a,b)=>(filters.sort==='rarity'?rank(b)-rank(a):0)||Number(!a.familyId)-Number(!b.familyId)||String(a.familyName||'').localeCompare(b.familyName||'')||rank(a)-rank(b)||a.name.localeCompare(b.name));
     }
@@ -206,6 +207,16 @@
       const obj=window.VoidlineCapsuleStage?.create?.(document);
       if(obj){if(open)obj.classList.add('is-open');container.replaceChildren(obj);}
     }
+    function choiceFamily(family,selected,locked){
+      const summary=host.summary(),models=family.models||[],known=Array.isArray(summary?.discoveredModelIds)?new Set(summary.discoveredModelIds):null;
+      const owned=models.filter(model=>Number(summary?.modelCounts?.[model.id])>0).length;
+      const progress=(summary?.modelCounts?owned+' of '+models.length+' eligible models owned':models.length+' eligible models')+(known?' · '+models.filter(model=>known.has(model.id)).length+' discovered':'');
+      const artwork=models.slice(0,3).map(frozen=>{
+        const model={...host.model(frozen.id),...frozen},original=archivedPoster(model);
+        return '<span>'+(original?'<img src="'+esc(original)+'" alt="" width="128" height="128">':host.art(model.id))+'</span>';
+      }).join('');
+      return '<button type="button" data-cl="family" data-family="'+esc(family.id)+'" aria-pressed="'+selected+'" '+(locked?'disabled':'')+'><span class="cl-family-posters" aria-hidden="true">'+artwork+'</span><span class="cl-family-copy"><strong>'+esc(family.name)+'</strong><small>'+esc(progress)+'</small></span></button>';
+    }
     function bindFamily(s,chosen){
       const data=s.data,hint=readHint(data.capsule.id);
       const family=data.families.find(f=>f.id===(hint?.familyId||chosen))||data.families[0];s.family=family;
@@ -213,7 +224,7 @@
       if(!family){body.innerHTML='<p role="status">This capsule’s contents are unavailable. Your capsule is saved.</p>';return;}
       const total=family.models.reduce((n,m)=>n+m.weight,0);
       body.innerHTML='<div class="cl-choice-stage" data-cl-packing></div><div class="cl-choice"><b>'+esc(data.capsule.source==='weekly'?'Weekly capsule':'Welcome capsule')+'</b>'+
-        (families.length>1?'<fieldset><legend>Choose a family</legend>'+families.map(f=>'<button type="button" data-cl="family" data-family="'+esc(f.id)+'" aria-pressed="'+(f.id===family.id)+'" '+(hint?'disabled':'')+'>'+esc(f.name)+'</button>').join('')+'</fieldset>':'<h3>'+esc(family.name)+'</h3>')+
+        (families.length>1?'<fieldset class="cl-family-choices"><legend>Choose a family</legend>'+families.map(f=>choiceFamily(f,f.id===family.id,!!hint)).join('')+'</fieldset><p class="cl-choice-note">These are the families available in this capsule. Preview a model below to compare its details.</p>':'<h3>'+esc(family.name)+'</h3>')+
         '<details open><summary>View contents and odds</summary><p>One model from '+esc(family.name)+' · Table '+esc(family.tableVersion)+'</p><ul class="cl-odds">'+family.models.map(m=>'<li><span>'+host.art(m.id)+'<button type="button" data-cl="preview-contents" data-model="'+esc(m.id)+'">'+esc(m.name)+'</button></span><span>'+esc(m.tier)+' · '+percent(m.weight,total)+'</span></li>').join('')+'</ul></details>'+
         '<label class="cl-sound"><input type="checkbox" data-cl-sound '+(soundOpted?'checked':'')+'> Play a quiet opening sound</label><p data-cl-status role="status">'+(hint?'A previous request used this family. You can check its result or retry that same request.':'Opening adds one owned copy. Duplicates are possible.')+'</p><p data-cl-error role="alert"></p><div class="cl-actions">'+(hint?button('recover','Check result'):'')+button('open',hint?'Retry same opening':'Open capsule',!online()||!canOpen?'disabled':'',true)+'</div>'+(!canOpen?'<p>New openings are temporarily paused. This capsule is saved.</p>':'')+'</div>';
       capsuleArt(body.querySelector('[data-cl-packing]'));

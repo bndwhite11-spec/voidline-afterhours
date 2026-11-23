@@ -5,7 +5,7 @@ import {initAsync as loadWasm,Attachment,EncryptedAttachment} from '@matrix-org/
 import {decodeRecoveryKey} from 'matrix-js-sdk/lib/crypto-api/recovery-key.js';
 import {AllDevicesIsolationMode,CryptoEvent} from 'matrix-js-sdk/lib/crypto-api/index.js';
 import loglevel from 'loglevel';
-import {createSecureCalls,CALL_EVENT,verifiedCallSignal} from './secure-calls.js';
+import {createSecureCalls,CALL_EVENT,verifiedCallSignal,verifiedCallDevice} from './secure-calls.js';
 import {callPanel} from './call-panel.js';
 import {openVault} from './secure-vault.js';
 import {createLocalSaved} from './local-saved.js';
@@ -209,16 +209,20 @@ export function create(options={},injected={}) {
    crypto.setDeviceIsolationMode(new deps.AllDevicesIsolationMode(true));
    if(options.callsEnabled && expectedUserId===identity.user_id && expectedDeviceId===identity.device_id && options.callPermission){
     const enabledClient=activeClient;
-    async function allowCall(roomId){
-      const {room,users}=await requireEncrypted(roomId,{verify:true});
+    async function allowCall(roomId,selected={}){
+      const {room,users,crypto,ticket}=await requireEncrypted(roomId,{verify:true});
       const peer=users.length===2&&users.find(id=>id!==identity.user_id);
       const directIds=Object.values(enabledClient.getAccountData?.('m.direct')?.getContent?.()||{}).flat();
       if(!peer||(!directIds.includes(roomId)&&!room.getDMInviter?.())||enabledClient.getIgnoredUsers?.().includes(peer))throw fail('VOID_CALL','Calls require an accepted, verified one-to-one conversation.');
+      if(selected.deviceId){
+        const verified=await verifiedCallDevice(crypto,peer,selected);unchanged(ticket);
+        if(!verified)throw fail('VOID_CALL','The selected calling device changed or is no longer verified.');
+      }
       await options.callPermission(peer,identity.device_id);if(!owns())throw fail('VOID_CALL','The calling account changed.');return peer;
     }
     callUI=options.onCall?null:callPanel(()=>calls);
     const manager=calls=createSecureCalls({device:identity.device_id,user:identity.user_id,allow:allowCall,
-      send:async(roomId,content)=>{await allowCall(roomId);return enabledClient.sendEvent(roomId,CALL_EVENT,content);},
+      send:async(roomId,content,selected)=>{await allowCall(roomId,selected);return enabledClient.sendEvent(roomId,CALL_EVENT,content);},
       relay:()=>enabledClient.turnServer(),onChange:options.onCall||callUI.update});
     let queue=Promise.resolve();
     subscribe(activeClient,deps.sdk.RoomEvent.Timeline,(event,room,atStart,removed)=>{
@@ -227,7 +231,7 @@ export function create(options={},injected={}) {
         if(!owns()||calls!==manager)return;await enabledClient.decryptEventIfNeeded(event);
         if(event.getType()!==CALL_EVENT||event.isDecryptionFailure?.())return;
         if(!await verifiedCallSignal(crypto,event)||!owns())return;
-        await manager.incoming({room:room.roomId,sender:event.getSender(),time:event.getTs(),content:event.getContent()});
+        await manager.incoming({room:room.roomId,sender:event.getSender(),senderKey:event.getSenderKey(),time:event.getTs(),content:event.getContent()});
       }).catch(()=>{});
     });
     if(deps.sdk.RoomMemberEvent?.Membership)subscribe(enabledClient,deps.sdk.RoomMemberEvent.Membership,()=>manager.recheck());

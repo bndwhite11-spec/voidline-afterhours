@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import {createSecureCalls,relayConfiguration,verifiedCallSignal} from '../src/secure-calls.js';
+import {createSecureCalls,relayConfiguration,verifiedCallSignal,verifiedCallDevice,CALL_EVENT} from '../src/secure-calls.js';
+import {create} from '../src/secure-messenger.js';
+import {fixture as messengerFixture} from './secure-fixture.mjs';
 const relay={uris:['turns:relay.example:443?transport=tcp'],username:'short-lived',password:'test-only',ttl:180};
 const sdp='v=0\r\na=candidate:1 1 udp 123 192.0.2.21 5000 typ relay\r\n';
 const timestamp=100000,room='!private:example',id=crypto.randomUUID();
@@ -72,5 +74,60 @@ await check('a selected peer can renegotiate relay ICE using the original media 
   await f.incoming({...answer,round:crypto.randomUUID()});assert.equal(f.states.at(-1).phase,'reconnecting');
   await f.incoming({...answer,round:next.round});assert.equal(f.states.at(-1).phase,'connected');
  }finally{f.ctl.close();}
+});
+
+await check('a delayed offer acknowledgement cannot arm No answer after media has connected',async()=>{
+ const original={setTimeout,clearTimeout,setInterval,clearInterval},timers=[];
+ globalThis.setTimeout=(fn,ms)=>{const timer={fn,ms,cancelled:false};timers.push(timer);return timer;};
+ globalThis.clearTimeout=timer=>{if(timer)timer.cancelled=true;};globalThis.setInterval=()=>({});globalThis.clearInterval=()=>{};
+ let release;const f=fixture({send:async(r,content)=>{f.events.push(content);if(content.action==='offer')await new Promise(resolve=>release=resolve);}});
+ try{
+  const starting=f.ctl.start(room,'video');while(!release)await new Promise(resolve=>setImmediate(resolve));const call=f.events[0];
+  await f.incoming({v:1,id:call.id,from:'ALICE',to:'BOB',action:'answer',description:{type:'answer',sdp}});
+  f.pc.connectionState='connected';f.pc.onconnectionstatechange();release();await starting;
+  assert.equal(f.states.at(-1).phase,'connected');assert.equal(timers.filter(t=>!t.cancelled&&t.ms===45000).length,0);
+  for(const timer of timers.filter(t=>!t.cancelled))timer.fn();assert.equal(f.states.at(-1).phase,'connected');
+ }finally{f.ctl.close();Object.assign(globalThis,original);}
+});
+await check('a selected device revoked while capture permission is pending cannot receive media',async()=>{
+ let grant,allowed=true;const selected=[];
+ const f=fixture({allow:async(_room,binding)=>{selected.push(binding);if(!allowed)throw Error('Selected device revoked');return 'alice';},media:{getUserMedia:()=>new Promise(resolve=>grant=resolve)}});
+ try{
+  await f.incoming();const answering=f.ctl.answer();while(!grant)await new Promise(resolve=>setImmediate(resolve));allowed=false;grant(f.stream);await answering;
+  assert(f.tracks.every(track=>track.stopped));assert.equal(f.pc,undefined);assert(!f.events.some(event=>event.action==='answer'));assert.equal(f.states.at(-1).phase,'ended');assert(selected.every(binding=>binding.deviceId==='ALICE'));
+ }finally{f.ctl.close();}
+});
+
+await check('selected-device checks require its original identity key and current verification even when another device remains trusted',async()=>{
+ const selected={deviceId:'SELECTED',identityKey:'original-key'},other={getIdentityKey:()=>'another-key'};let entry={getIdentityKey:()=>'original-key'},verified=true;
+ const matrixCrypto={getUserDeviceInfo:async()=>new Map([['alice',new Map([['OTHER',other],...(entry?[['SELECTED',entry]]:[])])]]),getDeviceVerificationStatus:async()=>({isVerified:()=>verified})};
+ assert.equal(await verifiedCallDevice(matrixCrypto,'alice',selected),true);entry=null;assert.equal(await verifiedCallDevice(matrixCrypto,'alice',selected),false);
+ entry={getIdentityKey:()=>'replacement-key'};assert.equal(await verifiedCallDevice(matrixCrypto,'alice',selected),false);
+ entry={getIdentityKey:()=>'original-key'};verified=false;assert.equal(await verifiedCallDevice(matrixCrypto,'alice',selected),false);
+});
+
+await check('actual messenger device-update callbacks stop calls when the selected peer device disappears or changes key',async()=>{
+ const oldNavigator=Object.getOwnPropertyDescriptor(globalThis,'navigator'),oldPeer=Object.getOwnPropertyDescriptor(globalThis,'RTCPeerConnection');
+ const until=async predicate=>{for(let i=0;i<100;i++){if(predicate())return;await new Promise(resolve=>setImmediate(resolve));}throw Error('Call callback did not settle.');};
+ try{
+  for(const change of ['removed','key-changed']){
+   const f=messengerFixture(),states=[],track={enabled:true,stop(){this.stopped=true;}},stream={getTracks:()=>[track],getAudioTracks:()=>[track],getVideoTracks:()=>[]};let pc;
+   class Peer{constructor(config){assert.equal(config.iceTransportPolicy,'relay');pc=this;this.iceGatheringState='complete';this.signalingState='stable';this.connectionState='new';}close(){this.closed=true;}addTrack(){}async createOffer(){return {type:'offer',sdp};}async setLocalDescription(value){this.localDescription=value;}async setRemoteDescription(value){this.remoteDescription=value;}}
+   Object.defineProperty(globalThis,'navigator',{configurable:true,value:{mediaDevices:{getUserMedia:async()=>stream}}});Object.defineProperty(globalThis,'RTCPeerConnection',{configurable:true,value:Peer});
+   let selectedKey='peer-key',present=true;
+   f.crypto.getUserDeviceInfo=async users=>new Map(users.map(user=>[user,user==='@owner:matrix.example'?new Map([['DEV',{deviceId:'DEV',getIdentityKey:()=>'CURVEKEY'}]]):new Map([['OTHER',{deviceId:'OTHER',getIdentityKey:()=>'other-key'}],...(present?[['PEER',{deviceId:'PEER',getIdentityKey:()=>selectedKey}]]:[])])]));
+   const app=create({callsEnabled:true,callPermission:async()=>({allowed:true}),onCall:state=>states.push(state)},f.deps);
+   try{
+    await app.connect({homeserver:'https://matrix.example',accountId:'app-account',accessToken:'MEMORY_TOKEN',storagePassword:'private vault passphrase',expectedUserId:'@owner:matrix.example',expectedDeviceId:'DEV'});
+    f.latest.getAccountData=()=>({getContent:()=>({'@member:matrix.example':[f.room.roomId]})});f.latest.turnServer=async()=>relay;
+    await app.startCall(f.room.roomId,'voice');const sent=f.calls.find(call=>call[0]==='send'&&call[2]===CALL_EVENT)[3];
+    const content={v:1,id:sent.id,from:'PEER',to:'DEV',action:'answer',description:{type:'answer',sdp}};
+    f.latest.emit(f.deps.sdk.RoomEvent.Timeline,{isEncrypted:()=>true,getTs:()=>Date.now(),getType:()=>CALL_EVENT,isDecryptionFailure:()=>false,getContent:()=>content,getSender:()=>'@member:matrix.example',getSenderKey:()=>'peer-key'},f.room,false,false);
+    await until(()=>states.at(-1)?.phase==='connecting');pc.connectionState='connected';pc.onconnectionstatechange();assert.equal(states.at(-1).phase,'connected');
+    if(change==='removed')present=false;else selectedKey='replacement-key';f.latest.emit(f.deps.sdk.CryptoEvent.DevicesUpdated,['@member:matrix.example']);
+    await until(()=>states.at(-1)?.phase==='ended');assert.equal(pc.closed,true);assert.equal(track.stopped,true);
+   }finally{await app.disconnect();}
+  }
+ }finally{oldNavigator?Object.defineProperty(globalThis,'navigator',oldNavigator):delete globalThis.navigator;oldPeer?Object.defineProperty(globalThis,'RTCPeerConnection',oldPeer):delete globalThis.RTCPeerConnection;}
 });
 console.log(passed+'/'+passed+' call controller checks passed with controlled browser and signaling events.');
