@@ -5,18 +5,37 @@ import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
+import {verificationMailbox} from '../scripts/verification-mailbox.mjs';
 
 const require=createRequire(import.meta.url),wrangler=createRequire(require.resolve('wrangler'));
 const {Miniflare}=await import(pathToFileURL(wrangler.resolve('miniflare')));
 const root=new URL('../',import.meta.url),origin='https://accounts.test';
 const bundle=await build({stdin:{resolveDir:root.pathname,contents:"import {handleAuthRequest} from './worker/auth.mjs';export default {fetch(r,e){return handleAuthRequest(r,e)}}" },bundle:true,format:'esm',platform:'browser',target:'es2022',write:false});
-const runtime=new Miniflare({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-05-15',d1Databases:{DB:'isolated-auth-concurrency'},d1Persist:false});
+const mailbox=verificationMailbox(origin,()=>{throw Error('Unexpected external request from isolated auth test');});
+const runtime=new Miniflare({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-05-15',d1Databases:{DB:'isolated-auth-concurrency'},d1Persist:false,bindings:mailbox.bindings,outboundService:request=>mailbox.exchange(request)});
 const challenges=new Map();
+async function post(path,body,cookie=''){
+ return runtime.dispatchFetch(origin+'/api/auth/'+path,{method:'POST',headers:{origin,'content-type':'application/json','x-voidline-auth':'1',cookie},body:JSON.stringify(body)});
+}
 async function submit(path,username){
  const credentials = path==='register'
   ? {username,displayName:username,emailToken:challenges.get(username)}
   : {login:username+'@example.test'};
- const response=await runtime.dispatchFetch(origin+'/api/auth/'+path,{method:'POST',headers:{origin,'content-type':'application/json','x-voidline-auth':'1'},body:JSON.stringify({...credentials,password:'Independent test account pass '+username})});
+ let response=await post(path,{...credentials,password:'Independent test account pass '+username});
+ if(path==='login'){
+  assert.equal(response.status,202);
+  const challenge=await response.json();
+  assert.equal(challenge.requiresEmailCode,true);
+  assert.equal(challenge.account,undefined);
+  assert.equal(challenge.csrfToken,undefined);
+  const cookies=response.headers.getSetCookie();
+  assert(!cookies.some(value=>/^__Host-voidline_session=[^;]/.test(value)));
+  const browserChallenge=cookies.find(value=>value.startsWith('__Host-voidline_login_challenge='));
+  assert(browserChallenge,'Password must start a browser-bound challenge');
+  const code=mailbox.takeLoginCode(credentials.login);
+  response=await post('login/code/verify',{challengeId:challenge.challengeId,code},browserChallenge.split(';',1)[0]);
+  assert(response.headers.getSetCookie().some(value=>/^__Host-voidline_session=[^;]/.test(value)));
+ }
  const isJSON=response.headers.get('content-type')?.includes('application/json');
  let data={};
  if(isJSON)data=await response.json();
@@ -53,5 +72,5 @@ try{
  for(const person of people)assert.deepEqual(await submit('login',person),{status:200,code:undefined,username:person});
  assert.equal((await db.prepare("SELECT COUNT(*) n FROM auth_credentials WHERE algorithm='argon2id-v19-m19456-t2-p1' AND iterations=2").first()).n,people.length);
  assert.equal((await db.prepare('SELECT COUNT(*) n FROM live_accounts').first()).n,people.length);
- console.log('PASS overlapping isolated signups recover on the same Worker and every account can sign in with its original password');
+ console.log('PASS overlapping isolated signups recover on the same Worker and every account signs in with its original password and independently delivered email code');
 }finally{await runtime.dispose();}

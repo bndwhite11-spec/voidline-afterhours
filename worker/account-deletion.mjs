@@ -42,6 +42,7 @@ export function accountDeletionStatements(db,{accountId,guardSql,guardBinds=[],t
   ['account_organization','account_id=?',[accountId]],
   ['passkey_challenges','account_id=?',[accountId]],
   ['account_passkeys','account_id=?',[accountId]],
+  ['auth_login_codes','account_id=?',[accountId]],
   ['auth_email_codes','account_id=?',[accountId]],
   ['auth_email_tokens','account_id=?',[accountId]],
   ['account_emails','account_id=?',[accountId]],

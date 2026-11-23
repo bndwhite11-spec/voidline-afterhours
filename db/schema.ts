@@ -420,3 +420,15 @@ export const authEmailCodes = sqliteTable("auth_email_codes", {
  expiresAt: integer("expires_at").notNull(),
  attempts: integer("attempts").notNull().default(0),
 }, t=>[index("auth_email_codes_expiry").on(t.expiresAt)]);
+
+// A completed password check grants a short-lived, browser-bound email challenge.
+export const authLoginCodes = sqliteTable("auth_login_codes", {
+ challengeHash:text("challenge_hash").primaryKey(),
+ browserHash:text("browser_hash").notNull(),
+ codeHash:text("code_hash").notNull(),
+ accountId:text("account_id").notNull().references(()=>liveAccounts.id,{onDelete:"cascade"}),
+ email:text("email").notNull(),
+ credentialMarker:text("credential_marker").notNull(),
+ expiresAt:integer("expires_at").notNull(),
+ attempts:integer("attempts").notNull().default(0),
+},t=>[index("auth_login_codes_expiry").on(t.expiresAt),index("auth_login_codes_account").on(t.accountId),unique("auth_login_codes_browser").on(t.browserHash)]);

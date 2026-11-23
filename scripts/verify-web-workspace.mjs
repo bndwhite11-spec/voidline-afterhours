@@ -40,7 +40,7 @@ async function migrate(db) {
 }
 const delay = ms=>new Promise(done=>setTimeout(done,ms));
 
-async function run(script) {
+async function run(script,variant) {
   let outbound=0, stage='setup', dom;
   const mailbox=verificationMailbox(origin,()=>{outbound++;return new Response(null,{status:502});});
   const runtime = new Miniflare({
@@ -123,6 +123,22 @@ async function run(script) {
     const response=await exchange(path);
     assert.equal(response.status,200,'Authorized data should be available');
     return response.json();
+  }
+  async function loginWithPassword(identifier,password){
+    const at=seen.length;
+    const form=await element('[data-home-form="login"]');
+    fill(form,{username:identifier,password});form.dispatchEvent(event('submit'));
+    const finished=()=>seen.slice(at).find(row=>row.path==='/api/auth/login'&&row.method==='POST');
+    await until(finished);
+    const status=finished().status;
+    if(identifier.includes('@')&&variant==='candidate')assert.equal(status,202,'Password login must wait for the email code');
+    if(status===200){await until(()=>!form.dataset.busy);return;}
+    assert.equal(status,202,'Password response should request an email code');
+    const challenge=await element('[data-home-form="login-email-code"]');
+    assert.equal((await exchange('/api/auth/session')).status,401,'Password alone cannot access the account');
+    assert.equal(dom.window.VoidHome.state.account,null,'UI remains signed out');
+    fill(challenge,{code:mailbox.takeLoginCode(identifier)});challenge.dispatchEvent(event('submit'));
+    await until(()=>seen.slice(at).some(row=>row.method==='POST'&&row.path==='/api/auth/login/code/verify'&&row.status===200));
   }
   async function registerForm(email){
     await action('auth-register');
@@ -254,17 +270,20 @@ async function run(script) {
       assert.equal(removed.meta.changes,1);
       const newEmail='returning_guest@example.test';
       const legacyLogin=async()=>{
+        const at=seen.length;
         await action('auth-legacy-login');
-        const form=await element('[data-home-form="login"]');
-        fill(form,{username,password});form.dispatchEvent(event('submit'));
+        await loginWithPassword(username,password);
         await until(()=>state()?.phase==='ready'&&state().account?.id===id);
-        return element('#home-dialog[open] [data-home-form="email-code-request"]');
+        assert.ok(!$('#home-dialog[open] [data-home-form="email-code-request"]'),'Legacy sign-in does not open enrollment');
+        assert.ok(!seen.slice(at).some(row=>row.path==='/api/auth/email'),'Legacy sign-in does not start email enrollment');
       };
-      stage='older account skips email and returns';
+      stage='older account defers email and returns';
       await legacyLogin();
-      await action('close-dialog');await action('you');markSessionLogout();await action('logout');
+      await action('you');markSessionLogout();await action('logout');
       await element('[data-home="auth-legacy-login"]');
-      const request=await legacyLogin();
+      await legacyLogin();
+      await action('you');await action('security');await action('email-settings');
+      const request=await element('#home-dialog[open] [data-home-form="email-code-request"]');
       stage='request inbox code';
       fill(request,{email:newEmail});request.dispatchEvent(event('submit'));
       const confirm=await element('#home-dialog[open] [data-home-form="email-code-verify"]');
@@ -277,9 +296,8 @@ async function run(script) {
       await action('you');markSessionLogout();await action('logout');await element('[data-home-form="login"]');
       loginIdentifier=newEmail;
     }
-    const login=await element('[data-home-form="login"]');fill(login,{username:loginIdentifier,password});
     await measure('loginToWorkspace',async()=>{
-      login.dispatchEvent(event('submit'));
+      await loginWithPassword(loginIdentifier,password);
       await until(()=>state()?.account?.id===id&&state().communities?.some(item=>item.id===room.id));
     });
     if(args['legacy-email-code']){
@@ -290,7 +308,7 @@ async function run(script) {
     if(args['collectible-transfer']){
       const {verifyCollectibleTransfer}=await import('./verify-collectible-transfer.mjs');
       transferResult=await verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,
-        registerForm,sender:{id,username,password,login:loginIdentifier},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
+        registerForm,loginWithPassword,sender:{id,username,password,login:loginIdentifier},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
     }
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_accounts')).n,args['collectible-transfer']?2:1);
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_messages WHERE author_id=?',id)).n,1);
@@ -328,7 +346,7 @@ for(let pair=0;pair<pairCount;pair++){
   const variants=Object.keys(builds);
   if(pair%2)variants.reverse();
   for(const variant of variants){
-    const result=await run(builds[variant].script);
+    const result=await run(builds[variant].script,variant);
     order.push(variant);builds[variant].runs.push(result);
     console.log('PASS '+variant+' workspace, pair '+(pair+1)+'/'+pairCount);
   }

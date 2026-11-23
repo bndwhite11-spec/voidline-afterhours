@@ -37,9 +37,9 @@ test('Google signup with a conflicting private email cannot link accounts or lea
  }finally{f.sqlite.close();}
 });
 test('unconfigured email cannot fake verification or delivery and exposes no token',async()=>{const f=fixture();try{const c=await f.register();await c.call('/api/auth/email/request',{email:'person@example.test'},503);await f.browser().call('/api/auth/password/reset/request',{login:'native_user'},503);assert.equal(f.messages.length,0);assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM auth_email_tokens').get().n,0);}finally{f.sqlite.close();}});
-test('verified email stays private, requires its actual one-time token and permits password login by that address',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();const ack=await c.call('/api/auth/email/request',{email:'Private@Example.test'},202);assert.equal(ack.token,undefined);const token=f.tokenFromLastMail(),record=f.sqlite.prepare('SELECT token_hash FROM auth_email_tokens').get();assert.notEqual(record.token_hash,token);await c.call('/api/auth/email/verify',{token});await c.call('/api/auth/email/verify',{token},400);const email=await c.call('/api/auth/email');assert.equal(email.email,'private@example.test');assert.equal((await f.browser().call('/api/auth/login',{login:email.email,password})).account.id,c.session.account.id);assert.equal((await c.call('/api/auth/session')).account.email,undefined);}finally{f.sqlite.close();}});
-test('reset links expire, are single use and replace credentials without restoring MFA or previous sessions',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();await c.call('/api/auth/email/request',{email:'private@example.test'},202);await c.call('/api/auth/email/verify',{token:f.tokenFromLastMail()});await f.browser().call('/api/auth/password/reset/request',{login:'native_user'},202);const expired=f.tokenFromLastMail();f.advance(11*60000);await f.browser().call('/api/auth/password/reset',{token:expired,password:'A recovered private password 2026'},401);await f.browser().call('/api/auth/password/reset/request',{login:'private@example.test'},202);const token=f.tokenFromLastMail(),b=f.browser(),reset=await b.call('/api/auth/password/reset',{token,password:'A recovered private password 2026'});assert.equal(reset.account.id,c.session.account.id);assert.equal(reset.session.mfaVerifiedAt,0);await c.call('/api/auth/session',undefined,401);await f.browser().call('/api/auth/password/reset',{token,password:'Another reset private password 2026'},401);await f.browser().call('/api/auth/login',{username:'private@example.test',password},401);await f.browser().call('/api/auth/login',{username:'private@example.test',password:'A recovered private password 2026'});}finally{f.sqlite.close();}});
-test('simultaneous reset attempts at the same clock instant cannot consume one token twice or overwrite the winner',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();await c.call('/api/auth/email/request',{email:'private@example.test'},202);await c.call('/api/auth/email/verify',{token:f.tokenFromLastMail()});await f.browser().call('/api/auth/password/reset/request',{login:'native_user'},202);const token=f.tokenFromLastMail(),choices=['One reset private password 2026','Two reset private password 2026'],browsers=[f.browser(),f.browser()];const results=await Promise.allSettled(browsers.map((b,i)=>b.call('/api/auth/password/reset',{token,password:choices[i]})));const winner=results.findIndex(x=>x.status==='fulfilled');assert.equal(results.filter(x=>x.status==='fulfilled').length,1);await f.browser().call('/api/auth/login',{username:'private@example.test',password:choices[winner]});await f.browser().call('/api/auth/login',{username:'private@example.test',password:choices[1-winner]},401);}finally{f.sqlite.close();}});
+test('verified email stays private, requires its actual one-time token and permits password login by that address',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();const ack=await c.call('/api/auth/email/request',{email:'Private@Example.test'},202);assert.equal(ack.token,undefined);const token=f.tokenFromLastMail(),record=f.sqlite.prepare('SELECT token_hash FROM auth_email_tokens').get();assert.notEqual(record.token_hash,token);await c.call('/api/auth/email/verify',{token});await c.call('/api/auth/email/verify',{token},400);const email=await c.call('/api/auth/email');assert.equal(email.email,'private@example.test');assert.equal((await finishPasswordLogin(f,{login:email.email,password})).account.id,c.session.account.id);assert.equal((await c.call('/api/auth/session')).account.email,undefined);}finally{f.sqlite.close();}});
+test('reset links expire, are single use and replace credentials without restoring MFA or previous sessions',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();await c.call('/api/auth/email/request',{email:'private@example.test'},202);await c.call('/api/auth/email/verify',{token:f.tokenFromLastMail()});await f.browser().call('/api/auth/password/reset/request',{login:'native_user'},202);const expired=f.tokenFromLastMail();f.advance(11*60000);await f.browser().call('/api/auth/password/reset',{token:expired,password:'A recovered private password 2026'},401);await f.browser().call('/api/auth/password/reset/request',{login:'private@example.test'},202);const token=f.tokenFromLastMail(),b=f.browser(),reset=await b.call('/api/auth/password/reset',{token,password:'A recovered private password 2026'});assert.equal(reset.account.id,c.session.account.id);assert.equal(reset.session.mfaVerifiedAt,0);await c.call('/api/auth/session',undefined,401);await f.browser().call('/api/auth/password/reset',{token,password:'Another reset private password 2026'},401);await f.browser().call('/api/auth/login',{username:'private@example.test',password},401);await finishPasswordLogin(f,{username:'private@example.test',password:'A recovered private password 2026'});}finally{f.sqlite.close();}});
+test('simultaneous reset attempts at the same clock instant cannot consume one token twice or overwrite the winner',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();await c.call('/api/auth/email/request',{email:'private@example.test'},202);await c.call('/api/auth/email/verify',{token:f.tokenFromLastMail()});await f.browser().call('/api/auth/password/reset/request',{login:'native_user'},202);const token=f.tokenFromLastMail(),choices=['One reset private password 2026','Two reset private password 2026'],browsers=[f.browser(),f.browser()];const results=await Promise.allSettled(browsers.map((b,i)=>b.call('/api/auth/password/reset',{token,password:choices[i]})));const winner=results.findIndex(x=>x.status==='fulfilled');assert.equal(results.filter(x=>x.status==='fulfilled').length,1);await finishPasswordLogin(f,{username:'private@example.test',password:choices[winner]});await f.browser().call('/api/auth/login',{username:'private@example.test',password:choices[1-winner]},401);}finally{f.sqlite.close();}});
 test('Google-only users must freshly reauthenticate before adding a native password to the same account',async()=>{const f=fixture({configuredGoogle:true});try{const b=f.browser();async function google(reauth=false){const start=await b.call('/api/auth/google/start'+(reauth?'?reauth=1':''),undefined,303),target=new URL(start.location);if(reauth)assert.equal(target.searchParams.get('max_age'),'0');await b.call('/api/auth/google/callback?state='+target.searchParams.get('state')+'&code=provider-code',undefined,303);return b.call('/api/auth/session');}const first=await google();await b.call('/api/auth/password/set',{password},401);await google(true);const set=await b.call('/api/auth/password/set',{password});assert.equal(set.account.id,first.account.id);assert.match(set.recoveryCode,/^[a-f0-9]{64}$/);assert.equal(set.session.mfaVerifiedAt,0);assert.deepEqual((await b.call('/api/auth/session')).authentication.methods,['password','google']);}finally{f.sqlite.close();}});
 test('changing a password invalidates outstanding verified-email reset links',async()=>{const f=fixture({configuredMail:true});try{const c=await f.register();await c.call('/api/auth/email/request',{email:'private@example.test'},202);await c.call('/api/auth/email/verify',{token:f.tokenFromLastMail()});await f.browser().call('/api/auth/password/reset/request',{login:'native_user'},202);const token=f.tokenFromLastMail();await c.call('/api/auth/password/change',{currentPassword:password,newPassword:'Changed private overnight password 2026'});await f.browser().call('/api/auth/password/reset',{token,password:'An older reset private password 2026'},401);}finally{f.sqlite.close();}});
 test('the real JWT verifier rejects wrong issuer, expiry, nonce, authorized party, future issue time and tampered signatures',async()=>{const f=fixture({configuredGoogle:true});try{const issued=Math.floor(f.time()/1000),base={sub:'stable-sub',nonce:'correct',aud:'test-client',iss:'https://accounts.google.com',iat:issued,exp:issued+300};for(const change of [{iss:'https://attacker.example'},{exp:issued-60},{nonce:'wrong'},{azp:'another-client'},{iat:issued+60}]){const token=await new SignJWT({...base,...change}).setProtectedHeader({alg:'RS256'}).sign(rsa.privateKey);await assert.rejects(f.auth.verifyGoogleToken(token,f.env,'correct'));}const valid=await new SignJWT(base).setProtectedHeader({alg:'RS256'}).sign(rsa.privateKey),parts=valid.split('.');parts[2]=(parts[2][0]==='a'?'b':'a')+parts[2].slice(1);await assert.rejects(f.auth.verifyGoogleToken(parts.join('.'),f.env,'correct'));}finally{f.sqlite.close();}});
@@ -68,7 +68,7 @@ test('signup proves email before creating an account, handles conflicts, single-
   assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM live_memberships').get().n,0);
   await f.browser(true).call('/api/auth/register',fields(token,'replayed_user'),400);
   await f.browser(true).call('/api/auth/login',{login:'new_user',password},401);
-  assert.equal((await f.browser(true).call('/api/auth/login',{login:'FIRST@EXAMPLE.TEST',password})).account.id,user.account.id);
+  assert.equal((await finishPasswordLogin(f,{login:'FIRST@EXAMPLE.TEST',password})).account.id,user.account.id);
   f.advance(60001);
   const collision=await challenge('first@example.test');await f.browser(true).call('/api/auth/register',fields(collision,'another_user'),409);
   const next=await challenge('second@example.test');await f.browser(true).call('/api/auth/register',fields(next,'new_user'),409);
@@ -93,7 +93,7 @@ test('legacy enrollment preserves identity, revokes other sessions and retires u
   await active.call('/api/auth/email/verify',{token:f.tokenFromLastMail()});await other.call('/api/auth/session',undefined,401);
   assert.equal((await active.call('/api/auth/session')).authentication.needsVerifiedEmail,false);
   await f.browser(true).call('/api/auth/login',{login:'native_user',password},401);
-  assert.equal((await f.browser(true).call('/api/auth/login',{login:'migrated@example.test',password})).account.id,active.session.account.id);
+  assert.equal((await finishPasswordLogin(f,{login:'migrated@example.test',password})).account.id,active.session.account.id);
  }finally{f.sqlite.close();}
 });
 const requestCode='/api/auth/email/code/request',verifyCode='/api/auth/email/code/verify';
@@ -119,7 +119,7 @@ test('legacy code migrates only the initiating session, retains the account and 
   await other.call('/api/auth/session',undefined,401);await user.call(verifyCode,proof,400);
   await user.call(requestCode,{email:'replacement@example.test'},409);
   assert.equal((await user.call('/api/auth/email')).email,'private@example.test');
-  assert.equal((await f.browser(true).call('/api/auth/login',{login:'private@example.test',password})).account.id,user.session.account.id);
+  assert.equal((await finishPasswordLogin(f,{login:'private@example.test',password})).account.id,user.session.account.id);
   await f.browser(true).call('/api/auth/login',{username:'native_user',password},401);
  }finally{f.sqlite.close();}
 });
@@ -167,5 +167,74 @@ test('issued code cannot claim an address verified on another account or bypass 
   await owner.call(verifyCode,{challengeId:sent.challengeId,code},409);
   assert.equal((await owner.call('/api/auth/email')).email,null);assert.equal((await existing.call('/api/auth/email')).email,'holder@example.test');
  }finally{f.sqlite.close();}
+});
+const preLoginCookie='__Host-voidline_login_challenge';
+const loginVerify='/api/auth/login/code/verify',loginResend='/api/auth/login/code/resend';
+async function finishPasswordLogin(f,credentials){
+ const browser=f.browser(true),pending=await browser.call('/api/auth/login',credentials,202);
+ return browser.call(loginVerify,{challengeId:pending.challengeId,code:lastCode(f)});
+}
+async function verifiedUser(f){
+ const user=await f.register();
+ f.sqlite.prepare('INSERT INTO account_emails VALUES(?,?,?,?,?)').run(user.session.account.id,'inbox@example.test',f.time(),f.time(),f.time());
+ return user;
+}
+test('verified password alone issues no session; its email code binds the browser and can create precisely one session',async()=>{
+ const f=fixture({configuredMail:true});try{
+  const user=await verifiedUser(f),login=f.browser(true),stranger=f.browser(true);
+  const before=f.sqlite.prepare('SELECT COUNT(*) n FROM auth_sessions').get().n;
+  const pending=await login.call('/api/auth/login',{login:'inbox@example.test',password},202),code=lastCode(f);
+  assert.deepEqual(Object.keys(pending).sort(),['challengeId','email','expiresAt','requiresEmailCode'].sort());
+  assert.equal(pending.requiresEmailCode,true);assert.equal(f.messages.at(-1).subject,'Your VOIDLINE sign-in code');
+  assert.deepEqual([...login.cookies.keys()],[preLoginCookie]);assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM auth_sessions').get().n,before);
+  await login.call('/api/auth/session',undefined,401);
+  const row=f.sqlite.prepare('SELECT * FROM auth_login_codes').get();
+  assert.equal(row.browser_hash,await authHash(login.cookies.get(preLoginCookie)));
+  assert.equal(row.challenge_hash,await authHash(pending.challengeId));assert.notEqual(row.code_hash,code);
+  const proof={challengeId:pending.challengeId,code};await stranger.call(loginVerify,proof,400);
+  const results=await Promise.all([login.call(loginVerify,proof,[200,400]),login.call(loginVerify,proof,[200,400])]);
+  assert.deepEqual(results.map(i=>i.status).sort(),[200,400]);
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM auth_sessions').get().n,before+1);
+  assert.equal((await login.call('/api/auth/session')).account.id,user.session.account.id);
+  assert(!login.cookies.has(preLoginCookie));await login.call(loginVerify,proof,400);
+ }finally{f.sqlite.close();}
+});
+test('resending a login code rotates the browser proof without extending password freshness and limits incorrect guesses',async()=>{
+ const f=fixture({configuredMail:true});try{
+  await verifiedUser(f);const login=f.browser(true),start=await login.call('/api/auth/login',{login:'inbox@example.test',password},202),original=lastCode(f);
+  f.advance(120000);const retry=await login.call(loginResend,{challengeId:start.challengeId},202),next=lastCode(f);
+  assert.notEqual(retry.challengeId,start.challengeId);assert.equal(retry.expiresAt,start.expiresAt);
+  await login.call(loginVerify,{challengeId:start.challengeId,code:original},400);
+  for(let i=0;i<5;i++)await login.call(loginVerify,{challengeId:retry.challengeId,code:next==='00000000'?'00000001':'00000000'},400);
+  await login.call(loginVerify,{challengeId:retry.challengeId,code:next},400);
+  const fresh=await login.call(loginResend,{challengeId:retry.challengeId},202),last=lastCode(f);
+  f.advance(480001);await login.call(loginVerify,{challengeId:fresh.challengeId,code:last},400);
+  await login.call(loginResend,{challengeId:fresh.challengeId},400);await login.call('/api/auth/session',undefined,401);
+ }finally{f.sqlite.close();}
+});
+test('changing credentials, changing and restoring an email, or suspending then reinstating an account invalidates outstanding login codes',async()=>{
+ const f=fixture({configuredMail:true});try{
+  const user=await verifiedUser(f),id=user.session.account.id,login=f.browser(true);
+  const cases=[
+   ()=>f.sqlite.prepare('UPDATE auth_credentials SET change_marker=? WHERE account_id=?').run('new-credential-marker',id),
+   ()=>{for(const email of ['replacement@example.test','inbox@example.test'])f.sqlite.prepare('UPDATE account_emails SET email=? WHERE account_id=?').run(email,id);},
+   ()=>{for(const status of ['suspended','active'])f.sqlite.prepare('UPDATE live_accounts SET account_status=? WHERE id=?').run(status,id);}
+  ];
+  for(const invalidate of cases){
+   f.advance(60001);const challenge=await login.call('/api/auth/login',{login:'inbox@example.test',password},202),code=lastCode(f);invalidate();
+   await login.call(loginVerify,{challengeId:challenge.challengeId,code},400);await login.call('/api/auth/session',undefined,401);
+  }
+ }finally{f.sqlite.close();}
+});
+test('missing or rejected mail delivery cannot create a password login session',async()=>{
+ for(const opts of [{},{configuredMail:true,mailAccepted:false}]){
+  const f=fixture(opts);try{
+   await verifiedUser(f);const browser=f.browser(true),before=f.sqlite.prepare('SELECT COUNT(*) n FROM auth_sessions').get().n;
+   const result=await browser.call('/api/auth/login',{login:'inbox@example.test',password},503);
+   assert.equal(result.error.code,'login_email_unavailable');assert.equal(browser.cookies.size,0);
+   assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM auth_sessions').get().n,before);
+   assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM auth_login_codes').get().n,0);
+  }finally{f.sqlite.close();}
+ }
 });
 let failures=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}console.log(`${tests.length-failures}/${tests.length} identity hardening checks passed. Real Argon2id/JWT/SQLite, mocked provider exchange and email delivery; no real Google/email service claim.`);process.exitCode=failures?1:0;

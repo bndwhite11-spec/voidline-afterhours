@@ -24,7 +24,7 @@ async function until(predicate) {
   assert.ok(predicate(), 'The account UI completed its asynchronous update.');
 }
 
-async function client({ strict = true, hash = '', signedIn = false, handlers = {} } = {}) {
+async function client({ strict = true, hash = '', signedIn = false, handlers = {}, savedLogin = null } = {}) {
   const calls = [], errors = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError', error => errors.push(error));
@@ -81,6 +81,7 @@ async function client({ strict = true, hash = '', signedIn = false, handlers = {
     if (url === '/api/live/communities') return response({ communities: [] });
     throw Error('Unexpected account request: ' + url);
   };
+  if(savedLogin)window.sessionStorage.setItem('voidline.pending-login-code.v1',JSON.stringify(savedLogin));
   window.eval(source);
   await until(() => window.VoidHome && window.VoidHome.state.phase !== 'loading' && document.querySelector('#home-main'));
   const form = kind => document.querySelector(kind ? `[data-home-form="${kind}"]` : '[data-home-form]');
@@ -243,6 +244,67 @@ test('unconfigured mail delivery explains availability on old accounts without s
  await until(()=>app.document.querySelector('#home-email-settings')?.textContent.includes('temporarily unavailable'));
  assert.equal(app.form('email-code-request'),null);assert.equal(app.calls.some(c=>c.url.includes('/code/')),false);
  }finally{app.close();}
+});
+
+test('verified email login stays signed out until its current emailed code succeeds',async()=>{
+ const first='1'.repeat(64),second='2'.repeat(64);let attempts=0;
+ const app=await client({handlers:{
+  '/api/auth/login':()=>({status:202,body:{requiresEmailCode:true,challengeId:first,expiresAt:Date.now()+600000,email}}),
+  '/api/auth/login/code/resend':({body})=>{assert.deepEqual(body,{challengeId:first});return {status:202,body:{requiresEmailCode:true,challengeId:second,expiresAt:Date.now()+600000,email}};},
+  '/api/auth/login/code/verify':({body},server,session)=>{
+    assert.equal(body.challengeId,second);attempts++;
+    if(body.code!=='01234567')return {status:400,body:{error:{code:'invalid_login_code',message:'This sign-in code is incorrect or expired.'}}};
+    server.signedIn=true;return {body:session(server.account)};
+  }
+ }});
+ try{
+  app.type('username',email);app.type('password',password);app.submit();await until(()=>app.form('login-email-code'));
+  assert.equal(app.state().account,null);assert.equal(app.state().csrf,'');assert.equal(app.server.signedIn,false);
+  assert.equal(app.field('code').autocomplete,'one-time-code');assert.equal(app.document.querySelector('[type="password"]'),null);
+  app.click('login-code-resend');await until(()=>app.document.querySelector('#home-announcer').textContent.includes('new sign-in code'));
+  const stored=Object.values(app.window.sessionStorage).join(' ');assert(stored.includes(second));assert(!stored.includes(email));assert(!stored.includes(password));
+  app.type('code','87654321');app.submit();await until(()=>app.form('login-email-code').querySelector('[data-form-error]').textContent.includes('incorrect'));
+  assert.equal(app.state().account,null);app.type('code','01234567');app.submit();await until(()=>app.state().account?.id==='existing-account');
+  assert.equal(attempts,2);assert.equal(app.window.sessionStorage.getItem('voidline.pending-login-code.v1'),null);
+ }finally{app.close();}
+});
+
+test('abandoning a sign-in challenge clears the tab reference and restores both login options',async()=>{
+ const app=await client({handlers:{'/api/auth/login':()=>({status:202,body:{requiresEmailCode:true,challengeId:token,expiresAt:Date.now()+600000,email}})}});
+ try{
+  app.type('username',email);app.type('password',password);app.submit();await until(()=>app.form('login-email-code'));
+  app.click('login-code-back');await until(()=>app.form('login'));assert.equal(app.state().account,null);assert.equal(app.window.sessionStorage.length,0);
+  app.click('auth-legacy-login');assert.equal(app.field('username').type,'text');
+ }finally{app.close();}
+});
+
+test('delivery failure on verified email login leaves the account signed out and the password form usable',async()=>{
+ const app=await client({handlers:{'/api/auth/login':()=>({status:503,body:{error:{code:'login_email_unavailable',message:'The sign-in email could not be sent.'}}})}});
+ try{
+  app.type('username',email);app.type('password',password);app.submit();await until(()=>app.form('login').querySelector('[data-form-error]').textContent.includes('could not be sent'));
+  assert.equal(app.state().account,null);assert.equal(app.window.sessionStorage.length,0);assert.equal(app.form('login-email-code'),null);
+ }finally{app.close();}
+});
+
+test('legacy username sign-in opens the workspace without an email prompt',async()=>{
+ const app=await client({handlers:{'/api/auth/login':(_req,server,session)=>{server.signedIn=true;return {body:{...session(server.account),authentication:{methods:['password'],needsVerifiedEmail:true}}};}}});
+ try{
+  app.click('auth-legacy-login');app.type('username','night_reader');app.type('password',password);app.submit();
+  await until(()=>app.state().phase==='ready');
+  assert.equal(app.form('email-code-request'),null);assert.equal(app.document.querySelector('#home-dialog[open] [data-home="email-settings"]'),null);
+  assert.equal(app.calls.some(call=>call.url==='/api/auth/email'),false);
+ }finally{app.close();}
+});
+
+test('refresh resumes a pending sign-in challenge while an expired reference returns to password entry',async()=>{
+ const active=await client({savedLogin:{challengeId:token,expiresAt:Date.now()+600000}});try{
+  assert.ok(active.form('login-email-code'));assert.equal(active.state().account,null);
+  assert.match(active.document.querySelector('#home-main').textContent,/your verified email/);
+  assert.equal(active.calls.some(c=>c.url.includes('/login/code/')),false);
+ }finally{active.close();}
+ const expired=await client({savedLogin:{challengeId:token,expiresAt:Date.now()-1}});try{
+  assert.ok(expired.form('login'));assert.equal(expired.form('login-email-code'),null);assert.equal(expired.window.sessionStorage.length,0);
+ }finally{expired.close();}
 });
 
 (async()=>{let failures=0;for(const [name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name);console.error(error.stack||error);}}console.log(`${tests.length-failures}/${tests.length} email onboarding DOM checks passed. Mail delivery is controlled HTTP; no provider delivery is claimed.`);process.exitCode=failures?1:0;})();
