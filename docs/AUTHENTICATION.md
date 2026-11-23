@@ -88,7 +88,9 @@ Resend's HTTPS API; it does not expose a browser mail credential. A verification
 request requires recent authentication, and an owner recovery-address change
 also requires recent user-verifying passkey proof.
 
-A 256-bit random verification/reset token is delivered only through the actual
+Older accounts can enroll a first verified private email from their existing authenticated session. The Worker sends an eight-digit code to the submitted mailbox through Resend. Enter the code in the account that requested it. Requesting a code leaves the previous login method and recovery settings in effect. Successful enrollment keeps the same account ID, profile, conversations and gift records. A temporary delivery problem leaves username sign-in available.
+
+For link-based operations, a 256-bit random verification/reset token is delivered only through the actual
 provider. D1 stores its SHA-256 hash. Links carry the raw token in the URL
 fragment rather than the server request path/query. Tokens expire after ten
 minutes, are account/purpose bound and are consumed atomically once. A unique

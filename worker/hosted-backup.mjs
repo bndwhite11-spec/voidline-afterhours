@@ -27,8 +27,33 @@ function rowExpression(columns){return 'json_array('+columns.map(column=>{const 
 function measurement(table){return `SELECT COUNT(*) AS row_count,COALESCE(SUM(length(CAST(${table.expression} AS BLOB))+1),0)+2 AS bytes FROM ${identifier(table.name)}`;}
 function measure(result,limits){const value=rows(result)[0];requireThat(value&&Number.isSafeInteger(value.row_count)&&value.row_count>=0&&Number.isSafeInteger(value.bytes)&&value.bytes>=0,'backup_database_failed','The database returned an invalid snapshot size.');requireThat(value.row_count<=limits.maxTableRows&&value.bytes<=limits.maxTableBytes,'backup_too_large','A table exceeds the bounded backup capacity; no truncated snapshot was stored.');return value;}
 function totalCheck(measures,limits){const total=measures.reduce((sum,item)=>({rows:sum.rows+item.row_count,bytes:sum.bytes+item.bytes}),{rows:0,bytes:0});requireThat(total.rows<=limits.maxTotalRows&&total.bytes<=limits.maxPlaintextBytes,'backup_too_large','The database exceeds the bounded backup capacity; no truncated snapshot was stored.');return total;}
-const QUERY_GROUP_SIZE=5;
-function groups(values){const result=[];for(let index=0;index<values.length;index+=QUERY_GROUP_SIZE)result.push(values.slice(index,index+QUERY_GROUP_SIZE));return result;}
+// D1 caps a statement at 100 KB and 100 bound values. Nine ordinary
+// tables per group also fits 128 tables in the 50-query Worker allowance.
+const maxGroupTables=9,maxStatementBytes=100000,unionAll=' UNION ALL ';
+function snapshotBranch(table){
+ return `SELECT * FROM (WITH backup_bounds AS (${measurement(table)}) SELECT '${table.name}' AS backup_table,${table.expression} AS backup_row FROM ${identifier(table.name)} WHERE (SELECT row_count FROM backup_bounds)<=? AND (SELECT bytes FROM backup_bounds)<=? LIMIT ?)`;
+}
+// D1 permits at most five compound SELECT terms in a single expression.
+const groupPrefix='SELECT * FROM (',groupSuffix=' LIMIT -1)';
+function unionGroup(branches){
+ if(branches.length<=5)return branches.join(unionAll);
+ const groupSql=group=>groupPrefix+group.join(unionAll)+groupSuffix;
+ return groupSql(branches.slice(0,5))+unionAll+groupSql(branches.slice(5));
+}
+function groups(tables){
+ const result=[];let group=[],size=0;
+ for(const table of tables){
+  const bytes=encoder.encode(snapshotBranch(table)).length;
+  requireThat(bytes<=maxStatementBytes,'backup_schema_unsupported','A table exceeds the supported snapshot query size.');
+  const wrapperBytes=group.length>=5?2*(groupPrefix.length+groupSuffix.length):0;
+  if(group.length && (group.length===maxGroupTables || size+unionAll.length+bytes+wrapperBytes>maxStatementBytes)){
+   result.push(group);group=[];size=0;
+  }
+  size+=bytes+(group.length?unionAll.length:0);group.push(table);
+ }
+ if(group.length)result.push(group);
+ return result;
+}
 function indexedResults(results,knownNames){const indexed=new Map([...knownNames].map(name=>[name,[]]));for(const result of results)for(const row of rows(result)){requireThat(indexed.has(row.backup_table),'backup_database_failed','The database returned an unexpected snapshot table.');indexed.get(row.backup_table).push(row);}return indexed;}
 async function databaseSnapshot(db,limits){
  let raw;try{raw=rows(await q(db,SCHEMA_SQL).all());}catch(error){if(error instanceof HostedBackupError)throw error;fail('backup_database_failed','Database schema discovery failed.');}
@@ -41,7 +66,10 @@ async function databaseSnapshot(db,limits){
  requireThat(rows(columnResults[0]).length<=columnBound,'backup_schema_unsupported','The database column manifest exceeds the supported backup bounds.');
  const columnMap=indexedResults(columnResults,knownNames);
  const definitions=tables.map(table=>{const columns=columnMap.get(table.name).sort((a,b)=>a.cid-b.cid).filter(column=>Number(column.hidden||0)===0).map(column=>({name:column.name,type:column.type||'',notnull:column.notnull,default:column.dflt_value,pk:column.pk}));requireThat(columns.length>0&&columns.length<=limits.maxColumns,'backup_schema_unsupported','A table has unsupported columns; no partial snapshot was stored.');return {name:table.name,columns,expression:rowExpression(columns)};});
- const tableGroups=groups(definitions),measureGroup=group=>group.map(table=>measurement(table).replace('SELECT COUNT(*)',`SELECT '${table.name}' AS backup_table,COUNT(*)`)).join(' UNION ALL ');
+ const tableGroups=groups(definitions),measureGroup=group=>unionGroup(group.map(table=>measurement(table).replace('SELECT COUNT(*)',`SELECT '${table.name}' AS backup_table,COUNT(*)`)));
+ // Schema discovery, column manifest, boundary schema reads and optional sequences
+ // add four or five statements to the three statements consumed per group.
+ requireThat(4+Number(hasSequence)+3*tableGroups.length<=50,'backup_schema_unsupported','The database schema exceeds the snapshot query budget.');
  let preflight;try{preflight=await db.batch(tableGroups.map(group=>q(db,measureGroup(group))));}catch{fail('backup_database_failed','The database backup preflight did not complete.');}
  const preflightMap=indexedResults(preflight,knownNames),measured=new Map();
  for(const table of definitions){const tableRows=preflightMap.get(table.name);requireThat(tableRows.length===1,'backup_database_failed','The database backup preflight returned an invalid table count.');measured.set(table.name,measure({results:tableRows},limits));}
@@ -49,7 +77,7 @@ async function databaseSnapshot(db,limits){
  // Group small SQL branches to stay below ordinary D1 query/parameter budgets.
  // Every branch checks its cap inside the SAME transaction as all snapshot rows.
  const sparePerTable=Math.floor((limits.maxPlaintextBytes-preflightTotal.bytes)/definitions.length),statements=[q(db,SCHEMA_SQL)];
- for(const group of tableGroups){const bindings=[],branches=group.map(table=>{const cap=Math.min(limits.maxTableBytes,measured.get(table.name).bytes+sparePerTable);bindings.push(limits.maxTableRows,cap,limits.maxTableRows+1);return `SELECT * FROM (WITH backup_bounds AS (${measurement(table)}) SELECT '${table.name}' AS backup_table,${table.expression} AS backup_row FROM ${identifier(table.name)} WHERE (SELECT row_count FROM backup_bounds)<=? AND (SELECT bytes FROM backup_bounds)<=? LIMIT ?)`;});statements.push(q(db,measureGroup(group)),q(db,branches.join(' UNION ALL '),...bindings));}
+ for(const group of tableGroups){const bindings=[],branches=group.map(table=>{const cap=Math.min(limits.maxTableBytes,measured.get(table.name).bytes+sparePerTable);bindings.push(limits.maxTableRows,cap,limits.maxTableRows+1);return snapshotBranch(table);});statements.push(q(db,measureGroup(group)),q(db,unionGroup(branches),...bindings));}
  if(hasSequence)statements.push(q(db,"SELECT name,CAST(seq AS TEXT) AS seq FROM sqlite_sequence WHERE name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' ORDER BY name LIMIT ?",limits.maxTables+1));
  statements.push(q(db,SCHEMA_SQL));
  let result;try{result=await db.batch(statements);}catch{fail('backup_database_failed','The consistent database snapshot failed; no partial backup was stored.');}

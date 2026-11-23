@@ -35,6 +35,8 @@ async function client({ strict = true, hash = '', signedIn = false, handlers = {
     virtualConsole,
   });
   const { window } = dom, { document } = window;
+  window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+  window.HTMLDialogElement.prototype.close=function(){this.open=false;};
   window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
   window.HTMLElement.prototype.scrollIntoView = function () {};
   window.setInterval = () => 0;
@@ -183,6 +185,55 @@ test('pending sign-out cannot be duplicated or offer a misleading stay action', 
     assert.equal(app.calls.filter(c=>c.url==='/api/auth/logout').length,1);assert.equal(app.state().account.id,'existing-account');
     held.resolve();await until(()=>app.form('register'));assert.equal(app.state().account,null);
   }finally{app.close();}
+});
+
+test('older account can request, resend, correct a code and sign in by verified email',async()=>{
+  let attempt=0;
+  const app=await client({signedIn:true,hash:'#you',handlers:{
+    '/api/auth/email/code/request':({body})=>({body:{accepted:true,challengeId:'challenge-'+(++attempt),email:body.email,expiresAt:Date.now()+600000}}),
+    '/api/auth/email/code/verify':({body})=>body.code==='07234567'?{body:{verified:true,email}}:{status:400,body:{error:{code:'invalid_code',message:'The code is incorrect.'}}}
+  }});
+  try{
+    await until(()=>app.document.querySelector('[data-home="email-settings"]'));app.click('email-settings');
+    await until(()=>app.form('email-code-request'));app.type('email',email);app.submit();
+    await until(()=>app.form('email-code-verify'));
+    const code=app.field('code');assert.equal(code.autocomplete,'one-time-code');assert.equal(code.type,'text');assert.equal(code.inputMode,'numeric');
+    assert.match(app.document.querySelector('#home-dialog').textContent,/night.reader@example.org/);
+    app.form('email-code-verify').querySelector('[value="resend"]').click();
+    await until(()=>app.document.querySelector('#home-dialog').textContent.includes('A new code was requested.'));
+    app.type('code','12345678');app.submit();
+    await until(()=>app.form('email-code-verify')?.querySelector('[data-form-error]').textContent.includes('incorrect'));
+    assert.equal(app.state().account.id,'existing-account');app.type('code','07234567');app.submit();
+    await until(()=>app.document.querySelector('#home-dialog-title').textContent==='Email verified');
+    assert.deepEqual(app.calls.filter(c=>c.url.endsWith('/code/verify')).at(-1).body,{challengeId:'challenge-2',code:'07234567',expectedAccountId:'existing-account'});
+    assert.equal(app.state().authentication.needsVerifiedEmail,false);assert.equal(app.window.location.href.includes(email),false);
+  }finally{app.close();}
+});
+
+test('stale session can confirm its password inline and change the destination before verifying',async()=>{
+  let fresh=false;
+  const app=await client({signedIn:true,hash:'#you',handlers:{
+    '/api/auth/email/code/request':({body})=>fresh?{body:{accepted:true,challengeId:'new',email:body.email,expiresAt:Date.now()+600000}}:{status:401,body:{error:{code:'reauthentication_required',message:'Confirm your password.'}}},
+    '/api/auth/reauthenticate':({body})=>{assert.equal(body.password,password);fresh=true;return{body:{reauthenticated:true}};}
+  }});
+  try{
+    await until(()=>app.document.querySelector('[data-home="email-settings"]'));app.click('email-settings');await until(()=>app.form('email-code-request'));
+    app.type('email',email);app.submit();await until(()=>app.field('emailPassword'));assert.equal(app.field('email').value,email);
+    app.type('emailPassword',password);app.submit();await until(()=>app.form('email-code-verify'));
+    app.click('email-code-change');await until(()=>app.form('email-code-request'));app.type('email','different@example.test');app.submit();await until(()=>app.form('email-code-verify'));
+    assert.match(app.document.querySelector('#home-dialog').textContent,/different@example.test/);
+    assert.equal(app.calls.filter(c=>c.url.endsWith('/code/verify')).length,0);
+    assert.equal(app.calls.filter(c=>c.url.endsWith('/code/request')).some(c=>'emailPassword' in c.body||'password' in c.body),false);
+    app.click('close-dialog');app.click('email-settings');await until(()=>app.form('email-code-verify'));
+  }finally{app.close();}
+});
+
+test('unconfigured mail delivery explains availability on old accounts without submitting anything',async()=>{
+ const app=await client({signedIn:true,hash:'#you',handlers:{'/api/auth/email':()=>({body:{verifiedAt:null,deliveryConfigured:false}})}});
+ try{await until(()=>app.document.querySelector('[data-home="email-settings"]'));app.click('email-settings');
+ await until(()=>app.document.querySelector('#home-email-settings')?.textContent.includes('temporarily unavailable'));
+ assert.equal(app.form('email-code-request'),null);assert.equal(app.calls.some(c=>c.url.includes('/code/')),false);
+ }finally{app.close();}
 });
 
 (async()=>{let failures=0;for(const [name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name);console.error(error.stack||error);}}console.log(`${tests.length-failures}/${tests.length} email onboarding DOM checks passed. Mail delivery is controlled HTTP; no provider delivery is claimed.`);process.exitCode=failures?1:0;})();

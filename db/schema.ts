@@ -410,3 +410,13 @@ export const authRegistrationChallenges = sqliteTable("auth_registration_challen
  index("auth_registration_expiry").on(t.expiresAt),
  index("auth_registration_email").on(t.email),
 ]);
+
+export const authEmailCodes = sqliteTable("auth_email_codes", {
+ accountId: text("account_id").primaryKey().references(()=>liveAccounts.id,{onDelete:"cascade"}),
+ sessionId: text("session_id").notNull().references(()=>authSessions.id,{onDelete:"cascade"}),
+ challengeHash: text("challenge_hash").notNull(),
+ codeHash: text("code_hash").notNull(),
+ email: text("email").notNull(),
+ expiresAt: integer("expires_at").notNull(),
+ attempts: integer("attempts").notNull().default(0),
+}, t=>[index("auth_email_codes_expiry").on(t.expiresAt)]);

@@ -2,6 +2,7 @@
  * bindings on each run. No live account, network, layout or device is involved.
  *
  * node scripts/verify-web-workspace.mjs --candidate dist/server/index.js
+ * node scripts/verify-web-workspace.mjs --legacy-email-code
  * node scripts/verify-web-workspace.mjs --baseline before.mjs --candidate after.mjs --pairs 3 --output results.json
  */
 import assert from 'node:assert/strict';
@@ -23,7 +24,7 @@ const origin = 'https://quality.voidline.example';
 const args = parseArgs({options: {
   baseline:{type:'string'}, candidate:{type:'string',default:resolve(root,'dist/server/index.js')},
   pairs:{type:'string',default:'1'}, output:{type:'string'}, collectibles:{type:'boolean'},
-  'collectible-transfer':{type:'boolean'},'collector-edition':{type:'boolean'}, expanded:{type:'boolean'}, 'lost-opening-response':{type:'boolean'}, 'reduced-motion':{type:'boolean'}, 'missing-art':{type:'boolean'},
+  'legacy-email-code':{type:'boolean'}, 'collectible-transfer':{type:'boolean'},'collector-edition':{type:'boolean'}, expanded:{type:'boolean'}, 'lost-opening-response':{type:'boolean'}, 'reduced-motion':{type:'boolean'}, 'missing-art':{type:'boolean'},
 }}).values;
 const pairCount=Number(args.pairs);
 assert(Number.isInteger(pairCount) && pairCount>0 && pairCount<=20,'Choose 1–20 repetitions.');
@@ -130,8 +131,9 @@ async function run(script) {
     if(!form)return {form:await element('[data-home-form="register"]'),login:undefined}; // Older baseline build
     fill(form,{email});form.dispatchEvent(event('submit'));await until(()=>mailbox.has(email));
     await until(()=>!form.dataset.busy);
-    dom.window.history.replaceState(null,'','/chats'+new URL(mailbox.take(email)).hash);
-    await action('auth-register');
+    dom.window.location.hash=new URL(mailbox.take(email)).hash;
+    // Earlier builds render the form after selecting Create account.
+    if($('[data-home="auth-register"]'))await action('auth-register');
     return {form:await element('[data-home-form="register"]'),login:email};
   }
   const username='quality_guest',email=username+'@example.test',password=randomBytes(26).toString('hex');
@@ -244,28 +246,68 @@ async function run(script) {
     assert.equal((await exchange('/api/auth/session')).status,401,'Server should revoke the signed-out session');
     signOutDefault=$('[data-home-form="login"]')?'login':'createAccount';
     if(signOutDefault==='createAccount')await action('auth-login');
-    const login=await element('[data-home-form="login"]');fill(login,{username:verifiedLogin||username,password});
+    let loginIdentifier=verifiedLogin||username;
+    if(args['legacy-email-code']){
+      stage='legacy account setup';
+      // Reproduce the pre-email account shape in this disposable D1 only.
+      const removed=await db.prepare('DELETE FROM account_emails WHERE account_id=? AND verified_at IS NOT NULL').bind(id).run();
+      assert.equal(removed.meta.changes,1);
+      const newEmail='returning_guest@example.test';
+      const legacyLogin=async()=>{
+        await action('auth-legacy-login');
+        const form=await element('[data-home-form="login"]');
+        fill(form,{username,password});form.dispatchEvent(event('submit'));
+        await until(()=>state()?.phase==='ready'&&state().account?.id===id);
+        return element('#home-dialog[open] [data-home-form="email-code-request"]');
+      };
+      stage='older account skips email and returns';
+      await legacyLogin();
+      await action('close-dialog');await action('you');markSessionLogout();await action('logout');
+      await element('[data-home="auth-legacy-login"]');
+      const request=await legacyLogin();
+      stage='request inbox code';
+      fill(request,{email:newEmail});request.dispatchEvent(event('submit'));
+      const confirm=await element('#home-dialog[open] [data-home-form="email-code-verify"]');
+      assert.equal((await one('SELECT COUNT(*) AS n FROM account_emails WHERE account_id=? AND verified_at IS NOT NULL',id)).n,0);
+      stage='verify inbox code';
+      fill(confirm,{code:mailbox.takeCode(newEmail)});confirm.dispatchEvent(event('submit'));
+      await until(()=>seen.some(r=>r.path==='/api/auth/email/code/verify'&&r.method==='POST'&&r.status===200));
+      assert.equal((await json('/api/auth/email')).email,newEmail);
+      if($('#home-dialog[open]'))await action('close-dialog');
+      await action('you');markSessionLogout();await action('logout');await element('[data-home-form="login"]');
+      loginIdentifier=newEmail;
+    }
+    const login=await element('[data-home-form="login"]');fill(login,{username:loginIdentifier,password});
     await measure('loginToWorkspace',async()=>{
       login.dispatchEvent(event('submit'));
       await until(()=>state()?.account?.id===id&&state().communities?.some(item=>item.id===room.id));
     });
+    if(args['legacy-email-code']){
+      const profileAfterMigration=await json('/api/profiles/me');
+      assert.equal(profileAfterMigration.profile.bio,bio,'Migration preserves the preexisting profile');
+      assert.ok((await json('/api/auth/email')).verifiedAt,'Returning account retains its verified address');
+    }
     if(args['collectible-transfer']){
       const {verifyCollectibleTransfer}=await import('./verify-collectible-transfer.mjs');
       transferResult=await verifyCollectibleTransfer({action,click,element,until,$,event,fill,json,one,state,
-        registerForm,sender:{id,username,password,login:verifiedLogin},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
+        registerForm,sender:{id,username,password,login:loginIdentifier},beforeLogout:markSessionLogout,seeStage:name=>{stage='transfer:'+name;},requests:()=>seen.slice()});
     }
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_accounts')).n,args['collectible-transfer']?2:1);
     assert.equal((await one('SELECT COUNT(*) AS n FROM live_messages WHERE author_id=?',id)).n,1);
     assert.equal(outbound,0,'All transport must stay inside the fixture');
     assert.equal(clientErrors.length,0,'Uncaught document runtime errors');
     assert.equal(browserFailures.length,0,'Unexpected HTTP errors');
-    return {timings,guestRequests,guestRequestStarts,guestByKind,signOutDefault,...(collectionResult?{collectionResult,lostOpeningResponse,expandedRelease:!!args.expanded}:{}),...(transferResult?{transferResult:{...transferResult,staleInventoryReadsDeniedDuringDeliberateLogout:staleReadsDenied}}:{})};
+    return {timings,guestRequests,guestRequestStarts,guestByKind,signOutDefault,...(args['legacy-email-code']?{legacyEmailVerified:true}:{}),...(collectionResult?{collectionResult,lostOpeningResponse,expandedRelease:!!args.expanded}:{}),...(transferResult?{transferResult:{...transferResult,staleInventoryReadsDeniedDuringDeliberateLogout:staleReadsDenied}}:{})};
   } catch (error) {
     // Exception and API text may contain account input. Only report the
     // scenario boundary, safe assertion label and error category.
     if(args.collectibles||args['collectible-transfer']){
       const controls=[...dom.window.document.querySelectorAll('#home-dialog button')].map(n=>Object.keys(n.dataset).join('/')+' '+(n.getAttribute('data-ps-action')||n.getAttribute('data-vp-action')||n.getAttribute('data-cl')||n.getAttribute('data-vc-action')||'')).filter(Boolean);
       console.error('Collector fixture boundary',stage,controls.slice(0,50),seen.slice(-12).map(r=>[r.method,r.path.replace(/[0-9a-f-]{32,}/g,'…'),r.status]),clientErrors,seen.filter(r=>r.status>=400).map(r=>[r.method,r.path.replace(/[0-9a-f-]{32,}/g,'…'),r.status,r.stage,r.errorCode]),error.code==='ERR_ASSERTION'?error.stack.split('\n').filter(l=>l.includes('verify-')).slice(0,2):[]);
+    }
+    if(args['legacy-email-code']){
+      const checks=seen.filter(row=>row.path.startsWith('/api/auth/')).slice(-7);
+      console.error('Legacy verification boundary',stage,checks.map(row=>[row.method,row.path,row.status,row.errorCode]));
     }
     const safe=error.code==='ERR_ASSERTION'?'state assertion':error.message==='UI condition timed out'?'UI timeout':'transport or runtime error';
     throw Error('Workspace check failed in '+stage+' ('+safe+').');

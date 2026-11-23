@@ -6,7 +6,7 @@ import {generateKeyPair,SignJWT} from 'jose';
 import {createAuthService,authHash} from '../worker/auth.mjs';
 const origin='https://hardening.example',password='A private overnight password 2026';
 const encoder=new TextEncoder();
-class Adapter{constructor(db){this.db=db;this.queue=Promise.resolve();this.beforeRun=null;}prepare(sql){const db=this.db,adapter=this;return {bind(...values){const p=db.prepare(sql);return {first:async()=>p.get(...values)||null,all:async()=>({results:p.all(...values)}),run:async()=>{if(adapter.beforeRun)await adapter.beforeRun(sql);return {success:true,meta:{changes:p.run(...values).changes}};}};}};}batch(steps){const task=this.queue.then(async()=>{this.db.exec('BEGIN');try{const result=[];for(const step of steps)result.push(await step.run());this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}});this.queue=task.catch(()=>{});return task;}}
+class Adapter{constructor(db){this.db=db;this.queue=Promise.resolve();this.beforeRun=null;}prepare(sql){const db=this.db,adapter=this;return {bind(...values){const p=db.prepare(sql);return {first:async()=>{const row=p.get(...values)||null;if(adapter.afterRead)await adapter.afterRead(sql);return row;},all:async()=>({results:p.all(...values)}),run:async()=>{if(adapter.beforeRun)await adapter.beforeRun(sql);return {success:true,meta:{changes:p.run(...values).changes}};}};}};}batch(steps){const task=this.queue.then(async()=>{this.db.exec('BEGIN');try{const result=[];for(const step of steps)result.push(await step.run());this.db.exec('COMMIT');return result;}catch(e){this.db.exec('ROLLBACK');throw e;}});this.queue=task.catch(()=>{});return task;}}
 const rsa=await generateKeyPair('RS256');
 function fixture({configuredMail=false,configuredGoogle=false,mailAccepted=true}={}){
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');for(const entry of JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json',import.meta.url))).entries)sqlite.exec(readFileSync(new URL('../drizzle/'+entry.tag+'.sql',import.meta.url),'utf8'));
@@ -94,6 +94,78 @@ test('legacy enrollment preserves identity, revokes other sessions and retires u
   assert.equal((await active.call('/api/auth/session')).authentication.needsVerifiedEmail,false);
   await f.browser(true).call('/api/auth/login',{login:'native_user',password},401);
   assert.equal((await f.browser(true).call('/api/auth/login',{login:'migrated@example.test',password})).account.id,active.session.account.id);
+ }finally{f.sqlite.close();}
+});
+const requestCode='/api/auth/email/code/request',verifyCode='/api/auth/email/code/verify';
+function lastCode(f){
+ const message=f.messages.at(-1);
+ assert(!message.text.includes('http'));
+ const match=/\b([0-9]{8})\b/.exec(message.text);assert(match);
+ return match[1];
+}
+test('legacy code migrates only the initiating session, retains the account and commits one concurrent verification',async()=>{
+ const f=fixture({configuredMail:true});try{
+  const user=await f.register(),other=f.browser(true),outsider=await f.register('other_user');
+  await other.call('/api/auth/login',{username:'native_user',password});
+  const sent=await user.call(requestCode,{email:'Private@Example.test'},202),code=lastCode(f);
+  assert.deepEqual(f.messages.at(-1).to,['private@example.test']);
+  assert.equal(sent.expiresAt,f.time()+600000);assert.equal(sent.code,undefined);
+  const dbrow=f.sqlite.prepare('SELECT * FROM auth_email_codes').get();
+  assert.equal(dbrow.challenge_hash,await authHash(sent.challengeId));assert.notEqual(dbrow.code_hash,code);
+  const proof={challengeId:sent.challengeId,code};
+  await other.call(verifyCode,proof,400);await outsider.call(verifyCode,proof,400);
+  const results=await Promise.all([user.call(verifyCode,proof,[200,400]),user.call(verifyCode,proof,[200,400])]);
+  assert.deepEqual(results.map(r=>r.status).sort(),[200,400]);
+  await other.call('/api/auth/session',undefined,401);await user.call(verifyCode,proof,400);
+  await user.call(requestCode,{email:'replacement@example.test'},409);
+  assert.equal((await user.call('/api/auth/email')).email,'private@example.test');
+  assert.equal((await f.browser(true).call('/api/auth/login',{login:'private@example.test',password})).account.id,user.session.account.id);
+  await f.browser(true).call('/api/auth/login',{username:'native_user',password},401);
+ }finally{f.sqlite.close();}
+});
+test('replacement, expiry, retry limit and provider failures leave the old username login usable',async()=>{
+ const f=fixture({configuredMail:true});try{
+  const user=await f.register(),first=await user.call(requestCode,{email:'first@example.test'},202),firstCode=lastCode(f);
+  const second=await user.call(requestCode,{email:'second@example.test'},202),secondCode=lastCode(f);
+  await user.call(verifyCode,{challengeId:first.challengeId,code:firstCode},400);
+  for(let i=0;i<5;i++)await user.call(verifyCode,{challengeId:second.challengeId,code:secondCode==='00000000'?'00000001':'00000000'},400);
+  await user.call(verifyCode,{challengeId:second.challengeId,code:secondCode},400);
+  const latest=await user.call(requestCode,{email:'third@example.test'},202),code=lastCode(f);
+  await user.call(requestCode,{email:'third@example.test'},429);
+  f.advance(600001);await user.call(verifyCode,{challengeId:latest.challengeId,code},401);
+  await user.call('/api/auth/reauthenticate',{password});
+  await user.call(verifyCode,{challengeId:latest.challengeId,code},400);
+  assert.equal((await f.browser(true).call('/api/auth/login',{username:'native_user',password})).account.id,user.session.account.id);
+ }finally{f.sqlite.close();}
+ for(const options of [{},{configuredMail:true,mailAccepted:false}]){
+  const f=fixture(options);try{
+   const user=await f.register();await user.call(requestCode,{email:'unconfirmed@example.test'},503);
+   assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM auth_email_codes').get().n,0);
+   assert.equal((await user.call('/api/auth/email')).verifiedAt,null);
+  }finally{f.sqlite.close();}
+ }
+});
+test('a code that expires during its verification lookup cannot bind an email address',async()=>{
+ const f=fixture({configuredMail:true});try{
+  const user=await f.register(),sent=await user.call(requestCode,{email:'fresh@example.test'},202);
+  f.env.DB.afterRead=sql=>{if(sql.startsWith('SELECT email FROM auth_email_codes'))f.advance(600001);};
+  await user.call(verifyCode,{challengeId:sent.challengeId,code:lastCode(f)},400);
+  assert.equal((await user.call('/api/auth/email')).email,null);
+ }finally{f.sqlite.close();}
+});
+test('issued code cannot claim an address verified on another account or bypass an owner passkey',async()=>{
+ const f=fixture({configuredMail:true});try{
+  const owner=await f.register(),existing=await f.register('holder_user');
+  const ownerId=owner.session.account.id,ownerSession=owner.session.session.id;
+  f.sqlite.prepare('INSERT INTO account_emails VALUES(?,?,?,?,?)').run(existing.session.account.id,'holder@example.test',f.time(),f.time(),f.time());
+  f.sqlite.prepare('INSERT INTO platform_owner VALUES(1,?,?,?)').run(ownerId,f.time(),ownerSession);
+  await owner.call(requestCode,{email:'holder@example.test'},401);
+  f.sqlite.prepare('UPDATE auth_sessions SET mfa_verified_at=? WHERE id=?').run(f.time(),ownerSession);
+  const sent=await owner.call(requestCode,{email:'holder@example.test'},202),code=lastCode(f);
+  f.advance(300001);await owner.call(verifyCode,{challengeId:sent.challengeId,code},401);
+  f.sqlite.prepare('UPDATE auth_sessions SET mfa_verified_at=? WHERE id=?').run(f.time(),ownerSession);
+  await owner.call(verifyCode,{challengeId:sent.challengeId,code},409);
+  assert.equal((await owner.call('/api/auth/email')).email,null);assert.equal((await existing.call('/api/auth/email')).email,'holder@example.test');
  }finally{f.sqlite.close();}
 });
 let failures=0;for(const[name,run]of tests){try{await run();console.log('PASS '+name);}catch(error){failures++;console.error('FAIL '+name,error);}}console.log(`${tests.length-failures}/${tests.length} identity hardening checks passed. Real Argon2id/JWT/SQLite, mocked provider exchange and email delivery; no real Google/email service claim.`);process.exitCode=failures?1:0;

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.11",
-  "tag": "v1.0.11",
+  "version": "1.0.12",
+  "tag": "v1.0.12",
   "android": {
     "filename": "VOIDLINE-Android.apk",
     "url": "/downloads/VOIDLINE-Android.apk",
@@ -19,7 +19,8 @@
     "signed": false,
     "bytes": 158360590,
     "sha256": "042ea944176914da1cb4c4450fa479cc275c86e6cbb33c6a121906be457cb8b5",
-    "version": "1.0.1"
+    "version": "1.0.1",
+    "reuseTag": "v1.0.11"
   },
   "ios": {
     "nativeAvailable": false,

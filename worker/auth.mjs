@@ -61,6 +61,23 @@ export async function authRateLimit(request,db,action,maximum,now,identity=''){
 }
 function emailValue(value){requireAuth(typeof value==='string'&&value.length<=254,400,'invalid_email','Enter a valid email address.');const email=value.trim().toLowerCase();requireAuth(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)&&!/[\u0000-\u001f\u007f]/.test(email),400,'invalid_email','Enter a valid email address.');return email;}
 function emailConfigured(env){const config=configuration(env);return config.valid&&!!env?.RESEND_API_KEY&&!!env?.EMAIL_FROM;}
+const emailCodeLifetime=10*60000;
+function newEmailCode(){
+ const range=100000000,limit=Math.floor(0x100000000/range)*range,sample=new Uint32Array(1);
+ do {crypto.getRandomValues(sample);} while(sample[0]>=limit);
+ return String(sample[0]%range).padStart(8,'0');
+}
+// The high-entropy challenge ID is returned only to the requesting client. Both
+// stored hashes omit the raw ID, so the database cannot test offline code guesses.
+const emailCodeHash=(id,accountId,sessionId,code)=>authHash([id,accountId,sessionId,code].join(':'));
+function verifiedEmailWrites(db,user,email,time,marker,guardSql,guardBinds){
+ return [
+  query(db,'INSERT INTO account_emails(account_id,email,verified_at,created_at,updated_at) SELECT ?,?,?,?,? WHERE '+guardSql+' ON CONFLICT(account_id) DO UPDATE SET email=excluded.email,verified_at=excluded.verified_at,updated_at=excluded.updated_at',user.id,email,time,time,time,...guardBinds),
+  query(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND id<>? AND revoked_at IS NULL AND '+guardSql,time,user.id,user.sessionId,...guardBinds),
+  matrixPolicySessionsStatement(db,{accountId:user.id,exceptSessionId:user.sessionId,idempotencyKey:'email-change:'+marker,requestedBy:user.id,time,revokedAt:time,guardSql,guardBinds}),
+  query(db,"UPDATE auth_email_tokens SET consumed_at=?,kind='email-change-invalidated' WHERE account_id=? AND consumed_at IS NULL AND kind IN ('reset','verify') AND "+guardSql,time,user.id,...guardBinds)
+ ];
+}
 function deviceLabel(ua){const platform=/Android/i.test(ua)?'Android':/iPhone|iPad/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS/i.test(ua)?'Mac':/Linux/i.test(ua)?'Linux':'Browser';const browser=/Firefox/i.test(ua)?'Firefox':/Edg\//i.test(ua)?'Edge':/Chrome|CriOS/i.test(ua)?'Chrome':/Safari/i.test(ua)?'Safari':'browser';return platform+' · '+browser;}
 export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(...args),keyResolver=googleKeys}={}){
  async function authenticate(request,env){
@@ -96,7 +113,11 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
   requireAuth(emailConfigured(env),503,'email_not_configured','Email delivery has not been configured. Your existing login remains available.');
   const origin=configuration(env).origin,verify=kind==='verify',signup=kind==='signup';
   const link=origin+'/#'+(signup?'signup-email=':verify?'verify-email=':'reset-password=')+token;
-  const response=await fetcher('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESEND_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.EMAIL_FROM,to:[to],subject:signup?'Create your Voidline account':verify?'Verify your Voidline email':'Reset your Voidline password',text:(signup?'Choose a public username and a password for your private verified email: ':verify?'Confirm this email address for your Voidline account: ':'Reset your Voidline password: ')+link+'\n\nThis link expires in 10 minutes and can be used once. If you did not request it, ignore this email. No existing password is revealed.'}),signal:AbortSignal.timeout(15000)});
+  const subject=kind==='code'?'Your VOIDLINE verification code':signup?'Create your Voidline account':verify?'Verify your Voidline email':'Reset your Voidline password';
+  const text=kind==='code'
+   ? 'Enter this verification code in the VOIDLINE account where you requested it: '+token+'\n\nIt expires in 10 minutes. If you did not request this code, ignore this email.'
+   : (signup?'Choose a public username and a password for your private verified email: ':verify?'Confirm this email address for your Voidline account: ':'Reset your Voidline password: ')+link+'\n\nThis link expires in 10 minutes and can be used once. If you did not request it, ignore this email. No existing password is revealed.';
+  const response=await fetcher('https://api.resend.com/emails',{method:'POST',headers:{authorization:'Bearer '+env.RESEND_API_KEY,'content-type':'application/json'},body:JSON.stringify({from:env.EMAIL_FROM,to:[to],subject,text}),signal:AbortSignal.timeout(15000)});
   requireAuth(response.ok,503,'email_unavailable','The email service could not accept this request. Please retry.');
  }
  async function issueEmailToken(db,accountId,email,kind,time){const token=random(),hash=await authHash(token);await query(db,'DELETE FROM auth_email_tokens WHERE expires_at<?',time).run();await query(db,'INSERT INTO auth_email_tokens(token_hash,account_id,kind,email,expires_at,created_at) VALUES(?,?,?,?,?,?)',hash,accountId,kind,email,time+10*60000,time).run();return {token,hash};}
@@ -306,6 +327,59 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
    }
    requireAuth(request.method==='POST',405,'method_not_allowed','This action requires a POST request.');const body=await readBody(request);await validateSessionMutation(request,user,body);
    const activeSessionSql=" AND EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id WHERE s.id=? AND s.account_id=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.account_status='active')",activeSessionBinds=[user.sessionId,user.id,time];
+   if(path==='/api/auth/email/code/request'||path==='/api/auth/email/code/verify'){
+    requireAuth(user.reauthenticatedAt>time-emailCodeLifetime,401,'reauthentication_required','Confirm your password before verifying a sign-in address.');
+    const eligibleSql=`EXISTS(SELECT 1 FROM auth_sessions s JOIN live_accounts a ON a.id=s.account_id
+      WHERE s.account_id=? AND s.id=? AND s.revoked_at IS NULL AND s.expires_at>? AND s.reauthenticated_at>?
+       AND a.account_status='active' AND (s.mfa_verified_at>? OR NOT EXISTS(SELECT 1 FROM platform_owner WHERE account_id=s.account_id)))
+      AND NOT EXISTS(SELECT 1 FROM account_emails WHERE account_id=? AND verified_at IS NOT NULL)`;
+    const eligibleBinds=at=>[user.id,user.sessionId,at,at-emailCodeLifetime,at-5*60000,user.id];
+    if(await query(db,'SELECT 1 FROM platform_owner WHERE account_id=?',user.id).first())requireAuth(user.session.mfa_verified_at>time-5*60000,401,'passkey_required','Verify your passkey before adding owner recovery.');
+    if(path.endsWith('/request')){
+     requireAuth(emailConfigured(env),503,'email_not_configured','Email delivery has not been configured. You can keep signing in with your username.');
+     const email=emailValue(body.email);
+     await authRateLimit(request,db,'legacy-email-send',3,time,user.id);
+     await authRateLimit(request,db,'legacy-email-address',3,time,email);
+     const challengeId=random(),challengeHash=await authHash(challengeId),code=newEmailCode(),expiresAt=time+emailCodeLifetime;
+     const codeHash=await emailCodeHash(challengeId,user.id,user.sessionId,code);
+     const result=await db.batch([
+      query(db,'DELETE FROM auth_email_codes WHERE expires_at<=?',time),
+      query(db,`INSERT INTO auth_email_codes(account_id,session_id,challenge_hash,code_hash,email,expires_at,attempts)
+       SELECT ?,?,?,?,?,?,0 WHERE `+eligibleSql+` ON CONFLICT(account_id) DO UPDATE SET session_id=excluded.session_id,
+       challenge_hash=excluded.challenge_hash,code_hash=excluded.code_hash,email=excluded.email,expires_at=excluded.expires_at,attempts=0`,
+       user.id,user.sessionId,challengeHash,codeHash,email,expiresAt,...eligibleBinds(now()))
+     ]);
+     requireAuth(result[1].meta.changes===1,409,'email_enrollment_unavailable','Check your account email status before requesting another code.');
+     try{await deliverEmail(env,email,'code',code);}catch(error){
+      await query(db,'DELETE FROM auth_email_codes WHERE account_id=? AND challenge_hash=?',user.id,challengeHash).run();throw error;
+     }
+     return json({accepted:true,email,challengeId,expiresAt},202);
+    }
+    const invalid='This code is incorrect, has expired, or was replaced. Use the latest code or request another.';
+    await authRateLimit(request,db,'legacy-email-code',10,time,user.id);
+    requireAuth(typeof body.challengeId==='string'&&/^[a-f0-9]{64}$/.test(body.challengeId)&&typeof body.code==='string'&&/^[0-9]{8}$/.test(body.code),400,'invalid_verification',invalid);
+    const hash=await authHash(body.challengeId),codeHash=await emailCodeHash(body.challengeId,user.id,user.sessionId,body.code);
+    const pending=await query(db,'SELECT email FROM auth_email_codes WHERE account_id=? AND session_id=? AND challenge_hash=?',user.id,user.sessionId,hash).first();
+    requireAuth(pending,400,'invalid_verification',invalid);
+    const match='account_id=? AND session_id=? AND challenge_hash=? AND attempts<5 AND expires_at>?';
+    const commitTime=now(),binds=[user.id,user.sessionId,hash,commitTime];
+    const marker='code-used:'+crypto.randomUUID();
+    const guardSql='EXISTS(SELECT 1 FROM auth_email_codes WHERE account_id=? AND code_hash=?)';
+    const guardBinds=[user.id,marker];
+    try{
+     const result=await db.batch([
+      query(db,'UPDATE auth_email_codes SET attempts=attempts+1 WHERE '+match+' AND code_hash<>?',...binds,codeHash),
+      query(db,'UPDATE auth_email_codes SET code_hash=? WHERE '+match+' AND code_hash=? AND '+eligibleSql,marker,...binds,codeHash,...eligibleBinds(commitTime)),
+      ...verifiedEmailWrites(db,user,pending.email,commitTime,marker,guardSql,guardBinds),
+      query(db,'DELETE FROM auth_email_codes WHERE account_id=? AND code_hash=?',...guardBinds)
+     ]);
+     requireAuth(result[1].meta.changes===1,400,'invalid_verification',invalid);
+    }catch(error){
+     if(/unique.*account_emails.email/i.test(String(error.message)))throw new AuthError(409,'email_unavailable','This address cannot be assigned to this account.');
+     throw error;
+    }
+    return json({verified:true,email:pending.email});
+   }
    if(path==='/api/auth/email/request'||path==='/api/auth/email/verify'){
     await authRateLimit(request,db,'verify-email',5,time,user.id);
     if(path.endsWith('/request')){
@@ -326,10 +400,8 @@ export function createAuthService({now=()=>Date.now(),fetcher=(...args)=>fetch(.
     try{
      const result=await db.batch([
       query(db,"UPDATE auth_email_tokens SET consumed_at=?,kind=? WHERE token_hash=? AND account_id=? AND kind='verify' AND consumed_at IS NULL AND expires_at>?"+activeSessionSql,time,consumedKind,hash,user.id,time,...activeSessionBinds),
-      query(db,'INSERT INTO account_emails(account_id,email,verified_at,created_at,updated_at) SELECT ?,?,?,?,? WHERE '+guardSql+' ON CONFLICT(account_id) DO UPDATE SET email=excluded.email,verified_at=excluded.verified_at,updated_at=excluded.updated_at',user.id,token.email,time,time,time,...guardBinds),
-      query(db,'UPDATE auth_sessions SET revoked_at=? WHERE account_id=? AND id<>? AND revoked_at IS NULL AND '+guardSql,time,user.id,user.sessionId,...guardBinds),
-      matrixPolicySessionsStatement(db,{accountId:user.id,exceptSessionId:user.sessionId,idempotencyKey:'email-change:'+consumedKind,requestedBy:user.id,time,revokedAt:time,guardSql,guardBinds}),
-      query(db,"UPDATE auth_email_tokens SET consumed_at=?,kind='email-change-invalidated' WHERE account_id=? AND consumed_at IS NULL AND kind IN ('reset','verify') AND "+guardSql,time,user.id,...guardBinds)
+      ...verifiedEmailWrites(db,user,token.email,time,consumedKind,guardSql,guardBinds),
+      query(db,"DELETE FROM auth_email_codes WHERE account_id=? AND "+guardSql,user.id,...guardBinds)
      ]);
      requireAuth(result[0]?.meta?.changes===1,400,'invalid_verification','This verification link is unavailable or already used.');
     }catch(error){

@@ -99,6 +99,13 @@
       "when": 1795422986095,
       "tag": "0013_verified_email_signup",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1795422986096,
+      "tag": "0014_legacy_email_codes",
+      "breakpoints": true
     }
   ]
 }
