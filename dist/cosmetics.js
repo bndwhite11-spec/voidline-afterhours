@@ -76,16 +76,40 @@
  function toolbarHTML(){return `<div class="vc-browser-tools"><label class="vc-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span class="vh-sr-only">Search designs</span><input id="vc-design-search" data-vc-search type="search" autocomplete="off" value="${esc(searchQuery)}" placeholder="Search names, materials, references"></label><label class="vc-filter-field"><span>Type</span><select data-vc-kind><option value="all" ${kindFilter==='all'?'selected':''}>Everything</option><option value="badge" ${kindFilter==='badge'?'selected':''}>Decorations</option><option value="gift" ${kindFilter==='gift'?'selected':''}>Gifts</option></select></label><label class="vc-filter-field"><span>Family or series</span><select data-vc-series><option value="all">All families and series</option>${[...new Set(items.map(displayFamily))].map(series=>`<option value="${esc(series)}" ${seriesFilter===series?'selected':''}>${esc(series)}</option>`).join('')}</select></label></div>`;}
  function badgeFiltersHTML(){return `<div class="vc-category-filters" role="group" aria-label="Badge collection">${badgeCategories.map(([id,label])=>`<button data-vc-action="filter" data-filter="${id}" aria-pressed="${badgeFilter===id}" class="${badgeFilter===id?'is-active':''}">${label}</button>`).join('')}</div><p class="vc-series-copy">${esc(categoryCopy(badgeFilter))}</p>`;}
  function emptyCollectionHTML(){return `<div class="vc-empty"><h3>${hubSection==='collected'||badgeFilter==='owned'?'No collected items yet':'No matching designs'}</h3><p>${hubSection==='collected'?'Your collection starts empty. Add only the objects you want.':'Try another name, material or series.'}</p><button data-vc-action="reset-filters">Browse all designs</button></div>`;}
- function familyChoices(){
-  if(hubSection!=='browse'||kindFilter==='badge'||!items.some(item=>item.familyId))return '';
+ function giftFamilies(){
   const groups=new Map();
   for(const item of items){
    if(item.type!=='gift'||(!item.familyId&&displayFamily(item)!=='Copium Cartridges'))continue;
    const name=displayFamily(item);
-   if(!groups.has(name))groups.set(name,{first:item,count:0});
-   groups.get(name).count++;
+   if(!groups.has(name))groups.set(name,[]);
+   groups.get(name).push(item);
   }
-  return `<details class="vc-family-picker"><summary>Browse gift families</summary><div class="vc-family-list">${[...groups].map(([name,{first,count}])=>`<button type="button" data-vc-action="discover-family" data-family="${esc(name)}">${art(first.id,true)}<span><b>${esc(name)}</b><small>${count} designs</small></span></button>`).join('')}</div></details>`;
+  return groups;
+ }
+ function familyProgress(models){
+  const count=models.filter(item=>summary?.modelCounts?Number(summary.modelCounts[item.id])>0:owned.has(item.id)).length;
+  const discovered=Array.isArray(summary?.discoveredModelIds)?new Set(summary.discoveredModelIds):null;
+  const familyId=models.find(item=>item.familyId)?.familyId;
+  const record=summary?.families?.find(item=>item.familyId===familyId&&Number(item.totalModels)===models.length);
+  const known=discovered?models.filter(item=>discovered.has(item.id)).length:Number.isFinite(record?.discoveredModels)?record.discoveredModels:null;
+  return `<span class="vc-family-progress">${count} of ${models.length} designs owned${known===null?'':` · ${known} discovered`}</span><progress class="vc-family-meter" value="${count}" max="${models.length}" aria-label="${count} of ${models.length} designs owned"></progress>`;
+ }
+ function familyEditions(models){
+  const free=models.filter(item=>item.acquisitionPolicy==='legacy-free').length,capsule=models.filter(item=>item.acquisitionPolicy==='capsule-only').length;
+  return [free?`${free} free ${free===1?'edition':'editions'}`:'',capsule?`${capsule} capsule ${capsule===1?'edition':'editions'}`:''].filter(Boolean).join(' · ');
+ }
+ function familyChoices(){
+  if(hubSection!=='browse'||kindFilter==='badge'||!items.some(item=>item.familyId))return '';
+  return `<details class="vc-family-picker" open><summary>Browse gift families</summary><div class="vc-family-list">${[...giftFamilies()].map(([name,models])=>`<article class="vc-family-tile"><button type="button" class="vc-family-select" data-vc-action="discover-family" data-family="${esc(name)}" aria-pressed="${seriesFilter===name}"><span class="vc-family-art" aria-hidden="true">${models.slice(0,3).map(item=>art(item.id)).join('')}</span><span class="vc-family-copy"><b>${esc(name)}</b><small>${esc(familyEditions(models))}</small>${familyProgress(models)}</span></button><button type="button" class="vc-family-compare" data-vc-action="compare-family" data-family="${esc(name)}" aria-label="Compare ${esc(name)} designs">Compare designs</button></article>`).join('')}</div></details>`;
+ }
+ function compareFamily(name){
+  identity();if(!accountId||!loaded)return;
+  const models=giftFamilies().get(name);if(!models?.length)return;
+  rememberCollection();panelIntent++;returnToProfile=null;
+  const capsule=models.some(item=>item.acquisitionPolicy==='capsule-only'),free=models.some(item=>item.acquisitionPolicy==='legacy-free');
+  dialog(name,'Compare the artwork, materials and editions before choosing a design.',`${errors}<section class="vc-family-comparison"><header><div><p>${esc(familyEditions(models))}</p>${familyProgress(models)}</div><button class="vh-text-button" data-vc-action="return">Back to Discover</button></header><div class="vc-compare-grid">${models.map(item=>`<article class="vc-compare-card"><button class="vc-compare-art" data-vc-action="compare-inspect" data-family="${esc(name)}" data-item="${esc(item.id)}" aria-label="Inspect ${esc(item.name)}">${art(item.id)}</button><div class="vc-compare-copy"><span class="vc-series">${esc(editionLabel(item))}${item.tier?' · '+esc(item.tier):''}</span><h3>${esc(item.name)}</h3><dl><div><dt>Material</dt><dd>${esc(item.material||item.finish||'Not specified')}</dd></div>${item.backdrop?.name?`<div><dt>Backdrop</dt><dd>${esc(item.backdrop.name)}</dd></div>`:''}${item.motif?`<div><dt>Motif</dt><dd>${esc(item.motif)}</dd></div>`:''}</dl><p>${esc(ownedCopy(item))}</p><button class="vh-text-button" data-vc-action="compare-inspect" data-family="${esc(name)}" data-item="${esc(item.id)}">Inspect design</button></div></article>`).join('')}</div><footer>${free?'<p>Available free editions can be added once per account. Inspect a design to see its collection and gift options.</p>':''}${capsule?'<p>Capsule editions come from earned Choice Capsules or an accepted transfer. Each capsule shows its eligible families, models and exact chances before opening.</p><button class="vh-secondary" data-vc-action="section" data-section="collector">Earn capsules</button>':''}</footer></section>`,'family-comparison');
+  document.querySelector?.('[data-vc-action="return"]')?.focus({preventScroll:true});
+  return true;
  }
  function browseMarkup(){const selected=selectedDesigns(),collected=selected.filter(item=>owned.has(item.id)).length;return `${toolbarHTML()}${familyChoices()}${badgeFilter!=='all'?badgeFiltersHTML():''}<div class="vc-browser-status"><p id="vc-result-count" class="vc-collection-count" role="status">${selected.length} ${selected.length===1?'design':'designs'} · ${collected} collected</p>${hubSection==='collected'?`<span class="vc-organization-actions"><button class="vh-text-button" data-vc-action="instances">Manage owned gift instances</button>${window.VoidGiftCollections?'<button class="vh-text-button" data-vc-action="organize-gifts">Organize gifts</button>':''}</span>`:''}</div><div class="vc-grid" id="vc-design-grid">${selected.map(collectionCard).join('')}</div><div id="vc-no-designs">${!selected.length?emptyCollectionHTML():''}</div>${equipped?'<button class="vh-text-button" data-vc-action="unequip">Remove equipped decoration</button>':''}${directoryLinks()}`;}
  function paintBrowse(){
@@ -331,6 +355,11 @@
   const d=button.dataset,inspection=!!$('home-dialog')?.open&&!!$('vc-inspection-scene'),profileReturn=inspection?returnToProfile:null;
   if(d.vcAction==='badge-display')return editBadgeDisplay();
   if(d.vcAction==='owned-decorations'){kindFilter='badge';seriesFilter='all';searchQuery='';return collection('collected','owned','',true);}
+  if(d.vcAction==='compare-family')return compareFamily(d.family);
+  if(d.vcAction==='compare-inspect'){
+   if(!giftFamilies().get(d.family)?.some(item=>item.id===d.item))return;
+   return inspect(d.item,{returnTo:()=>compareFamily(d.family),returnLabel:'Back to family comparison'});
+  }
   if(d.vcAction==='discover-family'){
    seriesFilter=d.family;searchQuery='';
    const picker=button.closest('.vc-family-picker'),grid=$('vc-design-grid');
@@ -343,6 +372,7 @@
    panel.querySelector('.vc-category-filters')?.remove();
    panel.querySelector('.vc-series-copy')?.remove();
    paintBrowse();
+   for(const choice of picker.querySelectorAll('[data-vc-action="discover-family"]'))choice.setAttribute('aria-pressed',String(choice.dataset.family===seriesFilter));
    picker.open=false;picker.querySelector('summary').focus({preventScroll:true});
    return;
   }

@@ -76,3 +76,21 @@ html.vh-reduced-motion .cl-sheet * {animation:none!important;transition:none!imp
 .cl-odds [data-cl=preview-contents]:hover{text-decoration:underline}
 
 .vh-dialog:has(.cl-sheet){width:min(44rem,calc(100vw - 1.25rem))}
+
+/* A capsule's illustrated choices always use that capsule's saved family list. */
+.cl-choice .cl-family-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cl-family-choices legend{grid-column:1/-1}
+.cl-choice .cl-family-choices button{display:grid;align-content:start;gap:0;min-width:0;overflow:hidden;text-align:start;padding:0;border-radius:8px;box-shadow:none}
+.cl-choice .cl-family-choices [aria-pressed=true]{border-color:var(--vh-accent);box-shadow:inset 0 -3px var(--vh-accent)}
+.cl-family-posters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;padding:10px 6px 0;background:var(--vh-bg);overflow:hidden}
+.cl-family-posters>span{display:grid;place-items:center;min-width:0;aspect-ratio:1;transition:transform 180ms ease}
+.cl-family-posters .vc-art,.cl-family-posters img{display:block;width:100%;height:auto;max-width:100%;aspect-ratio:1;object-fit:contain}
+.cl-family-choices button:hover:not(:disabled) .cl-family-posters>span{transform:translateY(-3px)}
+.cl-family-copy{display:grid;gap:5px;padding:10px 12px 13px;line-height:1.4}
+.cl-family-copy strong{font-size:.875rem;overflow-wrap:anywhere}
+.cl-family-copy small,.cl-choice-note{color:var(--vh-muted);font-size:.75rem;line-height:1.5}
+.cl-choice-note{margin:.5rem 0 1rem}
+@media(max-width:390px){.cl-choice .cl-family-choices{grid-template-columns:minmax(0,1fr)}}
+html.vh-reduced-motion .cl-family-posters>span{transition:none!important;transform:none!important}
+@media(prefers-reduced-motion:reduce){.cl-family-posters>span{transition:none!important;transform:none!important}}
+@media(forced-colors:active){.cl-choice .cl-family-choices [aria-pressed=true]{border-color:Highlight;outline:1px solid Highlight}}
